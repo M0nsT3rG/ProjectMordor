@@ -1,19 +1,23 @@
 # Current task
 
-**Last completed:** the real-time soak test (review #1 FB-1-03 P1). See [docs/soak-testing.md](../docs/soak-testing.md) and EXP-010.
+**Last completed:** triage and fixes for ChatGPT review #2 (FB-2-01 to FB-2-06), with a soak re-run under gate v2. See [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md) and EXP-011.
 
 **Branches and PRs:**
 
 - `feature/ai-collaboration-bridge`: PR [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1), open, waiting for the user to merge.
-- `feature/realtime-soak`: PR [#2](https://github.com/M0nsT3rG/ProjectMordor/pull/2), stacked on #1 (base `feature/ai-collaboration-bridge`). Review request #2 is open.
+- `feature/realtime-soak`: PR [#2](https://github.com/M0nsT3rG/ProjectMordor/pull/2), stacked on #1, open. Review #2 is triaged.
+- `feature/reliable-events`: **local only, not pushed.** WIP commit `187a121`: a minimal in-house `ReliableChannel` plus protocol v2 Event/EventAck, 21 passing unit tests. Host integration is unfinished and the branch does not build.
 
 **Repository:** https://github.com/M0nsT3rG/ProjectMordor (private)
 
-## Next tasks (Phase 2A, no game interaction), in priority order
+## Waiting on the user
 
-1. **P2:** reliable, ordered, idempotent event channel behind a transport interface (D-010, FB-1-04). The choice of transport waits for ChatGPT's answer to review #2 question 4.
-2. **P2:** desync digests (state hash per tick, compared host and client).
-3. **P2:** longer soaks (30–60 min) with repeated stalls; real process suspension.
-4. **Approval needed:** the LAN test on two PCs, with a temporary firewall rule.
+- **Transport for the reliable event channel** (review #2, answer 4): ENet (MIT) or GameNetworkingSockets (BSD-3) behind an interface, compared with the parked in-house channel using the same tests. Adding a third-party library needs the user's approval.
+- **Gate G0:** D-007 (legal) and D-008 (target platform).
+- **LAN test:** approval for a temporary firewall rule.
 
-D-007 (legal) and D-008 (target platform) stay with the user. No game-side work happens until gate G0 passes.
+## Next tasks without user input (Phase 2A, no game interaction)
+
+1. **P1 (FB-2-05):** wider stall coverage. Host stall, repeated and asymmetric outages, repeated reconnects within the grace period, seeded randomized schedules, longer runs (30–60 min).
+2. **P1 (KI-18):** repeat each profile N times; report the distribution of recovery time and RTT.
+3. **P2:** desync digests.

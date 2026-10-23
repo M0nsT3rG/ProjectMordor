@@ -187,7 +187,7 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         token_ = acc->reconnect_token;
         tick_rate_hz_ = acc->tick_rate_hz;
         last_recv_us_ = next_input_us_ = last_heartbeat_us_ = now_us;
-        peer_seq_ = p.header.sequence;
+        peer_seq_ = accept_seq_ = p.header.sequence;
         pending_inputs_.clear();
         predicted_.reset();
         authoritative_.reset();
@@ -212,6 +212,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
                               std::holds_alternative<Disconnect>(p.message);
     if (!client_bound) {
         ++stats_.invalid_packets;
+        return;
+    }
+    // A Disconnect sent before the accept that established this connection is stale: a delayed or replayed
+    // timeout notice from the previous grace period must not tear down the fresh connection (review FB-2-02).
+    // Not a security control: without authentication a forged packet can still claim a newer sequence.
+    if (std::holds_alternative<Disconnect>(p.message) && !seq_newer(p.header.sequence, accept_seq_)) {
+        ++stats_.stale_notices;
         return;
     }
     last_recv_us_ = now_us;
@@ -268,6 +275,7 @@ void Client::on_snapshot(const Snapshot& s, std::uint64_t now_us) {
                 const float err = std::hypot(predicted_->t.x - auth.t.x, predicted_->t.z - auth.t.z);
                 if (err > kCorrectionEpsilon) {
                     ++stats_.corrections;
+                    if (correction_samples_.size() < kMaxRttSamples) correction_samples_.push_back(err);
                     stats_.max_correction = std::max(stats_.max_correction, err);
                 }
             }

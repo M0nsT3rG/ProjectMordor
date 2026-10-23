@@ -141,7 +141,8 @@ def build(repo: Path) -> dict[str, str]:
             s = json.loads((d / "summary.json").read_text(encoding="utf-8"))
             c1, c2 = s["clients"].get("client1", {}), s["clients"].get("client2", {})
             failed = [g["gate"] for g in s["gates"] if not g["passed"]]
-            tr.append(f"| {d.name} | {'passed' if s['passed'] else 'FAILED: ' + ', '.join(failed)} | "
+            verdict = "passed" if s["passed"] else "FAILED: " + ", ".join(failed)
+            tr.append(f"| {d.name} | v{s.get('gate_version', 1)} {verdict} ({len(s['gates'])} gates) | "
                       f"{c1.get('rtt_p50_ms')} / {c1.get('rtt_p99_ms')} | {c2.get('recovery_after_stall_ms')} | "
                       f"{s['host'].get('shed_inputs')} | `evidence/logs/{d.name}/summary.json` |")
         except (OSError, KeyError, json.JSONDecodeError):

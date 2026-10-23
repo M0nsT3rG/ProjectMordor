@@ -249,3 +249,25 @@ TEST(jitter_never_exceeds_tick_movement_budget) {
     CHECK_NEAR(a.predicted_self()->x, s.host.player_transform(a.player_id())->x, 1e-3);
     CHECK(s.all_connected());
 }
+
+// Review #2 FB-2-02, smoke test with a real host and heavy host-side jitter: recovery must happen exactly
+// once and stay stable. NOTE: in practice this run delivered no late notice (stale_notices was 0), so it
+// does not prove the stale-notice guard; the deterministic proof is the fake-host tests in the
+// integration suite (delayed_timeout_notice_after_reconnect_is_ignored and friends).
+TEST(timeout_notice_recovery_under_jitter_reconnects_once) {
+    host::HostConfig hc;
+    hc.impairment = impair(0, 20, 400, 61);
+    test::Session s(hc);
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 5 * kSec));
+    const auto player = c.player_id();
+    c.set_impairment(impair(1.0, 0, 0, 62));  // uplink cut until the host times the client out
+    CHECK(s.pump_until([&] { return s.host.connected_count() == 0; }, 6 * kSec));
+    c.set_impairment(impair(0, 20, 0, 63));
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == 1; }, 5 * kSec));
+    s.run(3 * kSec);  // any late notices arrive during this window
+    CHECK(c.state() == ClientState::Connected);
+    CHECK(c.stats().reconnects == 1);
+    CHECK(c.player_id() == player);
+    CHECK(s.host.connected_count() == 1);
+}

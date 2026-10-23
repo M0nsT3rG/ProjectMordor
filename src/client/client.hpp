@@ -38,6 +38,7 @@ struct ClientStats {
     std::uint64_t packets_in = 0, packets_out = 0, invalid_packets = 0, foreign_packets = 0, snapshots_applied = 0,
                   stale_snapshots = 0, corrections = 0, reconnects = 0;
     std::uint64_t bytes_in = 0, bytes_out = 0;  // UDP payload bytes (headers included, IP/UDP overhead excluded)
+    std::uint64_t stale_notices = 0;  // Disconnect packets older than the accept of the current connection
     std::uint64_t last_reconnect_ms = 0, max_reconnect_ms = 0;  // timeout detection -> accepted again
     float max_correction = 0;
 };
@@ -66,6 +67,7 @@ public:
     std::vector<std::uint16_t> remote_entities() const;
     const ClientStats& stats() const { return stats_; }
     const std::vector<float>& rtt_samples_ms() const { return rtt_samples_ms_; }  // raw samples for percentiles
+    const std::vector<float>& correction_samples() const { return correction_samples_; }  // each correction's size
     std::uint16_t local_port() const { return socket_.local_endpoint().port; }
     void set_impairment(const net::ImpairmentConfig& c) { sender_.set_config(c); }
 
@@ -89,14 +91,14 @@ private:
     std::optional<net::RejectReason> reject_reason_;
     std::optional<net::DisconnectReason> disconnect_reason_;
     std::uint64_t nonce_ = 0, token_ = 0;
-    std::uint32_t session_ = 0, send_seq_ = 0, peer_seq_ = 0;
+    std::uint32_t session_ = 0, send_seq_ = 0, peer_seq_ = 0, accept_seq_ = 0;
     std::uint16_t player_id_ = 0, entity_id_ = 0, tick_rate_hz_ = 30;
     std::uint64_t phase_started_us_ = 0, last_attempt_us_ = 0, last_recv_us_ = 0, last_heartbeat_us_ = 0;
     std::uint64_t next_input_us_ = 0, last_snapshot_us_ = 0;
     bool attempted_ = false;
     std::optional<std::uint32_t> latest_tick_;
     std::optional<double> rtt_us_;
-    std::vector<float> rtt_samples_ms_;
+    std::vector<float> rtt_samples_ms_, correction_samples_;
     std::uint64_t reconnect_started_us_ = 0;
 
     float move_x_ = 0, move_z_ = 0;

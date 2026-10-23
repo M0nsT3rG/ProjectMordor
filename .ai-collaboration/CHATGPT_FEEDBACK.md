@@ -8,7 +8,46 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review request #2 (real-time soak)
 
-_Status: **awaiting feedback**._ Use the same template as #1 below (IDs `FB-2-NN`). Claude Code will add a triage table here.
+- **Status:** received and triaged (2026-10-23).
+- **Source:** [PR #2 comment 6372084762](https://github.com/M0nsT3rG/ProjectMordor/pull/2#issuecomment-6372084762), posted from the repository owner's account. ChatGPT reviewed the source code only and did not run anything.
+- **ChatGPT's verdict:** conditional GO for more Phase 2A lab work. It recommends hardening the analyzer and the timeout notice before calling the soak gates robust.
+
+### Triage by Claude Code
+
+Each finding was verified against the code first. Experiment record: EXP-011.
+
+| Feedback ID | Assumptions verified? | Decision | Reason | Implemented in | Verification |
+|---|---|---|---|---|---|
+| **FB-2-01** (major, P0) | **Yes, demonstrated.** Analyzer v1 iterated `glob("client*.log")`, gated only clients it found, and compared joins with that found count; client2's stall gates were skipped when its log was absent. Run on a synthetic run where client2 never started (no log, `exit_codes.client2 = null`, host joins = 1), **v1 printed "SOAK PASSED"**. | **Accepted** | Gates must not depend on which files happen to exist. | Gate **version 2**: `run.json` carries `expected_clients`; new gates `manifest_lists_expected_clients`, `client_logs_match_manifest` (missing, renamed and extra logs all fail), `stalled_clients_in_manifest`, `exit_codes_cover_all_processes`, `host_joins_match_manifest`; every expected client is gated whether or not its log exists. Also, **evidence immutability**: the analyzer refuses to overwrite an existing `summary.json`, and `soak.ps1` writes every run to a fresh timestamped `…-g2` directory and never deletes. (The old script emptied the run directory and would have overwritten the failing evidence on the next run of the same profile.) | 8 new analyzer self-checks (missing, renamed and extra logs; missing manifest; joins against the manifest; no overwrite; budgets and coverage) plus the existing ones: **11/11**. v2 fails the synthetic broken run that v1 passed. |
+| **FB-2-02** (major, P1) | **Yes, a real defect found.** The client checked endpoint, session and state, but not ordering. A `Disconnect{Timeout}` sent while the slot was in grace but delivered *after* a successful reconnect knocked the fresh connection back into Reconnecting. | **Accepted** for robustness. Authenticity: **deferred**; agreed it needs an authenticated transport. | The client records the sequence of the `ConnectAccept` that established the current connection and ignores any `Disconnect` with that sequence or older (`stale_notices`). This is a correctness guard, not a security control: a forged packet can still claim a newer sequence, so the prototype stays loopback and trusted-LAN only (KI-04). No nonce-only "security fix" was invented, as ChatGPT also advised. | `Client::handle` (`accept_seq_`), `ClientStats::stale_notices` | Fake-host tests written first: `delayed_timeout_notice_after_reconnect_is_ignored` and `replayed_and_duplicate_timeout_notices_have_no_extra_effect` **failed on the unfixed client** and pass now. `timeout_notice_from_other_session_or_endpoint_is_ignored` passes (session and endpoint were already checked). The real-host `timeout_notice_recovery_under_jitter_reconnects_once` passed before and after: it delivered no late notice (`stale_notices=0`), so it is labelled a smoke test, not proof. |
+| **FB-2-03** (major) | **Yes.** `max_correction`, shed inputs and kbit/s were only reported. | **Accepted** for bandwidth, correction and coverage. Shed-input threshold: **deferred**. | The ceilings are **derived from the protocol design before any v2 run**, not fitted to results. **Download:** (87-byte snapshot × 30 Hz + 30-byte ack × 4 Hz) × (1 + duplicate) × 1.05. **Upload:** (119-byte full input batch × 30 Hz + 30-byte heartbeat × 4 Hz) × 1.05. **Correction:** speed × (RTT bound + 3-tick backlog), because reconciliation only replays unacknowledged inputs. **Coverage:** elapsed ≥ 95% of the duration, and RTT samples ≥ 50% of 4/s × duration. Correction percentiles (p50, p99) are now logged. A shed-input or queue-depth threshold has no design-derived bound yet and needs repeated baselines first. | `tools/soak/analyze.py` (v2), client summary (`correction_p50/p99`, `stale_notices`) | Self-check `test_budgets_follow_protocol_arithmetic` pins the arithmetic, and each new gate has a test proving it can fail. The v2 soak passed all 36 gates on all 3 profiles (results below). |
+| **FB-2-04** (minor) | **Yes.** | **Accepted** (labelling). Tighter benchmark gate: **deferred.** | The 60 ms allowance is kept at the v1 value for comparability and is now labelled in code and gate output as a "synthetic loopback bound", not a LAN criterion. Gates are versioned, and old summaries keep `gate_version` absent (v1). A tighter lab benchmark needs repeated measurements and will be a new gate version. LAN gets its own baseline once it can be run. | `analyze.py` comments, gate detail text, `gate_version` | n/a |
+| **FB-2-05** (minor) | **Yes.** There was one 5 s in-process stall in a 120 s run. | **Accepted, deferred** (P1 for the next soak iteration) | Agreed coverage gaps: host stalls, repeated and asymmetric outages, OS-level suspension, startup races, repeated reconnects within the grace period, longer randomized seeded runs. Out of scope for this fix round. | KNOWN_ISSUES KI-16 | — |
+| **FB-2-06** (suggestion) | **Yes.** The analyzer comment still described the 15.6 ms sleep situation. | **Accepted** | The comment was updated to give the v1 rationale and the post-fix reality (about 4 ms). The analyzer now records each client's `high_resolution_timer` flag from its `loop_timer` log line. Before/after traces are preserved (EXP-010 directories untouched). | `analyze.py` | n/a |
+
+### Answer 4: reliable event channel
+
+- **ChatGPT's recommendation:** prefer **ENet or GameNetworkingSockets behind a small transport interface** over a custom reliability protocol.
+- **Decision:** accepted as the direction, **pending a user decision**. Vendoring either library adds third-party code and licence review (ENet is MIT; GameNetworkingSockets is BSD-3). Project rules say the user decides on new dependencies.
+- **What already exists:** before review #2 arrived I had started a minimal in-house `ReliableChannel` (protocol v2 `Event`/`EventAck`, 21 passing unit tests, including a 5-seed × 2000-event lossy/reordering property test). It is parked as an **unpushed local WIP commit** on `feature/reliable-events` and is not part of PR #2.
+- **Proposal:** use it as (a) the transport-neutral interface and test oracle, and (b) one of the candidates measured against ENet and GameNetworkingSockets with the same event-order, deduplication, reconnect and fault-injection tests, as ChatGPT suggests.
+
+### Soak results under gate v2
+
+All runs are real-time, 120 s, 36 gates each.
+
+| Run | Gates | RTT p50 / p99 | Max correction (budget) | In / out kbit/s (budgets) | Recovery after stall | Shed |
+|---|---|---|---|---|---|---|
+| `soak-2026-10-23-204617-lan-g2` | **passed** | 10.5 / 12.1 ms | 0 (0.84) | 21.6 / 13.7 (22.9 / 31.0) | 18 ms | 0 |
+| `soak-2026-10-23-204825-moderate-g2` | **passed** | 103.9 / 121.6 ms | 0.33 (1.40) | 21.1 / 22.2 (23.4 / 31.0) | 161 ms | 8 |
+| `soak-2026-10-23-205033-harsh-g2` | **passed** | 203.9 / 241.6 ms | 0.33 (2.00) | 19.2 / 29.4 (24.1 / 31.0) | 1567 ms | 110 |
+
+**Caveats:**
+- Harsh recovery varied between runs: 572 ms in EXP-010 and 1567 ms here, both under the 3000 ms gate. That variance is expected at 15% loss in both directions and is not yet characterised statistically.
+- Harsh upload is close to its ceiling (29.4 of 31.0). That is expected: at RTT of 200 ms or more every input batch carries the full 8 redundant commands, so it sits at the design maximum.
+- The host's `timeout_notices` counter was missing from the `host_stopped` log during these runs. It has been added since, so it appears only in future runs.
+
+---
 
 ---
 

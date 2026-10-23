@@ -338,6 +338,7 @@ void Host::shutdown() {
                                kv("skipped_ticks", stats_.skipped_ticks), kv("shed_inputs", stats_.shed_inputs),
                                kv("stale_inputs", stats_.stale_inputs), kv("joins", stats_.joins),
                                kv("reconnects", stats_.reconnects), kv("timeouts", stats_.timeouts),
+                               kv("timeout_notices", stats_.timeout_notices),
                                kv("unknown_peer", stats_.unknown_peer)});
 }
 

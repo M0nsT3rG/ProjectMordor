@@ -3,11 +3,12 @@
   {"name":"impairment_delays_until_due","result":"PASSED","ms":1,"error":""},
   {"name":"latency_is_measured","result":"PASSED","ms":3,"error":""},
   {"name":"delayed_and_reordered_packets_converge","result":"PASSED","ms":6,"error":""},
-  {"name":"packet_loss_does_not_break_session","result":"PASSED","ms":7,"error":""},
+  {"name":"packet_loss_does_not_break_session","result":"PASSED","ms":6,"error":""},
   {"name":"heavy_loss_and_duplication_never_crash","result":"PASSED","ms":2,"error":""},
   {"name":"timed_out_client_reconnects_with_same_identity","result":"PASSED","ms":2,"error":""},
   {"name":"reconnect_gives_up_after_window","result":"PASSED","ms":1,"error":""},
   {"name":"silent_host_loss_ends_in_failed_state","result":"PASSED","ms":0,"error":""},
   {"name":"expired_grace_period_removes_entity","result":"PASSED","ms":1,"error":""},
-  {"name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","ms":4,"error":""}
+  {"name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","ms":4,"error":""},
+  {"name":"timeout_notice_recovery_under_jitter_reconnects_once","result":"PASSED","ms":3,"error":""}
 ]

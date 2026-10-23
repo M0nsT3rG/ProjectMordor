@@ -57,6 +57,32 @@ Reported but not gated: RTT p50, p95 and max; corrections and the largest correc
 
 Both failed and passing runs are kept under `evidence/logs/` (EXP-010).
 
+## Gate version 2 (review #2, 2026-10-23)
+
+Version 2 was fixed before its first run. It keeps every v1 gate and adds the following:
+
+| Gate | Rule | Why |
+|---|---|---|
+| Manifest | `run.json` must list `expected_clients`. Client logs must match that list exactly: missing, renamed and extra logs all fail. Stalled clients must be in the manifest. Exit codes must cover the host and every expected client. Host joins must equal the manifest size. | FB-2-01: v1 passed a run where client2 never started |
+| Coverage | Each client ran ≥ 95% of the duration. The host ran ≥ the duration. RTT samples ≥ 50% of 4/s × duration. | FB-2-03: explicit time coverage and sample minimums |
+| Download ceiling | ≤ (snapshot 87 B × 30 Hz + ack 30 B × 4 Hz) × (1 + duplicate) × 1.05 | Upper bound derived from the protocol |
+| Upload ceiling | ≤ (full 8-command input batch 119 B × 30 Hz + heartbeat 30 B × 4 Hz) × 1.05 | Upper bound derived from the protocol (offered load, before simulated loss) |
+| Correction ceiling | max correction ≤ 5 u/s × (RTT bound + 3 ticks) | Reconciliation replays only unacknowledged inputs, which is at most one RTT of movement plus the host backlog |
+
+The **RTT gate is unchanged** (configured + 60 ms) for comparability. It is a *synthetic loopback regression bound*, not a LAN criterion (FB-2-04). A tighter benchmark will be a new gate version after repeated runs.
+
+**Evidence immutability:**
+- Each run writes a fresh `evidence/logs/soak-<yyyy-MM-dd-HHmmss>-<profile>-g2/` directory.
+- `soak.ps1` never deletes or reuses a directory.
+- `analyze.py` refuses to overwrite an existing `summary.json`.
+- v1 summaries keep `gate_version` absent.
+
+| Run (gate v2, 120 s) | Gates | RTT p50 / p99 | Max correction (budget) | In / out kbit/s (budgets) | Recovery | Shed |
+|---|---|---|---|---|---|---|
+| lan | 36/36 | 10.5 / 12.1 ms | 0 (0.84) | 21.6 / 13.7 (22.9 / 31.0) | 18 ms | 0 |
+| moderate | 36/36 | 103.9 / 121.6 ms | 0.33 (1.40) | 21.1 / 22.2 (23.4 / 31.0) | 161 ms | 8 |
+| harsh | 36/36 | 203.9 / 241.6 ms | 0.33 (2.00) | 19.2 / 29.4 (24.1 / 31.0) | 1567 ms | 110 |
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

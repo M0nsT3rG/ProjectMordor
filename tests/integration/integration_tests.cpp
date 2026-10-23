@@ -530,3 +530,116 @@ TEST(timeout_notice_is_rate_limited_and_scoped) {
     s.host.update(s.clk.now);
     CHECK(s.host.stats().timeout_notices == 1);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Review #2 FB-2-02: the unauthenticated timeout notice must only act when it is current. A fake host
+// gives exact control over sequence numbers, sessions and timing.
+namespace {
+struct FakeHost {
+    UdpSocket sock;
+    Endpoint client_ep;
+    Header h;
+    std::uint64_t nonce = 0;
+    FakeHost() { CHECK(sock.open(Endpoint::loopback(0))); h.session = 500; }
+    // Waits for the client's next ConnectRequest and remembers its nonce.
+    void expect_request(client::Client& c, test::SimClock& clk) {
+        for (int i = 0; i < 200; ++i) {
+            c.update(clk.now);
+            Endpoint from;
+            std::array<std::uint8_t, 2048> buf{};
+            for (auto r = sock.recv_from(from, buf); r.status == RecvStatus::Data; r = sock.recv_from(from, buf)) {
+                auto d = decode({buf.data(), r.size});
+                if (d.packet)
+                    if (const auto* req = std::get_if<ConnectRequest>(&d.packet->message)) {
+                        client_ep = from;
+                        nonce = req->client_nonce;
+                        return;
+                    }
+            }
+            clk.now += 10'000;
+            std::this_thread::yield();
+        }
+        throw test::CheckFailure("no ConnectRequest from client");
+    }
+    std::vector<std::uint8_t> packet(const Message& m) {
+        ++h.sequence;
+        return encode(h, m);
+    }
+    void deliver(client::Client& c, test::SimClock& clk, const std::vector<std::uint8_t>& bytes) {
+        CHECK(sock.send_to(client_ep, bytes));
+        for (int i = 0; i < 50; ++i) {
+            c.update(clk.now);
+            std::this_thread::yield();
+        }
+    }
+    void accept(client::Client& c, test::SimClock& clk) { deliver(c, clk, packet(ConnectAccept{nonce, 1, 1, 77, 30, 0})); }
+};
+
+struct NoticeFixture {
+    test::SimClock clk;
+    FakeHost fh;
+    client::Client c;
+    NoticeFixture() : c(make_cfg(fh), test::test_logger("client")) {
+        CHECK(c.start());
+        c.connect(clk.now);
+        fh.expect_request(c, clk);
+        fh.accept(c, clk);
+        CHECK(c.state() == ClientState::Connected);
+    }
+    static client::ClientConfig make_cfg(const FakeHost& fh) {
+        client::ClientConfig cc;
+        cc.host = fh.sock.local_endpoint();
+        return cc;
+    }
+};
+}  // namespace
+
+// The key case from review #2: a notice sent while the slot was in grace, but delivered after the client
+// already reconnected, must not knock the fresh connection back into Reconnecting.
+TEST(delayed_timeout_notice_after_reconnect_is_ignored) {
+    NoticeFixture f;
+    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
+    f.fh.deliver(f.c, f.clk, notice);
+    CHECK(f.c.state() == ClientState::Reconnecting);  // a current notice is honoured
+    f.fh.expect_request(f.c, f.clk);
+    f.fh.accept(f.c, f.clk);
+    CHECK(f.c.state() == ClientState::Connected);
+    CHECK(f.c.stats().reconnects == 1);
+    f.fh.deliver(f.c, f.clk, notice);  // the same (now stale) datagram arrives again late
+    CHECK(f.c.state() == ClientState::Connected);
+    CHECK(f.c.stats().stale_notices == 1);
+    f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout}));  // a genuinely new one still works
+    CHECK(f.c.state() == ClientState::Reconnecting);
+}
+
+TEST(replayed_and_duplicate_timeout_notices_have_no_extra_effect) {
+    NoticeFixture f;
+    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
+    for (int i = 0; i < 5; ++i) f.fh.deliver(f.c, f.clk, notice);  // duplicates while already reconnecting
+    CHECK(f.c.state() == ClientState::Reconnecting);
+    f.fh.expect_request(f.c, f.clk);
+    f.fh.accept(f.c, f.clk);
+    for (int i = 0; i < 5; ++i) f.fh.deliver(f.c, f.clk, notice);  // replays after reconnecting
+    CHECK(f.c.state() == ClientState::Connected);
+    CHECK(f.c.stats().reconnects == 1);
+}
+
+TEST(timeout_notice_from_other_session_or_endpoint_is_ignored) {
+    NoticeFixture f;
+    Header old = f.fh.h;
+    old.session = 499;  // a previous host session
+    old.sequence = f.fh.h.sequence + 100;
+    f.fh.deliver(f.c, f.clk, encode(old, Disconnect{DisconnectReason::Timeout}));
+    CHECK(f.c.state() == ClientState::Connected);
+    UdpSocket other;
+    CHECK(other.open(Endpoint::loopback(0)));
+    Header spoof = f.fh.h;
+    spoof.sequence += 100;
+    CHECK(other.send_to(f.fh.client_ep, encode(spoof, Disconnect{DisconnectReason::Timeout})));
+    for (int i = 0; i < 50; ++i) {
+        f.c.update(f.clk.now);
+        std::this_thread::yield();
+    }
+    CHECK(f.c.state() == ClientState::Connected);  // wrong source endpoint
+    CHECK(f.c.stats().foreign_packets >= 2);
+}

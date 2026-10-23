@@ -2,6 +2,29 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: ChatGPT review #2 triage and fixes (`feature/realtime-soak`)
+
+- **Input:** [PR #2 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/2#issuecomment-6372084762), findings FB-2-01 through FB-2-06. The triage is in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).
+- **Changes:**
+  - **Analyzer gate v2 (FB-2-01, FB-2-03):** exact participant manifest; coverage minimums; bandwidth and correction ceilings derived from the design.
+  - **Evidence immutability:** `soak.ps1` writes fresh timestamped run directories, and the analyzer never overwrites a `summary.json`.
+  - **Client stale-notice guard (FB-2-02):** a `Disconnect` that is not newer than the current accept is ignored.
+  - **Telemetry:** correction percentiles and `stale_notices`; the host logs `timeout_notices`.
+  - **FB-2-04 and FB-2-06:** labels and comments.
+- **Tests:**
+  - 3 fake-host integration tests; 2 of them failed before the guard.
+  - 1 real-host smoke test, which does not discriminate (no late notice occurred).
+  - 8 new analyzer self-checks (11 total).
+  - Suites: unit 15, integration 25, network 12, all passing ×3 plus E2E.
+  - Soak gate v2: lan, moderate and harsh at 120 s, 36/36 gates each (EXP-011).
+- **Problems encountered:**
+  - Analyzer v1 was shown to pass a run where client2 never started.
+  - The old `soak.ps1` emptied the run directory, so it would have destroyed evidence on a repeat run.
+  - The real-host notice test could not reproduce a late notice.
+  - The host's `timeout_notices` was not logged during the v2 soak runs; it was added afterwards.
+- **Paused work:** the reliable event channel is a WIP on local branch `feature/reliable-events` (commit `187a121`, not pushed). The transport choice now waits for the user (see below).
+- **Remaining:** FB-2-05 stall coverage; harsh recovery variance (KI-18); shed gate (KI-19); transport decision.
+
 ## 2026-10-23: Real-time soak test (`feature/realtime-soak`, stacked on PR #1)
 
 - **Changes:**

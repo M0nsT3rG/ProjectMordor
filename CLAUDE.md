@@ -38,7 +38,7 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 22, network 11)
+./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 25, network 12)
 ./scripts/soak.ps1 -Profile moderate -DurationS 120   # real-time soak: lan | moderate | harsh; gates in tools/soak/analyze.py
 python -I tools/soak/test_analyze.py
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
@@ -75,7 +75,9 @@ python -I tools/collab/test_report.py
 - On PowerShell 5.1, `2>$null` on a native exe under `ErrorActionPreference=Stop` throws. Use `--log FILE` instead.
 - The Bash tool can fail on heredocs that contain apostrophes. Write the file with the Write tool instead.
 - The executables' main loops use `PreciseSleeper` (high-resolution waitable timer). Plain `sleep_for(1ms)` sleeps about 15.6 ms on Windows and added about 50 ms of RTT (KI-02, fixed).
-- Soak gates are fixed in `tools/soak/analyze.py`. Never tune them to results. A gate change needs a decision entry and a reason.
+- Soak gates are fixed in `tools/soak/analyze.py` and versioned (`GATE_VERSION`, currently 2). Never tune them to results. A gate change is a new version, decided and documented before the runs that use it.
+- Soak evidence is immutable: each run gets a fresh `evidence/logs/soak-<timestamp>-<profile>-g<N>/` directory. Never delete or re-analyze an existing run into the same directory (the analyzer refuses).
+- Paused work: local branch `feature/reliable-events` (not pushed) holds the in-house reliable-channel WIP. The transport choice (in-house, ENet or GameNetworkingSockets) waits for the user.
 - Codex review fails here with `CryptUnprotectData failed: 2148073483` (EXP-008). Use an independent reviewer agent until that is fixed.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.
 

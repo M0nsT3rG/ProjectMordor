@@ -84,6 +84,7 @@ A 200,000-case fuzz test checks that the decoder never crashes and that every ac
   - At most once every 250 ms per slot.
   - Never to endpoints without a grace slot, so the host does not reflect traffic to arbitrary sources.
   - The client treats `Disconnect{Timeout}` as "reconnect now with your token", not as a final disconnect.
+  - **Stale-notice guard (review FB-2-02).** The client ignores any `Disconnect` whose sequence is not newer than the `ConnectAccept` that established its current connection, so delayed or replayed notices from an earlier grace period have no effect. This guards correctness, not security: an unauthenticated forged packet can still claim a newer sequence (KI-17).
 - **Capacity trade-off (review FB-1-07).** The host's 30 s grace period is longer than the client's 15 s reconnect window. A client that gives up therefore leaves its slot reserved for up to about 15 s more. A new join is rejected with `ServerFull` in the meantime.
   - The host keeps a timed-out player's slot and entity for a 30 s grace period. During it, that player still counts toward the 2-player capacity.
   - The client enters `Reconnecting` and sends `ConnectRequest` with its reconnect token every 500 ms for up to 15 s. Then it goes to `Failed`.

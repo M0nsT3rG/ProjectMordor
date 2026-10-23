@@ -26,9 +26,10 @@ try {
     $p = $profiles[$Profile]
     $imp = "--latency-ms $($p.latency_ms) --jitter-ms $($p.jitter_ms) --loss $($p.loss) --duplicate $($p.duplicate)"
     $bin = Join-Path $BuildDir $Config
-    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}" -f (Get-Date -Format 'yyyy-MM-dd'), $Profile)
-    New-Item -ItemType Directory -Force $out | Out-Null
-    Remove-Item "$out/*" -ErrorAction SilentlyContinue
+    # Every run gets a fresh directory; existing runs are evidence and are never deleted or reused (FB-2-01).
+    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-g2" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile)
+    if (Test-Path $out) { throw "Run directory $out already exists; refusing to overwrite evidence." }
+    New-Item -ItemType Directory $out | Out-Null
     $stallAt = [math]::Round($DurationS * 0.4)
 
     # Warm-up (EXP-006 workaround, cause unknown).
@@ -59,7 +60,9 @@ try {
         duration_s       = $DurationS
         impairment       = $p
         impairment_scope = 'every sender (host and both clients), independent seeds'
+        expected_clients = @('client1', 'client2')
         stalled_clients  = @('client2')
+        gate_version     = 2
         stall_at_s       = $stallAt
         stall_s          = $StallS
         host_timeout_ms  = 3000

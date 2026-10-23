@@ -114,18 +114,23 @@ int main(int argc, char** argv) {
         {
             // Telemetry for tools/soak/analyze.py. Percentiles use nearest-rank on raw heartbeat RTT samples.
             auto rtt = c.rtt_samples_ms();
+            auto corr = c.correction_samples();
             std::sort(rtt.begin(), rtt.end());
-            auto pct = [&](double p) -> double {
-                if (rtt.empty()) return -1.0;
-                const auto rank = static_cast<std::size_t>(std::ceil(p / 100.0 * static_cast<double>(rtt.size())));
-                return rtt[std::clamp<std::size_t>(rank, 1, rtt.size()) - 1];
+            std::sort(corr.begin(), corr.end());
+            auto pct_of = [](const std::vector<float>& v, double p, double empty) -> double {
+                if (v.empty()) return empty;
+                const auto rank = static_cast<std::size_t>(std::ceil(p / 100.0 * static_cast<double>(v.size())));
+                return v[std::clamp<std::size_t>(rank, 1, v.size()) - 1];
             };
+            auto pct = [&](double p) { return pct_of(rtt, p, -1.0); };
             const auto& s = c.stats();
             log.info("summary", {kv("final_state", client::to_string(final_state)), kv("player", c.player_id()),
                                  kv("rtt_samples", rtt.size()), kv("rtt_p50_ms", pct(50)), kv("rtt_p95_ms", pct(95)),
                                  kv("rtt_p99_ms", pct(99)), kv("rtt_max_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.back())),
                                  kv("snapshots", s.snapshots_applied), kv("stale", s.stale_snapshots),
                                  kv("corrections", s.corrections), kv("max_correction", s.max_correction),
+                                 kv("correction_p50", pct_of(corr, 50, 0.0)), kv("correction_p99", pct_of(corr, 99, 0.0)),
+                                 kv("stale_notices", s.stale_notices),
                                  kv("reconnects", s.reconnects), kv("max_reconnect_ms", s.max_reconnect_ms),
                                  kv("invalid", s.invalid_packets), kv("bytes_in", s.bytes_in), kv("bytes_out", s.bytes_out),
                                  kv("packets_in", s.packets_in), kv("packets_out", s.packets_out),
