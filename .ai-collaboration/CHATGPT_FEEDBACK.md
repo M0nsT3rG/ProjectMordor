@@ -6,6 +6,31 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review request #3 (GameNetworkingSockets spike)
+
+- **Status:** received and triaged (2026-10-23).
+- **Source:** [PR #3 comment 6373375242](https://github.com/M0nsT3rG/ProjectMordor/pull/3#issuecomment-6373375242). ChatGPT reviewed the source only.
+- **ChatGPT's verdict:** conditional GO for implementing the transport interface and further isolated testing.
+- **Implemented on:** `feature/transport-interface` (stacked on #3). Experiment record: EXP-014.
+
+| ID | Assumptions verified? | Decision | Implemented in | Verification |
+|---|---|---|---|---|
+| **FB-3-01** (major, security) | **Yes, and stronger than stated.** In the GNS 1.6.1 open-source build, `IP_AllowWithoutAuth` and `IPLocalHost_AllowWithoutAuth` **default to 2**, so unauthenticated peers are accepted on any IP without warning. Source: `csteamnetworkingsockets.cpp` under `STEAMNETWORKINGSOCKETS_OPENSOURCE`. Trusted-CA loading (`CertStore_AddCertFromBase64`) is internal and not in the public headers. | **Accepted.** The negative baseline is now asserted. The positive-identity, wrong-identity and MITM tests are **planned against the app-layer design**, because GNS native certificates are not usable through the public API. | `tests/gns`: `gns_default_connection_security_flags` asserts encrypted **and** `unauthenticated` on both ends; new `gns_opensource_build_accepts_unauthenticated_peers_by_default` pins the default at 2, so a library update that changes it is caught. The design is in `docs/authentication-design.md`. | Both pass, ×3 and in 3 parallel instances. The prototype stays loopback and trusted-LAN only. |
+| **FB-3-02** (major, architecture) | **Yes.** The interface was design-only. | **Accepted, in the recommended order.** The UDP adapter is done; the GNS adapter is next. | `net::Transport`, `UdpTransport`, `make_transport`; Host and Client now hold `std::unique_ptr<Transport>`; `ImpairedSender` takes any transmit function. | **No test file changed** (`git diff 42e9451 -- tests/` is empty). Unit 15, integration 25 and network 12 pass ×3 in both builds. E2E passes. A lan soak at gate v3 gives 41/41, with RTT 10.5/12.1 ms and recovery 21 ms, the same as before the refactor. |
+| **FB-3-03** (minor, tests) | **Yes.** Traffic was sequential, with one pair. | **Accepted at spike level.** Disconnect-mid-backlog and reconnect: **deferred to the adapter**, where they exercise our session layer. | New GNS tests: `gns_concurrent_bidirectional_reliable_ordered` (3000 each way, simultaneously); `gns_two_simultaneous_clients`; `gns_interleaved_reliable_and_unreliable_under_loss`; `gns_send_queue_pressure`. | All pass. Interleaved, 10% loss: reliable 1000/1000 exact; unreliable 900/1000, no duplicates. Queue pressure: 89 661 accepted, **110 339 refused** (explicit backpressure), every accepted message delivered in order. GNS logged "recv queue overflow", so the adapter must drain the receive queue frequently. |
+| **FB-3-04** (minor, tests) | **Yes** (TOCTOU). | **Accepted** | `Net` retries the listen up to 8 times with a fresh probed port. | **3 test processes in parallel: 21/21 passed.** The probe stays a test-only mechanism; production code will take an explicit port. |
+| **FB-3-05** (minor, isolation) | **Yes.** Callback state and fake config were process-global with no cleanup on throw. | **Accepted** | `GnsLib` RAII resets fake loss, lag and reorder and the global callback even when a CHECK throws. The callback routes through a per-listen-socket registry instead of a global connection handle. | Passes ×3 and in parallel. |
+| **FB-3-06** (suggestion, comparability) | **Yes.** | **Accepted: this changes my plan.** I had been about to put `ImpairedSender` *above* GNS. Instead the GNS adapter will use GNS's native fault injection; `ImpairedSender` stays for raw UDP. Both use the same target profiles; realized conditions are logged; gates get transport-labelled versions. No cross-transport latency claims without matched observations. | Recorded in D-012 and `docs/transport-interface.md`. | n/a until the adapter exists |
+
+**Answers adopted:**
+
+- **Answer 1 (authentication).** Pinned per-player public keys, exchanged out of band and bound to a session invitation, with explicit fingerprint confirmation. Verified against the real library: GNS cannot provide this through its public API, so the design puts end-to-end authenticated encryption at our protocol layer, using a vetted library (libsodium proposed). **Library choice D-013 is pending with the user.**
+- **Answer 2 (session layer).** On GNS, GNS owns transport liveness and reconnect. Game identity, slots and grace stay in the application. A reconnect means a new transport connection plus re-authentication.
+- **Answer 3 (comparability).** See FB-3-06.
+- **Answer 4 (integration order).** Followed: interface plus UDP first, then the GNS adapter. GNS stays default OFF.
+
+---
+
 ## Follow-up verification of review #2
 
 - **Status:** received and triaged (2026-10-23).

@@ -2,7 +2,9 @@
 // Deterministic outgoing-traffic impairment (loss, latency, jitter, duplication) for tests and demos.
 // Jitter naturally reorders packets because each copy gets its own delivery time.
 #include <cstdint>
+#include <functional>
 #include <random>
+#include <span>
 #include <vector>
 
 #include "network/udp_socket.hpp"
@@ -25,7 +27,11 @@ struct ImpairmentStats {
 
 class ImpairedSender {
 public:
-    ImpairedSender(UdpSocket& socket, ImpairmentConfig cfg) : socket_(socket), cfg_(cfg), rng_(cfg.seed) {}
+    using Transmit = std::function<bool(const Endpoint&, std::span<const std::uint8_t>)>;
+    ImpairedSender(UdpSocket& socket, ImpairmentConfig cfg)
+        : ImpairedSender([&socket](const Endpoint& to, std::span<const std::uint8_t> b) { return socket.send_to(to, b); }, cfg) {}
+    // Any backend can sit underneath; impairment stays identical (D-012).
+    ImpairedSender(Transmit transmit, ImpairmentConfig cfg) : transmit_fn_(std::move(transmit)), cfg_(cfg), rng_(cfg.seed) {}
     void set_config(const ImpairmentConfig& cfg) { cfg_ = cfg; }
     const ImpairmentConfig& config() const { return cfg_; }
     void send(const Endpoint& to, std::vector<std::uint8_t> bytes, std::uint64_t now_us);
@@ -42,7 +48,7 @@ private:
     };
     void transmit(const Endpoint& to, const std::vector<std::uint8_t>& bytes);
 
-    UdpSocket& socket_;
+    Transmit transmit_fn_;
     ImpairmentConfig cfg_;
     std::mt19937_64 rng_;
     std::vector<Pending> queue_;

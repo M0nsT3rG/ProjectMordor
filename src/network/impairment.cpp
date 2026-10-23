@@ -5,7 +5,7 @@
 namespace mordor::net {
 
 void ImpairedSender::transmit(const Endpoint& to, const std::vector<std::uint8_t>& bytes) {
-    if (socket_.send_to(to, bytes)) {
+    if (transmit_fn_(to, bytes)) {
         ++stats_.sent;
     } else {
         ++stats_.send_failures;

@@ -1,6 +1,6 @@
 # Transport interface (design, D-012)
 
-**Status:** design only. The GNS spike is done (EXP-013); this interface is not implemented yet.
+**Status:** the interface and the **UDP backend are implemented** (`src/network/transport.hpp`, `udp_transport.hpp`, `transport_factory.cpp`). Host and client use it, and every existing test passes unchanged (EXP-014). The **GNS adapter is the next milestone.**
 
 ## Goal
 
@@ -42,10 +42,10 @@ public:
 |---|---|---|---|
 | Unreliable snapshots and inputs | `sendto` | `sendto` | `k_nSteamNetworkingSend_UnreliableNoDelay` |
 | Reliable ordered events | — | `EventMsg`/`EventAck` | `k_nSteamNetworkingSend_Reliable` |
-| Connection liveness | our heartbeat + 3 s timeout | same | GNS keepalive/timeout (configurable); our heartbeat stays for RTT telemetry |
+| Connection liveness | our heartbeat + 3 s timeout | same | **GNS owns it** (review #3 answer 2); the adapter reports connect/disconnect events and our timers do not duplicate GNS's |
 | Encryption | none | none | built in: on by default (EXP-013) |
 | Authentication | none (KI-04) | none | **not by default**: `unauthenticated=1` on a plain IP connection (EXP-013); needs certificates or an identity setup |
-| Impairment for tests | `ImpairedSender` | `ImpairedSender` | GNS `FakePacketLoss/Lag/Reorder/Dup` config (used in EXP-013) |
+| Impairment for tests | `ImpairedSender` | `ImpairedSender` | GNS native `FakePacketLoss/Lag/Reorder/Dup` (review #3 FB-3-06: per-backend fault injection, transport-labelled gates) |
 | Port 0 (ephemeral) | supported | supported | **not supported**: GNS requires an explicit listen port (EXP-013) |
 
 ## Open questions

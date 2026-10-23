@@ -36,7 +36,7 @@ const char* to_string(ClientState s) {
 }
 
 Client::Client(ClientConfig cfg, Logger& log)
-    : cfg_(cfg), log_(log), sender_(socket_, cfg.impairment), rng_(std::random_device{}()) {}
+    : cfg_(cfg), log_(log), rng_(std::random_device{}()) {}
 
 bool Client::start(std::string* error) {
     if (!cfg_.impairment.valid()) {
@@ -45,7 +45,12 @@ bool Client::start(std::string* error) {
     }
     // Bind to loopback when talking to a loopback host so tests never open a LAN-facing port.
     const Endpoint bind_to = cfg_.host.is_loopback() ? Endpoint::loopback(0) : Endpoint{0, 0};
-    return socket_.open(bind_to, error);
+    transport_ = make_transport(cfg_.transport, cfg_.impairment, error);
+    if (!transport_ || !transport_->open(bind_to, false, error)) {
+        transport_.reset();
+        return false;
+    }
+    return true;
 }
 
 void Client::set_state(ClientState s, std::string_view why) {
@@ -95,7 +100,7 @@ std::optional<Transform> Client::remote_view(std::uint16_t entity_id, std::uint6
 }
 
 void Client::update(std::uint64_t now_us) {
-    if (!socket_.is_open()) return;
+    if (!transport_ || !transport_->is_open()) return;
     receive(now_us);
     switch (state_) {
         case ClientState::Connecting:
@@ -134,14 +139,14 @@ void Client::update(std::uint64_t now_us) {
         }
         default: break;
     }
-    sender_.flush(now_us);
+    transport_->flush(now_us);
 }
 
 void Client::receive(std::uint64_t now_us) {
     std::array<std::uint8_t, 2048> buf{};
     for (int i = 0; i < kMaxPacketsPerUpdate; ++i) {
         Endpoint from;
-        const auto r = socket_.recv_from(from, buf);
+        const auto r = transport_->recv(from, buf);
         if (r.status == RecvStatus::Empty) break;
         if (r.status == RecvStatus::Error) {
             log_.warn("recv_error", {kv("os_error", r.os_error)});
@@ -313,14 +318,14 @@ void Client::send(const Message& m, std::uint64_t now_us) {
     }
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    sender_.send(cfg_.host, std::move(bytes), now_us);
+    transport_->send(cfg_.host, std::move(bytes), now_us);
 }
 
 void Client::disconnect() {
     // Unreliable channel: send the notice a few times; the host ignores repeats. Timeout remains the fallback.
-    if (state_ == ClientState::Connected)
+    if (state_ == ClientState::Connected && transport_)
         for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
-    sender_.flush_all();
+    if (transport_) transport_->flush_all();
     disconnect_reason_ = DisconnectReason::ClientQuit;
     set_state(ClientState::Disconnected, "local_disconnect");
 }

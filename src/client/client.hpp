@@ -12,7 +12,7 @@
 #include "common/log.hpp"
 #include "network/impairment.hpp"
 #include "network/protocol.hpp"
-#include "network/udp_socket.hpp"
+#include "network/transport.hpp"
 #include "simulation/world.hpp"
 
 namespace mordor::client {
@@ -32,6 +32,7 @@ struct ClientConfig {
     bool prediction = true;
     std::uint16_t protocol_version = net::kProtocolVersion;  // overridable only to test version rejection
     net::ImpairmentConfig impairment;
+    net::TransportKind transport = net::TransportKind::Udp;
 };
 
 struct ClientStats {
@@ -51,7 +52,9 @@ public:
     void set_move(float move_x, float move_z) { move_x_ = move_x; move_z_ = move_z; }
     void update(std::uint64_t now_us);
     void disconnect();  // graceful: tells the host, then stops
-    void close() { socket_.close(); }
+    void close() {
+        if (transport_) transport_->close();
+    }
 
     ClientState state() const { return state_; }
     std::optional<net::RejectReason> reject_reason() const { return reject_reason_; }
@@ -68,8 +71,11 @@ public:
     const ClientStats& stats() const { return stats_; }
     const std::vector<float>& rtt_samples_ms() const { return rtt_samples_ms_; }  // raw samples for percentiles
     const std::vector<float>& correction_samples() const { return correction_samples_; }  // each correction's size
-    std::uint16_t local_port() const { return socket_.local_endpoint().port; }
-    void set_impairment(const net::ImpairmentConfig& c) { sender_.set_config(c); }
+    std::uint16_t local_port() const { return transport_ ? transport_->local_endpoint().port : 0; }
+    void set_impairment(const net::ImpairmentConfig& c) {
+        cfg_.impairment = c;
+        if (transport_) transport_->set_impairment(c);
+    }
 
 private:
     void receive(std::uint64_t now_us);
@@ -82,8 +88,7 @@ private:
 
     ClientConfig cfg_;
     Logger& log_;
-    net::UdpSocket socket_;
-    net::ImpairedSender sender_;
+    std::unique_ptr<net::Transport> transport_;
     std::mt19937_64 rng_;
     ClientStats stats_;
 

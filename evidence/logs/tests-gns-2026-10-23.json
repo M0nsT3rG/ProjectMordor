@@ -1,20 +1,9 @@
 [
- {
-  "name": "gns_loopback_reliable_ordered_both_directions",
-  "result": "PASSED",
-  "ms": 133,
-  "error": ""
- },
- {
-  "name": "gns_default_connection_security_flags",
-  "result": "PASSED",
-  "ms": 25,
-  "error": ""
- },
- {
-  "name": "gns_reliable_exact_under_simulated_loss_and_lag",
-  "result": "PASSED",
-  "ms": 1843,
-  "error": ""
- }
+  {"name":"gns_concurrent_bidirectional_reliable_ordered","result":"PASSED","ms":123,"error":""},
+  {"name":"gns_two_simultaneous_clients","result":"PASSED","ms":95,"error":""},
+  {"name":"gns_interleaved_reliable_and_unreliable_under_loss","result":"PASSED","ms":368,"error":""},
+  {"name":"gns_send_queue_pressure","result":"PASSED","ms":2872,"error":""},
+  {"name":"gns_default_connection_security_flags","result":"PASSED","ms":25,"error":""},
+  {"name":"gns_opensource_build_accepts_unauthenticated_peers_by_default","result":"PASSED","ms":0,"error":""},
+  {"name":"gns_reliable_exact_under_simulated_loss_and_lag","result":"PASSED","ms":554,"error":""}
 ]

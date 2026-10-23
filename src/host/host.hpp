@@ -11,7 +11,7 @@
 #include "common/log.hpp"
 #include "network/impairment.hpp"
 #include "network/protocol.hpp"
-#include "network/udp_socket.hpp"
+#include "network/transport.hpp"
 #include "simulation/world.hpp"
 
 namespace mordor::host {
@@ -23,6 +23,7 @@ struct HostConfig {
     std::uint64_t timeout_us = 3'000'000;
     std::uint64_t reconnect_grace_us = 30'000'000;
     net::ImpairmentConfig impairment;
+    net::TransportKind transport = net::TransportKind::Udp;
 };
 
 struct HostStats {
@@ -39,14 +40,17 @@ public:
     void shutdown();  // notifies connected clients and releases the socket
     bool running() const { return running_; }
 
-    std::uint16_t port() const { return socket_.local_endpoint().port; }
+    std::uint16_t port() const { return transport_ ? transport_->local_endpoint().port : 0; }
     std::uint32_t session_id() const { return session_; }
     std::size_t connected_count() const;
     std::size_t slot_count() const { return slots_.size(); }
     const sim::World& world() const { return world_; }
     const HostStats& stats() const { return stats_; }
     std::optional<net::Transform> player_transform(std::uint16_t player_id) const;
-    void set_impairment(const net::ImpairmentConfig& c) { sender_.set_config(c); }
+    void set_impairment(const net::ImpairmentConfig& c) {
+        cfg_.impairment = c;
+        if (transport_) transport_->set_impairment(c);
+    }
 
 private:
     struct Slot {
@@ -82,8 +86,7 @@ private:
 
     HostConfig cfg_;
     Logger& log_;
-    net::UdpSocket socket_;
-    net::ImpairedSender sender_;
+    std::unique_ptr<net::Transport> transport_;
     std::mt19937_64 rng_;
     sim::World world_;
     std::vector<Slot> slots_;

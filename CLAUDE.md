@@ -77,6 +77,9 @@ python -I tools/collab/test_report.py
 - The executables' main loops use `PreciseSleeper` (high-resolution waitable timer). Plain `sleep_for(1ms)` sleeps about 15.6 ms on Windows and added about 50 ms of RTT (KI-02, fixed).
 - Soak gates are fixed in `tools/soak/analyze.py` and versioned (`GATE_VERSION`, currently 3; v3 requires `run.json` `scenario` to match `SCENARIOS`). Never tune them to results. A gate change is a new version, decided and documented before the runs that use it.
 - Soak evidence is immutable: each run gets a fresh `evidence/logs/soak-<timestamp>-<profile>-g<N>/` directory. Never delete or re-analyze an existing run into the same directory (the analyzer refuses).
+- Host and Client talk through `net::Transport` (`make_transport(kind, …)`). Only the UDP backend exists; the GNS adapter is next. Never let host/client code touch sockets directly again.
+- GNS 1.6.1 open-source accepts unauthenticated peers by default (`IP_AllowWithoutAuth=2`) and has no public certificate-trust API. Authentication must be end-to-end at our layer (`docs/authentication-design.md`; library choice D-013 pending).
+- Git on this machine checks files out with CRLF. Exact-match edit scripts must handle `\r\n`; prefer the Edit tool.
 - Paused work: local branch `feature/reliable-events` (not pushed) holds the in-house reliable-channel WIP. The transport choice (in-house, ENet or GameNetworkingSockets) waits for the user.
 - Codex review fails here with `CryptUnprotectData failed: 2148073483` (EXP-008). Use an independent reviewer agent until that is fixed.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.

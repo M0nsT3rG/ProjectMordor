@@ -2,6 +2,27 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: Review #3 triage, Transport interface (`feature/transport-interface`, stacked on #3)
+
+- **Input:** [PR #3 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/3#issuecomment-6373375242), findings FB-3-01 to FB-3-06.
+- **Changes:**
+  - `net::Transport` + `UdpTransport` + factory; Host and Client run on the interface.
+  - `ImpairedSender` takes any transmit function.
+  - GNS auth facts verified in the library's headers and source.
+  - `docs/authentication-design.md`.
+  - GNS tests rewritten: RAII state guard, port retries, concurrent, multi-client, mixed, queue pressure, asserted security baselines.
+  - D-012 updated; D-013 pending.
+- **Tests:**
+  - No test file changed by the refactor.
+  - Unit, integration and network 52/52 ×3 in both builds; E2E passed; lan soak v3 41/41, metrics unchanged.
+  - GNS 7/7 ×3, and 21/21 across 3 parallel instances (EXP-014).
+- **Problems encountered:**
+  - Git checkout converted files to CRLF, which broke a PowerShell exact-match edit script. Nothing was written, because the script aborts on a missing anchor; I switched to the Edit tool.
+  - FB-3-06 changed the planned impairment layering for GNS.
+- **Remaining:**
+  - GNS adapter (KI-22).
+  - D-013 crypto library, then the authenticated-peer implementation and its tests (KI-21).
+
 ## 2026-10-23: Review #2 follow-up, soak gate v3 (`feature/realtime-soak`)
 
 - **Input:** [PR #2 comment 6372799837](https://github.com/M0nsT3rG/ProjectMordor/pull/2#issuecomment-6372799837).

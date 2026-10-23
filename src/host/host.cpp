@@ -20,7 +20,7 @@ struct overloaded : Ts... {
 }  // namespace
 
 Host::Host(HostConfig cfg, Logger& log)
-    : cfg_(cfg), log_(log), sender_(socket_, cfg.impairment), rng_(std::random_device{}()) {}
+    : cfg_(cfg), log_(log), rng_(std::random_device{}()) {}
 
 std::uint64_t Host::random_nonzero() {
     std::uint64_t v;
@@ -34,12 +34,17 @@ bool Host::start(std::string* error) {
         if (error) *error = "invalid host configuration";
         return false;
     }
-    if (!socket_.open(cfg_.bind, error)) return false;
+    transport_ = make_transport(cfg_.transport, cfg_.impairment, error);
+    if (!transport_ || !transport_->open(cfg_.bind, true, error)) {
+        transport_.reset();
+        return false;
+    }
     session_ = static_cast<std::uint32_t>(random_nonzero() | 1u);
     running_ = true;
     clock_started_ = false;
     log_.info("host_started", {kv("port", port()), kv("loopback_only", cfg_.bind.is_loopback()), kv("session", session_),
-                               kv("tick_rate_hz", cfg_.tick_rate_hz), kv("protocol_version", kProtocolVersion)});
+                               kv("tick_rate_hz", cfg_.tick_rate_hz), kv("protocol_version", kProtocolVersion),
+                               kv("transport", to_string(cfg_.transport))});
     return true;
 }
 
@@ -81,14 +86,14 @@ void Host::update(std::uint64_t now_us) {
         next_tick_us_ += tick_us;
     }
     check_timeouts(now_us);
-    sender_.flush(now_us);
+    transport_->flush(now_us);
 }
 
 void Host::receive(std::uint64_t now_us) {
     std::array<std::uint8_t, 2048> buf{};
     for (int i = 0; i < kMaxPacketsPerUpdate; ++i) {
         Endpoint from;
-        const auto r = socket_.recv_from(from, buf);
+        const auto r = transport_->recv(from, buf);
         if (r.status == RecvStatus::Empty) break;
         if (r.status == RecvStatus::Error) {
             log_.warn("recv_error", {kv("os_error", r.os_error)});
@@ -311,7 +316,7 @@ void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
     }
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    sender_.send(s.endpoint, std::move(bytes), now_us);
+    transport_->send(s.endpoint, std::move(bytes), now_us);
 }
 
 void Host::send_unconnected(const Endpoint& to, const Message& m, std::uint64_t now_us) {
@@ -319,7 +324,7 @@ void Host::send_unconnected(const Endpoint& to, const Message& m, std::uint64_t 
     if (bytes.empty()) return;
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();
-    sender_.send(to, std::move(bytes), now_us);
+    transport_->send(to, std::move(bytes), now_us);
 }
 
 void Host::shutdown() {
@@ -327,8 +332,8 @@ void Host::shutdown() {
     for (auto& s : slots_)
         if (s.connected)
             for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
-    sender_.flush_all();
-    socket_.close();
+    transport_->flush_all();
+    transport_->close();
     running_ = false;
     // Telemetry for soak analysis (tools/soak/analyze.py): tick drift = world ticks vs wall-clock uptime.
     log_.info("host_stopped", {kv("packets_in", stats_.packets_in), kv("packets_out", stats_.packets_out),

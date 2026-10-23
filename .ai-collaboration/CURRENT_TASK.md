@@ -1,23 +1,32 @@
 # Current task
 
-**Last completed:** triage and fixes for ChatGPT review #2 (FB-2-01 to FB-2-06), with a soak re-run under gate v2. See [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md) and EXP-011.
+**Last completed:** triage of ChatGPT review #3 (FB-3-01 to FB-3-06), plus the `Transport` interface with the UDP backend and the authenticated-peer design. See [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md), EXP-014 and `docs/authentication-design.md`.
 
-**Branches and PRs:**
+**Branches and PRs** (all open, none merged; merging needs the user):
 
-- `feature/ai-collaboration-bridge`: PR [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1), open, waiting for the user to merge.
-- `feature/realtime-soak`: PR [#2](https://github.com/M0nsT3rG/ProjectMordor/pull/2), stacked on #1, open. Review #2 is triaged.
-- `feature/reliable-events`: **local only, not pushed.** WIP commit `187a121`: a minimal in-house `ReliableChannel` plus protocol v2 Event/EventAck, 21 passing unit tests. Host integration is unfinished and the branch does not build.
+| PR | Branch | Base | Content |
+|---|---|---|---|
+| [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1) | `feature/ai-collaboration-bridge` | `main` | Phase 1 + collaboration bridge |
+| [#2](https://github.com/M0nsT3rG/ProjectMordor/pull/2) | `feature/realtime-soak` | #1 | Real-time soak, gates v1–v3 |
+| [#3](https://github.com/M0nsT3rG/ProjectMordor/pull/3) | `feature/gns-transport` | #2 | GNS spike (D-012) |
+| #4 | `feature/transport-interface` | #3 | Transport interface + UDP backend, review #3 triage, auth design |
+
+Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 
 **Repository:** https://github.com/M0nsT3rG/ProjectMordor (private)
 
 ## Waiting on the user
 
-- **Transport for the reliable event channel** (review #2, answer 4): ENet (MIT) or GameNetworkingSockets (BSD-3) behind an interface, compared with the parked in-house channel using the same tests. Adding a third-party library needs the user's approval.
+- **D-013:** crypto library for authenticated peers. libsodium (ISC) is proposed; an audited Noise implementation is the alternative.
 - **Gate G0:** D-007 (legal) and D-008 (target platform).
 - **LAN test:** approval for a temporary firewall rule.
 
-## Next tasks without user input (Phase 2A, no game interaction)
+## Next tasks (no user input needed)
 
-1. **P1 (FB-2-05):** wider stall coverage. Host stall, repeated and asymmetric outages, repeated reconnects within the grace period, seeded randomized schedules, longer runs (30–60 min).
-2. **P1 (KI-18):** repeat each profile N times; report the distribution of recovery time and RTT.
-3. **P2:** desync digests.
+1. **GNS adapter (KI-22):**
+   - `GnsTransport` behind the interface;
+   - GNS owns liveness and reconnect;
+   - native fault injection and transport-labelled gates;
+   - run the integration, network and soak suites on GNS, with UDP-only tests marked SKIP rather than passed;
+   - disconnect-mid-backlog and reconnect tests (FB-3-03 remainder).
+2. **FB-2-05:** wider stall coverage.

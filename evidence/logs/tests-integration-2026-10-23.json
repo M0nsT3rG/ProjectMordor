@@ -9,7 +9,7 @@
   {"name":"client_rejects_stale_snapshots","result":"PASSED","ms":0,"error":""},
   {"name":"protocol_version_mismatch_is_rejected","result":"PASSED","ms":0,"error":""},
   {"name":"host_survives_invalid_datagrams","result":"PASSED","ms":1,"error":""},
-  {"name":"id_exhaustion_rejects_instead_of_wrapping","result":"PASSED","ms":610,"error":""},
+  {"name":"id_exhaustion_rejects_instead_of_wrapping","result":"PASSED","ms":605,"error":""},
   {"name":"clean_disconnect_frees_the_slot","result":"PASSED","ms":0,"error":""},
   {"name":"clean_shutdown_notifies_clients_and_releases_socket","result":"PASSED","ms":0,"error":""},
   {"name":"input_burst_never_exceeds_one_timestep_per_tick","result":"PASSED","ms":0,"error":""},
