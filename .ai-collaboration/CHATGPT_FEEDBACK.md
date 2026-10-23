@@ -6,6 +6,28 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #6 (PR #6: GNS hardening and DTLS proof)
+
+- **Status:** received and triaged (2026-10-24) on `feature/dtls-transport` (stacked on PR #6). Nothing is implemented yet.
+- **Source:** [PR #6 comment 6376091101](https://github.com/M0nsT3rG/ProjectMordor/pull/6#issuecomment-6376091101). ChatGPT reviewed the source of `1fc796f` only.
+- **ChatGPT's verdict:** conditional GO for isolated testing. Not approval for untrusted networks or for merge.
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-6-01** (major) session binding | **Yes.** `dtls12_exporter_binds_invitation_and_is_fresh_per_handshake` only shows that the exporter values match when both sides choose the same string. Nothing exchanges or verifies the value, so peers holding different invitations still complete DTLS. The design (`authentication-design.md` §4a, "key confirmation… verified on both ends") is not implemented. | **Accepted** | A binding message inside the channel: each side sends a confirmation of the exporter over (invitation id, protocol version, expiry). It fails closed on mismatch, expiry or absence before any game message. Tests deliberately mismatch the id, the version and the expiry, and cover a missing confirmation. |
+| **FB-6-02** (major) DTLS reliability evidence | **Yes.** The in-memory shuttle never loses, delays or reorders a datagram, so `DTLSv1_get_timeout`/`DTLSv1_handle_timeout`, retransmission and MTU fragmentation are not exercised. | **Accepted** | A DTLS layer over `Transport::Unreliable` on **both** backends, driven by OpenSSL's own timers (answer 4). Tests: mutual identity, handshake under loss, jitter and reorder, replay, reconnect = new handshake. GNS reliable delivery is **not** used to carry DTLS (decided and documented, as asked). |
+| **FB-6-03** (major) KI-27 GNS assertion | **Yes.** It is a sanity check in `PollRawUDPSockets` (`steamnetworkingsockets_socketthread.cpp:2605–2609`): `Assert(pSock->m_callback.m_fnCallback)` over every raw socket. `CRawUDPSocketImpl::Close` sets the callback to null and **defers** the deletion (`ProcessPendingDestroyClosedRawUDPSockets`), so the assert fires if the service thread polls a closed socket before its cleanup runs. `DBGFLAG_ASSERT` is defined "even in release" (`tier0/dbg.h`), which is why we see it. **Hypothesis from the source, not proven:** a GNS-internal teardown-ordering race, triggered by our tests closing sockets while the service thread runs. | **Accepted.** It is not dismissed. | Capture every occurrence with the test name. Reproduce in isolation (an open/close loop), check whether our call pattern (closing while connections linger, `Kill` right after) is the trigger, and try a mitigation such as flushing callbacks before closing. Release suitability is gated on a root cause or a documented upstream cause, with a regression test. |
+| **FB-6-04** (minor) guarantee wording | **Yes.** | **Accepted** | Sweep the docs and logs so that `Sent` is never described as delivery. KI-28 stays explicit. |
+| **FB-6-05** (minor) coverage gaps | **Yes.** The 14 + 5 skips stay visible in `docs/test-coverage.md`. | **Accepted** | Asymmetric impairment on GNS with separate processes: an E2E/soak-style scenario where only one client process is impaired. |
+
+**Answers received, and what follows from them:**
+1. Sharing an identical config is fine if refcount and reset are tested (they are).
+2. The counters are fine if explicitly labelled.
+3. Make the 20 s deadline a configurable policy with an explicit maximum, plus tests: CLI `--connect-deadline-s`, clamped, with a test.
+4. Run DTLS over the unreliable datagram transport with OpenSSL's own retransmission (matches FB-6-02).
+5. Use stateless cookies (`DTLSv1_listen`) on raw UDP listeners, and do not treat GNS's handshake as a DoS or identity check either.
+6. Investigate the assertion (FB-6-03).
+
 ## Feedback on review #5 (PR #5: GNS adapter)
 
 - **Status:** triaged 2026-10-23. **Implemented** 2026-10-24 on `feature/gns-hardening` (stacked on PR #5), on the owner's go-ahead, which also approved the FB-5-05 proof test. Record: EXP-017. Review request #5.
