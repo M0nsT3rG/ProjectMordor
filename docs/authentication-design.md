@@ -36,10 +36,42 @@ These were checked in the installed headers and in the vcpkg source tree on 2026
 
 1. **Identity.** Each player has a long-term key pair, generated locally and stored in the user profile, never in the repository. The public-key fingerprint is shown as a short code.
 2. **Invitation.** The host creates a session invitation: protocol version, session id, host public-key fingerprint and expiry. It is given to the other player out of band (voice, chat or QR). The two players **confirm each other's fingerprints** before the first join.
-3. **Handshake.** Use a standard, specified key-agreement pattern from a vetted library, with **both static keys pinned**. For example libsodium `crypto_kx` (both sides already know each other's public key), or a Noise `KK`/`IK` pattern from an audited implementation. Ephemeral keys for forward secrecy are preferred (Noise); libsodium `crypto_kx` alone is static–static (no forward secrecy), which is acceptable only as a lab step and must be documented.
+3. **Handshake.** Use a **standardised, identity-authenticated handshake with ephemeral keys**, from a reviewed implementation, with both static identities pinned (see §6 for the candidates).
+   - **Revised after review #4 (FB-4-03).** libsodium `crypto_kx` is **not** suitable on its own. It is static–static, so it gives no forward secrecy. It also has no transcript binding and no key confirmation, so it is not a specified authenticated handshake. Assembling one around it would be custom protocol design, which is the risk we are avoiding.
 4. **Record protection.** Every protocol message after the handshake is AEAD-encrypted, for example XChaCha20-Poly1305, using the derived per-direction keys. Our 22-byte header becomes the associated data. Nonces are per-direction counters, and a sliding window rejects replays and old messages. This replaces, and strengthens, the sequence-based guards that are not security controls today (KI-17).
 5. **Session binding.** `ConnectRequest` and reconnect tokens travel only inside the authenticated channel. A reconnect opens a new transport connection and **re-authenticates** before resuming the game session, as ChatGPT answer 2 recommends.
 6. **No silent downgrade.** Unauthenticated play is possible only with an explicit `--insecure-loopback` developer flag, and only on 127.0.0.1. On GNS, set `IP_AllowWithoutAuth` deliberately and do not rely on its open-source default.
+
+## 4a. Peer-authentication state machine (FB-4-03)
+
+This specifies the behaviour the chosen handshake must provide. Message formats come from the chosen standard, not from us.
+
+```
+           connect()/accept transport peer
+ [Idle] ─────────────────────────────────► [Handshaking]
+                                              │  timeout 5 s, transcript mismatch, unknown static key,
+                                              │  bad signature/MAC, version/suite mismatch
+                                              ├──────────────────────────────────────────► [Rejected] (close transport peer)
+                                              │  handshake complete AND key confirmation verified both ways
+                                              ▼
+                                         [Authenticated] ── any record fails AEAD, replay outside window,
+                                              │              counter exhausted ─────────────► [Closed]
+                                              │  transport Disconnected
+                                              ▼
+                                         [Closed] ── reconnect = new transport peer + NEW handshake (never resume keys)
+```
+
+**Rules:**
+- **No protocol messages before authentication.** No message of our game protocol (`ConnectRequest`, tokens, inputs) is processed before `[Authenticated]`. The game session is bound to the authenticated static identity, not to a `PeerId` or an address.
+- **Transcript binding.** The handshake transcript hash covers: protocol name and version, cipher suite, both static public keys, both ephemeral keys, the session-invitation id and its expiry, and our `kProtocolVersion`. The derived keys depend on it, so a relay or downgrade changes the keys and the handshake fails.
+- **Key confirmation.** Each side proves it holds the derived keys before `[Authenticated]`: the standard's finished or confirmation message, verified on both ends.
+- **Records.**
+  - Each direction has its own key.
+  - The nonce is a 64-bit per-direction counter, starting at 0, strictly increasing, and **never reused**. On exhaustion the connection closes.
+  - Our 22-byte header is the associated data.
+- **Replay window.** The receiver accepts a counter at most once, within a 1024-record sliding window. Anything older, or already seen, is dropped and counted. Duplicates are not errors on the unreliable channel; they are discarded.
+- **Rekey.** Not required for prototype session lengths. Close after 2^32 records per direction.
+- **Errors.** A peer that fails any check closes without a detailed error, so it gets no oracle. Locally the failure is counted and logged without key material.
 
 ## 5. Tests the implementation must pass (planned)
 
@@ -55,7 +87,12 @@ These cover the requirements of FB-3-01.
 
 ## 6. Decision needed
 
-**D-013 (user): crypto library.**
-- **libsodium** (ISC licence, small, high-level APIs, in vcpkg) is the proposed default.
-- **Noise via an audited implementation** is the alternative, if forward secrecy is required from the start.
-- **Raw OpenSSL primitives** (already present as a GNS dependency) are not recommended for this layer, because composing primitives by hand is the "custom crypto" risk.
+**D-013 (user): handshake and crypto library.** Revised after review #4, FB-4-03.
+
+- **(a) TLS 1.3 / DTLS through OpenSSL**, with **mutual authentication by pinned self-signed certificates**: each side checks the peer certificate's SHA-256 fingerprint against the confirmed invitation. This is a standardised and heavily reviewed handshake with forward secrecy, transcript binding and key confirmation built in, and OpenSSL 3.6.5 is already in the GNS build. To verify before choosing:
+  - which DTLS version OpenSSL 3.6.5 supports;
+  - how to frame TLS over our unreliable channel (DTLS) versus over a reliable channel.
+- **(b) The Noise protocol (IK or XX with pinned static keys)** through a reviewed implementation. Smaller and purpose-built. To verify: the implementation's review or audit status and its licence.
+- **(c) libsodium `crypto_kx` plus our own handshake.** **Rejected** (FB-4-03): no forward secrecy, no transcript binding, no key confirmation, so it would be custom protocol design.
+
+All options add a dependency to the default build, which today has none. That needs the user's approval.

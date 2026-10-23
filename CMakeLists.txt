@@ -27,7 +27,7 @@ add_library(mordor_common STATIC src/common/log.cpp src/common/precise_sleep.cpp
 target_include_directories(mordor_common PUBLIC src)
 
 add_library(mordor_network STATIC src/network/protocol.cpp src/network/udp_socket.cpp src/network/impairment.cpp
-  src/network/transport_factory.cpp)
+  src/network/transport_factory.cpp src/network/udp_transport.cpp)
 target_link_libraries(mordor_network PUBLIC mordor_common ws2_32)
 
 add_library(mordor_simulation STATIC src/simulation/world.cpp)
@@ -46,7 +46,7 @@ add_executable(mordor-client src/client/main.cpp)
 target_link_libraries(mordor-client PRIVATE mordor_client_lib)
 
 enable_testing()
-foreach(suite unit integration network)
+foreach(suite unit integration network transport)
   add_executable(mordor_${suite}_tests tests/${suite}/${suite}_tests.cpp tests/test_main.cpp)
   target_include_directories(mordor_${suite}_tests PRIVATE tests)
   target_link_libraries(mordor_${suite}_tests PRIVATE mordor_host_lib mordor_client_lib)

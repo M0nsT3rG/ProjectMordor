@@ -1,0 +1,12 @@
+[
+  {"name":"contract_closed_transport_refuses_sends","result":"PASSED","ms":1,"error":""},
+  {"name":"contract_connected_precedes_first_message_and_bytes_roundtrip","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_reliable_delivery_is_provided_or_explicitly_unsupported","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_oversized_send_is_refused","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_unknown_peer_is_not_connected","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_endpoint_reuse_gets_new_peer_generation","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_two_simultaneous_peers_are_routed_separately","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_oversized_inbound_is_reported_not_delivered","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_simulated_loss_is_sent_and_counted","result":"PASSED","ms":1602,"error":""},
+  {"name":"contract_queued_data_discarded_on_close_is_counted","result":"PASSED","ms":0,"error":""}
+]

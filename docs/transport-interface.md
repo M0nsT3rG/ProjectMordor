@@ -1,6 +1,6 @@
 # Transport interface (design, D-012)
 
-**Status:** the interface and the **UDP backend are implemented** (`src/network/transport.hpp`, `udp_transport.hpp`, `transport_factory.cpp`). Host and client use it, and every existing test passes unchanged (EXP-014). The **GNS adapter is the next milestone.**
+**Status:** **contract v2** after review #4: `PeerId{id, generation}`, lifecycle events, delivery classes, explicit `SendResult`, failure counters. See `src/network/transport.hpp` for the normative comments. The interface and the **UDP backend are implemented** (`src/network/transport.hpp`, `udp_transport.hpp`, `transport_factory.cpp`). Host and client use it, and every existing test passes unchanged (EXP-014). The **GNS adapter is the next milestone.**
 
 ## Goal
 
@@ -11,7 +11,7 @@ Host and client logic (sessions, tokens, snapshots, prediction, events) must not
 
 That lets the same test suites and soak gates run against every transport and compare them.
 
-## Shape
+## Shape (historical sketch; contract v2 in `src/network/transport.hpp` supersedes it)
 
 ```cpp
 enum class Delivery { UnreliableSequenced, ReliableOrdered };

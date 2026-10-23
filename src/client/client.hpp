@@ -40,6 +40,7 @@ struct ClientStats {
                   stale_snapshots = 0, corrections = 0, reconnects = 0;
     std::uint64_t bytes_in = 0, bytes_out = 0;  // UDP payload bytes (headers included, IP/UDP overhead excluded)
     std::uint64_t stale_notices = 0;  // Disconnect packets older than the accept of the current connection
+    std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected host loss
     std::uint64_t last_reconnect_ms = 0, max_reconnect_ms = 0;  // timeout detection -> accepted again
     float max_correction = 0;
 };
@@ -89,6 +90,8 @@ private:
     ClientConfig cfg_;
     Logger& log_;
     std::unique_ptr<net::Transport> transport_;
+    std::optional<net::PeerId> server_peer_;  // transport identity of the host connection (FB-4-02)
+    std::vector<net::TransportEvent> events_;
     std::mt19937_64 rng_;
     ClientStats stats_;
 

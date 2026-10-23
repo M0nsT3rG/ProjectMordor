@@ -60,6 +60,7 @@ void Client::set_state(ClientState s, std::string_view why) {
 }
 
 void Client::connect(std::uint64_t now_us) {
+    if (transport_) server_peer_ = transport_->connect(cfg_.host);
     do nonce_ = rng_(); while (nonce_ == 0);
     token_ = 0;
     session_ = 0;
@@ -143,33 +144,47 @@ void Client::update(std::uint64_t now_us) {
 }
 
 void Client::receive(std::uint64_t now_us) {
-    std::array<std::uint8_t, 2048> buf{};
-    for (int i = 0; i < kMaxPacketsPerUpdate; ++i) {
-        Endpoint from;
-        const auto r = transport_->recv(from, buf);
-        if (r.status == RecvStatus::Empty) break;
-        if (r.status == RecvStatus::Error) {
-            log_.warn("recv_error", {kv("os_error", r.os_error)});
-            break;
+    events_.clear();
+    transport_->poll(now_us, events_);
+    for (auto& e : events_) {
+        const bool from_host = server_peer_ && e.peer == *server_peer_;
+        switch (e.kind) {
+            case TransportEvent::Kind::Connected: break;
+            case TransportEvent::Kind::Disconnected:
+                // A connection-oriented backend lost the host: reconnect with the token over a new connection.
+                if (from_host && state_ == ClientState::Connected) {
+                    ++stats_.transport_disconnects;
+                    server_peer_ = transport_->connect(cfg_.host);
+                    begin_reconnect(now_us, "transport_disconnected");
+                }
+                break;
+            case TransportEvent::Kind::DroppedInbound:
+                if (!from_host) {
+                    ++stats_.foreign_packets;
+                    break;
+                }
+                ++stats_.packets_in;
+                ++stats_.invalid_packets;
+                break;
+            case TransportEvent::Kind::Message: {
+                if (!from_host) {
+                    ++stats_.foreign_packets;
+                    break;
+                }
+                ++stats_.packets_in;
+                stats_.bytes_in += e.bytes.size();
+                const auto d = decode(e.bytes);
+                if (d.error != DecodeError::None) {
+                    ++stats_.invalid_packets;
+                    log_.debug("invalid_packet", {kv("reason", to_string(d.error))});
+                    break;
+                }
+                handle(*d.packet, now_us);
+                break;
+            }
         }
-        if (from != cfg_.host) {
-            ++stats_.foreign_packets;
-            continue;
-        }
-        ++stats_.packets_in;
-        if (r.status == RecvStatus::Oversized) {
-            ++stats_.invalid_packets;
-            continue;
-        }
-        stats_.bytes_in += r.size;
-        const auto d = decode({buf.data(), r.size});
-        if (d.error != DecodeError::None) {
-            ++stats_.invalid_packets;
-            log_.debug("invalid_packet", {kv("reason", to_string(d.error))});
-            continue;
-        }
-        handle(*d.packet, now_us);
     }
+    events_.clear();
 }
 
 void Client::handle(const Packet& p, std::uint64_t now_us) {
@@ -318,7 +333,11 @@ void Client::send(const Message& m, std::uint64_t now_us) {
     }
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    transport_->send(cfg_.host, std::move(bytes), now_us);
+    const auto r = server_peer_ ? transport_->send(*server_peer_, bytes, Delivery::Unreliable, now_us) : SendResult::NotConnected;
+    if (r != SendResult::Sent) {
+        ++stats_.send_errors;  // surfaced, never silent (review FB-4-04)
+        log_.debug("send_failed", {kv("result", to_string(r))});
+    }
 }
 
 void Client::disconnect() {

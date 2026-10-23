@@ -9,6 +9,19 @@ namespace mordor::net {
 
 const char* to_string(TransportKind k) { return k == TransportKind::Gns ? "gns" : "udp"; }
 
+const char* to_string(SendResult r) {
+    switch (r) {
+        case SendResult::Sent: return "sent";
+        case SendResult::Unsupported: return "unsupported";
+        case SendResult::NotConnected: return "not_connected";
+        case SendResult::TooLarge: return "too_large";
+        case SendResult::Backpressure: return "backpressure";
+        case SendResult::Closed: return "closed";
+        case SendResult::Failed: return "failed";
+    }
+    return "?";
+}
+
 std::optional<TransportKind> parse_transport(std::string_view s) {
     if (s == "udp") return TransportKind::Udp;
     if (s == "gns") return TransportKind::Gns;

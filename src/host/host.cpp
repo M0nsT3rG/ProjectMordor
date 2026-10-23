@@ -10,7 +10,6 @@ using namespace mordor::net;
 namespace {
 constexpr std::size_t kMaxPendingInputs = 32;
 constexpr std::size_t kTargetInputBacklog = 2;
-constexpr int kMaxPacketsPerUpdate = 512;
 constexpr int kDisconnectRepeats = 3;  // unreliable channel; repeats are idempotent
 
 template <class... Ts>
@@ -61,8 +60,8 @@ std::optional<Transform> Host::player_transform(std::uint16_t player_id) const {
 }
 
 // Only connected slots match: a slot in its grace period can be reclaimed solely by its reconnect token.
-Host::Slot* Host::find_by_endpoint(const Endpoint& e) {
-    auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.connected && s.endpoint == e; });
+Host::Slot* Host::find_by_peer(PeerId p) {
+    auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.connected && s.peer == p; });
     return it == slots_.end() ? nullptr : &*it;
 }
 
@@ -86,49 +85,66 @@ void Host::update(std::uint64_t now_us) {
         next_tick_us_ += tick_us;
     }
     check_timeouts(now_us);
-    transport_->flush(now_us);
+    transport_->flush(now_us);  // send what is due; receiving happens only at the start of update()
 }
 
 void Host::receive(std::uint64_t now_us) {
-    std::array<std::uint8_t, 2048> buf{};
-    for (int i = 0; i < kMaxPacketsPerUpdate; ++i) {
-        Endpoint from;
-        const auto r = transport_->recv(from, buf);
-        if (r.status == RecvStatus::Empty) break;
-        if (r.status == RecvStatus::Error) {
-            log_.warn("recv_error", {kv("os_error", r.os_error)});
-            break;
+    events_.clear();
+    transport_->poll(now_us, events_);
+    for (const auto& e : events_) {
+        switch (e.kind) {
+            case TransportEvent::Kind::Message: on_datagram(e.peer, e.bytes, now_us); break;
+            case TransportEvent::Kind::Disconnected: on_transport_disconnect(e.peer, now_us); break;
+            case TransportEvent::Kind::DroppedInbound:
+                ++stats_.packets_in;
+                ++stats_.invalid_packets;
+                log_.debug("invalid_packet", {kv("reason", e.reason)});
+                break;
+            case TransportEvent::Kind::Connected: break;  // a peer exists only once it sends a valid ConnectRequest
         }
-        ++stats_.packets_in;
-        if (r.status == RecvStatus::Oversized) {
-            ++stats_.invalid_packets;
-            log_.debug("invalid_packet", {kv("reason", "oversized_datagram")});
-            continue;
-        }
-        stats_.bytes_in += r.size;
-        const auto d = decode({buf.data(), r.size});
-        if (d.error == DecodeError::VersionMismatch) {
-            ++stats_.rejected_version;
-            log_.warn("version_mismatch", {kv("peer_version", d.peer_version), kv("our_version", kProtocolVersion)});
-            if (d.peer_type == static_cast<std::uint8_t>(MsgType::ConnectRequest))
-                send_unconnected(from, ConnectReject{RejectReason::VersionMismatch, kProtocolVersion}, now_us);
-            continue;
-        }
-        if (d.error != DecodeError::None) {
-            ++stats_.invalid_packets;
-            log_.debug("invalid_packet", {kv("reason", to_string(d.error)), kv("size", r.size)});
-            continue;
-        }
-        handle(from, *d.packet, now_us);
+    }
+    events_.clear();
+}
+
+void Host::on_datagram(PeerId from, std::span<const std::uint8_t> bytes, std::uint64_t now_us) {
+    ++stats_.packets_in;
+    stats_.bytes_in += bytes.size();
+    const auto d = decode(bytes);
+    if (d.error == DecodeError::VersionMismatch) {
+        ++stats_.rejected_version;
+        log_.warn("version_mismatch", {kv("peer_version", d.peer_version), kv("our_version", kProtocolVersion)});
+        if (d.peer_type == static_cast<std::uint8_t>(MsgType::ConnectRequest))
+            send_unconnected(from, ConnectReject{RejectReason::VersionMismatch, kProtocolVersion}, now_us);
+        return;
+    }
+    if (d.error != DecodeError::None) {
+        ++stats_.invalid_packets;
+        log_.debug("invalid_packet", {kv("reason", to_string(d.error)), kv("size", bytes.size())});
+        return;
+    }
+    handle(from, *d.packet, now_us);
+}
+
+// A connection-oriented backend detected that the peer is gone: start the grace period now instead of waiting
+// for our own timeout (review #3 answer 2: the transport owns liveness when it can detect it).
+void Host::on_transport_disconnect(PeerId peer, std::uint64_t now_us) {
+    for (auto& s : slots_) {
+        if (!s.connected || s.peer != peer) continue;
+        s.connected = false;
+        s.disconnected_at_us = now_us;
+        s.pending.clear();
+        ++stats_.timeouts;
+        ++stats_.transport_disconnects;
+        log_.info("player_transport_lost", {kv("player", s.player_id), kv("grace_ms", cfg_.reconnect_grace_us / 1000)});
     }
 }
 
-void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
+void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
     if (const auto* req = std::get_if<ConnectRequest>(&p.message)) {
         on_connect(from, *req, now_us);
         return;
     }
-    Slot* s = find_by_endpoint(from);
+    Slot* s = find_by_peer(from);
     if (!s || p.header.session != session_) {
         ++stats_.unknown_peer;
         if (p.header.session == session_) notify_timed_out(from, now_us);
@@ -166,11 +182,11 @@ void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
 
 // A peer whose slot is in its grace period may not know it timed out (KI-12: e.g. buffered snapshots refreshed
 // its liveness after a stall). Tell it, so it reconnects with its token now instead of after its own timeout.
-// Only endpoints of grace slots get a reply (no reflection to arbitrary sources), at most every 250 ms.
-void Host::notify_timed_out(const Endpoint& from, std::uint64_t now_us) {
+// Only peers of grace slots get a reply (no reflection to arbitrary sources), at most every 250 ms.
+void Host::notify_timed_out(PeerId from, std::uint64_t now_us) {
     constexpr std::uint64_t kNoticeIntervalUs = 250'000;
     for (auto& s : slots_) {
-        if (s.connected || s.endpoint != from) continue;
+        if (s.connected || s.peer != from) continue;
         if (s.last_notice_us != 0 && now_us - s.last_notice_us < kNoticeIntervalUs) return;
         s.last_notice_us = now_us;
         ++stats_.timeout_notices;
@@ -179,16 +195,17 @@ void Host::notify_timed_out(const Endpoint& from, std::uint64_t now_us) {
     }
 }
 
-void Host::on_connect(const Endpoint& from, const ConnectRequest& req, std::uint64_t now_us) {
+void Host::on_connect(PeerId from, const ConnectRequest& req, std::uint64_t now_us) {
     if (req.reconnect_token != 0) {
         for (auto& s : slots_) {
             if (s.token != req.reconnect_token) continue;
             const bool was_connected = s.connected;
-            if (Slot* other = find_by_endpoint(from); other && other != &s) remove_slot(other->player_id);
+            if (Slot* other = find_by_peer(from); other && other != &s) remove_slot(other->player_id, false);
             Slot* slot = nullptr;  // remove_slot may have moved elements
             for (auto& t : slots_)
                 if (t.token == req.reconnect_token) slot = &t;
-            slot->endpoint = from;
+            if (slot->peer != from && slot->peer.valid()) transport_->close_peer(slot->peer);  // migrate identity
+            slot->peer = from;
             slot->connected = true;
             slot->nonce = req.client_nonce;
             slot->last_recv_us = now_us;
@@ -201,13 +218,13 @@ void Host::on_connect(const Endpoint& from, const ConnectRequest& req, std::uint
         }
         log_.info("unknown_reconnect_token");  // fall through: treat as a new player
     }
-    if (Slot* s = find_by_endpoint(from)) {
+    if (Slot* s = find_by_peer(from)) {
         if (s->nonce == req.client_nonce) {  // retransmitted request: the peer is alive
             s->last_recv_us = now_us;
             accept(*s, now_us);
             return;
         }
-        remove_slot(s->player_id);  // a new client instance reused the endpoint
+        remove_slot(s->player_id, false);  // a new client instance reused the same transport peer
     }
     if (next_player_id_ == 0 || !world_.can_spawn()) {  // 16-bit id space exhausted: never wrap to 0 or reuse ids
         log_.warn("join_rejected", {kv("reason", "ids_exhausted")});
@@ -223,7 +240,7 @@ void Host::on_connect(const Endpoint& from, const ConnectRequest& req, std::uint
     Slot s;
     s.player_id = next_player_id_++;
     s.entity_id = world_.spawn(s.player_id).id;
-    s.endpoint = from;
+    s.peer = from;
     s.connected = true;
     s.token = random_nonzero();
     s.nonce = req.client_nonce;
@@ -238,9 +255,10 @@ void Host::accept(Slot& s, std::uint64_t now_us) {
     send(s, ConnectAccept{s.nonce, s.player_id, s.entity_id, s.token, cfg_.tick_rate_hz, world_.tick()}, now_us);
 }
 
-void Host::remove_slot(std::uint16_t player_id) {
+void Host::remove_slot(std::uint16_t player_id, bool close_transport_peer) {
     auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
     if (it == slots_.end()) return;
+    if (close_transport_peer && it->peer.valid()) transport_->close_peer(it->peer);
     world_.despawn(it->entity_id);
     slots_.erase(it);
 }
@@ -304,6 +322,15 @@ void Host::check_timeouts(std::uint64_t now_us) {
     }
 }
 
+void Host::transmit(PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us) {
+    ++stats_.packets_out;
+    stats_.bytes_out += bytes.size();  // offered load, before simulated loss
+    if (const auto r = transport_->send(to, bytes, Delivery::Unreliable, now_us); r != SendResult::Sent) {
+        ++stats_.send_errors;  // surfaced, never silent (review FB-4-04)
+        log_.debug("send_failed", {kv("result", to_string(r))});
+    }
+}
+
 void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
     Header h;
     h.session = session_;
@@ -314,17 +341,13 @@ void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
         log_.error("encode_failed", {kv("type", static_cast<int>(type_of(m)))});
         return;
     }
-    ++stats_.packets_out;
-    stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    transport_->send(s.endpoint, std::move(bytes), now_us);
+    transmit(s.peer, bytes, now_us);
 }
 
-void Host::send_unconnected(const Endpoint& to, const Message& m, std::uint64_t now_us) {
+void Host::send_unconnected(PeerId to, const Message& m, std::uint64_t now_us) {
     auto bytes = encode(Header{}, m);
     if (bytes.empty()) return;
-    ++stats_.packets_out;
-    stats_.bytes_out += bytes.size();
-    transport_->send(to, std::move(bytes), now_us);
+    transmit(to, bytes, now_us);
 }
 
 void Host::shutdown() {
@@ -333,6 +356,7 @@ void Host::shutdown() {
         if (s.connected)
             for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
     transport_->flush_all();
+    const auto& ts = transport_->stats();
     transport_->close();
     running_ = false;
     // Telemetry for soak analysis (tools/soak/analyze.py): tick drift = world ticks vs wall-clock uptime.
@@ -344,7 +368,10 @@ void Host::shutdown() {
                                kv("stale_inputs", stats_.stale_inputs), kv("joins", stats_.joins),
                                kv("reconnects", stats_.reconnects), kv("timeouts", stats_.timeouts),
                                kv("timeout_notices", stats_.timeout_notices),
-                               kv("unknown_peer", stats_.unknown_peer)});
+                               kv("unknown_peer", stats_.unknown_peer), kv("send_errors", stats_.send_errors),
+                               kv("transport", to_string(cfg_.transport)),
+                               kv("transport_accepted_then_failed", ts.accepted_then_failed),
+                               kv("transport_discarded_on_close", ts.discarded_on_close)});
 }
 
 }  // namespace mordor::host

@@ -2,6 +2,23 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: Review #4 triage, Transport contract v2 (`feature/transport-interface`)
+
+- **Input:** [PR #4 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/4#issuecomment-6373680146), FB-4-01 to FB-4-05.
+- **Changes:**
+  - Contract v2: `PeerId` + generation, lifecycle events, delivery classes, `SendResult`, failure counters, `flush()`.
+  - `UdpTransport` v2 (`udp_transport.cpp`).
+  - Host and client migrated to `PeerId` and events; transport disconnects are handled; send errors are counted.
+  - `ImpairedSender` reports per-send outcomes and delayed failures.
+  - New `tests/transport` contract suite.
+  - Auth state machine §4a; D-013 options revised.
+- **Tests:**
+  - UDP suites and harness unchanged, ×3 in both builds.
+  - Contract 10/10, and the mutation check failed exactly the 2 targeted tests.
+  - E2E passed; moderate soak v3 41/41 (EXP-015).
+- **Problems encountered:** a draft double poll in `Host::update`, caught before compiling.
+- **Remaining:** GNS adapter (must pass `tests/transport` unchanged); D-013.
+
 ## 2026-10-23: Review #3 triage, Transport interface (`feature/transport-interface`, stacked on #3)
 
 - **Input:** [PR #3 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/3#issuecomment-6373375242), findings FB-3-01 to FB-3-06.

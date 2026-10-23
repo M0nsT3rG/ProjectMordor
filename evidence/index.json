@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 76,
+  "count": 77,
   "records": [
     {
       "id": "EXP-001",
@@ -155,6 +155,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "ChatGPT review #3: implement the Transport interface with the existing UDP backend without changing any test (FB-3-02), verify GNS authentication facts against the real library (answer 1), and harden the GNS spike tests (FB-3-01/03/04/05)."
+    },
+    {
+      "id": "EXP-015",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-015.json",
+      "date": "2026-10-23",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "ChatGPT review #4: finalize the Transport contract (identity, lifecycle, delivery classes, errors) before the GNS adapter, keep UDP behaviour, and add backend-independent contract tests."
     },
     {
       "id": "F-COMM-001",

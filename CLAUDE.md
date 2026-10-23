@@ -38,7 +38,7 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 25, network 12)
+./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 25, network 12, transport 10 contract tests)
 ./scripts/soak.ps1 -Profile moderate -DurationS 120   # real-time soak: lan | moderate | harsh; gates in tools/soak/analyze.py
 python -I tools/soak/test_analyze.py
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
@@ -77,7 +77,7 @@ python -I tools/collab/test_report.py
 - The executables' main loops use `PreciseSleeper` (high-resolution waitable timer). Plain `sleep_for(1ms)` sleeps about 15.6 ms on Windows and added about 50 ms of RTT (KI-02, fixed).
 - Soak gates are fixed in `tools/soak/analyze.py` and versioned (`GATE_VERSION`, currently 3; v3 requires `run.json` `scenario` to match `SCENARIOS`). Never tune them to results. A gate change is a new version, decided and documented before the runs that use it.
 - Soak evidence is immutable: each run gets a fresh `evidence/logs/soak-<timestamp>-<profile>-g<N>/` directory. Never delete or re-analyze an existing run into the same directory (the analyzer refuses).
-- Host and Client talk through `net::Transport` (`make_transport(kind, …)`). Only the UDP backend exists; the GNS adapter is next. Never let host/client code touch sockets directly again.
+- Host and Client talk through `net::Transport` contract v2 (`PeerId{id,generation}`, events, `Delivery`, `SendResult`; normative comments in `src/network/transport.hpp`). Only the UDP backend exists; the GNS adapter is next and **must pass `tests/transport` unchanged**. Never let host/client code touch sockets directly, and never treat a PeerId as an address.
 - GNS 1.6.1 open-source accepts unauthenticated peers by default (`IP_AllowWithoutAuth=2`) and has no public certificate-trust API. Authentication must be end-to-end at our layer (`docs/authentication-design.md`; library choice D-013 pending).
 - Git on this machine checks files out with CRLF. Exact-match edit scripts must handle `\r\n`; prefer the Edit tool.
 - Paused work: local branch `feature/reliable-events` (not pushed) holds the in-house reliable-channel WIP. The transport choice (in-house, ENet or GameNetworkingSockets) waits for the user.

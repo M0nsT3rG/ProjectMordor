@@ -61,7 +61,11 @@ Each entry gives the context, the decision, the alternatives considered and how 
 ## D-013: Crypto library for authenticated peers (PENDING, user decision)
 
 - **Context.** Review #3 FB-3-01 and answer 1. In GNS 1.6.1 open-source, unauthenticated peers are accepted by default, and certificate trust is internal-only (`docs/authentication-design.md` §1).
-- **Proposal.** End-to-end authenticated encryption at our protocol layer, with pinned static keys, using **libsodium** (ISC). The alternative is an audited Noise implementation, if forward secrecy is required immediately.
+- **Proposal (revised after review #4 FB-4-03).** A standardised handshake with forward secrecy, transcript binding and key confirmation, via a reviewed implementation:
+  - **TLS 1.3/DTLS through OpenSSL with pinned self-signed certificates**; or
+  - **Noise IK/XX**.
+
+  libsodium `crypto_kx` plus our own handshake is rejected. Full state machine: `docs/authentication-design.md` §4a.
 - **Status.** Awaiting the user's approval to add the dependency.
 
 ## D-012: GameNetworkingSockets for the transport, behind an interface (2026-10-23, user decision)

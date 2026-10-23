@@ -6,6 +6,30 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #4 (PR #4: transport interface)
+
+- **Status:** received and triaged (2026-10-23).
+- **Source:** [PR #4 comment 6373680146](https://github.com/M0nsT3rG/ProjectMordor/pull/4#issuecomment-6373680146). ChatGPT reviewed the source only.
+- **ChatGPT's verdict:** conditional GO to continue the adapter work. Not approval to merge or to expose the prototype.
+- **Implemented on:** `feature/transport-interface`. Experiment record: EXP-015.
+
+| ID | Assumptions verified? | Decision | Implemented in | Verification |
+|---|---|---|---|---|
+| **FB-4-01** (major) | **Yes.** v1 `send()` was unreliable-only, and the design's `Delivery` classes were missing. | **Accepted** | Contract v2: `Delivery::{Unreliable, ReliableOrdered}`, `TransportCapabilities::reliable_ordered`, and an explicit `SendResult::Unsupported`. A backend never silently downgrades. UDP reports `reliable_ordered=false`. | `contract_reliable_delivery_is_provided_or_explicitly_unsupported`: UDP returns `Unsupported` and sends nothing. GNS must return `Sent` once its adapter exists. |
+| **FB-4-02** (major) | **Yes.** Endpoint-only identity cannot express connections, reuse or reconnect. | **Accepted** | `PeerId{id, generation}`: ids are never reused, and the generation increases when an address comes back. Events: `Connected` (always before the first message), `Disconnected`, `Message`, `DroppedInbound`. Host slots and the client's host link store a `PeerId`. A transport `Disconnected` puts the slot into grace (host) or reconnects (client), so the transport can own liveness where it detects it. | `contract_endpoint_reuse_gets_new_peer_generation`, `contract_two_simultaneous_peers_are_routed_separately`, `contract_connected_precedes_first_message_and_bytes_roundtrip`. Disconnect-with-queued-reliable cannot exist on UDP (no reliable class), so it is required for the GNS adapter. |
+| **FB-4-03** (minor, security design) | **Yes.** `crypto_kx` is static–static, with no forward secrecy, transcript binding or key confirmation. | **Accepted.** I withdrew my libsodium proposal. | `docs/authentication-design.md` §4a: a precise state machine (Idle, Handshaking, Authenticated, Rejected, Closed); transcript binding; two-way key confirmation; per-direction 64-bit nonce counters that are never reused; a 1024-record replay window; no game message before authentication; re-authentication on every reconnect. D-013 options revised: **TLS 1.3/DTLS via OpenSSL with pinned certificates**, or **Noise IK/XX** via a reviewed implementation; `crypto_kx` plus our own handshake rejected. | Design only. D-013 still needs the user. |
+| **FB-4-04** (minor, tests) | **Yes.** Failure semantics were undefined. | **Accepted** | `SendResult::{Sent, Unsupported, NotConnected, TooLarge, Backpressure, Closed, Failed}`; `TransportStats` counts `accepted_then_failed`, `discarded_on_close`, `simulated_drops`, `dropped_inbound_oversized`. Host and client count every non-`Sent` result (`send_errors`), and the host logs the transport counters at stop. | 10 contract tests (new suite `tests/transport`). **Mutation check:** I removed the generation increment and the discard counting, and exactly the two matching tests failed (8/10); restored, 10/10. The moderate soak reports `send_errors=0`, `accepted_then_failed=0`, `discarded_on_close=0`. |
+| **FB-4-05** (suggestion) | **Yes.** | **Accepted** | The PR #4 description is reworded: "UDP transport refactor + contract + GNS test hardening". **The GNS host/client is not integrated.** The spike results stay classified separately (EXP-013/014). | n/a |
+
+**UDP compatibility:**
+- **Tests:** the UDP test and harness files are unchanged against `42e9451`, and all pass ×3 in both builds.
+- **E2E:** passed.
+- **Moderate soak, gate v3:** 41/41.
+
+**A mistake of mine caught during implementation:** my rewrite of `Host::update` briefly polled the transport a second time after the timeout checks, which changes the semantics. I caught it before compiling and added `Transport::flush()`, so the original order (receive, then flush) is kept.
+
+---
+
 ## Feedback on review request #3 (GameNetworkingSockets spike)
 
 - **Status:** received and triaged (2026-10-23).

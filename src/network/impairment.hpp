@@ -23,7 +23,11 @@ struct ImpairmentConfig {
 
 struct ImpairmentStats {
     std::uint64_t offered = 0, sent = 0, dropped = 0, duplicated = 0, send_failures = 0;
+    std::uint64_t delayed_send_failures = 0;  // subset of send_failures: accepted, queued, then failed on transmit
 };
+
+// What happened to one send() call, so callers can surface local failures (review FB-4-04).
+enum class ImpairOutcome { Sent, Failed, Queued, SimulatedDrop };
 
 class ImpairedSender {
 public:
@@ -34,10 +38,11 @@ public:
     ImpairedSender(Transmit transmit, ImpairmentConfig cfg) : transmit_fn_(std::move(transmit)), cfg_(cfg), rng_(cfg.seed) {}
     void set_config(const ImpairmentConfig& cfg) { cfg_ = cfg; }
     const ImpairmentConfig& config() const { return cfg_; }
-    void send(const Endpoint& to, std::vector<std::uint8_t> bytes, std::uint64_t now_us);
+    ImpairOutcome send(const Endpoint& to, std::vector<std::uint8_t> bytes, std::uint64_t now_us);
     void flush(std::uint64_t now_us);  // send everything that is due
     void flush_all();                  // send everything now (shutdown path)
     void clear() { queue_.clear(); }
+    std::size_t queued() const { return queue_.size(); }
     const ImpairmentStats& stats() const { return stats_; }
 
 private:
@@ -46,7 +51,7 @@ private:
         Endpoint to;
         std::vector<std::uint8_t> bytes;
     };
-    void transmit(const Endpoint& to, const std::vector<std::uint8_t>& bytes);
+    bool transmit(const Endpoint& to, const std::vector<std::uint8_t>& bytes, bool delayed);
 
     Transmit transmit_fn_;
     ImpairmentConfig cfg_;

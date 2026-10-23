@@ -30,6 +30,7 @@ struct HostStats {
     std::uint64_t packets_in = 0, packets_out = 0, invalid_packets = 0, rejected_version = 0, rejected_full = 0,
                   unknown_peer = 0, stale_inputs = 0, shed_inputs = 0, joins = 0, reconnects = 0, timeouts = 0;
     std::uint64_t bytes_in = 0, bytes_out = 0, skipped_ticks = 0, timeout_notices = 0;
+    std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected peer loss
 };
 
 class Host {
@@ -56,7 +57,7 @@ private:
     struct Slot {
         std::uint16_t player_id = 0;
         std::uint16_t entity_id = 0;
-        net::Endpoint endpoint;
+        net::PeerId peer;  // transport identity of the current connection (FB-4-02)
         bool connected = false;
         std::uint64_t token = 0;
         std::uint64_t nonce = 0;
@@ -71,22 +72,27 @@ private:
     };
 
     void receive(std::uint64_t now_us);
-    void handle(const net::Endpoint& from, const net::Packet& p, std::uint64_t now_us);
-    void on_connect(const net::Endpoint& from, const net::ConnectRequest& req, std::uint64_t now_us);
+    void on_datagram(net::PeerId from, std::span<const std::uint8_t> bytes, std::uint64_t now_us);
+    void on_transport_disconnect(net::PeerId peer, std::uint64_t now_us);
+    void handle(net::PeerId from, const net::Packet& p, std::uint64_t now_us);
+    void on_connect(net::PeerId from, const net::ConnectRequest& req, std::uint64_t now_us);
     void step();
     void broadcast(std::uint64_t now_us);
     void check_timeouts(std::uint64_t now_us);
     void send(Slot& s, const net::Message& m, std::uint64_t now_us);
-    void send_unconnected(const net::Endpoint& to, const net::Message& m, std::uint64_t now_us);
+    void send_unconnected(net::PeerId to, const net::Message& m, std::uint64_t now_us);
+    void transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us);
     void accept(Slot& s, std::uint64_t now_us);
-    void remove_slot(std::uint16_t player_id);
-    Slot* find_by_endpoint(const net::Endpoint& e);
-    void notify_timed_out(const net::Endpoint& from, std::uint64_t now_us);
+    // close_transport_peer = false when the same transport peer is about to be reused (e.g. new client instance).
+    void remove_slot(std::uint16_t player_id, bool close_transport_peer = true);
+    Slot* find_by_peer(net::PeerId p);
+    void notify_timed_out(net::PeerId from, std::uint64_t now_us);
     std::uint64_t random_nonzero();
 
     HostConfig cfg_;
     Logger& log_;
     std::unique_ptr<net::Transport> transport_;
+    std::vector<net::TransportEvent> events_;
     std::mt19937_64 rng_;
     sim::World world_;
     std::vector<Slot> slots_;

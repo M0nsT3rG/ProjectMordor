@@ -22,5 +22,6 @@
 | KI-18 | Harsh-profile stall recovery varies between runs (572 ms and 1567 ms, both under the 3000 ms gate). Not characterised statistically. | Low | EXP-010, EXP-011 | Open: measure the distribution over repeated runs |
 | KI-21 | GNS 1.6.1 open-source accepts unauthenticated peers on any IP by default (`IP_AllowWithoutAuth=2`). GNS native certificate trust is internal-only. | High (if exposed) | EXP-014, `docs/authentication-design.md` | Open: app-layer authentication pending D-013 |
 | KI-22 | The GNS adapter is not implemented. Host and client run only on the UDP backend, so the session, reconnect and soak tests have not run on GNS. | Medium | FB-3-02 | Next milestone |
+| KI-23 | The UDP backend provides no `ReliableOrdered` delivery (it returns `Unsupported`). Reliable events need the GNS adapter, or the parked in-house `ReliableChannel` behind the contract. | Medium | FB-4-01 | Open |
 | KI-20 | No burst or peak bandwidth gate. 1 s window peaks exceed the mean-rate ceiling under jitter and duplication (EXP-012), so a peak gate needs its own derived bound. | Low | Review #2 follow-up, EXP-012 | Deferred: future gate version |
 | KI-19 | No gate on shed inputs or queue depth yet: there is no design-derived bound. | Low | FB-2-03 | Deferred: needs repeated baselines |
