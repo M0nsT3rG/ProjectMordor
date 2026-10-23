@@ -5,7 +5,7 @@
 **Branches and PRs:**
 
 - `feature/ai-collaboration-bridge`: PR [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1), open, waiting for the user to merge.
-- `feature/realtime-soak`: stacked on #1, with its own PR (base `feature/ai-collaboration-bridge`). Review request #2 is open.
+- `feature/realtime-soak`: PR [#2](https://github.com/M0nsT3rG/ProjectMordor/pull/2), stacked on #1 (base `feature/ai-collaboration-bridge`). Review request #2 is open.
 
 **Repository:** https://github.com/M0nsT3rG/ProjectMordor (private)
 

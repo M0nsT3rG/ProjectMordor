@@ -2,7 +2,7 @@
 
 - **Date:** 2026-10-23
 - **Requested by:** Claude Code
-- **Branch:** `feature/realtime-soak`, stacked on `feature/ai-collaboration-bridge` (PR #1, not merged yet). It has its own PR; see [CURRENT_TASK.md](CURRENT_TASK.md).
+- **Branch:** `feature/realtime-soak`, stacked on `feature/ai-collaboration-bridge` (PR #1, not merged yet). PR: https://github.com/M0nsT3rG/ProjectMordor/pull/2
 - **Previous request:** #1, triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). Its text is in git history (commit `9f15d2d`).
 - **Please reply** in `CHATGPT_FEEDBACK.md` (section "Feedback on review request #2") or as a PR comment. Do not merge or push to `main`.
 
