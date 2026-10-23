@@ -13,7 +13,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - GNS tests rewritten: RAII state guard, port retries, concurrent, multi-client, mixed, queue pressure, asserted security baselines.
   - D-012 updated; D-013 pending.
 - **Tests:**
-  - No test file changed by the refactor.
+  - No UDP test or harness file changed by the refactor; only `tests/gns/` was rewritten, deliberately.
   - Unit, integration and network 52/52 ×3 in both builds; E2E passed; lan soak v3 41/41, metrics unchanged.
   - GNS 7/7 ×3, and 21/21 across 3 parallel instances (EXP-014).
 - **Problems encountered:**
