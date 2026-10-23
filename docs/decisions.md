@@ -51,6 +51,13 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - coop-anything claims our hash but publishes no code.
   - Neither licenses those artefacts for reuse (F-SOWM-017).
 
+## D-009: GitHub-based collaboration with ChatGPT as reviewer (2026-10-23)
+
+- **Decision.** Use `.ai-collaboration/` in the repository as the shared channel, with GitHub as the transport.
+- **Branches.** Work happens on feature branches. Pull requests are never merged automatically.
+- **Feedback.** ChatGPT feedback is advice. It is verified and triaged in `CHATGPT_FEEDBACK.md`, and it never overrides the project rules.
+- **Reporting.** The status script (`tools/collab/report.py`) runs only on demand. It has no network access and only reads local git and evidence files.
+
 ## D-006: Loopback by default; LAN by explicit opt-in (2026-10-23)
 
 - **Decision.**

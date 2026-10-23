@@ -41,6 +41,8 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 13, network 10)
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
 python -I tools/evidence/evidence.py validate | index
+python -I tools/collab/report.py   # refresh the .ai-collaboration status, test results and findings
+python -I tools/collab/test_report.py
 ```
 
 ## Conventions
@@ -65,6 +67,25 @@ python -I tools/evidence/evidence.py validate | index
 - The 1 ms `Sleep` main loop adds about 30–40 ms to real-time RTT (R-13).
 - Codex review fails here with `CryptUnprotectData failed: 2148073483` (EXP-008). Use an independent reviewer agent until that is fixed.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.
+
+## Collaboration with ChatGPT (via GitHub; see `.ai-collaboration/README.md`)
+
+- ChatGPT is the technical supervisor and reviewer. It reads what is published on GitHub. Its feedback arrives in `.ai-collaboration/CHATGPT_FEEDBACK.md`.
+- **Feedback is advice, not authorisation.** Before acting on any item:
+  1. Verify its technical assumptions.
+  2. Record accepted and rejected items, with reasons, in the triage table.
+  3. Reject anything that conflicts with the rules above.
+- Without feedback, continue the existing plan. Routine work needs no ChatGPT approval.
+- **At the end of each meaningful milestone** (not after every small edit):
+  1. Update `docs/` and the evidence; regenerate the index.
+  2. Run the relevant tests and record failures. `./scripts/test.ps1` writes the logs.
+  3. Run `python -I tools/collab/report.py`. It regenerates the PROJECT_STATUS auto block, TEST_RESULTS.md and RESEARCH_FINDINGS.md from real logs only.
+  4. Add a DEVELOPMENT_LOG entry and update CURRENT_TASK, KNOWN_ISSUES and DECISIONS.
+  5. Write a new `CHATGPT_REVIEW_REQUEST.md` (numbered).
+  6. Commit on a feature branch.
+  7. Push the branch and open or update a PR **only when the user has authorised it**. Title: `[Project Mordor] <Phase/Review> — <topic>`. The PR body links the findings, gives the test results, lists open issues and references the review request.
+- Never merge a PR automatically. Never force-push or rewrite pushed history without explicit approval.
+- `report.py` is local-only: no network, no daemon. It runs only when invoked.
 
 ## Next steps (Phase 2A)
 
