@@ -204,6 +204,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         ++stats_.foreign_packets;
         return;
     }
+    // Only client-bound message types prove the host is alive (review FB-1-02).
+    const bool client_bound = std::holds_alternative<Snapshot>(p.message) || std::holds_alternative<HeartbeatAck>(p.message) ||
+                              std::holds_alternative<Disconnect>(p.message);
+    if (!client_bound) {
+        ++stats_.invalid_packets;
+        return;
+    }
     last_recv_us_ = now_us;
     if (seq_newer(p.header.sequence, peer_seq_)) peer_seq_ = p.header.sequence;
     std::visit(overloaded{
@@ -217,7 +224,7 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
             disconnect_reason_ = d.reason;
             set_state(ClientState::Disconnected, "host_disconnect");
         },
-        [&](const auto&) { ++stats_.invalid_packets; },  // host-bound message types are not valid here
+        [&](const auto&) {},  // unreachable: filtered by client_bound above
     }, p.message);
 }
 

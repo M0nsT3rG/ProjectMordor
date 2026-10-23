@@ -1,33 +1,34 @@
 {
- "id": "F-COOP-012",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "ai",
- "claim": "The repo reports that Shadow of War's Nemesis ('Faction') logic runs on one game thread, dispatches every event through HandleFactionEventAction (RVA 40C304), and draws outcomes from one global 64-bit LCG.",
- "evidence": "README: LCG state at RVA 2A25C88; RollResurrection 6DBD4C uses RandomFloat; notes conclude a client must never run these rolls.",
- "sources": [
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/README.md",
-   "location": "## How the game works (for co-op), Nemesis system / Randomness"
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/NOTES.md",
-   "location": "## Session 2026-10-20 q; ## Session 2026-10-20 r; ## Session 2026-10-20 s"
-  }
- ],
- "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install.",
- "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
- "classification": "CONFIRMED",
- "confidence": "medium",
- "limitations": "Repo claims verified by its author in the running game; not verified by us. Using these RVAs on a different build would be wrong. Event-stream vs Faction.Save/Load sync is undecided in the repo.",
- "next_experiment": "Hypothesis for Phase 2: host-side Nemesis event stream (results only) plus join-time Faction.Save/Load snapshot; validate only after build identity matches.",
- "related": [
-  "F-COOP-003",
-  "F-COOP-004",
-  "F-COOP-011"
- ]
+  "id": "F-COOP-012",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "ai",
+  "claim": "The repo reports that Shadow of War's Nemesis ('Faction') logic runs on one game thread, dispatches every event through HandleFactionEventAction (RVA 40C304), and draws outcomes from one global 64-bit LCG.",
+  "evidence": "README: LCG state at RVA 2A25C88; RollResurrection 6DBD4C uses RandomFloat; notes conclude a client must never run these rolls.",
+  "sources": [
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/README.md",
+      "location": "## How the game works (for co-op), Nemesis system / Randomness"
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/NOTES.md",
+      "location": "## Session 2026-10-20 q; ## Session 2026-10-20 r; ## Session 2026-10-20 s"
+    }
+  ],
+  "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install.",
+  "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "medium",
+  "limitations": "Repo claims verified by its author in the running game; not verified by us. Using these RVAs on a different build would be wrong. Event-stream vs Faction.Save/Load sync is undecided in the repo.",
+  "next_experiment": "Hypothesis for Phase 2: host-side Nemesis event stream (results only) plus join-time Faction.Save/Load snapshot; validate only after build identity matches.",
+  "related": [
+    "F-COOP-003",
+    "F-COOP-004",
+    "F-COOP-011"
+  ]
 }

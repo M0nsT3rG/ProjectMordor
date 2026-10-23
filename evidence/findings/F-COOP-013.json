@@ -1,32 +1,33 @@
 {
- "id": "F-COOP-013",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "saves",
- "claim": "The repo documents that an isolated Shadow of War test copy still leaked: steam.exe wrote test saves into the real Steam userdata via ISteamRemoteStorage even with Steam Cloud off, and NVIDIA App rewrote the real render.cfg.",
- "evidence": "NOTES session n: real remote save rewritten 'with the same bytes' as the sandbox save; session f: NVIDIA App rewrote render.cfg.",
- "sources": [
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/NOTES.md",
-   "location": "## Session 2026-10-20 f; ## Session 2026-10-20 n; ## Session 2026-10-20 p"
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/README.md",
-   "location": "## QA"
-  }
- ],
- "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install. Saves under %LOCALAPPDATA%\\WB Games\\Shadow of War plus Steam remote copy (repo-reported).",
- "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
- "classification": "CONFIRMED",
- "confidence": "medium",
- "limitations": "Observed on one third-party machine; their fix (blocking ISteamRemoteStorage writes in-process) was not reviewed by us. Their code (sow-coop) is unpublished.",
- "next_experiment": "Before any future game launch, back up real saves and Steam userdata\\<id>\\356190 with a hash manifest and re-check after every run; treat store client and GPU tools as out-of-process writers.",
- "related": [
-  "F-COOP-005",
-  "F-COOP-014"
- ]
+  "id": "F-COOP-013",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "saves",
+  "claim": "The repo documents that an isolated Shadow of War test copy still leaked: steam.exe wrote test saves into the real Steam userdata via ISteamRemoteStorage even with Steam Cloud off, and NVIDIA App rewrote the real render.cfg.",
+  "evidence": "NOTES session n: real remote save rewritten 'with the same bytes' as the sandbox save; session f: NVIDIA App rewrote render.cfg.",
+  "sources": [
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/NOTES.md",
+      "location": "## Session 2026-10-20 f; ## Session 2026-10-20 n; ## Session 2026-10-20 p"
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/README.md",
+      "location": "## QA"
+    }
+  ],
+  "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install. Saves under %LOCALAPPDATA%\\WB Games\\Shadow of War plus Steam remote copy (repo-reported).",
+  "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "medium",
+  "limitations": "Observed on one third-party machine; their fix (blocking ISteamRemoteStorage writes in-process) was not reviewed by us. Their code (sow-coop) is unpublished.",
+  "next_experiment": "Before any future game launch, back up real saves and Steam userdata\\<id>\\356190 with a hash manifest and re-check after every run; treat store client and GPU tools as out-of-process writers.",
+  "related": [
+    "F-COOP-005",
+    "F-COOP-014"
+  ]
 }

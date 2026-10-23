@@ -1,37 +1,38 @@
 {
- "id": "F-COMM-005",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "animation",
- "claim": "Community patterns show SKEL files are sectioned (bone, model, animation, indices, cloth, footer) with bones identified by 32-bit name hashes; 364 bone-name hashes are published.",
- "evidence": "skel.hexpat defines section IDs 0xDCDCFF00..05 and 0xDCDCFF99; enums.hexpat lists 364 bone names.",
- "sources": [
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "patterns/sow/skel.hexpat",
-   "location": "SectionID enum"
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "patterns/sow/enums.hexpat",
-   "location": "BoneName enum"
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "patterns/sow/mesh.hexpat",
-   "location": "SectionID enum"
-  }
- ],
- "game_build_compatibility": "UNKNOWN - source does not state a game build; not checked against 1.0.8874.0 / build 3095001",
- "verification_method": "Read the pattern files. Verify on our build by parsing an extracted .skel and checking section IDs and hash collisions.",
- "classification": "PARTIALLY_CONFIRMED",
- "confidence": "medium",
- "limitations": "Animation section internals (curves, compression) are not mapped; the hash function is not documented.",
- "next_experiment": "Identify the bone-name hash algorithm (test common hashes against the published name/value pairs) for use in a future animation-state sync.",
- "related": [
-  "F-COMM-003"
- ]
+  "id": "F-COMM-005",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "animation",
+  "claim": "Community patterns show SKEL files are sectioned (bone, model, animation, indices, cloth, footer) with bones identified by 32-bit name hashes; 364 bone-name hashes are published.",
+  "evidence": "skel.hexpat defines section IDs 0xDCDCFF00..05 and 0xDCDCFF99; enums.hexpat lists 364 bone names.",
+  "sources": [
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "patterns/sow/skel.hexpat",
+      "location": "SectionID enum"
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "patterns/sow/enums.hexpat",
+      "location": "BoneName enum"
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "patterns/sow/mesh.hexpat",
+      "location": "SectionID enum"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN - source does not state a game build; not checked against 1.0.8874.0 / build 3095001",
+  "verification_method": "Read the pattern files. Verify on our build by parsing an extracted .skel and checking section IDs and hash collisions.",
+  "classification": "PARTIALLY_CONFIRMED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Animation section internals (curves, compression) are not mapped; the hash function is not documented.",
+  "next_experiment": "Identify the bone-name hash algorithm (test common hashes against the published name/value pairs) for use in a future animation-state sync.",
+  "related": [
+    "F-COMM-003"
+  ]
 }

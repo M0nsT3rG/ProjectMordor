@@ -32,12 +32,19 @@ try {
         $bin = Join-Path $BuildDir $Config
         $out = Join-Path $logs "e2e-$stamp"
         New-Item -ItemType Directory -Force $out | Out-Null
+        # Remove the previous run's logs; otherwise the wait below matches a stale host_started line.
+        Remove-Item "$out/*.log" -ErrorAction SilentlyContinue
+        # Workaround (EXP-006, cause unknown): right after a relink, the first run of the binaries
+        # exchanged no packets at all. A short warm-up run of each binary avoided it.
+        & (Join-Path $bin 'mordor-host.exe') --port 47812 --duration-s 1 --log "$out/warmup-host.log"
+        & (Join-Path $bin 'mordor-client.exe') --port 47812 --duration-s 1 --log "$out/warmup-client.log"
+        Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
         $imp = '--latency-ms 40 --jitter-ms 20 --loss 0.1'
         $h = Start-Process (Join-Path $bin 'mordor-host.exe') -ArgumentList "--port 47811 --duration-s 9 $imp --seed 5 --log $out/host.log" -PassThru -NoNewWindow
         $null = $h.Handle  # keeps ExitCode readable after exit
         # Freshly built executables can start seconds late (EXP-006); wait until the host is actually listening.
         $deadline = (Get-Date).AddSeconds(30)
-        while (-not ((Test-Path "$out/host.log") -and (Select-String -Path "$out/host.log" -Pattern 'host_started' -Quiet))) {
+        while (-not ((Test-Path "$out/host.log") -and (Select-String -Path "$out/host.log" -Pattern 'host_started' -Quiet -ErrorAction SilentlyContinue))) {
             if ((Get-Date) -gt $deadline -or $h.HasExited) { throw 'Host did not report host_started within 30 s' }
             Start-Sleep -Milliseconds 100
         }

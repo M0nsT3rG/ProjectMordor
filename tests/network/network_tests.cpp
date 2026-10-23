@@ -211,3 +211,41 @@ TEST(expired_grace_period_removes_entity) {
     CHECK(s.pump_until([&] { return s.host.slot_count() == 0; }, 8 * kSec));
     CHECK(s.host.world().entities().empty());
 }
+
+// FB-1-01 under real jitter: the host never moves an entity faster than one timestep per server
+// tick, and the predicting client still converges to the authority after it stops.
+TEST(jitter_never_exceeds_tick_movement_budget) {
+    host::HostConfig hc;
+    hc.impairment = impair(0, 40, 80, 41);
+    test::Session s(hc);
+    client::ClientConfig cc;
+    cc.impairment = impair(0, 40, 80, 42);
+    auto& a = s.add_client(cc);
+    CHECK(s.pump_until([&] { return a.state() == ClientState::Connected && a.predicted_self(); }, 5 * kSec));
+    const float step = sim::kMoveSpeed / 30.0f;
+    auto last = *s.host.player_transform(a.player_id());
+    auto last_tick = s.host.world().tick();
+    float worst_ratio = 0;
+    a.set_move(1.0f, 0.0f);
+    const auto end = s.clk.now + 4 * kSec;
+    while (s.clk.now < end) {
+        s.host.update(s.clk.now);
+        a.update(s.clk.now);
+        const auto t = *s.host.player_transform(a.player_id());
+        const auto ticks = s.host.world().tick() - last_tick;
+        if (ticks > 0) {
+            const float moved = std::hypot(t.x - last.x, t.z - last.z);
+            worst_ratio = std::max(worst_ratio, moved / (step * static_cast<float>(ticks)));
+            last = t;
+            last_tick = s.host.world().tick();
+        }
+        s.clk.now += 5'000;
+        std::this_thread::yield();
+    }
+    CHECK(worst_ratio <= 1.0f + 1e-3f);
+    CHECK(s.host.player_transform(a.player_id())->x > 5.0f);  // it really moved
+    a.set_move(0, 0);
+    s.run(3 * kSec);
+    CHECK_NEAR(a.predicted_self()->x, s.host.player_transform(a.player_id())->x, 1e-3);
+    CHECK(s.all_connected());
+}

@@ -1,44 +1,45 @@
 {
- "id": "F-SOWM-003",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "modding-framework",
- "claim": "SoWLoader loads external mod DLLs from <install>\\mods\\ in filename order and calls an optional exported SoWMod_Init(int page) on its worker thread, with optional SoWMod_Name/SoWMod_Scope exports and a versioned HagUI_GetAPI ABI.",
- "evidence": "ModManager.cpp:45 FindFirstFileW((dir + L\"\\\\*.dll\")...); :84 GetProcAddress(mod, \"SoWMod_Init\")",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/ModManager.cpp",
-   "location": "lines 14-26, 45-84"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/SoWModAPI.h",
-   "location": "lines 1-53"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/HagUIAPI.h",
-   "location": "line 16 HAGUI_ABI_VERSION=6"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/HagApiExport.cpp",
-   "location": "lines 28-36"
-  }
- ],
- "game_build_compatibility": "Framework code itself is build-independent; mods that use shared/GameOffsets.h are not.",
- "verification_method": "Static read of repo source.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "No dependency/ordering beyond filename sort; no isolation between mods.",
- "next_experiment": "None needed for the framework; decide whether Project Mordor writes its own loader or reuses this design pattern (license permitting).",
- "related": [
-  "F-SOWM-001",
-  "F-SOWM-015"
- ]
+  "id": "F-SOWM-003",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "modding-framework",
+  "claim": "SoWLoader loads external mod DLLs from <install>\\mods\\ in filename order and calls an optional exported SoWMod_Init(int page) on its worker thread, with optional SoWMod_Name/SoWMod_Scope exports and a versioned HagUI_GetAPI ABI.",
+  "evidence": "ModManager.cpp:45 FindFirstFileW((dir + L\"\\\\*.dll\")...); :84 GetProcAddress(mod, \"SoWMod_Init\")",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/ModManager.cpp",
+      "location": "lines 14-26, 45-84"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/SoWModAPI.h",
+      "location": "lines 1-53"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/HagUIAPI.h",
+      "location": "line 16 HAGUI_ABI_VERSION=6"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/HagApiExport.cpp",
+      "location": "lines 28-36"
+    }
+  ],
+  "game_build_compatibility": "Framework code itself is build-independent; mods that use shared/GameOffsets.h are not.",
+  "verification_method": "Static read of repo source.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "No dependency/ordering beyond filename sort; no isolation between mods.",
+  "next_experiment": "None needed for the framework; decide whether Project Mordor writes its own loader or reuses this design pattern (license permitting).",
+  "related": [
+    "F-SOWM-001",
+    "F-SOWM-015"
+  ]
 }

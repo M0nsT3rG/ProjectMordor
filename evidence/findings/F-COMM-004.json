@@ -1,38 +1,39 @@
 {
- "id": "F-COMM-004",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "object-model",
- "claim": "The game database format (magic GADB) is only partly understood publicly: header, a string table and hashed string pointers are mapped, while record blocks remain 'unknown' and use hardcoded file offsets.",
- "evidence": "gamedb.hexpat names fields unknownBlock/unknownChunk and pins chunks at fixed offsets.",
- "sources": [
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "patterns/sow/gamedb.hexpat",
-   "location": "Header, UnknownSection"
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "patterns/sow/scripts.hexpat",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "patterns/sow/strdb.hexpat",
-   "location": ""
-  }
- ],
- "game_build_compatibility": "UNKNOWN; fixed offsets are tied to one game.gamedb sample of unstated version.",
- "verification_method": "Read the pattern files. The SCRI (scripts) pattern only maps a header plus an opaque code blob; strdb maps a hash->offset index with UTF-16 strings.",
- "classification": "PARTIALLY_CONFIRMED",
- "confidence": "medium",
- "limitations": "Nothing public explains how gamedb records map to Nemesis/orc/mission data; script bytecode format is unknown.",
- "next_experiment": "Extract game.gamedb from our build, verify the header layout, and diff string tables for names like Faction/Nemesis to locate relevant records.",
- "related": [
-  "F-COMM-003",
-  "F-COMM-011"
- ]
+  "id": "F-COMM-004",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "object-model",
+  "claim": "The game database format (magic GADB) is only partly understood publicly: header, a string table and hashed string pointers are mapped, while record blocks remain 'unknown' and use hardcoded file offsets.",
+  "evidence": "gamedb.hexpat names fields unknownBlock/unknownChunk and pins chunks at fixed offsets.",
+  "sources": [
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "patterns/sow/gamedb.hexpat",
+      "location": "Header, UnknownSection"
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "patterns/sow/scripts.hexpat",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "patterns/sow/strdb.hexpat",
+      "location": ""
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN; fixed offsets are tied to one game.gamedb sample of unstated version.",
+  "verification_method": "Read the pattern files. The SCRI (scripts) pattern only maps a header plus an opaque code blob; strdb maps a hash->offset index with UTF-16 strings.",
+  "classification": "PARTIALLY_CONFIRMED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Nothing public explains how gamedb records map to Nemesis/orc/mission data; script bytecode format is unknown.",
+  "next_experiment": "Extract game.gamedb from our build, verify the header layout, and diff string tables for names like Faction/Nemesis to locate relevant records.",
+  "related": [
+    "F-COMM-003",
+    "F-COMM-011"
+  ]
 }

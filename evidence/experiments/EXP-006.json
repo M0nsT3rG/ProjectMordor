@@ -4,17 +4,17 @@
   "date": "2026-10-23",
   "environment": "Windows 11 Pro 10.0.26300 x64, MSVC 14.51.36231 (Visual Studio 18 Community), CMake 4.4.4, loopback 127.0.0.1",
   "game_exe_sha256": "N/A (prototype does not touch the game)",
-  "errors": "Original failure: host packets_in=0; clients state connecting -> failed (connect_timeout) after 5 s.",
+  "errors": "B: host packets_in=0; clients connect_timeout. Earlier: host exit 2 'cannot open log file' (fopen_s sharing).",
   "related": [
     "EXP-005"
   ],
   "objective": "Explain an E2E run where the host received 0 packets and both clients failed with connect_timeout.",
   "hypothesis": "Freshly linked executables start late on first launch (likely an antivirus scan), so the clients' 5 s connect window can expire before the host listens, or vice versa.",
-  "procedure": "Deleted and relinked mordor-host.exe/mordor-client.exe, then ran the E2E immediately (twice); compared join times with runs that used already-launched binaries.",
+  "procedure": "A/B/C: ./scripts/test.ps1 -E2E without rebuild, right after deleting+relinking both executables, and again. Then relink + warm-up (each binary run 1 s on port 47812) + E2E, 2 valid trials.",
   "expected_result": "Joins later than usual right after a relink; normal on subsequent runs.",
-  "observed_result": "Normal join at about 390 ms after host start; right after a relink, joins at 890-990 ms. The original 0-packet failure was not reproduced. The cause is not confirmed: it is consistent with first-launch scanning, but no antivirus logs were examined. Mitigation: scripts/test.ps1 now waits for the host_started log line before starting clients.",
+  "observed_result": "Original failure reproduced on 2026-10-23 (review #1 work): (A) E2E without rebuild PASSED; (B) E2E immediately after relinking mordor-host.exe/mordor-client.exe FAILED with host packets_in=0 although host_started was logged and the clients ran concurrently, so a late process start is NOT the cause (the earlier hypothesis is contradicted); (C) the next run PASSED. No Windows Firewall rules reference these executables (read-only check). After a relink, a 1 s warm-up run of each binary before the E2E avoided the failure in 2 of 2 trials (one manual, one via test.ps1; a third scripted attempt aborted before the E2E on a PowerShell stderr error and is not counted). Root cause remains UNKNOWN (likely environmental: first-run inspection of new binaries by security software; not verified). Separately found and fixed: the previous mitigation was invalid because test.ps1 polled the previous run's host.log, and fopen_s opened logs exclusively so a concurrent reader made the host fail with 'cannot open log file'.",
   "evidence_paths": [],
   "result": "PARTIAL",
-  "confidence": "low",
-  "follow_up": "If it recurs, check the Windows Defender operational event log around the run time."
+  "confidence": "medium",
+  "follow_up": "Keep the warm-up step in test.ps1. If it recurs, inspect the Windows Defender operational event log (needs user approval)."
 }

@@ -268,3 +268,225 @@ TEST(clean_shutdown_notifies_clients_and_releases_socket) {
     std::string err;
     CHECK(again.open(Endpoint::loopback(port), &err));  // port released
 }
+
+// ---------------------------------------------------------------------------------------------
+// Review #1 regression tests (ChatGPT FB-1-01, FB-1-02, FB-1-07). A raw-socket "fake client"
+// gives exact control over what the host receives and when.
+namespace {
+constexpr std::uint64_t kTickUs = 1'000'000 / 30;  // default host tick rate
+
+struct FakeClient {
+    UdpSocket sock;
+    Endpoint host;
+    Header h;  // session filled in after accept
+    ConnectAccept accept{};
+
+    explicit FakeClient(std::uint16_t host_port) : host(Endpoint::loopback(host_port)) { CHECK(sock.open(Endpoint::loopback(0))); }
+    void send(const Message& m) {
+        ++h.sequence;
+        CHECK(sock.send_to(host, encode(h, m)));
+    }
+    // Sends ConnectRequest and steps the host until the matching ConnectAccept arrives.
+    void join(test::Session& s, std::uint64_t nonce, std::uint64_t token = 0) {
+        send(ConnectRequest{nonce, token});
+        for (int i = 0; i < 20; ++i) {
+            s.host.update(s.clk.now);
+            Endpoint from;
+            while (auto p = recv_packet(sock, from)) {
+                if (const auto* a = std::get_if<ConnectAccept>(&p->message); a && a->client_nonce == nonce) {
+                    accept = *a;
+                    h.session = p->header.session;
+                    return;
+                }
+            }
+            s.clk.now += kTickUs;
+        }
+        throw test::CheckFailure("fake client was not accepted");
+    }
+    // Drains the socket and returns the newest snapshot, if any.
+    std::optional<Snapshot> latest_snapshot() {
+        std::optional<Snapshot> best;
+        std::array<std::uint8_t, 2048> buf{};
+        Endpoint from;
+        for (int idle = 0; idle < 200;) {
+            const auto r = sock.recv_from(from, buf);
+            if (r.status != RecvStatus::Data) {
+                ++idle;
+                std::this_thread::yield();
+                continue;
+            }
+            idle = 0;
+            auto d = decode({buf.data(), r.size});
+            if (d.packet)
+                if (const auto* snap = std::get_if<Snapshot>(&d.packet->message);
+                    snap && (!best || seq_newer(snap->server_tick, best->server_tick)))
+                    best = *snap;
+        }
+        return best;
+    }
+};
+
+InputBatch inputs(std::uint32_t first_seq, std::size_t n, float mx) {
+    InputBatch b;
+    for (std::size_t i = 0; i < n; ++i) b.inputs.push_back({first_seq + static_cast<std::uint32_t>(i), mx, 0.0f});
+    return b;
+}
+
+float spawn_x(std::uint16_t entity_id) { return static_cast<float>(entity_id - 1) * 2.0f; }
+}  // namespace
+
+// FB-1-01 (P0): a burst of queued inputs must never advance an entity by more than one
+// simulation timestep per server tick; the excess backlog is shed instead of simulated.
+TEST(input_burst_never_exceeds_one_timestep_per_tick) {
+    test::Session s;
+    FakeClient fc(s.host.port());
+    fc.join(s, 42);
+    const auto player = fc.accept.player_id;
+    fc.send(inputs(1, 8, 1.0f));
+    fc.send(inputs(9, 8, 1.0f));  // 16 inputs queued before the next tick
+    const float step = sim::kMoveSpeed / 30.0f;
+    float x = s.host.player_transform(player)->x;
+    for (int tick = 0; tick < 10; ++tick) {
+        const auto world_tick = s.host.world().tick();
+        s.clk.now += kTickUs;
+        s.host.update(s.clk.now);
+        CHECK(s.host.world().tick() == world_tick + 1);  // exactly one server tick per step
+        const float nx = s.host.player_transform(player)->x;
+        CHECK(nx - x <= step + 1e-4f);  // never more than one timestep of movement per tick
+        x = nx;
+    }
+    const auto snap = fc.latest_snapshot();
+    CHECK(snap.has_value());
+    CHECK(snap->last_input_seq == 16);  // the backlog fully drained and was acknowledged
+    // Policy: at most kTargetInputBacklog (2) inputs stay queued after each tick's input, so
+    // exactly 3 inputs are simulated and 13 are shed (and reported to the client as consumed).
+    CHECK(s.host.stats().shed_inputs == 13);
+    CHECK_NEAR(x - spawn_x(fc.accept.entity_id), 3 * step, 1e-4);
+}
+
+// FB-1-01: a steady one-input-per-tick stream is never shed.
+TEST(steady_inputs_are_never_shed) {
+    test::Session s;
+    FakeClient fc(s.host.port());
+    fc.join(s, 7);
+    for (std::uint32_t seq = 1; seq <= 60; ++seq) {
+        fc.send(inputs(seq, 1, 1.0f));
+        s.clk.now += kTickUs;
+        s.host.update(s.clk.now);
+    }
+    CHECK(s.host.stats().shed_inputs == 0);
+    CHECK_NEAR(s.host.player_transform(fc.accept.player_id)->x - spawn_x(fc.accept.entity_id), 60 * sim::kMoveSpeed / 30.0f,
+               1e-3);
+}
+
+// FB-1-02: wrong-direction messages are invalid and must not keep a peer alive.
+TEST(wrong_direction_messages_do_not_refresh_liveness) {
+    test::Session s;
+    FakeClient fc(s.host.port());
+    fc.join(s, 9);
+    Snapshot bogus;
+    bogus.server_tick = 1;
+    const auto invalid_before = s.host.stats().invalid_packets;
+    for (int i = 0; i < 150; ++i) {  // ~5 s of host-to-client-only message types sent by the client
+        fc.send(i % 2 ? Message{bogus} : Message{HeartbeatAck{1}});
+        s.clk.now += kTickUs;
+        s.host.update(s.clk.now);
+    }
+    CHECK(s.host.stats().timeouts == 1);
+    CHECK(s.host.connected_count() == 0);
+    CHECK(s.host.stats().invalid_packets >= invalid_before + 80);
+}
+
+TEST(client_ignores_wrong_direction_messages_for_liveness) {
+    UdpSocket fake;
+    CHECK(fake.open(Endpoint::loopback(0)));
+    client::ClientConfig cc;
+    cc.host = fake.local_endpoint();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    test::SimClock clk;
+    c.connect(clk.now);
+    c.update(clk.now);
+    Endpoint client_ep;
+    auto req = recv_packet(fake, client_ep);
+    CHECK(req.has_value());
+    Header h;
+    h.session = 5;
+    CHECK(fake.send_to(client_ep, encode(h, ConnectAccept{std::get<ConnectRequest>(req->message).client_nonce, 1, 1, 5, 30, 0})));
+    test::pump(clk, nullptr, {&c}, [&] { return c.state() == ClientState::Connected; }, kSec);
+    CHECK(c.state() == ClientState::Connected);
+    for (int i = 0; i < 100 && c.state() == ClientState::Connected; ++i) {  // only host-bound message types
+        ++h.sequence;
+        fake.send_to(client_ep, encode(h, i % 2 ? Message{Heartbeat{1}} : Message{inputs(1, 1, 0.0f)}));
+        clk.now += 50'000;
+        c.update(clk.now);
+    }
+    CHECK(c.state() == ClientState::Reconnecting);
+    CHECK(c.stats().invalid_packets >= 50);
+}
+
+// FB-1-07: a valid reconnect token moves the slot to a new endpoint (documented: the token is not a credential).
+TEST(reconnect_token_migrates_slot_to_new_endpoint) {
+    test::Session s;
+    FakeClient a(s.host.port());
+    a.join(s, 1);
+    FakeClient b(s.host.port());
+    b.join(s, 2, a.accept.reconnect_token);
+    CHECK(b.accept.player_id == a.accept.player_id);
+    CHECK(b.accept.entity_id == a.accept.entity_id);
+    CHECK(s.host.slot_count() == 1);
+    const auto unknown_before = s.host.stats().unknown_peer;
+    a.send(Heartbeat{1});  // the old endpoint is no longer a member of the session
+    s.host.update(s.clk.now);
+    CHECK(s.host.stats().unknown_peer == unknown_before + 1);
+}
+
+// FB-1-07: a token whose grace period expired is unknown, so the client re-joins as a new player.
+TEST(reconnect_after_grace_expiry_gets_new_identity) {
+    host::HostConfig hc;
+    hc.reconnect_grace_us = 1 * kSec;
+    test::Session s(hc);
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    const auto old_player = c.player_id();
+    ImpairmentConfig blackout;
+    blackout.loss = 1.0;
+    c.set_impairment(blackout);
+    CHECK(s.pump_until([&] { return s.host.slot_count() == 0; }, 8 * kSec));  // timed out, then grace expired
+    c.set_impairment({});
+    // Only the client's uplink was cut, so it still believed it was connected; it notices once the
+    // host stops sending to the expired slot (client timeout), then rejoins with an unknown token.
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == 1; }, 8 * kSec));
+    CHECK(c.player_id() != old_player);
+    CHECK(c.stats().reconnects == 1);
+}
+
+// FB-1-07: host restart on the same port: the client's old token is unknown to the new session.
+TEST(client_survives_host_restart_with_new_session) {
+    test::SimClock clk;
+    Logger& hl = test::test_logger("host");
+    auto h1 = std::make_unique<host::Host>(host::HostConfig{}, hl);
+    CHECK(h1->start());
+    const auto port = h1->port();
+    const auto old_session = h1->session_id();
+    client::ClientConfig cc;
+    cc.host = Endpoint::loopback(port);
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    CHECK(test::pump(clk, h1.get(), {&c}, [&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    ImpairmentConfig blackout;
+    blackout.loss = 1.0;
+    h1->set_impairment(blackout);
+    h1->shutdown();  // crash-like: the shutdown notice is lost
+    h1.reset();
+    CHECK(test::pump(clk, nullptr, {&c}, [&] { return c.state() == ClientState::Reconnecting; }, 5 * kSec));
+    host::HostConfig hc2;
+    hc2.bind = Endpoint::loopback(port);
+    host::Host h2(hc2, hl);
+    CHECK(h2.start());
+    CHECK(test::pump(clk, &h2, {&c}, [&] { return c.state() == ClientState::Connected && c.predicted_self(); }, 3 * kSec));
+    CHECK(c.session_id() == h2.session_id());
+    CHECK(c.session_id() != old_session);
+    CHECK(h2.stats().joins == 1);
+}

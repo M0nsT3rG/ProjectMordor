@@ -2,6 +2,36 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: ChatGPT review #1 triage and fixes (`feature/ai-collaboration-bridge`)
+
+- **Input:** [PR #1 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/1#issuecomment-6371152419), findings FB-1-01 through FB-1-07. The triage is in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).
+- **Changes:**
+  - **Host step (FB-1-01):** exactly one timestep per tick, with backlog shedding above 2 queued inputs. Counted in `HostStats::shed_inputs`.
+  - **Liveness (FB-1-02):** host and client refresh liveness only for messages valid in their direction.
+  - **Evidence (FB-1-05):** `verification_scope` added to all findings and enforced by the validator.
+  - **Reporting (FB-1-03):** simulated-clock and real-time results are labelled separately.
+  - **Logs and E2E script:** logs are opened shareable (`cli::open_log`); `test.ps1` deletes stale E2E logs and does a warm-up run.
+  - **Documentation:** protocol.md, decisions D-010, KNOWN_ISSUES.
+- **Tests:** 8 new tests in total.
+  - Integration (7): `input_burst_never_exceeds_one_timestep_per_tick`, `steady_inputs_are_never_shed`, `wrong_direction_messages_do_not_refresh_liveness`, `client_ignores_wrong_direction_messages_for_liveness`, `reconnect_token_migrates_slot_to_new_endpoint`, `reconnect_after_grace_expiry_gets_new_identity`, `client_survives_host_restart_with_new_session`.
+  - Network (1): `jitter_never_exceeds_tick_movement_budget`.
+  - These were written first. On the old code, 4 failed because of the real bugs; a 5th failed because of a test bug, since fixed.
+- **Results:**
+  - 46/46 passed (unit 15, integration 20, network 11) on 5 ctest runs plus 3 scripted runs.
+  - E2E passed, including right after a relink (with the warm-up).
+  - `test_report.py` 4/4. Evidence validator: 71 records, 0 errors.
+- **Problems encountered:**
+  - One new test was wrong; it was fixed, not the code.
+  - `fopen_s` exclusivity made the host fail to open its log.
+  - The old E2E wait polled a stale log.
+  - EXP-006 was reproduced; its cause remains unknown.
+  - A PowerShell 5.1 BOM was written into EXP-006.json and then removed.
+- **Remaining:**
+  - Real-time soak and telemetry (FB-1-03 P1).
+  - Authentication and rate limiting before any WAN use (FB-1-02).
+  - Reliable event channel (FB-1-04).
+  - Timer fix, LAN test.
+
 ## 2026-10-23: ChatGPT collaboration bridge
 
 - **Commits:** `e549d3c` (bridge) plus a follow-up docs commit, on `feature/ai-collaboration-bridge`.

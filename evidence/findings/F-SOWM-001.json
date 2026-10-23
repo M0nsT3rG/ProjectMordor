@@ -1,44 +1,45 @@
 {
- "id": "F-SOWM-001",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "mod-loader",
- "claim": "SoWLoader is a hand-written steam_api64.dll proxy that forwards all 796 Steam exports to a renamed steam_api64_org.dll and starts a worker thread from DllMain.",
- "evidence": "exports_forward.h: #pragma comment(linker, \"/EXPORT:...=steam_api64_org....\") x796; dllmain.cpp:13 sow::Loader::Get().OnAttach(hModule);",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/dllmain.cpp",
-   "location": "lines 3-13"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/exports_forward.h",
-   "location": "lines 1-6"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/Loader.cpp",
-   "location": "lines 16-20, 43-89"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/README.md",
-   "location": "Why steam_api64.dll / How it works"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. The proxy mechanism itself is build-agnostic as long as steam_api64.dll export set matches.",
- "verification_method": "Static read of repo source. Against our build: compare the export list of our install's steam_api64.dll with the 796 names in exports_forward.h (static PE export dump, no execution).",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "Repo-only; not executed. Export count is tied to the steam_api64.dll version the author had.",
- "next_experiment": "Dump our steam_api64.dll export table (pefile, read-only) and diff against exports_forward.h names.",
- "related": [
-  "F-SOWM-002",
-  "F-SOWM-003"
- ]
+  "id": "F-SOWM-001",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "mod-loader",
+  "claim": "SoWLoader is a hand-written steam_api64.dll proxy that forwards all 796 Steam exports to a renamed steam_api64_org.dll and starts a worker thread from DllMain.",
+  "evidence": "exports_forward.h: #pragma comment(linker, \"/EXPORT:...=steam_api64_org....\") x796; dllmain.cpp:13 sow::Loader::Get().OnAttach(hModule);",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/dllmain.cpp",
+      "location": "lines 3-13"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/exports_forward.h",
+      "location": "lines 1-6"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/Loader.cpp",
+      "location": "lines 16-20, 43-89"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/README.md",
+      "location": "Why steam_api64.dll / How it works"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. The proxy mechanism itself is build-agnostic as long as steam_api64.dll export set matches.",
+  "verification_method": "Static read of repo source. Against our build: compare the export list of our install's steam_api64.dll with the 796 names in exports_forward.h (static PE export dump, no execution).",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Repo-only; not executed. Export count is tied to the steam_api64.dll version the author had.",
+  "next_experiment": "Dump our steam_api64.dll export table (pefile, read-only) and diff against exports_forward.h names.",
+  "related": [
+    "F-SOWM-002",
+    "F-SOWM-003"
+  ]
 }

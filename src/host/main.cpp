@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
             return 0;
         }
         std::FILE* sink = stderr;
-        if (args.has("log") && fopen_s(&sink, args.str("log", "").c_str(), "w") != 0) {
+        if (args.has("log") && !(sink = cli::open_log(args.str("log", "")))) {
             std::cerr << "cannot open log file\n";
             return 2;
         }

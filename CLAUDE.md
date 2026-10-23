@@ -38,7 +38,7 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 13, network 10)
+./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 20, network 11)
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
 python -I tools/evidence/evidence.py validate | index
 python -I tools/collab/report.py   # refresh the .ai-collaboration status, test results and findings
@@ -50,6 +50,10 @@ python -I tools/collab/test_report.py
 - **Evidence.**
   - Findings go in `evidence/findings/F-<SRC>-NNN.json`; experiments in `evidence/experiments/EXP-NNN.json`. The schema is enforced by `tools/evidence/evidence.py`.
   - Classifications: CONFIRMED, PARTIALLY_CONFIRMED, HYPOTHESIS, CONTRADICTED, UNKNOWN.
+  - Every finding needs `verification_scope`:
+    - `locally_measured`: measured by us;
+    - `source_verified`: what a source itself says or contains;
+    - `third_party_claim`: someone else's claim about the game. Never CONFIRMED; the validator enforces this.
   - Repo sources need a 40-character commit hash.
   - No absolute paths: the validator rejects them.
   - Regenerate the index after every change.
@@ -63,7 +67,11 @@ python -I tools/collab/test_report.py
 ## Known pitfalls
 
 - Windows UDP raises WSAECONNRESET after ICMP port-unreachable. We disable it with `SIO_UDP_CONNRESET`, which is defined manually because the SDK headers lack it.
-- Freshly linked executables can start about 0.5 s or more late on first launch (EXP-006). `test.ps1` waits for `host_started`.
+- Right after a relink, the first run of the executables exchanged **no packets** (EXP-006; cause unknown, and not a late start). `test.ps1` does a 1 s warm-up run of each binary and deletes stale E2E logs before waiting for `host_started`.
+- Open log files with `cli::open_log` (`_fsopen` with `_SH_DENYWR`), never `fopen_s`, which is exclusive.
+- PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM, which breaks the JSON readers. Write evidence files from Python.
+- On PowerShell 5.1, `2>$null` on a native exe under `ErrorActionPreference=Stop` throws. Use `--log FILE` instead.
+- The Bash tool can fail on heredocs that contain apostrophes. Write the file with the Write tool instead.
 - The 1 ms `Sleep` main loop adds about 30–40 ms to real-time RTT (R-13).
 - Codex review fails here with `CryptUnprotectData failed: 2148073483` (EXP-008). Use an independent reviewer agent until that is fixed.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.

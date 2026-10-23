@@ -27,7 +27,7 @@ struct HostConfig {
 
 struct HostStats {
     std::uint64_t packets_in = 0, packets_out = 0, invalid_packets = 0, rejected_version = 0, rejected_full = 0,
-                  unknown_peer = 0, stale_inputs = 0, joins = 0, reconnects = 0, timeouts = 0;
+                  unknown_peer = 0, stale_inputs = 0, shed_inputs = 0, joins = 0, reconnects = 0, timeouts = 0;
 };
 
 class Host {

@@ -1,22 +1,17 @@
 # Current task
 
-**Task:** Set up the GitHub collaboration bridge and send ChatGPT its first review request (Phase 1 review).
+**Last completed:** triage of ChatGPT review #1 and its fixes. See [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md) and [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md).
 
-**Branch:** `feature/ai-collaboration-bridge`
+**Branch:** `feature/ai-collaboration-bridge`. PR [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1) is open and not merged. Merging needs the user's approval.
 
-**Status:**
+**Repository:** https://github.com/M0nsT3rG/ProjectMordor (private)
 
-- [x] Bridge files written
-- [x] `tools/collab/report.py` written and run
-- [x] `CLAUDE.md` updated with the collaboration rules
-- [x] Private GitHub repository created: https://github.com/M0nsT3rG/ProjectMordor (authorised by the user, 2026-10-23)
-- [x] Pushed `main` and `feature/ai-collaboration-bridge`; opened PR #1 "[Project Mordor] Review — Phase 1 and Collaboration Bridge": https://github.com/M0nsT3rG/ProjectMordor/pull/1 (not merged; needs review)
-- [ ] Receive ChatGPT feedback in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md), then triage it.
+## Next tasks (Phase 2A, no game interaction), in priority order
 
-**Next development task once this is done (Phase 2A, no game interaction):**
-
-1. Prototype: replace the 1 ms `Sleep` loop with waitable timers and measure the RTT overhead (R-13).
-2. Prototype: add a test for the jitter input-backlog drain (gap from EXP-008).
-3. Prototype: add state digests for desync detection.
+1. **P1:** real-time soak test of the 3-process E2E, run for minutes, with loss, duplication, delay and a paused process. Record p50/p95/p99 RTT, tick drift, reconnection latency, bandwidth and shed-input count. Label results as real-time (FB-1-03).
+2. **P1:** host-side "not connected" reply to packets from an expired or timed-out endpoint, to speed up recovery from one-way loss (KI-12).
+3. **P2:** waitable timers in the executables; measure the RTT overhead (KI-02).
+4. **P2:** prototype a reliable, ordered, idempotent event channel behind a transport interface (D-010, FB-1-04).
+5. **P2:** desync digests; LAN test once the user approves a temporary firewall rule.
 
 D-007 (legal) and D-008 (target platform) stay with the user. No game-side work happens until gate G0 passes.

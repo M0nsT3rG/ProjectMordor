@@ -1,0 +1,26 @@
+{
+  "id": "EXP-009",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, CMake 4.4.4, loopback 127.0.0.1",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Verify and address ChatGPT review #1 findings FB-1-01 (host backlog timestep), FB-1-02 (state-aware liveness) and FB-1-07 (reconnect edge cases) with regression tests.",
+  "hypothesis": "FB-1-01: Host::step applied several dt per server tick while draining the backlog, so an entity could move faster than one timestep per tick. FB-1-02: wrong-direction messages refreshed liveness.",
+  "procedure": "1) Wrote regression tests first and ran them against the unfixed code (expected to fail). 2) Changed Host::step to apply exactly one input per tick and shed backlog beyond 2 queued inputs (oldest first, acknowledged as consumed); host and client now refresh liveness only for messages valid in their direction. 3) ./scripts/test.ps1 -Repeat 3 -E2E and 5 extra ctest runs.",
+  "expected_result": "New tests fail before the fix and pass after it; all existing tests still pass.",
+  "observed_result": "Before the fix: input_burst_never_exceeds_one_timestep_per_tick FAILED (per-tick displacement above one timestep), jitter_never_exceeds_tick_movement_budget FAILED, wrong_direction_messages_do_not_refresh_liveness and client_ignores_wrong_direction_messages_for_liveness FAILED. reconnect_after_grace_expiry_gets_new_identity also failed, but because of a test bug: with only the uplink cut the client still receives snapshots and correctly stays Connected until the host stops sending; the wait condition was fixed, not the code. After the fix: 46/46 tests passed (unit 15, integration 20, network 11) on 5 ctest runs and 3 scripted runs, plus E2E. The burst test shows exactly 3 of 16 burst inputs simulated and 13 shed, one server tick per step.",
+  "evidence_paths": [
+    "evidence/logs/tests-integration-2026-10-23.json",
+    "evidence/logs/tests-network-2026-10-23.json",
+    "evidence/logs/e2e-2026-10-23/host.log"
+  ],
+  "result": "PASSED",
+  "errors": "",
+  "confidence": "high",
+  "follow_up": "FB-1-02 authentication/rate limiting and FB-1-04 reliable event channel are deferred (see CHATGPT_FEEDBACK.md). Real-time soak tests (FB-1-03) remain open.",
+  "related": [
+    "EXP-004",
+    "EXP-006",
+    "EXP-008"
+  ]
+}

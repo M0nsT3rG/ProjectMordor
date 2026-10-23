@@ -16,6 +16,7 @@
   "game_build_compatibility": "Measured on exe SHA-256 ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF (FileVersion 1.0.8874.0, Steam buildid 3095001)",
   "verification_method": "Read-only local inspection with tools/environment/discover_game.py and pe_inventory.py; re-run scripts/inventory.ps1 to reproduce.",
   "classification": "CONFIRMED",
+  "verification_scope": "locally_measured",
   "confidence": "high",
   "limitations": "Export names prove linkage, not how gameplay code uses them.",
   "next_experiment": "None.",

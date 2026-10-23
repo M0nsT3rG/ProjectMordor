@@ -1,37 +1,38 @@
 {
- "id": "F-COMM-010",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "saves",
- "claim": "PC saves are single files named <uid>_ShadowOfWar.sav under %LOCALAPPDATA%\\WB Games\\Shadow of War, starting with magic 'SOM3' and AES-CBC encrypted with a key built from a fixed template, header bytes and the 32-bit id in the filename.",
- "evidence": "PCGamingWiki save path template; convert.py: MAGIC 'SOM3', AES.MODE_CBC, filename regex for the key id.",
- "sources": [
-  {
-   "url": "https://www.pcgamingwiki.com/wiki/Middle-earth:_Shadow_of_War",
-   "commit": "",
-   "path": "",
-   "location": "Game data / Save game data location"
-  },
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-save-converter",
-   "commit": "e75e00def8b95381995cb1928dbfe68424962c86",
-   "path": "convert.py",
-   "location": "lines 9-60"
-  },
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-save-converter",
-   "commit": "e75e00def8b95381995cb1928dbfe68424962c86",
-   "path": "LICENSE",
-   "location": "MIT"
-  }
- ],
- "game_build_compatibility": "UNKNOWN; converter targets Steam and Game Pass saves of unstated version.",
- "verification_method": "Two independent sources agree on the filename pattern. Verify on our build by checking a COPY of a save: magic bytes and filename shape only (do not touch originals).",
- "classification": "PARTIALLY_CONFIRMED",
- "confidence": "medium",
- "limitations": "Key material is public in the converter but we deliberately did not reproduce it. Decrypted structure (Nemesis/faction data layout) is not documented publicly; Steam reports memory edits can corrupt saves.",
- "next_experiment": "On a copied save, verify header magic; later decrypt a copy offline with an independently written reader to map top-level sections.",
- "related": [
-  "F-COMM-011"
- ]
+  "id": "F-COMM-010",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "saves",
+  "claim": "PC saves are single files named <uid>_ShadowOfWar.sav under %LOCALAPPDATA%\\WB Games\\Shadow of War, starting with magic 'SOM3' and AES-CBC encrypted with a key built from a fixed template, header bytes and the 32-bit id in the filename.",
+  "evidence": "PCGamingWiki save path template; convert.py: MAGIC 'SOM3', AES.MODE_CBC, filename regex for the key id.",
+  "sources": [
+    {
+      "url": "https://www.pcgamingwiki.com/wiki/Middle-earth:_Shadow_of_War",
+      "commit": "",
+      "path": "",
+      "location": "Game data / Save game data location"
+    },
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-save-converter",
+      "commit": "e75e00def8b95381995cb1928dbfe68424962c86",
+      "path": "convert.py",
+      "location": "lines 9-60"
+    },
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-save-converter",
+      "commit": "e75e00def8b95381995cb1928dbfe68424962c86",
+      "path": "LICENSE",
+      "location": "MIT"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN; converter targets Steam and Game Pass saves of unstated version.",
+  "verification_method": "Two independent sources agree on the filename pattern. Verify on our build by checking a COPY of a save: magic bytes and filename shape only (do not touch originals).",
+  "classification": "PARTIALLY_CONFIRMED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Key material is public in the converter but we deliberately did not reproduce it. Decrypted structure (Nemesis/faction data layout) is not documented publicly; Steam reports memory edits can corrupt saves.",
+  "next_experiment": "On a copied save, verify header magic; later decrypt a copy offline with an independently written reader to map top-level sections.",
+  "related": [
+    "F-COMM-011"
+  ]
 }

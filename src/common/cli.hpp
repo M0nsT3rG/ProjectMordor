@@ -1,6 +1,9 @@
 #pragma once
 // Tiny "--key value" / "--flag" argument parser shared by the host and client executables.
+#include <share.h>
+
 #include <charconv>
+#include <cstdio>
 #include <cstdint>
 #include <map>
 #include <optional>
@@ -44,6 +47,10 @@ public:
 private:
     std::map<std::string, std::string> values_;
 };
+
+// fopen_s opens files exclusively, so tooling (test.ps1, log tails) could not read a live log and a
+// concurrent reader made the open fail. Deny writers only.
+inline std::FILE* open_log(const std::string& path) { return _fsopen(path.c_str(), "w", _SH_DENYWR); }
 
 inline net::ImpairmentConfig impairment_from(const Args& a) {
     net::ImpairmentConfig c;

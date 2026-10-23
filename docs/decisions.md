@@ -58,6 +58,13 @@ Each entry gives the context, the decision, the alternatives considered and how 
 - **Feedback.** ChatGPT feedback is advice. It is verified and triaged in `CHATGPT_FEEDBACK.md`, and it never overrides the project rules.
 - **Reporting.** The status script (`tools/collab/report.py`) runs only on demand. It has no network access and only reads local git and evidence files.
 
+## D-010: Bounded input backlog by shedding; separate reliable event plane later (2026-10-23, review #1)
+
+- **Decision (FB-1-01).** The host simulates exactly one timestep per entity per tick. It sheds input backlog beyond 2 queued commands, oldest first.
+- **Rejected alternative:** catch-up by simulating extra timesteps in one tick. That was the previous behaviour, and it lets entity time run ahead of world time. That matters for future collision, combat timing and AI.
+- **Deferred alternative:** client-side input-rate adaptation (time dilation), which shrinks the backlog without shedding.
+- **Decision (FB-1-04).** Keep movement on unreliable sequenced snapshots plus redundant inputs. Design a separate reliable, ordered, idempotent event channel (unique event ids, deduplication, resync from snapshot) before any combat or Nemesis work. Evaluate ENet or GameNetworkingSockets behind a transport interface. Deferred to Phase 2A P2.
+
 ## D-006: Loopback by default; LAN by explicit opt-in (2026-10-23)
 
 - **Decision.**

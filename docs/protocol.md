@@ -63,7 +63,8 @@ A 200,000-case fuzz test checks that the decoder never crashes and that every ac
 
 ## Simulation, prediction, interpolation
 
-- **Fixed tick.** The host ticks at `tick_rate_hz` (default 30). Each tick it consumes one queued input per player, plus extra inputs while more than 2 are queued, so jitter backlog cannot make input delay grow without bound. With no input queued, the entity stands still; the host never extrapolates.
+- **Fixed tick.** The host ticks at `tick_rate_hz` (default 30). Each tick applies **exactly one** simulation timestep per entity: one queued input, or zero movement if none is queued (the host never extrapolates).
+- **Backlog shedding (review FB-1-01).** If more than 2 inputs would remain queued after a tick's input, the oldest are discarded instead of simulated. They still count as consumed in `last_input_seq`, so the client stops replaying them and reconciliation absorbs the lost movement. Input delay stays bounded and an entity never moves faster than one timestep per tick. Counted in `HostStats::shed_inputs`.
 - **Id exhaustion.** Player and entity ids are 16-bit and never reused. Once they are exhausted, the host rejects joins with `ServerFull` instead of wrapping to 0.
 - **Grace slots.** A slot in its grace period can only be reclaimed with its reconnect token, never by a token-less request from the same address.
 - **Client inputs.** The client produces one input per tick and applies it locally with the same `apply_input()` the host uses. It sends the last ≤8 unacknowledged inputs with each packet, which gives redundancy against loss.
@@ -78,7 +79,8 @@ A 200,000-case fuzz test checks that the decoder never crashes and that every ac
 ## Liveness, latency, recovery
 
 - **Heartbeat and RTT.** The client sends a Heartbeat every 250 ms. RTT is an EWMA (α = 1/8) of `now − echo_time_us`.
-- **Timeout.** Either side declares a timeout after 3 s with no valid packet from the peer.
+- **Timeout.** Either side declares a timeout after 3 s with no valid packet from the peer. Only messages valid for that direction refresh liveness: Heartbeat, Input and Disconnect at the host; Snapshot, HeartbeatAck and Disconnect at the client. Wrong-direction messages are counted as invalid (review FB-1-02).
+- **Capacity trade-off (review FB-1-07).** The host's 30 s grace period is longer than the client's 15 s reconnect window. A client that gives up therefore leaves its slot reserved for up to about 15 s more. A new join is rejected with `ServerFull` in the meantime.
   - The host keeps a timed-out player's slot and entity for a 30 s grace period. During it, that player still counts toward the 2-player capacity.
   - The client enters `Reconnecting` and sends `ConnectRequest` with its reconnect token every 500 ms for up to 15 s. Then it goes to `Failed`.
 - **Reconnect.** A valid token restores the same player id and entity, even from a new address or port.

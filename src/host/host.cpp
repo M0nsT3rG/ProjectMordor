@@ -123,6 +123,13 @@ void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
         ++stats_.unknown_peer;
         return;
     }
+    // Only host-bound message types prove the peer is alive (review FB-1-02).
+    const bool host_bound = std::holds_alternative<Heartbeat>(p.message) || std::holds_alternative<InputBatch>(p.message) ||
+                            std::holds_alternative<Disconnect>(p.message);
+    if (!host_bound) {
+        ++stats_.invalid_packets;
+        return;
+    }
     s->last_recv_us = now_us;
     if (seq_newer(p.header.sequence, s->peer_seq)) s->peer_seq = p.header.sequence;
     std::visit(overloaded{
@@ -142,7 +149,7 @@ void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
             log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
             remove_slot(s->player_id);
         },
-        [&](const auto&) { ++stats_.invalid_packets; },  // client-bound message types are not valid here
+        [&](const auto&) {},  // unreachable: filtered by host_bound above
     }, p.message);
 }
 
@@ -218,13 +225,19 @@ void Host::step() {
         sim::Entity* e = world_.find(s.entity_id);
         if (!e) continue;
         if (!s.pending.empty()) {
-            // One input per tick, plus extra while a jitter backlog exceeds the target so input delay cannot ratchet up.
-            do {
-                const InputCmd cmd = s.pending.front();
+            // Exactly one simulation timestep per tick (review FB-1-01). A jitter backlog beyond the
+            // target is shed oldest-first instead of simulated, so input delay stays bounded and entity
+            // time never runs ahead of world time. Shed inputs count as consumed: the client stops
+            // replaying them and reconciliation absorbs the lost movement.
+            while (s.pending.size() > kTargetInputBacklog + 1) {
+                s.last_processed_input = s.pending.front().input_seq;
                 s.pending.pop_front();
-                s.last_processed_input = cmd.input_seq;
-                sim::apply_input(*e, cmd.move_x, cmd.move_z, dt);
-            } while (s.pending.size() > kTargetInputBacklog);
+                ++stats_.shed_inputs;
+            }
+            const InputCmd cmd = s.pending.front();
+            s.pending.pop_front();
+            s.last_processed_input = cmd.input_seq;
+            sim::apply_input(*e, cmd.move_x, cmd.move_z, dt);
         } else {
             sim::apply_input(*e, 0, 0, dt);  // input starvation: stand still rather than guess
         }

@@ -1,32 +1,33 @@
 {
- "id": "F-COOP-015",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "tooling",
- "claim": "The repo reports that the SoW save editor's fixed function RVAs do not fit Steam build 3095001 while byte-pattern signatures do, and that hooking tiny leaf stubs must preserve volatile registers or the game crashes.",
- "evidence": "NOTES session k: save editor RVAs 'all land mid-function'; session m: crash root cause was 'our hook, not the game' (clobbered r9).",
- "sources": [
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/NOTES.md",
-   "location": "## Session 2026-10-20 k; ## Session 2026-10-20 m"
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/README.md",
-   "location": "## Existing work"
-  }
- ],
- "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install.",
- "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
- "classification": "CONFIRMED",
- "confidence": "medium",
- "limitations": "Reported by one party for one build; not reproduced. Also reports .arch code section identical on disk and in memory, permitting static analysis, which we have not checked.",
- "next_experiment": "Adopt the rule 'signatures that match exactly once, never borrowed RVAs'; in a later phase, verify statically (read-only) whether .arch on our exe matches the reported layout.",
- "related": [
-  "F-COOP-011",
-  "F-COOP-010"
- ]
+  "id": "F-COOP-015",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "tooling",
+  "claim": "The repo reports that the SoW save editor's fixed function RVAs do not fit Steam build 3095001 while byte-pattern signatures do, and that hooking tiny leaf stubs must preserve volatile registers or the game crashes.",
+  "evidence": "NOTES session k: save editor RVAs 'all land mid-function'; session m: crash root cause was 'our hook, not the game' (clobbered r9).",
+  "sources": [
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/NOTES.md",
+      "location": "## Session 2026-10-20 k; ## Session 2026-10-20 m"
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/README.md",
+      "location": "## Existing work"
+    }
+  ],
+  "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install.",
+  "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "medium",
+  "limitations": "Reported by one party for one build; not reproduced. Also reports .arch code section identical on disk and in memory, permitting static analysis, which we have not checked.",
+  "next_experiment": "Adopt the rule 'signatures that match exactly once, never borrowed RVAs'; in a later phase, verify statically (read-only) whether .arch on our exe matches the reported layout.",
+  "related": [
+    "F-COOP-011",
+    "F-COOP-010"
+  ]
 }

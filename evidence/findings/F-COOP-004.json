@@ -1,26 +1,27 @@
 {
- "id": "F-COOP-004",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "methodology",
- "claim": "For story state the repo proposes 'effect capture': only the host runs story scripts, records each primitive world change, and clients apply that ordered effect list instead of re-running scripts.",
- "evidence": "effect-capture-story-sync.md: 'only the host runs story scripts' and clients 'never run the script'; random rolls made once on the host.",
- "sources": [
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "playbook/effect-capture-story-sync.md",
-   "location": "## 2. The idea; ## 3. Three kinds of authority"
-  }
- ],
- "game_build_compatibility": "N/A (methodology)",
- "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "Worked example is Fallout: New Vegas (fnv-coop); whether Shadow of War quest/Nemesis logic can be captured as primitive effects is a HYPOTHESIS.",
- "next_experiment": "Inventory Shadow of War story/Nemesis state categories (quest stages, faction members, followers, fortress ownership) as a candidate effect vocabulary, from public sources only.",
- "related": [
-  "F-COOP-002",
-  "F-COOP-012"
- ]
+  "id": "F-COOP-004",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "methodology",
+  "claim": "For story state the repo proposes 'effect capture': only the host runs story scripts, records each primitive world change, and clients apply that ordered effect list instead of re-running scripts.",
+  "evidence": "effect-capture-story-sync.md: 'only the host runs story scripts' and clients 'never run the script'; random rolls made once on the host.",
+  "sources": [
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "playbook/effect-capture-story-sync.md",
+      "location": "## 2. The idea; ## 3. Three kinds of authority"
+    }
+  ],
+  "game_build_compatibility": "N/A (methodology)",
+  "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Worked example is Fallout: New Vegas (fnv-coop); whether Shadow of War quest/Nemesis logic can be captured as primitive effects is a HYPOTHESIS.",
+  "next_experiment": "Inventory Shadow of War story/Nemesis state categories (quest stages, faction members, followers, fortress ownership) as a candidate effect vocabulary, from public sources only.",
+  "related": [
+    "F-COOP-002",
+    "F-COOP-012"
+  ]
 }

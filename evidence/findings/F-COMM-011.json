@@ -1,39 +1,40 @@
 {
- "id": "F-COMM-011",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "nemesis",
- "claim": "Third-party tools indicate the Nemesis system is named 'Faction' internally, with runtime script variables such as Faction.Debug.* and FactionMember.Debug.Resurrection and one-byte debug-channel flags in the exe's data section.",
- "evidence": "Save editor main.cpp toggles flags commented 'trait catalyst', 'resurrection', 'faction reward' at game_base offsets.",
- "sources": [
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-save-editor",
-   "commit": "c5dca9ac4310cade49b409565bb298c522c3c6c4",
-   "path": "src/main.cpp",
-   "location": "lines 288-330"
-  },
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-save-editor",
-   "commit": "c5dca9ac4310cade49b409565bb298c522c3c6c4",
-   "path": "README.md",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/README.md",
-   "location": "Nemesis system / Debug log bullets"
-  }
- ],
- "game_build_compatibility": "Save editor: UNKNOWN build (2023-2024). coop-anything notes claim build 3095001 and report that the editor's data addresses match but its fixed function addresses do not.",
- "verification_method": "Two sources agree (save editor source and coop-anything notes); neither run by us. Verify statically by searching a copied exe for the strings Faction.Debug and FactionMember.",
- "classification": "PARTIALLY_CONFIRMED",
- "confidence": "medium",
- "limitations": "Offsets are from third parties and must not be trusted without checking; coop-anything is an unvetted third-party repo found in our scratch area, not from the target org.",
- "next_experiment": "String search in a copied exe for Faction.*, QuestMgr.*, NemesisForge.* console names and cross-reference to the console registry claimed in coop-anything.",
- "related": [
-  "F-COMM-004",
-  "F-COMM-010",
-  "F-COMM-020"
- ]
+  "id": "F-COMM-011",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "nemesis",
+  "claim": "Third-party tools indicate the Nemesis system is named 'Faction' internally, with runtime script variables such as Faction.Debug.* and FactionMember.Debug.Resurrection and one-byte debug-channel flags in the exe's data section.",
+  "evidence": "Save editor main.cpp toggles flags commented 'trait catalyst', 'resurrection', 'faction reward' at game_base offsets.",
+  "sources": [
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-save-editor",
+      "commit": "c5dca9ac4310cade49b409565bb298c522c3c6c4",
+      "path": "src/main.cpp",
+      "location": "lines 288-330"
+    },
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-save-editor",
+      "commit": "c5dca9ac4310cade49b409565bb298c522c3c6c4",
+      "path": "README.md",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/README.md",
+      "location": "Nemesis system / Debug log bullets"
+    }
+  ],
+  "game_build_compatibility": "Save editor: UNKNOWN build (2023-2024). coop-anything notes claim build 3095001 and report that the editor's data addresses match but its fixed function addresses do not.",
+  "verification_method": "Two sources agree (save editor source and coop-anything notes); neither run by us. Verify statically by searching a copied exe for the strings Faction.Debug and FactionMember.",
+  "classification": "PARTIALLY_CONFIRMED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Offsets are from third parties and must not be trusted without checking; coop-anything is an unvetted third-party repo found in our scratch area, not from the target org.",
+  "next_experiment": "String search in a copied exe for Faction.*, QuestMgr.*, NemesisForge.* console names and cross-reference to the console registry claimed in coop-anything.",
+  "related": [
+    "F-COMM-004",
+    "F-COMM-010",
+    "F-COMM-020"
+  ]
 }
