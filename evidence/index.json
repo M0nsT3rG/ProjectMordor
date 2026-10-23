@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 74,
+  "count": 75,
   "records": [
     {
       "id": "EXP-001",
@@ -133,6 +133,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Address ChatGPT's review #2 follow-up (manifest well-formedness and scenario match; mean vs peak bandwidth) as soak gate version 3 and re-run the soak."
+    },
+    {
+      "id": "EXP-013",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-013.json",
+      "date": "2026-10-23",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "GameNetworkingSockets spike (D-012): build it via vcpkg and measure reliability and default security on loopback."
     },
     {
       "id": "F-COMM-001",

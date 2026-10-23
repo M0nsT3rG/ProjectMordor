@@ -1,4 +1,12 @@
 cmake_minimum_required(VERSION 3.25)
+
+# Optional Valve GameNetworkingSockets transport (D-012). Needs vcpkg; configure with
+#   -DMORDOR_WITH_GNS=ON -DCMAKE_TOOLCHAIN_FILE=<vcpkg>/scripts/buildsystems/vcpkg.cmake
+# The default build stays dependency-free.
+option(MORDOR_WITH_GNS "Build the GameNetworkingSockets transport and its tests" OFF)
+if(NOT MORDOR_WITH_GNS)
+  set(VCPKG_MANIFEST_INSTALL OFF CACHE BOOL "" FORCE)
+endif()
 project(ProjectMordor VERSION 0.1.0 LANGUAGES CXX)
 
 # Phase 1 builds only the standalone networking prototype. Nothing here touches the game.
@@ -45,3 +53,12 @@ foreach(suite unit integration network)
   set_tests_properties(${suite} PROPERTIES TIMEOUT 300)
 endforeach()
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test-results)
+
+if(MORDOR_WITH_GNS)
+  find_package(GameNetworkingSockets CONFIG REQUIRED)
+  add_executable(mordor_gns_tests tests/gns/gns_tests.cpp tests/test_main.cpp)
+  target_include_directories(mordor_gns_tests PRIVATE tests)
+  target_link_libraries(mordor_gns_tests PRIVATE mordor_host_lib mordor_client_lib GameNetworkingSockets::shared)
+  add_test(NAME gns COMMAND mordor_gns_tests --json ${CMAKE_BINARY_DIR}/test-results/gns.json)
+  set_tests_properties(gns PROPERTIES TIMEOUT 300)
+endif()

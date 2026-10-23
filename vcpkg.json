@@ -1,0 +1,12 @@
+{
+  "name": "project-mordor",
+  "version-string": "0.2.0",
+  "description": "Optional dependencies for the Project Mordor networking prototype (decision D-012). The default build needs none.",
+  "builtin-baseline": "65a2c2391af39b773f83f91e0ab6c8ced8f9c727",
+  "dependencies": [
+    {
+      "name": "gamenetworkingsockets",
+      "default-features": false
+    }
+  ]
+}

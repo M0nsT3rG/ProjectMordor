@@ -58,6 +58,20 @@ Each entry gives the context, the decision, the alternatives considered and how 
 - **Feedback.** ChatGPT feedback is advice. It is verified and triaged in `CHATGPT_FEEDBACK.md`, and it never overrides the project rules.
 - **Reporting.** The status script (`tools/collab/report.py`) runs only on demand. It has no network access and only reads local git and evidence files.
 
+## D-012: GameNetworkingSockets for the transport, behind an interface (2026-10-23, user decision)
+
+- **Context.** Review #2 (answer 4) recommended a proven library over a custom reliability protocol. The project also needs authenticated and encrypted transport before any WAN use (KI-04, KI-17).
+- **Options weighed:**
+  - ENet (MIT; small; no security).
+  - GameNetworkingSockets (BSD-3; reliability, fragmentation, congestion control and encryption built in; heavier: OpenSSL and protobuf).
+  - The in-house `ReliableChannel` (no dependencies; we own all the edge cases).
+- **Decision (the user chose GNS):**
+  - Adopt GameNetworkingSockets as the target transport, behind a small `Transport` interface.
+  - Build it through vcpkg as an **optional** CMake feature (`MORDOR_WITH_GNS`), so the default build stays dependency-free.
+  - Use only the standalone open-source API: no Steamworks, no relay, no Steam AppID.
+- **The in-house channel** (local WIP branch `feature/reliable-events`) is not discarded. It becomes the reference behaviour, and the event-order, deduplication, reconnect and fault-injection tests run against both.
+- **Revisit if** GNS fails the same tests, its build cost proves unacceptable, or its default security does not meet the WAN prerequisite. The spike measured it (EXP-013): reliable and ordered delivery under loss passes, and connections are encrypted by default but **not authenticated**.
+
 ## D-010: Bounded input backlog by shedding; separate reliable event plane later (2026-10-23, review #1)
 
 - **Decision (FB-1-01).** The host simulates exactly one timestep per entity per tick. It sheds input backlog beyond 2 queued commands, oldest first.

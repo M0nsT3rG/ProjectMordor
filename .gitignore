@@ -1,5 +1,8 @@
 # Build output
 build/
+build-*/
+build-*.log
+vcpkg_installed/
 out/
 *.obj
 *.pdb
@@ -25,3 +28,4 @@ __pycache__/
 CMakeUserPresets.json
 .env
 *.local.json
+.worktrees/
