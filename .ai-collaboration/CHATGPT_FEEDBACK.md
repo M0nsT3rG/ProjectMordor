@@ -6,6 +6,27 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #7 (PR #7: DTLS over the Transport)
+
+- **Status:** received and triaged (2026-10-24) on `feature/secure-transport` (stacked on PR #7). Only the KI-27 status correction is applied; the rest is not implemented yet.
+- **Source:** [PR #7 comment 6376769358](https://github.com/M0nsT3rG/ProjectMordor/pull/7#issuecomment-6376769358). ChatGPT reviewed the source of `e81065d` only.
+- **ChatGPT's verdict:** conditional GO for isolated development. Not for WAN, release or merge.
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-7-01** (major) cookies are stateful | **Yes.** A `DtlsSession` (with `SSL_CTX`, `SSL`, BIOs and the pin) is built for every new peer before any cookie, and `make_cookie` hashes the allocated `PeerId`. That makes it a handshake-integrity measure, **not** a stateless DoS gate. | **Accepted** | Label it "stateful cookie" everywhere. Bound the pre-authentication state (pending sessions per peer and in total, bytes, lifetime) with tests. A truly stateless front door (`DTLSv1_listen` or an equivalent before allocation) stays a precondition for any untrusted network. |
+| **FB-7-02** (major) timer driving | **Partly.** `service()` calls `DTLSv1_handle_timeout` only once the remaining time is 0. A late `service()` call therefore still fires (the timer has expired), and each flight re-arms OpenSSL's own back-off. **But nothing tests** delayed scheduling, several retransmitted flights, a long outage, or the absence of a busy loop. | **Accepted** | Seeded tests: a delayed or irregular `service()` cadence; a long-loss window during the handshake (must end in success or `handshake_timeout`, with bounded retransmits); a check that retransmissions follow OpenSSL's back-off (no busy loop). OpenSSL's `DTLSv1_get_timeout` semantics are the source of truth. |
+| **FB-7-03** (major) KI-27 | **Yes: I overstated it.** The probe localises the trigger, and 8 → 0 is an empirical result, not proof. Process-lifetime state has its own isolation costs. | **Accepted, applied now** | KI-27 is set back to **Open (empirically mitigated)** and the release-safety wording is removed. Stress tests: longer probes and Init/close loops across processes. A minimal reproducer plus the exact assert text, ready for an upstream issue. **Filing it publicly needs the owner's approval.** |
+| **FB-7-04** (minor) binding robustness | **Partly.** A wrong pinned key and id/version/expiry mismatches are already tested. Not tested: an altered confirmation, an out-of-order or duplicate binding, expiry **during** a long handshake, response traffic under replay. On the last point, DTLS's replay window already drops replayed records before `read_records`, so a reply goes out only for a genuinely new record (1:1). There is still no rate limit. | **Accepted** | Rate-limit binding replies (at most one per `binding_resend_us`). Tests: altered confirmation (test hook), duplicate/reordered binding under impairment, invitation expiring mid-handshake, and a bound on binding replies under loss and reordering. |
+| **FB-7-05** (minor) pending-session lifecycle | **Yes, and worse than stated:** the pending-then-promote rule exists **only in the test harness** (`tests/dtls/dtls_transport_tests.cpp`). The library offers only `dtls_is_client_hello`. | **Accepted** | Move it into a library component: the **secure transport decorator** (answer 3), which implements `Transport` over a backend. It handles a cap of one pending session per peer and a total cap, expiry, promotion only when authenticated, retirement of the old session at promotion, and dropping of old-session records after promotion. Tests: several forged ClientHellos, parallel valid reconnects, same and new invitation, old application records after promotion. |
+
+**Answers received, and what follows from them:**
+1. Check both pinned identities and the invitation fields: identity is already enforced by DTLS/DANE; add the explicit test.
+2. Pending-then-promote is defensible if bounded and tested (FB-7-05).
+3. Use a **secure transport decorator** that gates Host/Client traffic, with no plaintext fallback.
+4. Pre-cookie allocation is acceptable only for strict loopback/lab use, with bounds (FB-7-01).
+5. Keep the workaround documented, file upstream, and keep KI-27 open (FB-7-03).
+
 ## Feedback on review #6 (PR #6: GNS hardening and DTLS proof)
 
 - **Status:** triaged 2026-10-24 and **implemented** on `feature/dtls-transport` (stacked on PR #6), on the owner's go-ahead. Record: EXP-018. Review request #6.

@@ -2,7 +2,7 @@
 
 **Last completed:** review #6 follow-up (FB-6-01 to FB-6-05):
 - DTLS 1.2 + RFC 7250 over `Transport::Unreliable` on both backends, with a fail-closed invitation binding;
-- KI-27 root-caused and mitigated;
+- KI-27 trigger localised and empirically mitigated (still open, review #7 FB-7-03);
 - wording sweep;
 - separate-process asymmetric scenarios;
 - bounded `--connect-deadline-s`.

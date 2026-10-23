@@ -7,7 +7,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Input:** [PR #6 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/6#issuecomment-6376091101), FB-6-01 to FB-6-05, on the owner's go-ahead.
 - **Changes:**
   - `DtlsSession` over `Transport::Unreliable` with a fail-closed invitation binding, HVR cookies and a pending session for same-address reconnects.
-  - KI-27 root cause and mitigation: process-lifetime GNS runtime plus 50 ms settle; assertion counter and regression gates.
+  - KI-27 trigger localised and empirically mitigated (still open, FB-7-03): process-lifetime GNS runtime plus 50 ms settle; assertion counter and regression gates.
   - `scripts/asymmetric.ps1` with `tools/e2e/check_asymmetric.py`.
   - `--connect-deadline-s` bounded to [1, 120] s.
   - Wording sweep.
