@@ -1,0 +1,25 @@
+{
+  "id": "EXP-002",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro 10.0.26300 x64, Python 3.15.1",
+  "game_exe_sha256": "ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF",
+  "errors": "",
+  "related": [
+    "F-ENV-003",
+    "F-ENV-004",
+    "F-ENV-005",
+    "F-ENV-006"
+  ],
+  "objective": "Produce a read-only PE inventory of the exe and bundled DLLs.",
+  "hypothesis": "A stdlib PE parser can read headers, sections, imports, exports and debug info.",
+  "procedure": "python -I tools/environment/discover_game.py (calls pe_inventory.inventory)",
+  "expected_result": "pe-inventory.json with sections, imports, exports.",
+  "observed_result": "21 import DLLs / 199 functions, 2 delay-import DLLs (d3d11, amd_ags_x64), 286 exports, PDB name ShadowOfWar.pdb, entry point in .bind, TLS callback count 1.",
+  "evidence_paths": [
+    "evidence/pe-inventory.json"
+  ],
+  "result": "PASSED",
+  "confidence": "high",
+  "follow_up": "None."
+}

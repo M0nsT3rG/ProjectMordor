@@ -1,0 +1,38 @@
+{
+ "id": "F-COMM-009",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "loading",
+ "claim": "survivalizeed's ShadowOfWarPacketLoader replaces game resources at load time by hooking the engine's main file-read routine and swapping chunk bytes matched by stored signatures; it is installed as a plugin of the mod loader.",
+ "evidence": "hook_loading_routines.h defines MAIN_LOADING_ROUTINE_HOOK(File*, outVar, bytes_to_read); README requires MinHook.",
+ "sources": [
+  {
+   "url": "https://github.com/survivalizeed/ShadowOfWarPacketLoader",
+   "commit": "77e29087b3908d7526e8a0bfc28e995cb4b13490",
+   "path": "ShadowOfWarLoaderG2/Source/internal/hook_loading_routines.h",
+   "location": "lines 6-70"
+  },
+  {
+   "url": "https://github.com/survivalizeed/ShadowOfWarPacketLoader",
+   "commit": "77e29087b3908d7526e8a0bfc28e995cb4b13490",
+   "path": "README.md",
+   "location": ""
+  },
+  {
+   "url": "https://www.nexusmods.com/middleearthshadowofwar/mods/49",
+   "commit": "",
+   "path": "",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN; Nexus page says signatures may need regenerating if replacements fail.",
+ "verification_method": "Read source at pinned commit. Verify by locating the hooked read routine by pattern in a copied exe (static).",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "No license; early-stage tool per its author; approach works around unknown arch06 format rather than documenting it.",
+ "next_experiment": "Use its File struct field names (source_ptr, file_relative_offset, currently_loaded_size) as hints when reversing the archive reader statically.",
+ "related": [
+  "F-COMM-002",
+  "F-COMM-008"
+ ]
+}

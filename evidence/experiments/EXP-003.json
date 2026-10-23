@@ -1,0 +1,21 @@
+{
+  "id": "EXP-003",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro 10.0.26300 x64, Python 3.15.1",
+  "game_exe_sha256": "ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF",
+  "errors": "",
+  "related": [
+    "F-ENV-003",
+    "F-ENV-004"
+  ],
+  "objective": "Static probe of section contents to judge suitability for Ghidra analysis.",
+  "hypothesis": "Byte statistics could show which sections hold analysable code.",
+  "procedure": "Planned pe_static_probe.py; not executed.",
+  "expected_result": "n/a",
+  "observed_result": "Stopped before execution. Characterising which parts of a protected executable hold plaintext code is analysis of the protection layer, which conflicts with project rule 3. No script was kept and no data was collected.",
+  "evidence_paths": [],
+  "result": "ABANDONED",
+  "confidence": "high",
+  "follow_up": "Static analysis of the on-disk exe is deferred. Phase 2 must first settle the legal position and choose lawful observation methods (documented APIs, the game data and config files, public research)."
+}

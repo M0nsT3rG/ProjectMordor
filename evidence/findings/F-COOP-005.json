@@ -1,0 +1,31 @@
+{
+ "id": "F-COOP-005",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "saves",
+ "claim": "The playbook treats the host's save as canonical, makes client saving a no-op or separate slot, and uses a full snapshot on join (then deltas) as late-join, reconnect and test oracle.",
+ "evidence": "networking.md 1.4: saving on a client is 'a no-op or a separate local slot'; how-coop-mods-work 1.8: build snapshot-on-join early.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/networking.md",
+   "location": "### 1.4 Late join, level changes and saves"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/how-coop-mods-work.md",
+   "location": "### 1.4 Saves and level transitions; ### 1.8 Late join"
+  }
+ ],
+ "game_build_compatibility": "N/A (methodology)",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Generic guidance; Gothic 3 example shows saves may need hooking to remove puppet bodies first.",
+ "next_experiment": "Hypothesis to test later: Shadow of War client must suppress autosave while connected; record it as a design requirement.",
+ "related": [
+  "F-COOP-013"
+ ]
+}

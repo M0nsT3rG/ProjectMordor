@@ -1,0 +1,37 @@
+{
+ "id": "F-SOWM-016",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "loading",
+ "claim": "The repo states game data is packed in Oodle-compressed .arch06 archives (oo2core_5_win64.dll) and that the item database game.gamedb (magic 'GADB', ~55 MB) can be extracted from Patch_02.arch06 with QuickBMS's shadow_of_mordor.bms script.",
+ "evidence": "extract_sow_items.py:5 quickbms_4gb_files.exe -o -f \"*game.gamedb\" shadow_of_mordor.bms Patch_02.arch06 <out>; :8 \"magic 'GADB'\"",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "tools/extract_sow_items.py",
+   "location": "lines 1-12"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "docs/reverse-engineering.md",
+   "location": "lines 75-79, 120"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "tools/sow_catalog/catalog.md",
+   "location": "file"
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Our install ships oo2core_5_win64.dll, consistent with the repo.",
+ "verification_method": "Static read of repo. Verify by listing *.arch06 files and default.archcfg in our install (no extraction tool run).",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "Requires running third-party QuickBMS for extraction (not allowed in Phase 1). Archive format is not documented in the repo beyond this.",
+ "next_experiment": "List archive filenames/sizes in our install read-only; defer extraction to a phase that allows tool execution.",
+ "related": [
+  "F-SOWM-004"
+ ]
+}

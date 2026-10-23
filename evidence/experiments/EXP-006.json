@@ -1,0 +1,20 @@
+{
+  "id": "EXP-006",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro 10.0.26300 x64, MSVC 14.51.36231 (Visual Studio 18 Community), CMake 4.4.4, loopback 127.0.0.1",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "errors": "Original failure: host packets_in=0; clients state connecting -> failed (connect_timeout) after 5 s.",
+  "related": [
+    "EXP-005"
+  ],
+  "objective": "Explain an E2E run where the host received 0 packets and both clients failed with connect_timeout.",
+  "hypothesis": "Freshly linked executables start late on first launch (likely an antivirus scan), so the clients' 5 s connect window can expire before the host listens, or vice versa.",
+  "procedure": "Deleted and relinked mordor-host.exe/mordor-client.exe, then ran the E2E immediately (twice); compared join times with runs that used already-launched binaries.",
+  "expected_result": "Joins later than usual right after a relink; normal on subsequent runs.",
+  "observed_result": "Normal join at about 390 ms after host start; right after a relink, joins at 890-990 ms. The original 0-packet failure was not reproduced. The cause is not confirmed: it is consistent with first-launch scanning, but no antivirus logs were examined. Mitigation: scripts/test.ps1 now waits for the host_started log line before starting clients.",
+  "evidence_paths": [],
+  "result": "PARTIAL",
+  "confidence": "low",
+  "follow_up": "If it recurs, check the Windows Defender operational event log around the run time."
+}

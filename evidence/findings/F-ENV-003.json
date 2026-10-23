@@ -1,0 +1,25 @@
+{
+  "id": "F-ENV-003",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "anti-tamper",
+  "claim": "The executable's entry point is in a section named .bind with entropy 7.947, a layout consistent with the Steam DRM (SteamStub) wrapper.",
+  "evidence": "entry_point_section=.bind, .bind raw size 178896, entropy 7.947.",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory.json",
+      "location": "files.ShadowOfWar.exe"
+    }
+  ],
+  "game_build_compatibility": "Measured on exe SHA-256 ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF (FileVersion 1.0.8874.0, Steam buildid 3095001)",
+  "verification_method": "Read-only local inspection with tools/environment/discover_game.py and pe_inventory.py; re-run scripts/inventory.ps1 to reproduce.",
+  "classification": "HYPOTHESIS",
+  "confidence": "medium",
+  "limitations": "Attribution to SteamStub is inferred from public descriptions of the wrapper, not proven. Analysing or removing the wrapper is out of scope (rule 3).",
+  "next_experiment": "None in Phase 1. Any approach that needs plaintext code on disk is blocked by rule 3; see EXP-003.",
+  "related": [
+    "F-ENV-004"
+  ]
+}

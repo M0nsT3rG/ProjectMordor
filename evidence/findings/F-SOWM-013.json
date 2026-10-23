@@ -1,0 +1,33 @@
+{
+ "id": "F-SOWM-013",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "camera",
+ "claim": "The repo maps no camera, character-controller, combat, AI, Nemesis/orc, mission or save-game structures; the only 'camera' handling is blocking raw input, and pause/sim time-scale is explicitly unsolved.",
+ "evidence": "GameOffsets.h:60 \"PAUSE - LEVER NOT YET FOUND\"; Overlay.cpp:354 \"Raw input (mouselook) drives the in-game camera - eat it\"",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "shared/GameOffsets.h",
+   "location": "lines 60-78 and whole file"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "SoWLoader/src/Overlay.cpp",
+   "location": "lines 330-356"
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001.",
+ "verification_method": "Static read plus repo-wide grep for Nemesis/Uruk/Camera/Mission/SaveGame/AI terms (only catalog/item names and comments matched).",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Grep-based negative result; tools/sow_catalog contains item names only.",
+ "next_experiment": "Plan our own static RE for camera, character controller and Nemesis data; this repo gives no head start there.",
+ "related": [
+  "F-SOWM-010",
+  "F-SOWM-012",
+  "F-SOWM-014"
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "id": "F-COMM-019",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "camera",
+ "claim": "SystematicSkid's sow-freecam hooks the camera transform update via a call-site signature with MinHook and reaches the camera through a GameClient object whose camera owner pointer sits at a fixed offset.",
+ "evidence": "game_client.hpp: pad of 0x898 bytes then CameraOwner*; main.cpp hooks 'camera update' at a sigscanned call.",
+ "sources": [
+  {
+   "url": "https://github.com/SystematicSkid/sow-freecam",
+   "commit": "64f0f9e2893688cba4e6822ac89ea3fad472a187",
+   "path": "src/game_client.hpp",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/SystematicSkid/sow-freecam",
+   "commit": "64f0f9e2893688cba4e6822ac89ea3fad472a187",
+   "path": "src/main.cpp",
+   "location": "lines 169-182, 219"
+  },
+  {
+   "url": "https://github.com/SystematicSkid/sow-freecam",
+   "commit": "64f0f9e2893688cba4e6822ac89ea3fad472a187",
+   "path": "src/camera.hpp",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN; repo dated 2025-06 and does not state a build.",
+ "verification_method": "Read source at pinned commit only. Verify by matching its signatures in a copied exe (static).",
+ "classification": "HYPOTHESIS",
+ "confidence": "medium",
+ "limitations": "No license; single source; offset may differ per build.",
+ "next_experiment": "Static signature check; if it matches, the GameClient global is a candidate root for the client-side object model.",
+ "related": [
+  "F-COMM-008"
+ ]
+}

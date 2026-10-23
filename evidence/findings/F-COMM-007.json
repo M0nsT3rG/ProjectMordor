@@ -1,0 +1,44 @@
+{
+ "id": "F-COMM-007",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "engine",
+ "claim": "Shadow of War runs on Monolith's Firebird engine, described as a LithTech-derived successor to the engine used in Shadow of Mordor.",
+ "evidence": "PCGamingWiki lists engine 'Firebird Engine' (Eurogamer ref); Wikipedia LithTech says Firebird followed Mordor.",
+ "sources": [
+  {
+   "url": "https://www.pcgamingwiki.com/wiki/Middle-earth:_Shadow_of_War",
+   "commit": "",
+   "path": "",
+   "location": "Infobox engines"
+  },
+  {
+   "url": "https://en.wikipedia.org/wiki/LithTech",
+   "commit": "",
+   "path": "",
+   "location": ""
+  },
+  {
+   "url": "https://www.eurogamer.net/articles/digitalfoundry-2017-shadow-of-war-face-off",
+   "commit": "",
+   "path": "",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "games/shadow-of-war/README.md",
+   "location": "Engine row"
+  }
+ ],
+ "game_build_compatibility": "Not version-specific.",
+ "verification_method": "Multiple independent secondary sources agree. Verify on our build by looking for LithTech-style strings (e.g. ClientShellDLL, ObjectDLL, LTAR) in a copy of ShadowOfWar.exe; projectconsole.cfg's 'GameClientShell.' prefix already fits LithTech naming.",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "high",
+ "limitations": "Monolith's own studio page (lith.com) now redirects to warnerbrosgames.com, so the primary source is gone; internal architecture claims (client/server split) are unverified.",
+ "next_experiment": "Static string scan of a copied exe for LithTech module/path names and any NetMesh/net-state strings to judge whether a latent client/server split exists.",
+ "related": [
+  "F-COMM-018",
+  "F-COMM-020"
+ ]
+}

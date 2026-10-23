@@ -1,0 +1,31 @@
+{
+ "id": "F-COMM-016",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "legal",
+ "claim": "Warner Bros holds US patent 10,926,179 B2 on Nemesis characters, forts, social vendettas and followers, granted 2021-02-23 and listed by Google Patents as active until 2036-08-11.",
+ "evidence": "Google Patents: assignee Warner Bros Entertainment Inc., adjusted expiration 2036-08-11.",
+ "sources": [
+  {
+   "url": "https://patents.google.com/patent/US10926179B2/en",
+   "commit": "",
+   "path": "",
+   "location": ""
+  },
+  {
+   "url": "https://www.patentarcade.com/2021/02/warner-brothers-granted-patent-for-nemesis-system-from-middle-earth-video-games.html",
+   "commit": "",
+   "path": "",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "Not version-specific.",
+ "verification_method": "Fetched Google Patents page; consistent with news coverage.",
+ "classification": "CONFIRMED",
+ "confidence": "medium",
+ "limitations": "Relevance to a mod that only extends WB's own game is unclear; Google's status field is not a legal conclusion. Claims text not reviewed.",
+ "next_experiment": "Note in legal risk register; no technical action.",
+ "related": [
+  "F-COMM-015"
+ ]
+}

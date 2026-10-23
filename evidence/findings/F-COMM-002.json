@@ -1,0 +1,38 @@
+{
+ "id": "F-COMM-002",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "loading",
+ "claim": "Community research identifies arch06 archives by the 4-byte magic 'LTAR' followed by a u32 version, but the public ImHex pattern maps only a short header and no file table, compression or index.",
+ "evidence": "arch06.hexpat is 12 lines: magic LTAR, version, four unknown u32 and 25 padding bytes.",
+ "sources": [
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+   "path": "patterns/sow/arch06.hexpat",
+   "location": "lines 1-12"
+  },
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+   "path": "magic/sow_magic",
+   "location": "ARCH06 entry"
+  },
+  {
+   "url": "https://filext.com/file-extension/ARCH06",
+   "commit": "",
+   "path": "",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN - source does not state a game build; not checked against 1.0.8874.0 / build 3095001",
+ "verification_method": "Read the pattern file in the cloned repo. Against our build: read the first 64 bytes of a copied Patch_00.arch06 and compare magic/version (read-only, outside the game dir).",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "No public arch06 extractor or QuickBMS script was found by web search; compression is not documented (oo2core_5_win64.dll in the game dir suggests Oodle, unverified). LTAR prefix is consistent with LithTech ARchive naming but that is inference.",
+ "next_experiment": "Hex-dump headers of all *.arch06 files from a copy, tabulate version/unknown fields across Patch_00..13 and region archives; look for Oodle block signatures.",
+ "related": [
+  "F-COMM-003",
+  "F-COMM-007"
+ ]
+}

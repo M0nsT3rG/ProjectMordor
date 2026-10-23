@@ -1,0 +1,52 @@
+#pragma once
+// Deterministic outgoing-traffic impairment (loss, latency, jitter, duplication) for tests and demos.
+// Jitter naturally reorders packets because each copy gets its own delivery time.
+#include <cstdint>
+#include <random>
+#include <vector>
+
+#include "network/udp_socket.hpp"
+
+namespace mordor::net {
+
+struct ImpairmentConfig {
+    double loss = 0.0;       // probability [0,1] that a packet is dropped
+    double duplicate = 0.0;  // probability [0,1] that a packet is sent twice
+    std::uint32_t latency_ms = 0;
+    std::uint32_t jitter_ms = 0;  // extra uniform delay in [0, jitter_ms]
+    std::uint64_t seed = 1;
+    bool enabled() const { return loss > 0 || duplicate > 0 || latency_ms > 0 || jitter_ms > 0; }
+    bool valid() const { return loss >= 0 && loss <= 1 && duplicate >= 0 && duplicate <= 1; }
+};
+
+struct ImpairmentStats {
+    std::uint64_t offered = 0, sent = 0, dropped = 0, duplicated = 0, send_failures = 0;
+};
+
+class ImpairedSender {
+public:
+    ImpairedSender(UdpSocket& socket, ImpairmentConfig cfg) : socket_(socket), cfg_(cfg), rng_(cfg.seed) {}
+    void set_config(const ImpairmentConfig& cfg) { cfg_ = cfg; }
+    const ImpairmentConfig& config() const { return cfg_; }
+    void send(const Endpoint& to, std::vector<std::uint8_t> bytes, std::uint64_t now_us);
+    void flush(std::uint64_t now_us);  // send everything that is due
+    void flush_all();                  // send everything now (shutdown path)
+    void clear() { queue_.clear(); }
+    const ImpairmentStats& stats() const { return stats_; }
+
+private:
+    struct Pending {
+        std::uint64_t due_us;
+        Endpoint to;
+        std::vector<std::uint8_t> bytes;
+    };
+    void transmit(const Endpoint& to, const std::vector<std::uint8_t>& bytes);
+
+    UdpSocket& socket_;
+    ImpairmentConfig cfg_;
+    std::mt19937_64 rng_;
+    std::vector<Pending> queue_;
+    ImpairmentStats stats_;
+};
+
+}  // namespace mordor::net

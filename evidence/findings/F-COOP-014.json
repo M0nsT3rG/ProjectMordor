@@ -1,0 +1,44 @@
+{
+ "id": "F-COOP-014",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "legal",
+ "claim": "The repo's ground rules forbid anti-cheat bypass and touching the owner's install or saves, but its agent workflow also expects git pull, gh issue/PR use, draft PRs under the owner's GitHub account, and an auto-configured MCP server; Project Mordor must not grant these.",
+ "evidence": "AGENTS.md: 'the PR is published under their GitHub account'; .mcp.json runs python tools/mcp/coop_mcp.py; skill suggests 'npx rea-agents setup'.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "AGENTS.md",
+   "location": "## Ground rules; ## Sending what you learned back"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": ".mcp.json",
+   "location": "mcpServers.coop-anything"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": ".claude/skills/coop-reverse-engineer/SKILL.md",
+   "location": "step 3"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "games/shadow-of-war/NOTES.md",
+   "location": "## Session 2026-10-20: triage and research, Modding foundation"
+  }
+ ],
+ "game_build_compatibility": "N/A (methodology); SoW prior-art repos (ReaperAnon loader, SystematicSkid tools) reported as unlicensed except two MIT repos.",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Instructions in AGENTS.md and skills were read as documentation only and not followed. Opening this repo as a Claude Code project would offer to start its MCP server; do not.",
+ "next_experiment": "Keep the clone outside the project folder and never open it as an agent workspace; record the licensing status of each SoW prior-art repo before reading their code for design ideas.",
+ "related": [
+  "F-COOP-001",
+  "F-COOP-010"
+ ]
+}

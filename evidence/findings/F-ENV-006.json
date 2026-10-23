@@ -1,0 +1,25 @@
+{
+  "id": "F-ENV-006",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "networking",
+  "claim": "The static import table imports winhttp.dll and wininet.dll (HTTP) and steam_api64.dll but no ws2_32.dll. Any socket networking is not visible in static imports.",
+  "evidence": "imports list: wininet 8 functions, winhttp 1, steam_api64 1; ws2_32 absent.",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory.json",
+      "location": "files.ShadowOfWar.exe"
+    }
+  ],
+  "game_build_compatibility": "Measured on exe SHA-256 ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF (FileVersion 1.0.8874.0, Steam buildid 3095001)",
+  "verification_method": "Read-only local inspection with tools/environment/discover_game.py and pe_inventory.py; re-run scripts/inventory.ps1 to reproduce.",
+  "classification": "CONFIRMED",
+  "confidence": "high",
+  "limitations": "The small import table (F-ENV-004) means further APIs may be resolved at runtime; absence from static imports proves nothing about runtime use.",
+  "next_experiment": "None in Phase 1.",
+  "related": [
+    "F-ENV-004"
+  ]
+}

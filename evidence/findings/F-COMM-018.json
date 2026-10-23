@@ -1,0 +1,31 @@
+{
+ "id": "F-COMM-018",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "engine",
+ "claim": "Monolith Productions was closed by Warner Bros on 2025-02-25, so further patches to Shadow of War are unlikely and build 3095001 is a stable target.",
+ "evidence": "Bloomberg 2025-02-25: Monolith, Player First Games and WB San Diego shuttered.",
+ "sources": [
+  {
+   "url": "https://www.bloomberg.com/news/articles/2025-02-25/warner-bros-shuts-three-video-game-studios-in-restructuring",
+   "commit": "",
+   "path": "",
+   "location": ""
+  },
+  {
+   "url": "https://thesixthaxis.com/2025/02/25/warner-bros-shuts-down-monolith-player-first-games-wb-games-san-diego",
+   "commit": "",
+   "path": "",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "Supports treating 1.0.8874.0 / 3095001 as final; coop-anything notes cite last update 2018-09-05 (unverified by us).",
+ "verification_method": "Multiple news sources agree on the closure.",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "WB could still push updates (e.g. DRM or online changes) via Steam; studio closure is not a guarantee.",
+ "next_experiment": "Pin the build (record Steam buildid/hash before each test session) and disable auto-update for the test copy.",
+ "related": [
+  "F-COMM-007"
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "id": "F-SOWM-018",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "tooling",
+ "claim": "The repo is a very recent, AI-assisted, fast-moving workspace (HEAD dated 2026-07-04, most commits are automatic 'Codex/Claude Stop hook' commits) and contains .claude/.codex hook configs that auto-commit and push.",
+ "evidence": "git log: \"ba0c3d9 auto: 2026-07-04 14:50:47 (Codex Stop hook)\"",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": ".claude/hooks/auto-commit.ps1",
+   "location": "file"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": ".codex/hooks.json",
+   "location": "file"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "README.md",
+   "location": "Per-mod workflow item 3"
+  }
+ ],
+ "game_build_compatibility": "N/A",
+ "verification_method": "git log of the shallow clone (depth 50).",
+ "classification": "CONFIRMED",
+ "confidence": "medium",
+ "limitations": "Hook files were not executed and their instructions were ignored (untrusted). Rapid churn means offsets/notes may change; pin to the commit hash.",
+ "next_experiment": "Re-check the repo later for new findings (camera/player/pause) and pin commit hashes in any citation.",
+ "related": [
+  "F-SOWM-005"
+ ]
+}

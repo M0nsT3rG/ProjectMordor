@@ -1,0 +1,32 @@
+{
+ "id": "F-COOP-011",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "engine",
+ "claim": "The repo contains a Shadow of War write-up stating the game runs on Firebird (internal 'Kraken'), a LithTech derivative whose source paths keep a client/server split, NetMesh hosting port and host-vote state machine, runtime use unverified.",
+ "evidence": "games/shadow-of-war/README.md: 'Whether a real client/server split exists at runtime is not known yet.'",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "games/shadow-of-war/README.md",
+   "location": "## How the game works (for co-op), Engine layout"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "games/shadow-of-war/NOTES.md",
+   "location": "## Session 2026-10-20 k"
+  }
+ ],
+ "game_build_compatibility": "Repo-reported for Steam app 356190 build 3095001, ShadowOfWar.exe 1.0.8874.0, SHA-256 ed0d95cabb033cd66aaa99d699374881846c3cb03ec345f1123d82d45e0bdaef; not checked against our install.",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "medium",
+ "limitations": "We confirm only what the repo states; the engine facts come from another party's runtime probing and were not independently verified. Whether the LithTech split is usable for co-op is a HYPOTHESIS.",
+ "next_experiment": "Check our installed build id and exe SHA-256 against the repo's values (read-only hash of the exe) before relying on any repo offset.",
+ "related": [
+  "F-COOP-012",
+  "F-COOP-015"
+ ]
+}

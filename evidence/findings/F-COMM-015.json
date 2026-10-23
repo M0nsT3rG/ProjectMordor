@@ -1,0 +1,26 @@
+{
+ "id": "F-COMM-015",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "legal",
+ "claim": "The Shadow of War EULA prohibits modifying the game client (1c), reverse engineering or deriving source code (1d), cheats/hacks or unauthorized third-party programs (1e), and software that interacts with the client or emulates WB's protocols (1b), and allows connecting to WB game servers only with an unmodified authorized client (1g-1h); it has no mod-specific allowance.",
+ "evidence": "EULA 1(d) wording includes 'reverse engineer, derive source code from'.",
+ "sources": [
+  {
+   "url": "https://store.steampowered.com/eula/356190_eula_0",
+   "commit": "",
+   "path": "",
+   "location": "Sections 1(b)-(h), 4, 9, 10"
+  }
+ ],
+ "game_build_compatibility": "Applies to the game generally; EULA text carries no date/version (PCGW reference dated 2018-07-17).",
+ "verification_method": "Fetched and read the EULA page on 2026-10-23.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Not legal advice; enforceability of RE bans varies by jurisdiction (e.g. EU interoperability exceptions). Separate WB Terms of Service, incorporated by reference, were not reviewed.",
+ "next_experiment": "Have the project owner obtain legal review; keep the mod strictly offline/non-commercial, never touch WB servers, never redistribute game files, and document interoperability purpose.",
+ "related": [
+  "F-COMM-016",
+  "F-COMM-012"
+ ]
+}

@@ -1,0 +1,37 @@
+{
+ "id": "F-COMM-006",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "tooling",
+ "claim": "MeshParser (MeshUnpacker) is a Windows C++ tool that converts SoW .mesh (magic MMSH) to/from FBX via Assimp, supporting static meshes only, and the repo ships prebuilt Assimp DLL/LIB binaries.",
+ "evidence": "README: converts mesh and fbx, 'Supports static meshes'; Libraries/ contains assimp-vc143-mt.dll.",
+ "sources": [
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/MeshParser",
+   "commit": "e7821cd9b5ef13b44f6a9d75750259d5c0075069",
+   "path": "README.md",
+   "location": "Features"
+  },
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/MeshParser",
+   "commit": "e7821cd9b5ef13b44f6a9d75750259d5c0075069",
+   "path": "MeshUnpacker/Source/Parser/Mesh/mesh.h",
+   "location": "lines 12-15"
+  },
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/MeshParser",
+   "commit": "e7821cd9b5ef13b44f6a9d75750259d5c0075069",
+   "path": "MeshUnpacker/Libraries/assimp-vc143-mt.dll",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN - source does not state a game build; not checked against 1.0.8874.0 / build 3095001",
+ "verification_method": "Read README and headers in the clone; nothing built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Asset modding only; no relevance to runtime networking. Prebuilt binaries are untrusted and must not be executed.",
+ "next_experiment": "None for co-op; optionally useful later for a visual marker on the second player model.",
+ "related": [
+  "F-COMM-001"
+ ]
+}

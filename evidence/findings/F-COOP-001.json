@@ -1,0 +1,32 @@
+{
+ "id": "F-COOP-001",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "methodology",
+ "claim": "coop-anything (MIT) defines a 9-phase workflow for adding co-op to single-player games: triage, research, workspace, understand (RE), choose, build, QA, ship, give back.",
+ "evidence": "AGENTS.md 'Phase map' table lists phases 0-8 plus 3b (console) and 6b (split screen); two entry paths: revive an existing mod or build from zero.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "AGENTS.md",
+   "location": "## Phase map"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "LICENSE",
+   "location": "line 1 (MIT License)"
+  }
+ ],
+ "game_build_compatibility": "N/A (methodology)",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Describes the repo's process, not evidence that it produces working co-op for any given engine.",
+ "next_experiment": "Map Project Mordor's phase plan onto phases 0-4 (triage through choose) and record which ones Phase 1 can complete without game integration.",
+ "related": [
+  "F-COOP-002",
+  "F-COOP-014"
+ ]
+}

@@ -1,0 +1,23 @@
+{
+  "id": "EXP-001",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro 10.0.26300 x64, Python 3.15.1",
+  "game_exe_sha256": "ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF",
+  "errors": "",
+  "related": [
+    "F-ENV-001",
+    "F-ENV-002"
+  ],
+  "objective": "Locate the Steam install of Shadow of War without hardcoded paths.",
+  "hypothesis": "The registry SteamPath plus libraryfolders.vdf lead to appmanifest_356190.acf.",
+  "procedure": "python -I tools/environment/discover_game.py",
+  "expected_result": "Manifest found; exe hashed; evidence JSON written with sanitized paths.",
+  "observed_result": "Found in library index 2 of 3; buildid 3095001; exe hash ED0D95CA...0BDAEF; paths sanitized to <GAME>/<LIBRARY>.",
+  "evidence_paths": [
+    "evidence/game-build.json"
+  ],
+  "result": "PASSED",
+  "confidence": "high",
+  "follow_up": "Re-run each session to detect game updates."
+}

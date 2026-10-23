@@ -1,0 +1,38 @@
+{
+ "id": "F-COMM-020",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "mod-loader",
+ "claim": "A third-party research repo (cranebeaker/coop-anything) documents Shadow of War co-op research claiming the exact target build (1.0.8874.0, build 3095001, same SHA-256), including a console-variable registry, a stubbed debug_print and a central Nemesis event handler, and lists JustAddMP/ShadowOfWar as a README-only 'planned' co-op placeholder.",
+ "evidence": "README: engine Firebird ('Kraken' internal name), 'no co-op for Shadow of War', RVAs for console registry and HandleFactionEventAction.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "games/shadow-of-war/README.md",
+   "location": "header table and 'How the game works'"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "games/shadow-of-war/NOTES.md",
+   "location": "sessions 2026-10-20 a-e"
+  },
+  {
+   "url": "https://github.com/JustAddMP/ShadowOfWar",
+   "commit": "d14c59bf33e82c15fccb6596ef77d136f27e8e4d",
+   "path": "README.md",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "Claims to target 1.0.8874.0 / build 3095001 / matching SHA-256 - matches ours, unverified by us.",
+ "verification_method": "Read as untrusted data only (repo was already present in the scratch area, not from the target org). Every RVA must be re-derived independently from a copied exe before use.",
+ "classification": "HYPOTHESIS",
+ "confidence": "low",
+ "limitations": "Unvetted, recent (2026-10-21) notes; addresses not independently checked; the repo also contains agent instruction files which were ignored.",
+ "next_experiment": "Independently verify two of its claims statically (console registry entry count and a Faction.* string location) to decide how much to trust it.",
+ "related": [
+  "F-COMM-011",
+  "F-COMM-007"
+ ]
+}

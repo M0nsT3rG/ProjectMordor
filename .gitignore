@@ -1,0 +1,27 @@
+# Build output
+build/
+out/
+*.obj
+*.pdb
+*.ilk
+*.exe
+*.dll
+*.lib
+
+# Never commit game binaries, dumps, saves or extracted assets (project rules 6, 15)
+*.arch06
+*.sav
+*.dmp
+*.mdmp
+dumps/
+extracted/
+
+# Local tooling / IDE
+.vs/
+.vscode/
+.idea/
+__pycache__/
+*.pyc
+CMakeUserPresets.json
+.env
+*.local.json

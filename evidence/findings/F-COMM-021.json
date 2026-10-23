@@ -1,0 +1,35 @@
+{
+ "id": "F-COMM-021",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "tooling",
+ "claim": "GitHub search for 'shadow of war' returns several recently created 'Cheats'/'Trainer' repos by unknown accounts that have no relation to the modding community and must be treated as likely malware lures.",
+ "evidence": "Search results include repos titled 'Middle-earth-Shadow-of-War-Cheats' pushed 2026-10 by new accounts.",
+ "sources": [
+  {
+   "url": "https://api.github.com/search/repositories?q=%22shadow+of+war%22",
+   "commit": "",
+   "path": "",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/CoreFletcher/Middle-earth-Shadow-of-War-Cheats",
+   "commit": "",
+   "path": "",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/StreetComptroller11/Middle-earth-Shadow-of-War-Cheats",
+   "commit": "",
+   "path": "",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "Not applicable.",
+ "verification_method": "Observed names/dates in GitHub search API results only; contents not opened.",
+ "classification": "HYPOTHESIS",
+ "confidence": "low",
+ "limitations": "Not inspected, so maliciousness is unproven; the pattern (fresh accounts, cheat lures) is a known malware distribution tactic.",
+ "next_experiment": "Add these to a do-not-download list; restrict third-party sources to the vetted repos listed in this evidence set.",
+ "related": []
+}

@@ -1,0 +1,33 @@
+{
+ "id": "F-COMM-003",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "tooling",
+ "claim": "The community magic file lists ten Shadow of War asset formats by magic: LTAR (arch06), BNDL, EMBB, LTFX (fxp), GADB (gamedb), LTMI (mat), MMSH (mesh), SCRI (scripts), SKEL and SKDB (strdb), each followed by a u32 version.",
+ "evidence": "sow_magic defines string magics at offset 0 with a long version at offset 4 for each format.",
+ "sources": [
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+   "path": "magic/sow_magic",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+   "path": "README.md",
+   "location": "Pattern Files table"
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN - source does not state a game build; not checked against 1.0.8874.0 / build 3095001",
+ "verification_method": "Read the libmagic file and README in the clone. Against our build: once assets can be extracted, run a magic scan over extracted files and compare counts/versions.",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "These are loose-file formats inside archives; we cannot check them until archives are unpacked. Test fixtures in the repo (e.g. tests/gamedb/game.gamedb) are game-derived data and were not opened.",
+ "next_experiment": "After an arch06 reader exists, confirm magic and version values per format on our build.",
+ "related": [
+  "F-COMM-002",
+  "F-COMM-004",
+  "F-COMM-005"
+ ]
+}

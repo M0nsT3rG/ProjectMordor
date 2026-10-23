@@ -1,0 +1,26 @@
+{
+ "id": "F-SOWM-002",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "mod-loader",
+ "claim": "The repo reports that ShadowOfWar.exe statically imports steam_api64.dll (shipped in x64\\) and delay-loads d3d11.dll and amd_ags_x64.dll, making steam_api64.dll the chosen proxy injection point.",
+ "evidence": "docs/reverse-engineering.md:71 \"Delay-loaded imports (2): d3d11.dll, amd_ags_x64.dll\"; :80 \"leading candidate: proxy steam_api64.dll\"",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "docs/reverse-engineering.md",
+   "location": "lines 66-87"
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Our install dir does contain steam_api64.dll and amd_ags_x64.dll, matching the repo's description.",
+ "verification_method": "Static read of repo docs. Verify against our build by parsing the import and delay-import directories of our ShadowOfWar.exe (read-only PE parse).",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "Import table facts are the author's; not re-derived from our exe. Proxying steam_api64 may interact with SteamStub/Denuvo integrity checks - repo claims it worked live but gives no build id.",
+ "next_experiment": "Read-only PE import parse of our ShadowOfWar.exe to confirm steam_api64.dll static import and the delay-load list.",
+ "related": [
+  "F-SOWM-001",
+  "F-SOWM-004"
+ ]
+}

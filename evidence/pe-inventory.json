@@ -1,0 +1,1561 @@
+{
+  "generated_utc": "2026-10-23T15:33:26+00:00",
+  "tool": "tools/environment/pe_inventory.py",
+  "files": {
+    "amd_ags_x64.dll": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "coff_timestamp": 1490733392,
+      "image_base": "0x180000000",
+      "entry_point_rva": "0x6368",
+      "entry_point_section": ".text",
+      "size_of_image": 131072,
+      "header_checksum": "0x0",
+      "subsystem": "WINDOWS_GUI",
+      "dll_characteristics": [
+        "HIGH_ENTROPY_VA",
+        "DYNAMIC_BASE",
+        "NX_COMPAT"
+      ],
+      "data_directories": {
+        "EXPORT": {
+          "rva": "0x178e0",
+          "size": 1521
+        },
+        "IMPORT": {
+          "rva": "0x17ed4",
+          "size": 80
+        },
+        "RESOURCE": {
+          "rva": "0x1e000",
+          "size": 1208
+        },
+        "EXCEPTION": {
+          "rva": "0x1d000",
+          "size": 3720
+        },
+        "BASERELOC": {
+          "rva": "0x1f000",
+          "size": 1384
+        },
+        "LOAD_CONFIG": {
+          "rva": "0x168e0",
+          "size": 112
+        },
+        "IAT": {
+          "rva": "0x11000",
+          "size": 616
+        }
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "virtual_size": 62139,
+          "virtual_address": "0x1000",
+          "raw_size": 62464,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.389
+        },
+        {
+          "name": ".rdata",
+          "virtual_size": 30478,
+          "virtual_address": "0x11000",
+          "raw_size": 30720,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 4.316
+        },
+        {
+          "name": ".data",
+          "virtual_size": 15320,
+          "virtual_address": "0x19000",
+          "raw_size": 6144,
+          "flags": [
+            "IDATA",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 2.956
+        },
+        {
+          "name": ".pdata",
+          "virtual_size": 3720,
+          "virtual_address": "0x1d000",
+          "raw_size": 4096,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 4.576
+        },
+        {
+          "name": ".rsrc",
+          "virtual_size": 1208,
+          "virtual_address": "0x1e000",
+          "raw_size": 1536,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 3.591
+        },
+        {
+          "name": ".reloc",
+          "virtual_size": 1384,
+          "virtual_address": "0x1f000",
+          "raw_size": 1536,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.196
+        }
+      ],
+      "import_dll_count": 3,
+      "import_function_count": 74,
+      "delay_imports": [],
+      "exports": {
+        "dll_name": "amd_ags_x64.dll",
+        "count": 29,
+        "named": 29
+      },
+      "debug": [],
+      "tls": {
+        "present": false
+      },
+      "authenticode_present": false
+    },
+    "AnselSDK64.dll": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "coff_timestamp": 1492084323,
+      "image_base": "0x180000000",
+      "entry_point_rva": "0x2ca00",
+      "entry_point_section": ".text",
+      "size_of_image": 684032,
+      "header_checksum": "0xb2488",
+      "subsystem": "WINDOWS_GUI",
+      "dll_characteristics": [
+        "HIGH_ENTROPY_VA",
+        "DYNAMIC_BASE",
+        "NX_COMPAT",
+        "GUARD_CF"
+      ],
+      "data_directories": {
+        "EXPORT": {
+          "rva": "0x96f70",
+          "size": 1156
+        },
+        "IMPORT": {
+          "rva": "0x973f4",
+          "size": 40
+        },
+        "RESOURCE": {
+          "rva": "0xa4000",
+          "size": 1368
+        },
+        "EXCEPTION": {
+          "rva": "0x9e000",
+          "size": 23364
+        },
+        "SECURITY": {
+          "rva": "0xa1a00",
+          "size": 3600
+        },
+        "BASERELOC": {
+          "rva": "0xa5000",
+          "size": 5500
+        },
+        "DEBUG": {
+          "rva": "0x872c0",
+          "size": 112
+        },
+        "LOAD_CONFIG": {
+          "rva": "0x87330",
+          "size": 148
+        },
+        "IAT": {
+          "rva": "0x70000",
+          "size": 944
+        }
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "virtual_size": 452850,
+          "virtual_address": "0x1000",
+          "raw_size": 453120,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.473
+        },
+        {
+          "name": ".rdata",
+          "virtual_size": 164036,
+          "virtual_address": "0x70000",
+          "raw_size": 164352,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 4.793
+        },
+        {
+          "name": ".data",
+          "virtual_size": 19828,
+          "virtual_address": "0x99000",
+          "raw_size": 12800,
+          "flags": [
+            "IDATA",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 4.194
+        },
+        {
+          "name": ".pdata",
+          "virtual_size": 23364,
+          "virtual_address": "0x9e000",
+          "raw_size": 23552,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.761
+        },
+        {
+          "name": ".rsrc",
+          "virtual_size": 1368,
+          "virtual_address": "0xa4000",
+          "raw_size": 1536,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 3.831
+        },
+        {
+          "name": ".reloc",
+          "virtual_size": 5500,
+          "virtual_address": "0xa5000",
+          "raw_size": 5632,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.394
+        }
+      ],
+      "import_dll_count": 1,
+      "import_function_count": 117,
+      "delay_imports": [],
+      "exports": {
+        "dll_name": "AnselSDK64.dll",
+        "count": 33,
+        "named": 33
+      },
+      "debug": [
+        {
+          "type": 2,
+          "timestamp": 1492084323,
+          "size": 91,
+          "codeview": "RSDS",
+          "pdb_guid": "dd2d179e0efc68429fc14d10b56d6459",
+          "pdb_age": 1,
+          "pdb_path": "C:\\BuildAgent\\work\\3edc94783d8e5112\\AnselSDK\\redist\\AnselSDK64.pdb"
+        },
+        {
+          "type": 12,
+          "timestamp": 1492084323,
+          "size": 20
+        },
+        {
+          "type": 13,
+          "timestamp": 1492084323,
+          "size": 832
+        },
+        {
+          "type": 14,
+          "timestamp": 1492084323,
+          "size": 0
+        }
+      ],
+      "tls": {
+        "present": false
+      },
+      "authenticode_present": true
+    },
+    "bink2w64.dll": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "coff_timestamp": 1484871922,
+      "image_base": "0x180000000",
+      "entry_point_rva": "0x36be8",
+      "entry_point_section": ".text",
+      "size_of_image": 413696,
+      "header_checksum": "0x0",
+      "subsystem": "WINDOWS_GUI",
+      "dll_characteristics": [
+        "DYNAMIC_BASE"
+      ],
+      "data_directories": {
+        "EXPORT": {
+          "rva": "0x4a030",
+          "size": 2066
+        },
+        "IMPORT": {
+          "rva": "0x49420",
+          "size": 100
+        },
+        "RESOURCE": {
+          "rva": "0x5f000",
+          "size": 19488
+        },
+        "EXCEPTION": {
+          "rva": "0x5c000",
+          "size": 8700
+        },
+        "BASERELOC": {
+          "rva": "0x64000",
+          "size": 400
+        },
+        "DEBUG": {
+          "rva": "0x40400",
+          "size": 28
+        },
+        "IAT": {
+          "rva": "0x40000",
+          "size": 896
+        }
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "virtual_size": 255566,
+          "virtual_address": "0x1000",
+          "raw_size": 256000,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.481
+        },
+        {
+          "name": ".rdata",
+          "virtual_size": 43074,
+          "virtual_address": "0x40000",
+          "raw_size": 43520,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 6.169
+        },
+        {
+          "name": ".data",
+          "virtual_size": 69128,
+          "virtual_address": "0x4b000",
+          "raw_size": 44032,
+          "flags": [
+            "IDATA",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 7.302
+        },
+        {
+          "name": ".pdata",
+          "virtual_size": 8700,
+          "virtual_address": "0x5c000",
+          "raw_size": 8704,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.539
+        },
+        {
+          "name": ".rsrc",
+          "virtual_size": 19488,
+          "virtual_address": "0x5f000",
+          "raw_size": 19968,
+          "flags": [
+            "IDATA",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 5.407
+        },
+        {
+          "name": ".reloc",
+          "virtual_size": 1550,
+          "virtual_address": "0x64000",
+          "raw_size": 2048,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 1.552
+        }
+      ],
+      "import_dll_count": 4,
+      "import_function_count": 108,
+      "delay_imports": [],
+      "exports": {
+        "dll_name": "bink2w64.dll",
+        "count": 73,
+        "named": 73
+      },
+      "debug": [
+        {
+          "type": 2,
+          "timestamp": 1484871922,
+          "size": 66,
+          "codeview": "RSDS",
+          "pdb_guid": "7868dd18e23cf7488b9b45479f68b117",
+          "pdb_age": 1,
+          "pdb_path": "C:\\devel\\projects\\bink\\build\\bink2w64.pdb"
+        }
+      ],
+      "tls": {
+        "present": false
+      },
+      "authenticode_present": false
+    },
+    "oo2core_5_win64.dll": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "coff_timestamp": 1503350465,
+      "image_base": "0x180000000",
+      "entry_point_rva": "0xa8a58",
+      "entry_point_section": ".text",
+      "size_of_image": 954368,
+      "header_checksum": "0x0",
+      "subsystem": "WINDOWS_GUI",
+      "dll_characteristics": [
+        "HIGH_ENTROPY_VA",
+        "DYNAMIC_BASE",
+        "NX_COMPAT"
+      ],
+      "data_directories": {
+        "EXPORT": {
+          "rva": "0xddb80",
+          "size": 2551
+        },
+        "IMPORT": {
+          "rva": "0xde578",
+          "size": 40
+        },
+        "EXCEPTION": {
+          "rva": "0xe4000",
+          "size": 16356
+        },
+        "BASERELOC": {
+          "rva": "0xe8000",
+          "size": 1876
+        },
+        "DEBUG": {
+          "rva": "0xb62c0",
+          "size": 56
+        },
+        "LOAD_CONFIG": {
+          "rva": "0xd6aa0",
+          "size": 112
+        },
+        "IAT": {
+          "rva": "0xb6000",
+          "size": 536
+        }
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "virtual_size": 739760,
+          "virtual_address": "0x1000",
+          "raw_size": 739840,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.496
+        },
+        {
+          "name": ".rdata",
+          "virtual_size": 167066,
+          "virtual_address": "0xb6000",
+          "raw_size": 167424,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.3
+        },
+        {
+          "name": ".data",
+          "virtual_size": 17912,
+          "virtual_address": "0xdf000",
+          "raw_size": 8704,
+          "flags": [
+            "IDATA",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 3.246
+        },
+        {
+          "name": ".pdata",
+          "virtual_size": 16356,
+          "virtual_address": "0xe4000",
+          "raw_size": 16384,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.954
+        },
+        {
+          "name": ".reloc",
+          "virtual_size": 1876,
+          "virtual_address": "0xe8000",
+          "raw_size": 2048,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.262
+        }
+      ],
+      "import_dll_count": 1,
+      "import_function_count": 66,
+      "delay_imports": [],
+      "exports": {
+        "dll_name": "oo2core_5_win64.dll",
+        "count": 64,
+        "named": 64
+      },
+      "debug": [
+        {
+          "type": 2,
+          "timestamp": 1503350465,
+          "size": 97,
+          "codeview": "RSDS",
+          "pdb_guid": "37f1ceb9004d524aa8ce65d040af5dc8",
+          "pdb_age": 1,
+          "pdb_path": "v:\\devel\\projects\\oodle2\\cdepbuild\\win64_release_dll\\oo2core_5_win64.pdb"
+        },
+        {
+          "type": 12,
+          "timestamp": 1503350465,
+          "size": 20
+        }
+      ],
+      "tls": {
+        "present": false
+      },
+      "authenticode_present": false
+    },
+    "ShadowOfWar.exe": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "coff_timestamp": 1535072130,
+      "image_base": "0x140000000",
+      "entry_point_rva": "0x73d1310",
+      "entry_point_section": ".bind",
+      "size_of_image": 121622528,
+      "header_checksum": "0x704d382",
+      "subsystem": "WINDOWS_GUI",
+      "dll_characteristics": [
+        "HIGH_ENTROPY_VA",
+        "NX_COMPAT",
+        "TERMINAL_SERVER_AWARE"
+      ],
+      "data_directories": {
+        "EXPORT": {
+          "rva": "0x72a6720",
+          "size": 21890
+        },
+        "IMPORT": {
+          "rva": "0x72abcfc",
+          "size": 440
+        },
+        "RESOURCE": {
+          "rva": "0x72ae000",
+          "size": 1191552
+        },
+        "EXCEPTION": {
+          "rva": "0x2aa5000",
+          "size": 1962900
+        },
+        "SECURITY": {
+          "rva": "0x70468d0",
+          "size": 3296
+        },
+        "DEBUG": {
+          "rva": "0x72a66e0",
+          "size": 56
+        },
+        "TLS": {
+          "rva": "0x2280600",
+          "size": 40
+        },
+        "LOAD_CONFIG": {
+          "rva": "0x1e52220",
+          "size": 148
+        },
+        "IAT": {
+          "rva": "0x72a6000",
+          "size": 1760
+        },
+        "DELAY_IMPORT": {
+          "rva": "0x259f2f8",
+          "size": 96
+        }
+      },
+      "sections": [
+        {
+          "name": ".arch",
+          "virtual_size": 30960640,
+          "virtual_address": "0x1000",
+          "raw_size": 30960640,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.528
+        },
+        {
+          "name": ".sdata",
+          "virtual_size": 37888,
+          "virtual_address": "0x1d88000",
+          "raw_size": 37888,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.509
+        },
+        {
+          "name": ".xtext",
+          "virtual_size": 8495104,
+          "virtual_address": "0x1d92000",
+          "raw_size": 8493568,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.274
+        },
+        {
+          "name": ".idata",
+          "virtual_size": 5214208,
+          "virtual_address": "0x25ac000",
+          "raw_size": 1363456,
+          "flags": [
+            "CODE",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 4.049
+        },
+        {
+          "name": ".pdata",
+          "virtual_size": 1966080,
+          "virtual_address": "0x2aa5000",
+          "raw_size": 1963008,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 7.077
+        },
+        {
+          "name": ".data1",
+          "virtual_size": 4096,
+          "virtual_address": "0x2c85000",
+          "raw_size": 512,
+          "flags": [
+            "CODE",
+            "READ"
+          ],
+          "entropy": 0.272
+        },
+        {
+          "name": ".link",
+          "virtual_size": 4096,
+          "virtual_address": "0x2c86000",
+          "raw_size": 512,
+          "flags": [
+            "CODE",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 0.041
+        },
+        {
+          "name": ".tls",
+          "virtual_size": 4096,
+          "virtual_address": "0x2c87000",
+          "raw_size": 512,
+          "flags": [
+            "CODE",
+            "READ"
+          ],
+          "entropy": 0.147
+        },
+        {
+          "name": ".edata",
+          "virtual_size": 4096,
+          "virtual_address": "0x2c88000",
+          "raw_size": 512,
+          "flags": [
+            "CODE",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": -0.0
+        },
+        {
+          "name": ".bss\u0000a",
+          "virtual_size": 73457997,
+          "virtual_address": "0x2c89000",
+          "raw_size": 73458176,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 7.243
+        },
+        {
+          "name": ".rsrc",
+          "virtual_size": 501,
+          "virtual_address": "0x7298000",
+          "raw_size": 512,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 4.582
+        },
+        {
+          "name": ".text",
+          "virtual_size": 20,
+          "virtual_address": "0x7299000",
+          "raw_size": 512,
+          "flags": [
+            "CODE",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 0.102
+        },
+        {
+          "name": ".sbss",
+          "virtual_size": 42884,
+          "virtual_address": "0x729a000",
+          "raw_size": 43008,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 5.885
+        },
+        {
+          "name": ".text1",
+          "virtual_size": 3397,
+          "virtual_address": "0x72a5000",
+          "raw_size": 3584,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.671
+        },
+        {
+          "name": ".reloc",
+          "virtual_size": 30372,
+          "virtual_address": "0x72a6000",
+          "raw_size": 30720,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.741
+        },
+        {
+          "name": ".srdata",
+          "virtual_size": 1191552,
+          "virtual_address": "0x72ae000",
+          "raw_size": 1191936,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 7.828
+        },
+        {
+          "name": ".bind",
+          "virtual_size": 178896,
+          "virtual_address": "0x73d1000",
+          "raw_size": 178896,
+          "flags": [
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 7.947
+        }
+      ],
+      "imports": [
+        {
+          "dll": "advapi32.dll",
+          "count": 3,
+          "functions": [
+            "RegCloseKey",
+            "RegOpenKeyExA",
+            "RegQueryValueExW"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-convert-l1-1-0.dll",
+          "count": 3,
+          "functions": [
+            "_strtoui64",
+            "atoi",
+            "strtol"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-filesystem-l1-1-0.dll",
+          "count": 2,
+          "functions": [
+            "_unlock_file",
+            "remove"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-heap-l1-1-0.dll",
+          "count": 1,
+          "functions": [
+            "malloc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-locale-l1-1-0.dll",
+          "count": 1,
+          "functions": [
+            "_create_locale"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-runtime-l1-1-0.dll",
+          "count": 1,
+          "functions": [
+            "system"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-stdio-l1-1-0.dll",
+          "count": 9,
+          "functions": [
+            "__acrt_iob_func",
+            "_fseeki64",
+            "fflush",
+            "fgetpos",
+            "fread",
+            "fseek",
+            "fsetpos",
+            "setvbuf",
+            "ungetwc"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-string-l1-1-0.dll",
+          "count": 2,
+          "functions": [
+            "isdigit",
+            "strncpy_s"
+          ]
+        },
+        {
+          "dll": "api-ms-win-crt-time-l1-1-0.dll",
+          "count": 1,
+          "functions": [
+            "_difftime64"
+          ]
+        },
+        {
+          "dll": "bink2w64.dll",
+          "count": 1,
+          "functions": [
+            "BinkGoto"
+          ]
+        },
+        {
+          "dll": "gdi32.dll",
+          "count": 7,
+          "functions": [
+            "CreateFontIndirectA",
+            "DeleteObject",
+            "GetObjectA",
+            "GetStockObject",
+            "GetTextExtentPoint32W",
+            "SelectObject",
+            "SetTextColor"
+          ]
+        },
+        {
+          "dll": "kernel32.dll",
+          "count": 78,
+          "functions": [
+            "CloseHandle",
+            "CopyFileW",
+            "CreateDirectoryW",
+            "CreateFileMappingA",
+            "CreateFileW",
+            "CreateThread",
+            "CreateToolhelp32Snapshot",
+            "DeleteCriticalSection",
+            "DeleteFileW",
+            "EnterCriticalSection",
+            "ExitProcess",
+            "FindClose",
+            "FlushFileBuffers",
+            "GetCommandLineW",
+            "GetCurrentProcessId",
+            "GetCurrentThread",
+            "GetCurrentThreadId",
+            "GetFileAttributesW",
+            "GetFileSize",
+            "GetFileSizeEx",
+            "GetFileTime",
+            "GetLastError",
+            "GetLocalTime",
+            "GetModuleFileNameW",
+            "GetModuleHandleA",
+            "GetModuleHandleW",
+            "GetPhysicallyInstalledSystemMemory",
+            "GetProcAddress",
+            "GetProcessHeap",
+            "GetSystemInfo",
+            "GetThreadContext",
+            "GlobalAlloc",
+            "GlobalLock",
+            "GlobalUnlock",
+            "HeapAlloc",
+            "HeapFree",
+            "LeaveCriticalSection",
+            "LoadLibraryA",
+            "LoadLibraryExW",
+            "LoadLibraryW",
+            "LocalAlloc",
+            "LocalFree",
+            "MapViewOfFile",
+            "MoveFileW",
+            "MultiByteToWideChar",
+            "OpenProcess",
+            "OutputDebugStringA",
+            "Process32First",
+            "Process32Next",
+            "QueryFullProcessImageNameW",
+            "QueryPerformanceCounter",
+            "QueryPerformanceFrequency",
+            "ReadFile",
+            "ReleaseMutex",
+            "ReleaseSRWLockShared",
+            "RemoveDirectoryW",
+            "RtlVirtualUnwind",
+            "SetEvent",
+            "SetFileAttributesW",
+            "SetFilePointer",
+            "SetFilePointerEx",
+            "SetThreadContext",
+            "SetThreadPriority",
+            "Sleep",
+            "TlsAlloc",
+            "TlsGetValue",
+            "TlsSetValue",
+            "UnmapViewOfFile",
+            "VirtualProtect",
+            "VirtualQuery",
+            "WaitForSingleObject",
+            "WideCharToMultiByte",
+            "WriteFile",
+            "lstrcatW",
+            "lstrcmpiA",
+            "lstrcpyW",
+            "lstrlenA",
+            "lstrlenW"
+          ]
+        },
+        {
+          "dll": "msvcp140.dll",
+          "count": 17,
+          "functions": [
+            "??1?$basic_ios@_WU?$char_traits@_W@std@@@std@@UEAA@XZ",
+            "??1?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@UEAA@XZ",
+            "?_BADOFF@std@@3_JB",
+            "?_Gndec@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAPEA_WXZ",
+            "?_Init@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEAAXXZ",
+            "?_Throw_C_error@std@@YAXH@Z",
+            "?_Xbad_function_call@std@@YAXXZ",
+            "?_Xlength_error@std@@YAXPEBD@Z",
+            "?eback@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ",
+            "?eback@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ",
+            "?egptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ",
+            "?gbump@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEAAXH@Z",
+            "?gptr@?$basic_streambuf@DU?$char_traits@D@std@@@std@@IEBAPEADXZ",
+            "?gptr@?$basic_streambuf@_WU?$char_traits@_W@std@@@std@@IEBAPEA_WXZ",
+            "_Mtx_destroy_in_situ",
+            "_Mtx_lock",
+            "_Mtx_unlock"
+          ]
+        },
+        {
+          "dll": "ole32.dll",
+          "count": 1,
+          "functions": [
+            "CoTaskMemFree"
+          ]
+        },
+        {
+          "dll": "shell32.dll",
+          "count": 3,
+          "functions": [
+            "CommandLineToArgvW",
+            "SHGetKnownFolderPath",
+            "ShellExecuteW"
+          ]
+        },
+        {
+          "dll": "shlwapi.dll",
+          "count": 1,
+          "functions": [
+            "PathFileExistsW"
+          ]
+        },
+        {
+          "dll": "steam_api64.dll",
+          "count": 1,
+          "functions": [
+            "SteamInternal_ContextInit"
+          ]
+        },
+        {
+          "dll": "user32.dll",
+          "count": 52,
+          "functions": [
+            "BeginPaint",
+            "CallWindowProcA",
+            "ClientToScreen",
+            "CloseClipboard",
+            "CreateWindowExA",
+            "CreateWindowExW",
+            "DefWindowProcW",
+            "DestroyWindow",
+            "DispatchMessageA",
+            "EmptyClipboard",
+            "EnableWindow",
+            "EndPaint",
+            "GetCapture",
+            "GetClipboardData",
+            "GetDC",
+            "GetDesktopWindow",
+            "GetDlgCtrlID",
+            "GetDlgItem",
+            "GetMessageA",
+            "GetSystemMetrics",
+            "GetWindowLongA",
+            "GetWindowLongPtrA",
+            "GetWindowRect",
+            "GetWindowTextA",
+            "GetWindowTextLengthA",
+            "GetWindowTextLengthW",
+            "GetWindowTextW",
+            "InvalidateRect",
+            "LoadCursorA",
+            "LoadIconA",
+            "MessageBoxA",
+            "MessageBoxW",
+            "OpenClipboard",
+            "PostQuitMessage",
+            "PtInRect",
+            "RegisterClassExW",
+            "ReleaseCapture",
+            "ReleaseDC",
+            "SendDlgItemMessageA",
+            "SendMessageA",
+            "SetCapture",
+            "SetClipboardData",
+            "SetCursor",
+            "SetWindowLongA",
+            "SetWindowLongPtrA",
+            "SetWindowPos",
+            "SetWindowTextA",
+            "SetWindowTextW",
+            "ShowWindow",
+            "TranslateMessage",
+            "UpdateWindow",
+            "wsprintfW"
+          ]
+        },
+        {
+          "dll": "vcruntime140.dll",
+          "count": 6,
+          "functions": [
+            "__std_exception_copy",
+            "__std_exception_destroy",
+            "__std_type_info_compare",
+            "memmove",
+            "strchr",
+            "strstr"
+          ]
+        },
+        {
+          "dll": "winhttp.dll",
+          "count": 1,
+          "functions": [
+            "WinHttpAddRequestHeaders"
+          ]
+        },
+        {
+          "dll": "wininet.dll",
+          "count": 8,
+          "functions": [
+            "HttpOpenRequestA",
+            "HttpSendRequestA",
+            "InternetCloseHandle",
+            "InternetConnectA",
+            "InternetOpenA",
+            "InternetQueryOptionA",
+            "InternetReadFile",
+            "InternetSetOptionA"
+          ]
+        }
+      ],
+      "import_dll_count": 21,
+      "import_function_count": 199,
+      "delay_imports": [
+        {
+          "dll": "d3d11.dll",
+          "count": 1,
+          "functions": [
+            "D3D11CreateDevice"
+          ]
+        },
+        {
+          "dll": "amd_ags_x64.dll",
+          "count": 10,
+          "functions": [
+            "agsDeInit",
+            "agsDriverExtensionsDX11_CreateBuffer",
+            "agsDriverExtensionsDX11_CreateTexture2D",
+            "agsDriverExtensionsDX11_DeInit",
+            "agsDriverExtensionsDX11_Init",
+            "agsDriverExtensionsDX11_NotifyResourceBeginAllAccess",
+            "agsDriverExtensionsDX11_NotifyResourceEndAllAccess",
+            "agsDriverExtensionsDX11_NotifyResourceEndWrites",
+            "agsGetCrossfireGPUCount",
+            "agsInit"
+          ]
+        }
+      ],
+      "exports": {
+        "dll_name": "ShadowOfWar.exe",
+        "count": 286,
+        "named": 286,
+        "names": [
+          "??0System@Scaleform@@QEAA@AEBUHeapDesc@MemoryHeap@1@PEAVSysAllocBase@1@@Z",
+          "??0System@Scaleform@@QEAA@PEAVSysAllocBase@1@@Z",
+          "??1AcquireInterface@Scaleform@@UEAA@XZ",
+          "??1CAkRegisteredObj@@QEAA@XZ",
+          "??1DefaultAcquireInterface@Scaleform@@UEAA@XZ",
+          "??1System@Scaleform@@QEAA@XZ",
+          "??_FEvent@Scaleform@@QEAAXXZ",
+          "??_FMutex@Scaleform@@QEAAXXZ",
+          "??_FSemaphore@Scaleform@@QEAAXXZ",
+          "??_FSysAllocStatic@Scaleform@@QEAAXXZ",
+          "??_FSystem@Scaleform@@QEAAXXZ",
+          "??_FThread@Scaleform@@QEAAXXZ",
+          "?AddLanguageChangeObserver@StreamMgr@AK@@YA?AW4AKRESULT@@P6AXQEB_WPEAX@Z1@Z",
+          "?AddOutputCaptureMarker@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD@Z",
+          "?AddPlayerMotionDevice@MotionEngine@AK@@YA?AW4AKRESULT@@EKKPEAXKPEAVIAkRumbleController@@@Z",
+          "?AddSecondaryOutput@SoundEngine@AK@@YA?AW4AKRESULT@@KW4AkAudioOutputType@@KKK@Z",
+          "?Break@DynamicSequence@SoundEngine@AK@@YA?AW4AKRESULT@@K@Z",
+          "?CancelBankCallbackCookie@SoundEngine@AK@@YAXPEAX@Z",
+          "?CancelEventCallback@SoundEngine@AK@@YAXK@Z",
+          "?CancelEventCallbackCookie@SoundEngine@AK@@YAXPEAX@Z",
+          "?CheckPoolId@MemoryMgr@AK@@YA?AW4AKRESULT@@J@Z",
+          "?ClearBanks@SoundEngine@AK@@YA?AW4AKRESULT@@XZ",
+          "?ClearPreparedEvents@SoundEngine@AK@@YA?AW4AKRESULT@@XZ",
+          "?Close@DynamicSequence@SoundEngine@AK@@YA?AW4AKRESULT@@K@Z",
+          "?Create@StreamMgr@AK@@YAPEAVIAkStreamMgr@2@AEBUAkStreamMgrSettings@@@Z",
+          "?CreateDevice@StreamMgr@AK@@YAKAEBUAkDeviceSettings@@PEAVIAkLowLevelIOHook@12@@Z",
+          "?CreatePool@MemoryMgr@AK@@YAJPEAXKKKK@Z",
+          "?DecodeBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBXKJAEAPEAXAEAK@Z",
+          "?DestroyDevice@StreamMgr@AK@@YA?AW4AKRESULT@@K@Z",
+          "?DestroyPool@MemoryMgr@AK@@YA?AW4AKRESULT@@J@Z",
+          "?ExecuteActionOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@KW4AkActionOnEventType@12@_KJW4AkCurveInterpolation@@K@Z",
+          "?ExecuteActionOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDW4AkActionOnEventType@12@_KJW4AkCurveInterpolation@@K@Z",
+          "?ExecuteActionOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WW4AkActionOnEventType@12@_KJW4AkCurveInterpolation@@K@Z",
+          "?Falign@MemoryMgr@AK@@YA?AW4AKRESULT@@JPEAX@Z",
+          "?FlushAllCaches@StreamMgr@AK@@YAXXZ",
+          "?Free@MemoryMgr@AK@@YA?AW4AKRESULT@@JPEAX@Z",
+          "?GetActiveGameObjects@Query@SoundEngine@AK@@YA?AW4AKRESULT@@AEAV?$AkArray@_K_KU?$AkArrayAllocatorNoAlign@U_ArrayPoolDefault@@@@$0CA@U?$AkAssignmentMovePolicy@_K@@@@@Z",
+          "?GetActiveListeners@Query@SoundEngine@AK@@YA?AW4AKRESULT@@_KAEAK@Z",
+          "?GetAudioSettings@SoundEngine@AK@@YA?AW4AKRESULT@@AEAUAkAudioSettings@@@Z",
+          "?GetAudioThreadCpuStats@SoundEngine@AK@@YAXAEAM0@Z",
+          "?GetBackgroundMusicMute@SoundEngine@AK@@YA_NXZ",
+          "?GetBlock@MemoryMgr@AK@@YAPEAXJ@Z",
+          "?GetBlockSize@MemoryMgr@AK@@YAKJ@Z",
+          "?GetBufferStatusForPinnedEvent@SoundEngine@AK@@YA?AW4AKRESULT@@KAEAMAEA_N@Z",
+          "?GetBufferStatusForPinnedEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDAEAMAEA_N@Z",
+          "?GetBufferStatusForPinnedEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WAEAMAEA_N@Z",
+          "?GetCurrentLanguage@StreamMgr@AK@@YAPEB_WXZ",
+          "?GetCustomPropertyValue@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KKAEAJ@Z",
+          "?GetCustomPropertyValue@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KKAEAM@Z",
+          "?GetDefaultDeviceSettings@StreamMgr@AK@@YAXAEAUAkDeviceSettings@@@Z",
+          "?GetDefaultInitSettings@MusicEngine@AK@@YAXAEAUAkMusicSettings@@@Z",
+          "?GetDefaultInitSettings@SoundEngine@AK@@YAXAEAUAkInitSettings@@@Z",
+          "?GetDefaultPlatformInitSettings@SoundEngine@AK@@YAXAEAUAkPlatformInitSettings@@@Z",
+          "?GetDefaultSettings@StreamMgr@AK@@YAXAEAUAkStreamMgrSettings@@@Z",
+          "?GetDeviceID@AK@@YAKPEAUIMMDevice@@@Z",
+          "?GetDeviceIDFromName@AK@@YAKPEA_W@Z",
+          "?GetDirectSoundInstance@AK@@YAPEAUIDirectSound8@@XZ",
+          "?GetEstimatedPlaybackLength@SoundEngine@AK@@YA?AW4AKRESULT@@KPEAM@Z",
+          "?GetEventIDFromPlayingID@Query@SoundEngine@AK@@YAKK@Z",
+          "?GetFileLocationResolver@StreamMgr@AK@@YAPEAVIAkFileLocationResolver@12@XZ",
+          "?GetGameObjectAuxSendValues@Query@SoundEngine@AK@@YA?AW4AKRESULT@@_KPEAUAkAuxSendValue@@AEAK@Z",
+          "?GetGameObjectDryLevelValue@Query@SoundEngine@AK@@YA?AW4AKRESULT@@_KAEAM@Z",
+          "?GetGameObjectFromPlayingID@Query@SoundEngine@AK@@YA_KK@Z",
+          "?GetGlobalPluginContext@SoundEngine@AK@@YAPEAVIAkGlobalPluginContext@2@XZ",
+          "?GetIsGameObjectActive@Query@SoundEngine@AK@@YA_N_K@Z",
+          "?GetListenerPosition@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KAEAVAkListenerPosition@@@Z",
+          "?GetListenerSpatialization@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KAEA_NAEAPEAMAEAUAkChannelConfig@@@Z",
+          "?GetMaxPools@MemoryMgr@AK@@YAJXZ",
+          "?GetMaxRadius@Query@SoundEngine@AK@@YA?AW4AKRESULT@@AEAV?$AkArray@UGameObjDst@Query@SoundEngine@AK@@AEBU1234@U?$AkArrayAllocatorNoAlign@U_ArrayPoolDefault@@@@$0CA@U?$AkAssignmentMovePolicy@UGameObjDst@Query@SoundEngine@AK@@@@@@@Z",
+          "?GetMaxRadius@Query@SoundEngine@AK@@YAM_K@Z",
+          "?GetNumPools@MemoryMgr@AK@@YAJXZ",
+          "?GetObjAndAddref@CAkRegistryMgr@@QEAAPEAVCAkRegisteredObj@@_K@Z",
+          "?GetObjectObstructionAndOcclusion@Query@SoundEngine@AK@@YA?AW4AKRESULT@@_KKAEAM1@Z",
+          "?GetPanningRule@SoundEngine@AK@@YA?AW4AKRESULT@@AEAW4AkPanningRule@@W4AkAudioOutputType@@K@Z",
+          "?GetPlayingIDsFromGameObject@Query@SoundEngine@AK@@YA?AW4AKRESULT@@_KAEAKPEAK@Z",
+          "?GetPlayingSegmentInfo@MusicEngine@AK@@YA?AW4AKRESULT@@KAEAUAkSegmentInfo@@_N@Z",
+          "?GetPoolAttributes@MemoryMgr@AK@@YA?AW4AkMemPoolAttributes@@J@Z",
+          "?GetPoolID@StreamMgr@AK@@YAJXZ",
+          "?GetPoolMemoryUsed@MemoryMgr@AK@@YAXJAEAUPoolMemInfo@12@@Z",
+          "?GetPoolName@MemoryMgr@AK@@YAPEA_WJ@Z",
+          "?GetPoolStats@MemoryMgr@AK@@YA?AW4AKRESULT@@JAEAUPoolStats@12@@Z",
+          "?GetPosition@Query@SoundEngine@AK@@YA?AW4AKRESULT@@_KAEAVAkTransform@@@Z",
+          "?GetPositioningInfo@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KAEAUAkPositioningInfo@@@Z",
+          "?GetRTPCValue@Query@SoundEngine@AK@@YA?AW4AKRESULT@@K_KKAEAMAEAW4RTPCValue_type@123@@Z",
+          "?GetRTPCValue@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD_KKAEAMAEAW4RTPCValue_type@123@@Z",
+          "?GetRTPCValue@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W_KKAEAMAEAW4RTPCValue_type@123@@Z",
+          "?GetSourcePlayPosition@SoundEngine@AK@@YA?AW4AKRESULT@@KPEAM_N@Z",
+          "?GetSourcePlayPositions@SoundEngine@AK@@YA?AW4AKRESULT@@KPEAUAkSourcePosition@@PEAK_N@Z",
+          "?GetSourceStreamBuffering@SoundEngine@AK@@YA?AW4AKRESULT@@KAEAJAEA_N@Z",
+          "?GetSpeakerConfiguration@SoundEngine@AK@@YA?AUAkChannelConfig@@W4AkAudioOutputType@@K@Z",
+          "?GetState@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KAEAK@Z",
+          "?GetState@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDAEAK@Z",
+          "?GetState@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WAEAK@Z",
+          "?GetSwitch@Query@SoundEngine@AK@@YA?AW4AKRESULT@@K_KAEAK@Z",
+          "?GetSwitch@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD_KAEAK@Z",
+          "?GetSwitch@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W_KAEAK@Z",
+          "?GetTimeStamp@Monitor@AK@@YAJXZ",
+          "?GetVoiceStats@SoundEngine@AK@@YAXAEAK0@Z",
+          "?GetWindowsDeviceName@AK@@YAPEB_WJAEAK@Z",
+          "?GetWwiseXAudio2Interface@AK@@YAPEAUIUnknown@@XZ",
+          "?GetXScale@?$Matrix2x4@M@Render@Scaleform@@QEBAMXZ",
+          "?GetYScale@?$Matrix2x4@M@Render@Scaleform@@QEBAMXZ",
+          "?Init@MemoryMgr@AK@@YA?AW4AKRESULT@@PEAUAkMemSettings@@@Z",
+          "?Init@MusicEngine@AK@@YA?AW4AKRESULT@@PEAUAkMusicSettings@@@Z",
+          "?Init@SoundEngine@AK@@YA?AW4AKRESULT@@PEAUAkInitSettings@@PEAUAkPlatformInitSettings@@@Z",
+          "?Init@System@GFx@Scaleform@@SAXPEAVSysAllocBase@3@@Z",
+          "?Init@System@Scaleform@@SAXPEAVSysAllocBase@2@@Z",
+          "?IsInitialized@MemoryMgr@AK@@YA_NXZ",
+          "?IsInitialized@SoundEngine@AK@@YA_NXZ",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@KJ@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@KP6AXKPEBXW43@JPEAX@Z2J@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDJAEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDP6AXKPEBXW43@JPEAX@Z3JAEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBXKAEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBXKJAEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBXKP6AXK0W43@JPEAX@Z2AEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEBXKP6AXK0W43@JPEAX@Z2JAEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WJAEAK@Z",
+          "?LoadBank@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WP6AXKPEBXW43@JPEAX@Z3JAEAK@Z",
+          "?LockPlaylist@DynamicSequence@SoundEngine@AK@@YAPEAVPlaylist@123@K@Z",
+          "?Malign@MemoryMgr@AK@@YAPEAXJ_KK@Z",
+          "?Malloc@MemoryMgr@AK@@YAPEAXJ_K@Z",
+          "?MuteBackgroundMusic@SoundEngine@AK@@YAX_N@Z",
+          "?Open@DynamicSequence@SoundEngine@AK@@YAK_KKP6AXW4AkCallbackType@@PEAUAkCallbackInfo@@@ZPEAXW4DynamicSequenceType@123@@Z",
+          "?Pause@DynamicSequence@SoundEngine@AK@@YA?AW4AKRESULT@@KJW4AkCurveInterpolation@@@Z",
+          "?PinEventInStreamCache@SoundEngine@AK@@YA?AW4AKRESULT@@KDD@Z",
+          "?PinEventInStreamCache@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDDD@Z",
+          "?PinEventInStreamCache@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WDD@Z",
+          "?Play@DynamicSequence@SoundEngine@AK@@YA?AW4AKRESULT@@KJW4AkCurveInterpolation@@@Z",
+          "?PlaySourcePlugin@SoundEngine@AK@@YAKKK_K@Z",
+          "?PostCode@Monitor@AK@@YA?AW4AKRESULT@@W4ErrorCode@12@W4ErrorLevel@12@@Z",
+          "?PostEvent@SoundEngine@AK@@YAKK_KKP6AXW4AkCallbackType@@PEAUAkCallbackInfo@@@ZPEAXKPEAUAkExternalSourceInfo@@K@Z",
+          "?PostEvent@SoundEngine@AK@@YAKPEBD_KKP6AXW4AkCallbackType@@PEAUAkCallbackInfo@@@ZPEAXKPEAUAkExternalSourceInfo@@K@Z",
+          "?PostEvent@SoundEngine@AK@@YAKPEB_W_KKP6AXW4AkCallbackType@@PEAUAkCallbackInfo@@@ZPEAXKPEAUAkExternalSourceInfo@@K@Z",
+          "?PostMIDIOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@K_KPEBUAkMIDIPost@@G@Z",
+          "?PostString@Monitor@AK@@YA?AW4AKRESULT@@PEBDW4ErrorLevel@12@@Z",
+          "?PostString@Monitor@AK@@YA?AW4AKRESULT@@PEB_WW4ErrorLevel@12@@Z",
+          "?PostTrigger@SoundEngine@AK@@YA?AW4AKRESULT@@K_K@Z",
+          "?PostTrigger@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD_K@Z",
+          "?PostTrigger@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W_K@Z",
+          "?PrepareBank@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@KP6AXKPEBXW43@JPEAX@Z3W4AkBankContent@12@@Z",
+          "?PrepareBank@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@KW4AkBankContent@12@@Z",
+          "?PrepareBank@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEBDP6AXKPEBXW43@JPEAX@Z4W4AkBankContent@12@@Z",
+          "?PrepareBank@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEBDW4AkBankContent@12@@Z",
+          "?PrepareBank@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEB_WP6AXKPEBXW43@JPEAX@Z4W4AkBankContent@12@@Z",
+          "?PrepareBank@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEB_WW4AkBankContent@12@@Z",
+          "?PrepareEvent@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEBKKP6AXKPEBXW43@JPEAX@Z4@Z",
+          "?PrepareEvent@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEBQEBDK@Z",
+          "?PrepareEvent@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEBQEBDKP6AXKPEBXW43@JPEAX@Z4@Z",
+          "?PrepareEvent@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@PEBQEB_WK@Z",
+          "?PrepareGameSyncs@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@W4AkGroupType@@KPEBKK@Z",
+          "?PrepareGameSyncs@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@W4AkGroupType@@KPEBKKP6AXKPEBXW43@JPEAX@Z5@Z",
+          "?PrepareGameSyncs@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@W4AkGroupType@@PEBDPEBQEBDK@Z",
+          "?PrepareGameSyncs@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@W4AkGroupType@@PEBDPEBQEBDKP6AXKPEBXW43@JPEAX@Z6@Z",
+          "?PrepareGameSyncs@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@W4AkGroupType@@PEB_WPEBQEB_WK@Z",
+          "?PrepareGameSyncs@SoundEngine@AK@@YA?AW4AKRESULT@@W4PreparationType@12@W4AkGroupType@@PEB_WPEBQEB_WKP6AXKPEBXW43@JPEAX@Z6@Z",
+          "?Prepend@?$Matrix2x4@M@Render@Scaleform@@QEAAAEAV123@AEBV123@@Z",
+          "?QueryAudioObjectIDs@Query@SoundEngine@AK@@YA?AW4AKRESULT@@KAEAKPEAUAkObjectInfo@@@Z",
+          "?QueryAudioObjectIDs@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDAEAKPEAUAkObjectInfo@@@Z",
+          "?QueryAudioObjectIDs@Query@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WAEAKPEAUAkObjectInfo@@@Z",
+          "?RegisterBusMeteringCallback@SoundEngine@AK@@YA?AW4AKRESULT@@KP6AXPEAVIAkMetering@2@UAkChannelConfig@@W4AkMeteringFlags@@@Z2@Z",
+          "?RegisterBusVolumeCallback@SoundEngine@AK@@YA?AW4AKRESULT@@KP6AXPEAUAkSpeakerVolumeMatrixCallbackInfo@@@Z@Z",
+          "?RegisterCodec@SoundEngine@AK@@YA?AW4AKRESULT@@KKP6APEAVIAkSoftwareCodec@@PEAX@Z1@Z",
+          "?RegisterGameObj@SoundEngine@AK@@YA?AW4AKRESULT@@_KK@Z",
+          "?RegisterGameObj@SoundEngine@AK@@YA?AW4AKRESULT@@_KPEBDK@Z",
+          "?RegisterGlobalCallback@SoundEngine@AK@@YA?AW4AKRESULT@@P6AXPEAVIAkGlobalPluginContext@2@W4AkGlobalCallbackLocation@@PEAX@ZK2@Z",
+          "?RegisterPlugin@SoundEngine@AK@@YA?AW4AKRESULT@@W4AkPluginType@@KKP6APEAVIAkPlugin@2@PEAVIAkPluginMemAlloc@2@@ZP6APEAVIAkPluginParam@2@1@Z@Z",
+          "?RegisterPluginDLL@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W@Z",
+          "?ReleaseBlock@MemoryMgr@AK@@YA?AW4AKRESULT@@JPEAX@Z",
+          "?RemoveLanguageChangeObserver@StreamMgr@AK@@YAXPEAX@Z",
+          "?RemovePlayerMotionDevice@MotionEngine@AK@@YAXEKK@Z",
+          "?RemoveSecondaryOutput@SoundEngine@AK@@YA?AW4AKRESULT@@KW4AkAudioOutputType@@@Z",
+          "?RenderAudio@SoundEngine@AK@@YA?AW4AKRESULT@@_N@Z",
+          "?ResetRTPCValue@SoundEngine@AK@@YA?AW4AKRESULT@@K_KJW4AkCurveInterpolation@@_N@Z",
+          "?ResetRTPCValue@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD_KJW4AkCurveInterpolation@@_N@Z",
+          "?ResetRTPCValue@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W_KJW4AkCurveInterpolation@@_N@Z",
+          "?ResolveDialogueEvent@DynamicDialogue@SoundEngine@AK@@YAKKPEAKKK@Z",
+          "?ResolveDialogueEvent@DynamicDialogue@SoundEngine@AK@@YAKPEBDPEAPEBDKK@Z",
+          "?ResolveDialogueEvent@DynamicDialogue@SoundEngine@AK@@YAKPEB_WPEAPEB_WKK@Z",
+          "?Resume@DynamicSequence@SoundEngine@AK@@YA?AW4AKRESULT@@KJW4AkCurveInterpolation@@@Z",
+          "?SeekOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@K_KJ_NK@Z",
+          "?SeekOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@K_KM_NK@Z",
+          "?SeekOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD_KJ_NK@Z",
+          "?SeekOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEBD_KM_NK@Z",
+          "?SeekOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W_KJ_NK@Z",
+          "?SeekOnEvent@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_W_KM_NK@Z",
+          "?SendPluginCustomGameData@SoundEngine@AK@@YA?AW4AKRESULT@@KKPEBXK@Z",
+          "?SetActiveListeners@SoundEngine@AK@@YA?AW4AKRESULT@@_KK@Z",
+          "?SetActorMixerEffect@SoundEngine@AK@@YA?AW4AKRESULT@@KKK@Z",
+          "?SetAttenuationScalingFactor@SoundEngine@AK@@YA?AW4AKRESULT@@_KM@Z",
+          "?SetBankLoadIOSettings@SoundEngine@AK@@YA?AW4AKRESULT@@MD@Z",
+          "?SetBusConfig@SoundEngine@AK@@YA?AW4AKRESULT@@KUAkChannelConfig@@@Z",
+          "?SetBusConfig@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDUAkChannelConfig@@@Z",
+          "?SetBusConfig@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WUAkChannelConfig@@@Z",
+          "?SetBusEffect@SoundEngine@AK@@YA?AW4AKRESULT@@KKK@Z",
+          "?SetBusEffect@SoundEngine@AK@@YA?AW4AKRESULT@@PEBDKK@Z",
+          "?SetBusEffect@SoundEngine@AK@@YA?AW4AKRESULT@@PEB_WKK@Z",
+          "?SetCrashOnFailedAlloc@MemoryMgr@AK@@YA?AW4AKRESULT@@J_N@Z",
+          "?SetCurrentLanguage@StreamMgr@AK@@YA?AW4AKRESULT@@PEB_W@Z",
+          "?SetFileLocationResolver@StreamMgr@AK@@YAXPEAVIAkFileLocationResolver@12@@Z"
+        ]
+      },
+      "debug": [
+        {
+          "type": 2,
+          "timestamp": 1535072130,
+          "size": 66,
+          "codeview": "RSDS",
+          "pdb_guid": "b613d88111c4654a8bd179010f4d028d",
+          "pdb_age": 3,
+          "pdb_path": "ShadowOfWar.pdb"
+        },
+        {
+          "type": 12,
+          "timestamp": 1535072130,
+          "size": 20
+        }
+      ],
+      "tls": {
+        "present": true,
+        "callback_count": 1
+      },
+      "authenticode_present": true
+    },
+    "steam_api64.dll": {
+      "format": "PE32+",
+      "machine": "AMD64",
+      "coff_timestamp": 1475001381,
+      "image_base": "0x3b400000",
+      "entry_point_rva": "0xac48",
+      "entry_point_section": ".text",
+      "size_of_image": 258048,
+      "header_checksum": "0x4521e",
+      "subsystem": "WINDOWS_GUI",
+      "dll_characteristics": [
+        "HIGH_ENTROPY_VA",
+        "DYNAMIC_BASE",
+        "NX_COMPAT"
+      ],
+      "data_directories": {
+        "EXPORT": {
+          "rva": "0x28160",
+          "size": 42510
+        },
+        "IMPORT": {
+          "rva": "0x32770",
+          "size": 80
+        },
+        "RESOURCE": {
+          "rva": "0x3d000",
+          "size": 2008
+        },
+        "EXCEPTION": {
+          "rva": "0x3b000",
+          "size": 7608
+        },
+        "SECURITY": {
+          "rva": "0x38e00",
+          "size": 6944
+        },
+        "BASERELOC": {
+          "rva": "0x3e000",
+          "size": 2652
+        },
+        "DEBUG": {
+          "rva": "0x1c350",
+          "size": 56
+        },
+        "LOAD_CONFIG": {
+          "rva": "0x24560",
+          "size": 112
+        },
+        "IAT": {
+          "rva": "0x1c000",
+          "size": 688
+        }
+      },
+      "sections": [
+        {
+          "name": ".text",
+          "virtual_size": 110431,
+          "virtual_address": "0x1000",
+          "raw_size": 110592,
+          "flags": [
+            "CODE",
+            "EXEC",
+            "READ"
+          ],
+          "entropy": 6.371
+        },
+        {
+          "name": ".rdata",
+          "virtual_size": 94368,
+          "virtual_address": "0x1c000",
+          "raw_size": 94720,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 4.983
+        },
+        {
+          "name": ".data",
+          "virtual_size": 25632,
+          "virtual_address": "0x34000",
+          "raw_size": 13824,
+          "flags": [
+            "IDATA",
+            "READ",
+            "WRITE"
+          ],
+          "entropy": 4.254
+        },
+        {
+          "name": ".pdata",
+          "virtual_size": 7608,
+          "virtual_address": "0x3b000",
+          "raw_size": 7680,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.082
+        },
+        {
+          "name": ".rsrc",
+          "virtual_size": 2008,
+          "virtual_address": "0x3d000",
+          "raw_size": 2048,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 3.522
+        },
+        {
+          "name": ".reloc",
+          "virtual_size": 2652,
+          "virtual_address": "0x3e000",
+          "raw_size": 3072,
+          "flags": [
+            "IDATA",
+            "READ"
+          ],
+          "entropy": 5.139
+        }
+      ],
+      "import_dll_count": 3,
+      "import_function_count": 83,
+      "delay_imports": [],
+      "exports": {
+        "dll_name": "steam_api64.dll",
+        "count": 796,
+        "named": 796
+      },
+      "debug": [
+        {
+          "type": 2,
+          "timestamp": 1475001381,
+          "size": 111,
+          "codeview": "RSDS",
+          "pdb_guid": "0a5fe1646fffb144b4f5cc375ec0ce0a",
+          "pdb_age": 1,
+          "pdb_path": "c:\\buildslave\\steam_rel_client_win64\\build\\src\\steam_api\\win64\\Release\\steam_api64.pdb"
+        },
+        {
+          "type": 12,
+          "timestamp": 1475001381,
+          "size": 20
+        }
+      ],
+      "tls": {
+        "present": false
+      },
+      "authenticode_present": true
+    }
+  }
+}

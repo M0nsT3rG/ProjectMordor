@@ -1,0 +1,25 @@
+{
+ "id": "F-COMM-017",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "anti-tamper",
+ "claim": "Per PCGamingWiki, the Steam build requires Denuvo whose regular servers include srv01-srv03 and revalidate.wbgames.com, while the Microsoft Store build appears to lack Denuvo; GOG sells a DRM-free version.",
+ "evidence": "PCGW refcheck notes the MS Store build made no connection to srv01-srv03 or revalidate.wbgames.com.",
+ "sources": [
+  {
+   "url": "https://www.pcgamingwiki.com/wiki/Middle-earth:_Shadow_of_War",
+   "commit": "",
+   "path": "",
+   "location": "Availability section and Denuvo footnote"
+  }
+ ],
+ "game_build_compatibility": "Not tied to our build (Steam 3095001).",
+ "verification_method": "Read PCGamingWiki wikitext via MediaWiki API on 2026-10-23.",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "Community wiki; the MS Store observation is from 2019 and based on heuristics. Switching storefront is outside project scope (target is the Steam build).",
+ "next_experiment": "During isolated runtime tests later, observe (do not block blindly) DNS requests to Denuvo/WB hosts to understand offline behaviour; never alter DRM.",
+ "related": [
+  "F-COMM-014"
+ ]
+}

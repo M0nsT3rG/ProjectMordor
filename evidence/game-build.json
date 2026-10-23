@@ -1,0 +1,173 @@
+{
+  "generated_utc": "2026-10-23T15:33:26+00:00",
+  "tool": "tools/environment/discover_game.py",
+  "steam_app_id": "356190",
+  "steam_library_count": 3,
+  "game_found_in_library_index": 2,
+  "manifest": {
+    "path": "<LIBRARY>/steamapps/appmanifest_356190.acf",
+    "installdir": "ShadowOfWar",
+    "buildid": "3095001",
+    "TargetBuildID": "3095001",
+    "LastUpdated": "1792602656",
+    "SizeOnDisk": "117711336590",
+    "StateFlags": "4",
+    "LastUpdated_utc": "2026-10-21T17:10:56+00:00"
+  },
+  "game_dir": "<GAME>",
+  "executable": {
+    "path": "<GAME>/x64/ShadowOfWar.exe",
+    "size": 117732784,
+    "sha256": "ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF",
+    "version_info": {
+      "present": true,
+      "file_version_fixed": "1.0.8874.0",
+      "product_version_fixed": "1.0.8874.0",
+      "CompanyName": "WB Games, Inc.",
+      "ProductName": "Middle-earth\u2122: Shadow of War\u2122",
+      "FileDescription": "Middle-earth\u2122: Shadow of War\u2122",
+      "FileVersion": "1.0.8874.0",
+      "ProductVersion": "1.0.8874.0",
+      "LegalCopyright": "Copyright \u00a9 2018 WB Games, Inc."
+    }
+  },
+  "x64_files": [
+    {
+      "name": "amd_ags_x64.dll",
+      "size": 107520,
+      "sha256": "2B4059AFFFA60078014FE490EB0700716689B55AB3A334435C69AF4292B985C1",
+      "version": "5.0.6.0"
+    },
+    {
+      "name": "AnselSDK64.dll",
+      "size": 665616,
+      "sha256": "9887E9F96EA9FC1B216ADBB6E9362C25F2486AB4729AD3F0A780DC3C24B8414E",
+      "version": "1.3.264.0"
+    },
+    {
+      "name": "bink2w64.dll",
+      "size": 375296,
+      "sha256": "A639F44E46828D58E9D14C097EE3B19A5AB416E6A0EED65749C7482C6E4B8D11",
+      "version": "2.6e/1.200e"
+    },
+    {
+      "name": "default.archcfg",
+      "size": 2138,
+      "sha256": "070E3E792B4767A51A9DDB360EA54FB1DC7AE9B660D0D2174D78BD0B46272059",
+      "version": null
+    },
+    {
+      "name": "oo2core_5_win64.dll",
+      "size": 935424,
+      "sha256": "4C3DCFEBB2BB59650690FEB4C63D68A5838C37C0FF233C2445269FEF0C5A40D0",
+      "version": null
+    },
+    {
+      "name": "ShadowOfWar.exe",
+      "size": 117732784,
+      "sha256": "ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF",
+      "version": "1.0.8874.0"
+    },
+    {
+      "name": "steam_api64.dll",
+      "size": 239904,
+      "sha256": "F12CF470954D9D956F7D44F9EB84659890C5722A021548AB88710340C0965230",
+      "version": "03.62.82.82"
+    },
+    {
+      "name": "steam_appid.txt",
+      "size": 6,
+      "sha256": "F39B5B5E3D3A29581F9E99A5042A09CF0CADFB1B90299D864ED766CF479408E9",
+      "version": null
+    }
+  ],
+  "top_level_archives": [
+    "Benchmark.arch06",
+    "Blade.arch06",
+    "Lithlad.arch06",
+    "Patch_00.arch06",
+    "Patch_00_LC.arch06",
+    "Patch_01.arch06",
+    "Patch_01_LC.arch06",
+    "Patch_02.arch06",
+    "Patch_02_LC.arch06",
+    "Patch_03.arch06",
+    "Patch_03_LC.arch06",
+    "Patch_04.arch06",
+    "Patch_04_LC.arch06",
+    "Patch_05.arch06",
+    "Patch_05_LC.arch06",
+    "Patch_06.arch06",
+    "Patch_06_LC.arch06",
+    "Patch_07.arch06",
+    "Patch_07_LC.arch06",
+    "Patch_08.arch06",
+    "Patch_08_LC.arch06",
+    "Patch_09.arch06",
+    "Patch_09_LC.arch06",
+    "Patch_10.arch06",
+    "Patch_10_LC.arch06",
+    "Patch_11.arch06",
+    "Patch_11_LC.arch06",
+    "Patch_12.arch06",
+    "Patch_12_LC.arch06",
+    "Patch_13.arch06",
+    "Patch_13_LC.arch06",
+    "Patch_DLC1.arch06",
+    "Patch_DLC1_LC.arch06",
+    "Patch_DLC2.arch06",
+    "Patch_DLC2_LC.arch06",
+    "Patch_DLC3.arch06",
+    "Patch_DLC3_LC.arch06",
+    "Patch_DLC4.arch06",
+    "Patch_DLC4_LC.arch06",
+    "Patch_DLC5.arch06",
+    "Patch_DLC5_LC.arch06",
+    "baraddur.arch06",
+    "baraddur_lighting.arch06",
+    "blackgates.arch06",
+    "blackgates_lighting.arch06",
+    "corecharacter.arch06",
+    "global.arch06",
+    "highmip.arch06",
+    "hotchunk.arch06",
+    "island.arch06",
+    "island_lighting.arch06",
+    "minasithil.arch06",
+    "minasithil_lighting.arch06",
+    "monsters.arch06",
+    "mtnpass.arch06",
+    "mtnpass_lighting.arch06",
+    "presentations.arch06",
+    "presentations_de.arch06",
+    "presentations_en.arch06",
+    "presentations_eses.arch06",
+    "presentations_esla.arch06",
+    "presentations_fr.arch06",
+    "presentations_it.arch06",
+    "presentations_ja.arch06",
+    "presentations_ptbr.arch06",
+    "snowmtn.arch06",
+    "snowmtn_lighting.arch06",
+    "soundbundles.arch06",
+    "ui_assets.arch06",
+    "volcano.arch06",
+    "volcano_lighting.arch06"
+  ],
+  "proxy_dll_check": {
+    "dinput8.dll": false,
+    "version.dll": false,
+    "winmm.dll": false,
+    "xinput1_3.dll": false,
+    "xinput1_4.dll": false,
+    "dxgi.dll": false,
+    "d3d11.dll": false,
+    "dsound.dll": false,
+    "winhttp.dll": false,
+    "bink2w64_original.dll": false
+  },
+  "uncertainties": [
+    "buildid is Steam's depot build, not an engine version; exe hash is the authoritative identifier.",
+    "Absence of proxy DLLs only covers the listed names; other injection methods are not checked."
+  ]
+}

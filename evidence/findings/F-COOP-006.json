@@ -1,0 +1,32 @@
+{
+ "id": "F-COOP-006",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "networking",
+ "claim": "The repo's default stack is Steam relay via ISteamNetworkingMessages (often on AppID 480 Spacewar) for connectivity, with ENet or GameNetworkingSockets as the C++ transport for custom netcode.",
+ "evidence": "networking.md Quick decisions: ENet (C/C++) or GameNetworkingSockets; 'Steam relay (ISteamNetworkingMessages)'; 480 ToS stance marked unverified.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/networking.md",
+   "location": "## 0. Quick decisions; ## 2. Transports and libraries; ### Recommendation"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/networking-steam-spacewar.md",
+   "location": "## The idea"
+  }
+ ],
+ "game_build_compatibility": "N/A (methodology)",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Rationale is no port forwarding and no server cost; using AppID 480 has an unverified ToS position per the repo itself.",
+ "next_experiment": "Shortlist ENet vs GameNetworkingSockets (both permissive licenses) for a native x64 hook DLL; flag AppID 480 use as a legal open question.",
+ "related": [
+  "F-COOP-008",
+  "F-COOP-014"
+ ]
+}

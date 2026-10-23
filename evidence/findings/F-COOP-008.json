@@ -1,0 +1,32 @@
+{
+ "id": "F-COOP-008",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "testing",
+ "claim": "The repo prescribes seeded network impairment testing with six profiles (lan to hell) shared between a UDP relay and an in-process C++ simulator, asserting convergence, no double apply and bounded recovery.",
+ "evidence": "network-chaos-testing.md profiles table; 'hell' = 200 ms +/- 150, 8% loss, 10% reorder, 5% duplicates, 512 kbit/s.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/network-chaos-testing.md",
+   "location": "## 4. Choosing profiles; ## 6. What to assert"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/networking.md",
+   "location": "### 5.1 Emulating bad networks"
+  }
+ ],
+ "game_build_compatibility": "N/A (methodology)",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "UDP only; tools/chaos not run. clumsy (WinDivert) is the suggested system-wide Windows alternative.",
+ "next_experiment": "Copy the profile definitions and assertion list into Project Mordor's test plan for a future game-free sync core.",
+ "related": [
+  "F-COOP-007",
+  "F-COOP-009"
+ ]
+}

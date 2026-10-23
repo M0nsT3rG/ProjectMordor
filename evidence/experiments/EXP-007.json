@@ -1,0 +1,18 @@
+{
+  "id": "EXP-007",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro 10.0.26300 x64, MSVC 14.51.36231 (Visual Studio 18 Community), CMake 4.4.4, loopback 127.0.0.1",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "errors": "",
+  "related": [],
+  "objective": "Direct LAN test between two physical PCs.",
+  "hypothesis": "The prototype works unchanged across a LAN by binding mordor-host to a LAN address.",
+  "procedure": "Not executed. Would require: mordor-host --bind <LAN IPv4> on PC A, mordor-client --host <PC A IPv4> on PC B, plus a Windows Firewall inbound rule for UDP on the chosen port.",
+  "expected_result": "Same behaviour as EXP-005.",
+  "observed_result": "NOT_RUN: only one PC is available in this session, and opening an inbound firewall port requires explicit user approval (project rule 9). Also note: UDP port 47800, the default, is already bound on this machine by another application, so a different --port must be used.",
+  "evidence_paths": [],
+  "result": "NOT_RUN",
+  "confidence": "high",
+  "follow_up": "With user approval: create a scoped, temporary firewall rule for one UDP port on the private profile, run the test, then remove the rule."
+}

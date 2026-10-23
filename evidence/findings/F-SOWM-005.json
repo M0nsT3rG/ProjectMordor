@@ -1,0 +1,38 @@
+{
+ "id": "F-SOWM-005",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "tooling",
+ "claim": "All game addresses in the repo are hardcoded file RVAs (off image base 0x140000000) in shared/GameOffsets.h converted at runtime via FromRVA; there is no pattern/signature scanning and no game version, buildid or exe-hash check anywhere in the repo.",
+ "evidence": "GameOffsets.h:28-29 return Base() + (fileRVA - kImageBase); grep for version/hash/pattern/signature checks found none",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "shared/GameOffsets.h",
+   "location": "lines 1-30"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "SoWLoader/src/GameHooks.cpp",
+   "location": "lines 155-211"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "HagIPC/src/ipc/MemScan.h",
+   "location": "line 8 (value scan only, not code AOB)"
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
+ "verification_method": "Static read plus repo-wide grep for version strings, hashes, AOB/pattern/signature code (none found).",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Absence-of-evidence via grep; MemScan is a data value scanner for IPC debugging, not an offset resolver.",
+ "next_experiment": "Build a read-only byte-signature check: for each repo-claimed RVA, extract bytes from our exe (after confirming section mapping) and see whether function prologues/xrefs match the repo's description before ever trusting them.",
+ "related": [
+  "F-SOWM-006",
+  "F-SOWM-007"
+ ]
+}

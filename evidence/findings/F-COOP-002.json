@@ -1,0 +1,32 @@
+{
+ "id": "F-COOP-002",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "methodology",
+ "claim": "The playbook recommends host-authoritative state sync with network-driven puppets for remote players as the default for closed native single-player games, and rejects lockstep unless the engine is already deterministic.",
+ "evidence": "how-coop-mods-work 1.6: retrofits onto closed games 'are almost always host-authoritative state sync'; 1.1 puppet pattern; 1.2 'Copy results, not events'.",
+ "sources": [
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/how-coop-mods-work.md",
+   "location": "### 1.1, ### 1.2, ### 1.6"
+  },
+  {
+   "url": "https://github.com/cranebeaker/coop-anything",
+   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+   "path": "playbook/networking.md",
+   "location": "## 0. Quick decisions; ### 1.1 The models"
+  }
+ ],
+ "game_build_compatibility": "N/A (methodology)",
+ "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Guidance is drawn from other games' mods (Gothic 3, OOT, TES3MP, Skyrim Together); applicability to Shadow of War is a HYPOTHESIS.",
+ "next_experiment": "Write a Project Mordor ADR choosing host-authoritative state sync; list which Shadow of War systems need results-only replication (deaths, loot, Nemesis outcomes).",
+ "related": [
+  "F-COOP-003",
+  "F-COOP-004"
+ ]
+}

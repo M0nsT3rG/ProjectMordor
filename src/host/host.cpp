@@ -1,0 +1,301 @@
+#include "host/host.hpp"
+
+#include <algorithm>
+#include <array>
+
+namespace mordor::host {
+
+using namespace mordor::net;
+
+namespace {
+constexpr std::size_t kMaxPendingInputs = 32;
+constexpr std::size_t kTargetInputBacklog = 2;
+constexpr int kMaxPacketsPerUpdate = 512;
+constexpr int kDisconnectRepeats = 3;  // unreliable channel; repeats are idempotent
+
+template <class... Ts>
+struct overloaded : Ts... {
+    using Ts::operator()...;
+};
+}  // namespace
+
+Host::Host(HostConfig cfg, Logger& log)
+    : cfg_(cfg), log_(log), sender_(socket_, cfg.impairment), rng_(std::random_device{}()) {}
+
+std::uint64_t Host::random_nonzero() {
+    std::uint64_t v;
+    do v = rng_(); while (v == 0);
+    return v;
+}
+
+bool Host::start(std::string* error) {
+    if (cfg_.max_players == 0 || cfg_.max_players > kMaxPlayers || cfg_.tick_rate_hz == 0 || cfg_.tick_rate_hz > 240 ||
+        !cfg_.impairment.valid()) {
+        if (error) *error = "invalid host configuration";
+        return false;
+    }
+    if (!socket_.open(cfg_.bind, error)) return false;
+    session_ = static_cast<std::uint32_t>(random_nonzero() | 1u);
+    running_ = true;
+    clock_started_ = false;
+    log_.info("host_started", {kv("port", port()), kv("loopback_only", cfg_.bind.is_loopback()), kv("session", session_),
+                               kv("tick_rate_hz", cfg_.tick_rate_hz), kv("protocol_version", kProtocolVersion)});
+    return true;
+}
+
+std::size_t Host::connected_count() const {
+    return static_cast<std::size_t>(std::count_if(slots_.begin(), slots_.end(), [](const Slot& s) { return s.connected; }));
+}
+
+std::optional<Transform> Host::player_transform(std::uint16_t player_id) const {
+    for (const auto& s : slots_)
+        if (s.player_id == player_id)
+            for (const auto& e : world_.entities())
+                if (e.id == s.entity_id) return e.t;
+    return std::nullopt;
+}
+
+// Only connected slots match: a slot in its grace period can be reclaimed solely by its reconnect token.
+Host::Slot* Host::find_by_endpoint(const Endpoint& e) {
+    auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.connected && s.endpoint == e; });
+    return it == slots_.end() ? nullptr : &*it;
+}
+
+void Host::update(std::uint64_t now_us) {
+    if (!running_) return;
+    const std::uint64_t tick_us = 1'000'000 / cfg_.tick_rate_hz;
+    if (!clock_started_) {
+        next_tick_us_ = now_us;
+        clock_started_ = true;
+    }
+    receive(now_us);
+    // shortcut: after a stall longer than 5 ticks we skip ahead instead of catching up; revisit for real gameplay.
+    if (now_us > next_tick_us_ + 5 * tick_us) next_tick_us_ = now_us;
+    while (now_us >= next_tick_us_) {
+        step();
+        broadcast(now_us);
+        next_tick_us_ += tick_us;
+    }
+    check_timeouts(now_us);
+    sender_.flush(now_us);
+}
+
+void Host::receive(std::uint64_t now_us) {
+    std::array<std::uint8_t, 2048> buf{};
+    for (int i = 0; i < kMaxPacketsPerUpdate; ++i) {
+        Endpoint from;
+        const auto r = socket_.recv_from(from, buf);
+        if (r.status == RecvStatus::Empty) break;
+        if (r.status == RecvStatus::Error) {
+            log_.warn("recv_error", {kv("os_error", r.os_error)});
+            break;
+        }
+        ++stats_.packets_in;
+        if (r.status == RecvStatus::Oversized) {
+            ++stats_.invalid_packets;
+            log_.debug("invalid_packet", {kv("reason", "oversized_datagram")});
+            continue;
+        }
+        const auto d = decode({buf.data(), r.size});
+        if (d.error == DecodeError::VersionMismatch) {
+            ++stats_.rejected_version;
+            log_.warn("version_mismatch", {kv("peer_version", d.peer_version), kv("our_version", kProtocolVersion)});
+            if (d.peer_type == static_cast<std::uint8_t>(MsgType::ConnectRequest))
+                send_unconnected(from, ConnectReject{RejectReason::VersionMismatch, kProtocolVersion}, now_us);
+            continue;
+        }
+        if (d.error != DecodeError::None) {
+            ++stats_.invalid_packets;
+            log_.debug("invalid_packet", {kv("reason", to_string(d.error)), kv("size", r.size)});
+            continue;
+        }
+        handle(from, *d.packet, now_us);
+    }
+}
+
+void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
+    if (const auto* req = std::get_if<ConnectRequest>(&p.message)) {
+        on_connect(from, *req, now_us);
+        return;
+    }
+    Slot* s = find_by_endpoint(from);
+    if (!s || !s->connected || p.header.session != session_) {
+        ++stats_.unknown_peer;
+        return;
+    }
+    s->last_recv_us = now_us;
+    if (seq_newer(p.header.sequence, s->peer_seq)) s->peer_seq = p.header.sequence;
+    std::visit(overloaded{
+        [&](const Heartbeat& hb) { send(*s, HeartbeatAck{hb.send_time_us}, now_us); },
+        [&](const InputBatch& batch) {
+            for (const auto& cmd : batch.inputs) {
+                if (!seq_newer(cmd.input_seq, s->last_received_input)) {
+                    ++stats_.stale_inputs;
+                    continue;
+                }
+                s->pending.push_back(cmd);
+                s->last_received_input = cmd.input_seq;
+                if (s->pending.size() > kMaxPendingInputs) s->pending.pop_front();
+            }
+        },
+        [&](const Disconnect& d) {
+            log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
+            remove_slot(s->player_id);
+        },
+        [&](const auto&) { ++stats_.invalid_packets; },  // client-bound message types are not valid here
+    }, p.message);
+}
+
+void Host::on_connect(const Endpoint& from, const ConnectRequest& req, std::uint64_t now_us) {
+    if (req.reconnect_token != 0) {
+        for (auto& s : slots_) {
+            if (s.token != req.reconnect_token) continue;
+            const bool was_connected = s.connected;
+            if (Slot* other = find_by_endpoint(from); other && other != &s) remove_slot(other->player_id);
+            Slot* slot = nullptr;  // remove_slot may have moved elements
+            for (auto& t : slots_)
+                if (t.token == req.reconnect_token) slot = &t;
+            slot->endpoint = from;
+            slot->connected = true;
+            slot->nonce = req.client_nonce;
+            slot->last_recv_us = now_us;
+            if (!was_connected) {
+                ++stats_.reconnects;
+                log_.info("player_reconnected", {kv("player", slot->player_id), kv("entity", slot->entity_id)});
+            }
+            accept(*slot, now_us);
+            return;
+        }
+        log_.info("unknown_reconnect_token");  // fall through: treat as a new player
+    }
+    if (Slot* s = find_by_endpoint(from)) {
+        if (s->nonce == req.client_nonce) {  // retransmitted request: the peer is alive
+            s->last_recv_us = now_us;
+            accept(*s, now_us);
+            return;
+        }
+        remove_slot(s->player_id);  // a new client instance reused the endpoint
+    }
+    if (next_player_id_ == 0 || !world_.can_spawn()) {  // 16-bit id space exhausted: never wrap to 0 or reuse ids
+        log_.warn("join_rejected", {kv("reason", "ids_exhausted")});
+        send_unconnected(from, ConnectReject{RejectReason::ServerFull, kProtocolVersion}, now_us);
+        return;
+    }
+    if (slots_.size() >= cfg_.max_players) {
+        ++stats_.rejected_full;
+        log_.info("join_rejected", {kv("reason", "server_full")});
+        send_unconnected(from, ConnectReject{RejectReason::ServerFull, kProtocolVersion}, now_us);
+        return;
+    }
+    Slot s;
+    s.player_id = next_player_id_++;
+    s.entity_id = world_.spawn(s.player_id).id;
+    s.endpoint = from;
+    s.connected = true;
+    s.token = random_nonzero();
+    s.nonce = req.client_nonce;
+    s.last_recv_us = now_us;
+    slots_.push_back(s);
+    ++stats_.joins;
+    log_.info("player_joined", {kv("player", s.player_id), kv("entity", s.entity_id), kv("connected", connected_count())});
+    accept(slots_.back(), now_us);
+}
+
+void Host::accept(Slot& s, std::uint64_t now_us) {
+    send(s, ConnectAccept{s.nonce, s.player_id, s.entity_id, s.token, cfg_.tick_rate_hz, world_.tick()}, now_us);
+}
+
+void Host::remove_slot(std::uint16_t player_id) {
+    auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
+    if (it == slots_.end()) return;
+    world_.despawn(it->entity_id);
+    slots_.erase(it);
+}
+
+void Host::step() {
+    const float dt = 1.0f / static_cast<float>(cfg_.tick_rate_hz);
+    for (auto& s : slots_) {
+        sim::Entity* e = world_.find(s.entity_id);
+        if (!e) continue;
+        if (!s.pending.empty()) {
+            // One input per tick, plus extra while a jitter backlog exceeds the target so input delay cannot ratchet up.
+            do {
+                const InputCmd cmd = s.pending.front();
+                s.pending.pop_front();
+                s.last_processed_input = cmd.input_seq;
+                sim::apply_input(*e, cmd.move_x, cmd.move_z, dt);
+            } while (s.pending.size() > kTargetInputBacklog);
+        } else {
+            sim::apply_input(*e, 0, 0, dt);  // input starvation: stand still rather than guess
+        }
+    }
+    world_.advance_tick();
+}
+
+void Host::broadcast(std::uint64_t now_us) {
+    Snapshot snap;
+    snap.server_tick = world_.tick();
+    for (const auto& e : world_.entities()) {
+        if (snap.entities.size() == kMaxEntitiesPerSnapshot) break;
+        snap.entities.push_back({e.id, e.owner, e.t, e.vx, e.vz});
+    }
+    for (auto& s : slots_) {
+        if (!s.connected) continue;
+        snap.last_input_seq = s.last_processed_input;
+        send(s, snap, now_us);
+    }
+}
+
+void Host::check_timeouts(std::uint64_t now_us) {
+    std::vector<std::uint16_t> expired;
+    for (auto& s : slots_) {
+        if (s.connected && now_us - s.last_recv_us > cfg_.timeout_us) {
+            s.connected = false;
+            s.disconnected_at_us = now_us;
+            s.pending.clear();
+            ++stats_.timeouts;
+            log_.info("player_timeout", {kv("player", s.player_id), kv("grace_ms", cfg_.reconnect_grace_us / 1000)});
+        } else if (!s.connected && now_us - s.disconnected_at_us > cfg_.reconnect_grace_us) {
+            expired.push_back(s.player_id);
+        }
+    }
+    for (auto id : expired) {
+        log_.info("player_expired", {kv("player", id)});
+        remove_slot(id);
+    }
+}
+
+void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
+    Header h;
+    h.session = session_;
+    h.sequence = ++s.send_seq;
+    h.ack = s.peer_seq;
+    auto bytes = encode(h, m);
+    if (bytes.empty()) {
+        log_.error("encode_failed", {kv("type", static_cast<int>(type_of(m)))});
+        return;
+    }
+    ++stats_.packets_out;
+    sender_.send(s.endpoint, std::move(bytes), now_us);
+}
+
+void Host::send_unconnected(const Endpoint& to, const Message& m, std::uint64_t now_us) {
+    auto bytes = encode(Header{}, m);
+    if (bytes.empty()) return;
+    ++stats_.packets_out;
+    sender_.send(to, std::move(bytes), now_us);
+}
+
+void Host::shutdown() {
+    if (!running_) return;
+    for (auto& s : slots_)
+        if (s.connected)
+            for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
+    sender_.flush_all();
+    socket_.close();
+    running_ = false;
+    log_.info("host_stopped", {kv("packets_in", stats_.packets_in), kv("packets_out", stats_.packets_out),
+                               kv("invalid", stats_.invalid_packets)});
+}
+
+}  // namespace mordor::host

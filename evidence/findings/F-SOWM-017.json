@@ -1,0 +1,25 @@
+{
+ "id": "F-SOWM-017",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "legal",
+ "claim": "The repository has no LICENSE/COPYING file and no license statement in README or manifests, so by default all rights are reserved and its code cannot be copied into Project Mordor without permission.",
+ "evidence": "ls LICENSE* COPYING* -> no such file; grep -i license over *.md/*.json/*.txt -> no matches",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": ".",
+   "location": "repository root listing"
+  }
+ ],
+ "game_build_compatibility": "N/A",
+ "verification_method": "Root listing and repo-wide grep at the pinned commit.",
+ "classification": "CONFIRMED",
+ "confidence": "high",
+ "limitations": "Only checked this commit; author could add a license later. Per-mod repos (Hagryph/<ModName>) were not checked.",
+ "next_experiment": "If reuse is desired, ask the author for a license; otherwise use only as a reference for independent re-derivation.",
+ "related": [
+  "F-SOWM-003"
+ ]
+}

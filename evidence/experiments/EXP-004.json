@@ -1,0 +1,22 @@
+{
+  "id": "EXP-004",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro 10.0.26300 x64, MSVC 14.51.36231 (Visual Studio 18 Community), CMake 4.4.4, loopback 127.0.0.1",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "errors": "Initial run: CHECK(... s.host.connected_count() == 0) failed at tests/network/network_tests.cpp (test bug).",
+  "related": [],
+  "objective": "Run the prototype unit, integration and network test suites (Phase 1 tests 1-12).",
+  "hypothesis": "The host-authoritative UDP prototype satisfies the 12 required behaviours on loopback with simulated impairment.",
+  "procedure": "./scripts/build.ps1; ./scripts/test.ps1 -Repeat 3  (ctest runs mordor_unit_tests, mordor_integration_tests, mordor_network_tests)",
+  "expected_result": "All tests pass on repeated runs.",
+  "observed_result": "38 tests across 3 suites (unit 15, integration 13, network 10) passed on 5 consecutive ctest runs after the review fixes of EXP-008, and again via scripts/test.ps1. The first network-suite run failed one test (timed_out_client_reconnects_with_same_identity) because the test wrongly expected the host to time out a client that was still sending; the expectation was corrected, not the code. See the per-suite JSON logs.",
+  "evidence_paths": [
+    "evidence/logs/tests-unit-2026-10-23.json",
+    "evidence/logs/tests-integration-2026-10-23.json",
+    "evidence/logs/tests-network-2026-10-23.json"
+  ],
+  "result": "PASSED",
+  "confidence": "high",
+  "follow_up": "Tests use a simulated clock with real loopback sockets; real-time behaviour is covered only by EXP-005. LAN coverage is EXP-007 (NOT_RUN)."
+}

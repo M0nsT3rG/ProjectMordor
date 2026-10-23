@@ -1,0 +1,50 @@
+{
+ "id": "F-COMM-008",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "mod-loader",
+ "claim": "ReaperAnon's Middle-Earth-Mod-Loader is a bink2w64.dll proxy (original renamed bink2w64_.dll) that loads plugin DLLs from a plugins folder, uses MinHook and a byte-pattern scan of ShadowOfWar.exe, and exposes a small menu/log plugin API.",
+ "evidence": "README install renames bink2w64.dll; gamehook.cpp scans a 6-byte pattern then MH_CreateHook.",
+ "sources": [
+  {
+   "url": "https://github.com/ReaperAnon/Middle-Earth-Mod-Loader",
+   "commit": "a753f948e18295782e24ab4b6e2bfb59be1059e0",
+   "path": "README.md",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/ReaperAnon/Middle-Earth-Mod-Loader",
+   "commit": "a753f948e18295782e24ab4b6e2bfb59be1059e0",
+   "path": "Middle Earth Mod Loader/gamehook.cpp",
+   "location": "lines 3-38"
+  },
+  {
+   "url": "https://github.com/ReaperAnon/Middle-Earth-Mod-Loader",
+   "commit": "a753f948e18295782e24ab4b6e2bfb59be1059e0",
+   "path": "Middle Earth Mod Loader/functions.def",
+   "location": ""
+  },
+  {
+   "url": "https://github.com/ReaperAnon/Middle-Earth-Mod-Loader",
+   "commit": "a753f948e18295782e24ab4b6e2bfb59be1059e0",
+   "path": "shared dependencies/modloader/modloaderapi.h",
+   "location": ""
+  },
+  {
+   "url": "https://www.nexusmods.com/middleearthshadowofwar/mods/99",
+   "commit": "",
+   "path": "",
+   "location": ""
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN - README states no build. Third-party notes (coop-anything) claim its pattern matches build 3095001 once; not verified by us.",
+ "verification_method": "Read source via raw.githubusercontent.com at the pinned commit (not built/run). Verify by counting pattern matches in a copied exe's code section (static, no execution).",
+ "classification": "PARTIALLY_CONFIRMED",
+ "confidence": "medium",
+ "limitations": "No license declared; repo ships a prebuilt output/bink2w64.dll (untrusted, do not run). Community reports crashes when changing options/photo mode with the loader. Proxying Bink means the proxy loads early, before Denuvo/SteamStub behaviour is known.",
+ "next_experiment": "Static check: confirm bink2w64.dll is imported by ShadowOfWar.exe (PE import table of a copy) and that the loader's pattern matches exactly once in our build.",
+ "related": [
+  "F-COMM-009",
+  "F-COMM-014"
+ ]
+}

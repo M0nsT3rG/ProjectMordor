@@ -1,0 +1,31 @@
+{
+ "id": "F-SOWM-011",
+ "type": "finding",
+ "date": "2026-10-23",
+ "subsystem": "entity",
+ "claim": "Repo claims items can be spawned as world pickups via a game-systems singleton (0x1426ffaa8, +0x6d28 world drop manager) and functions LootRecordInit/FromItem/Destroy and WorldDropSpawn(pose, lootRecord, id, worldCtx, flag), mirroring Combat.Action.InventoryItemDropLoot.",
+ "evidence": "GameOffsets.h:115 kGameSystemsSingleton = 0x1426ffaa8ull; // +0x6d28 = world drop manager; :119 kWorldDropSpawn = 0x1407a10a0ull",
+ "sources": [
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "shared/GameOffsets.h",
+   "location": "lines 105-120"
+  },
+  {
+   "url": "https://github.com/Hagryph/SoWMods",
+   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+   "path": "mods/InventoryEditor/src/InventoryEditor.cpp",
+   "location": "lines 395-460 NextDropContext/CallWorldDropSpawn"
+  }
+ ],
+ "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
+ "verification_method": "Static read of repo.",
+ "classification": "HYPOTHESIS",
+ "confidence": "low",
+ "limitations": "Author notes direct inventory mutation caused hangs/crashes; only the world-drop route is used. Relevance to co-op is an example of spawning a world object via engine code, not actor spawning.",
+ "next_experiment": "Statically locate the Combat.Action.InventoryItemDropLoot string in our exe and compare the handler RVA with the repo claim (0x140f14fa0).",
+ "related": [
+  "F-SOWM-010"
+ ]
+}
