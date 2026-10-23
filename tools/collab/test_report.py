@@ -37,6 +37,20 @@ class ReportTests(unittest.TestCase):
             self.assertEqual(t["network"]["error"], "unreadable")
             self.assertNotIn("integration", t)  # no log -> absent, never assumed passing
 
+    def test_suite_names_match_exactly_and_skips_are_not_passes(self):
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            (logs / "tests-integration-2026-01-01.json").write_text(json.dumps(
+                [{"name": "a", "result": "PASSED"}, {"name": "b", "result": "SKIPPED"}, {"name": "c", "result": "FAILED"}]))
+            # Lexicographically later, but other suites/runs: must never be picked for 'integration'.
+            (logs / "tests-integration-gns-2026-01-02.json").write_text(json.dumps([{"name": "x", "result": "PASSED"}]))
+            (logs / "tests-integration-gns-first-run-2026-01-03.json").write_text(json.dumps([{"name": "y", "result": "FAILED"}]))
+            t = report.latest_test_logs(logs)["integration"]
+            self.assertEqual(t["file"], "tests-integration-2026-01-01.json")
+            self.assertEqual((t["passed"], t["skipped"], t["failed"]), (1, ["b"], ["c"]))
+            g = report.latest_test_logs(logs, ("integration-gns",))["integration-gns"]
+            self.assertEqual(g["file"], "tests-integration-gns-2026-01-02.json")
+
     def test_build_reports_missing_suites_in_summary(self):
         with tempfile.TemporaryDirectory() as d:
             repo = Path(d)

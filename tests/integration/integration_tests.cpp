@@ -122,6 +122,7 @@ TEST(prediction_moves_immediately_and_matches_authority) {
 
 // Test 5 (integration part): a fake host sends stale and duplicate snapshots; the client ignores them.
 TEST(client_rejects_stale_snapshots) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     UdpSocket fake;
     CHECK(fake.open(Endpoint::loopback(0)));
     client::ClientConfig cc;
@@ -183,6 +184,7 @@ TEST(protocol_version_mismatch_is_rejected) {
 
 // Test 11 (integration part): garbage over the wire is counted and dropped; the host keeps serving.
 TEST(host_survives_invalid_datagrams) {
+    UDP_ONLY("sends raw UDP garbage; GNS validates its own wire format below our layer");
     test::Session s;
     UdpSocket attacker;
     CHECK(attacker.open(Endpoint::loopback(0)));
@@ -214,6 +216,7 @@ TEST(host_survives_invalid_datagrams) {
 
 // Review finding: endless "new nonce from same endpoint" joins must exhaust ids safely, never wrap to 0.
 TEST(id_exhaustion_rejects_instead_of_wrapping) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::Session s;
     UdpSocket spammer;
     CHECK(spammer.open(Endpoint::loopback(0)));
@@ -248,6 +251,7 @@ TEST(clean_disconnect_frees_the_slot) {
 
 // Test 12
 TEST(clean_shutdown_notifies_clients_and_releases_socket) {
+    UDP_ONLY("checks UDP port release by re-binding a raw socket");
     std::uint16_t port = 0;
     std::vector<std::unique_ptr<client::Client>> keep;
     {
@@ -338,6 +342,7 @@ float spawn_x(std::uint16_t entity_id) { return static_cast<float>(entity_id - 1
 // FB-1-01 (P0): a burst of queued inputs must never advance an entity by more than one
 // simulation timestep per server tick; the excess backlog is shed instead of simulated.
 TEST(input_burst_never_exceeds_one_timestep_per_tick) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::Session s;
     FakeClient fc(s.host.port());
     fc.join(s, 42);
@@ -366,6 +371,7 @@ TEST(input_burst_never_exceeds_one_timestep_per_tick) {
 
 // FB-1-01: a steady one-input-per-tick stream is never shed.
 TEST(steady_inputs_are_never_shed) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::Session s;
     FakeClient fc(s.host.port());
     fc.join(s, 7);
@@ -381,6 +387,7 @@ TEST(steady_inputs_are_never_shed) {
 
 // FB-1-02: wrong-direction messages are invalid and must not keep a peer alive.
 TEST(wrong_direction_messages_do_not_refresh_liveness) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::Session s;
     FakeClient fc(s.host.port());
     fc.join(s, 9);
@@ -398,6 +405,7 @@ TEST(wrong_direction_messages_do_not_refresh_liveness) {
 }
 
 TEST(client_ignores_wrong_direction_messages_for_liveness) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     UdpSocket fake;
     CHECK(fake.open(Endpoint::loopback(0)));
     client::ClientConfig cc;
@@ -427,6 +435,7 @@ TEST(client_ignores_wrong_direction_messages_for_liveness) {
 
 // FB-1-07: a valid reconnect token moves the slot to a new endpoint (documented: the token is not a credential).
 TEST(reconnect_token_migrates_slot_to_new_endpoint) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::Session s;
     FakeClient a(s.host.port());
     a.join(s, 1);
@@ -465,12 +474,13 @@ TEST(reconnect_after_grace_expiry_gets_new_identity) {
 TEST(client_survives_host_restart_with_new_session) {
     test::SimClock clk;
     Logger& hl = test::test_logger("host");
-    auto h1 = std::make_unique<host::Host>(host::HostConfig{}, hl);
+    auto h1 = std::make_unique<host::Host>(test::Session::with_transport({}), hl);
     CHECK(h1->start());
     const auto port = h1->port();
     const auto old_session = h1->session_id();
     client::ClientConfig cc;
     cc.host = Endpoint::loopback(port);
+    cc.transport = test::test_transport();
     client::Client c(cc, test::test_logger("client"));
     CHECK(c.start());
     c.connect(clk.now);
@@ -483,7 +493,7 @@ TEST(client_survives_host_restart_with_new_session) {
     CHECK(test::pump(clk, nullptr, {&c}, [&] { return c.state() == ClientState::Reconnecting; }, 5 * kSec));
     host::HostConfig hc2;
     hc2.bind = Endpoint::loopback(port);
-    host::Host h2(hc2, hl);
+    host::Host h2(test::Session::with_transport(hc2), hl);
     CHECK(h2.start());
     CHECK(test::pump(clk, &h2, {&c}, [&] { return c.state() == ClientState::Connected && c.predicted_self(); }, 3 * kSec));
     CHECK(c.session_id() == h2.session_id());
@@ -495,6 +505,8 @@ TEST(client_survives_host_restart_with_new_session) {
 // connected (buffered snapshots refreshed its liveness) while the host has timed it out. The host now tells
 // a timed-out endpoint so, and the client reconnects immediately with its token instead of waiting 3 s.
 TEST(timed_out_client_is_told_and_reconnects_fast) {
+    UDP_ONLY("asymmetric (uplink-only) outage exercising the KI-12 notice; GNS fake loss is process-global, so both "
+             "directions are cut and the transport itself reports the loss (see symmetric_outage_recovers_fast_with_same_identity)");
     test::Session s;
     auto& c = s.add_client();
     CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
@@ -512,8 +524,32 @@ TEST(timed_out_client_is_told_and_reconnects_fast) {
     CHECK(s.host.stats().timeout_notices >= 1);
 }
 
+// Both directions cut until the host times the player out, then restored: on every backend the client must
+// recover quickly with the same identity (UDP via the timeout notice / our timers, GNS via transport events).
+TEST(symmetric_outage_recovers_fast_with_same_identity) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    const auto player = c.player_id();
+    ImpairmentConfig cut;
+    cut.loss = 1.0;
+    c.set_impairment(cut);
+    s.host.set_impairment(cut);
+    CHECK(s.pump_until([&] { return s.host.connected_count() == 0; }, 6 * kSec));
+    c.set_impairment({});
+    s.host.set_impairment({});
+    const auto restored = s.clk.now;
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == 1; }, 6 * kSec));
+    std::printf("       %s: recovered %llu ms after the network came back\n", to_string(test::test_transport()),
+                static_cast<unsigned long long>((s.clk.now - restored) / 1000));
+    CHECK(s.clk.now - restored < 4 * kSec);  // bounded by one client timeout + one retry interval
+    CHECK(c.player_id() == player);         // same identity via the token
+    CHECK(s.host.stats().reconnects == 1);
+}
+
 // The timeout notice is rate-limited and only goes to endpoints of slots in their grace period.
 TEST(timeout_notice_is_rate_limited_and_scoped) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::Session s;
     FakeClient fc(s.host.port());
     fc.join(s, 11);
@@ -597,6 +633,7 @@ struct NoticeFixture {
 // The key case from review #2: a notice sent while the slot was in grace, but delivered after the client
 // already reconnected, must not knock the fresh connection back into Reconnecting.
 TEST(delayed_timeout_notice_after_reconnect_is_ignored) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     NoticeFixture f;
     const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
     f.fh.deliver(f.c, f.clk, notice);
@@ -613,6 +650,7 @@ TEST(delayed_timeout_notice_after_reconnect_is_ignored) {
 }
 
 TEST(replayed_and_duplicate_timeout_notices_have_no_extra_effect) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     NoticeFixture f;
     const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
     for (int i = 0; i < 5; ++i) f.fh.deliver(f.c, f.clk, notice);  // duplicates while already reconnecting
@@ -625,6 +663,7 @@ TEST(replayed_and_duplicate_timeout_notices_have_no_extra_effect) {
 }
 
 TEST(timeout_notice_from_other_session_or_endpoint_is_ignored) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     NoticeFixture f;
     Header old = f.fh.h;
     old.session = 499;  // a previous host session

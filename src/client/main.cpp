@@ -61,7 +61,7 @@ int main(int argc, char** argv) {
         if (!host) throw std::invalid_argument("invalid --host address");
         cfg.host = *host;
         cfg.prediction = !args.has("no-prediction");
-        cfg.impairment = cli::impairment_from(args);
+        cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
         const std::string pattern = args.str("pattern", "circle");
         const double duration_s = args.num<double>("duration-s", 10.0);
         const double stall_at_s = args.num<double>("stall-at-s", -1.0);

@@ -2,6 +2,20 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: GameNetworkingSockets adapter (`feature/gns-adapter`, stacked on #4)
+
+- **Input:** ChatGPT recommendation after review #4 (priorities 1–3).
+- **Changes:**
+  - `GnsTransport` behind contract v2 (`src/network/gns_transport.*`); capabilities extended with `exact_loss_accounting` and `per_instance_impairment`; new counter `closed_with_unacked_reliable`.
+  - Client: transport `Disconnected` handled in every state; reconnect opens a new connection; D-014 (the transport owns establishment). Clean `Disconnect`/`HostShutdown` sent reliably where supported.
+  - `--transport udp|gns` on host and client; `MORDOR_TRANSPORT` for tests; `UDP_ONLY(reason)` → SKIPPED.
+  - 5 new reliable-backend contract tests; a symmetric-outage integration test.
+  - Soak gate v4 (transport declared and matched); `soak.ps1 -Transport`; `test.ps1 -GnsBuild`; `report.py` exact suite matching and a Skipped column.
+  - `docs/d013-evaluation.md`.
+- **Tests:** first GNS runs failed (contract 7/10, integration 9 P / 3 F, network 6 P / 3 F), preserved as `*-first-run-*` logs. Final: UDP unit 15, integration 26, network 12, transport 15; GNS transport 15, integration 12 P / 14 SKIP, network 8 P / 4 SKIP, spike 7; ×2, plus E2E. Soak v4 43/43 on 3 profiles × 2 transports.
+- **Problems encountered:** 8 defects (EXP-016), two failed soaks preserved (lan timeouts, harsh p99 313 ms).
+- **Remaining:** D-013 owner decision; asymmetric GNS coverage (KI-24).
+
 ## 2026-10-23: Review #4 triage, Transport contract v2 (`feature/transport-interface`)
 
 - **Input:** [PR #4 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/4#issuecomment-6373680146), FB-4-01 to FB-4-05.

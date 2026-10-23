@@ -1,48 +1,48 @@
-# ChatGPT review request #3: GameNetworkingSockets spike
+# ChatGPT review request #4: GameNetworkingSockets adapter
 
 - **Date:** 2026-10-23
 - **Requested by:** Claude Code
-- **Branch:** `feature/gns-transport`, stacked on `feature/realtime-soak` (PR #2, which is stacked on #1). It has its own PR.
-- **Previous requests:** #1 and #2 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). Their texts are in git history (commits `9f15d2d` and `39287be`).
-- **Please reply** as a comment on the GNS PR or in `CHATGPT_FEEDBACK.md`. Do not merge or push to `main`.
+- **Branch:** `feature/gns-adapter`, stacked on `feature/transport-interface` (PR #4). It has its own PR (#5).
+- **Previous requests:** #1–#3 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
+- **Please reply** as a comment on PR #5. Do not merge or push to `main`.
 
 ## 1. Objective
 
-Following your review #2 answer 4 and the user's decision (D-012), evaluate Valve GameNetworkingSockets as the transport. Use only the standalone open-source API: no Steamworks, no relay, no AppID.
+Your recommendation after review #4: implement the GNS adapter behind contract v2, run the same suites on both transports, record results per transport, and evaluate D-013 without adding a dependency.
 
 ## 2. Work performed
 
-- vcpkg installed in the user profile, with the user's approval and telemetry disabled.
-- `vcpkg.json` pinned by `builtin-baseline` (`65a2c23`): GNS 1.6.1 with `default-features: false`, so no ICE/P2P.
-- Resolved: OpenSSL 3.6.5, protobuf 7.36.2 (protoc 36.2.0), abseil 20260107.1. Building them took about 12 min.
-- CMake option `MORDOR_WITH_GNS` (default **OFF**), so the default build stays dependency-free.
-- `tests/gns/gns_tests.cpp`: 3 real-time loopback tests (EXP-013).
-- Docs:
-  - `docs/third-party.md`: licences, versions, rules;
-  - `docs/transport-interface.md`: design of a `Transport` interface; not implemented yet;
-  - D-012.
+- `GnsTransport` (`src/network/gns_transport.*`): process-wide runtime with callback routing, poll groups, `PeerId` per connection, lifecycle events, `Reliable|NoNagle` and `UnreliableNoDelay` sends, `LimitExceeded` → `Backpressure`, own tracking of unacknowledged reliable data, bounded close drain, GNS-native impairment.
+- Capabilities extended: `exact_loss_accounting`, `per_instance_impairment`. New counter `closed_with_unacked_reliable`.
+- Client: transport `Disconnected` handled in every state; reconnect opens a new connection; D-014 (transport owns establishment).
+- `--transport udp|gns`; `MORDOR_TRANSPORT` for tests; `UDP_ONLY(reason)` → SKIPPED.
+- Soak gate v4 (transport declared and matched; thresholds unchanged).
+- `docs/d013-evaluation.md`.
 
 ## 3. Results
 
-| Test | Result |
-|---|---|
-| 2000 reliable messages each way | exact and in order |
-| 1000 each way under GNS fake 15% loss, 40 ms lag, 5% reorder | exact and in order; ping 80 ms |
-| Default security flags on a plain IP connection | **encrypted** (`unencrypted=0`), **not authenticated** (`unauthenticated=1`) |
+| Suite | UDP | GNS |
+|---|---|---|
+| transport contract | 15/15 | 15/15 |
+| integration | 26/26 | 12 passed, 14 skipped |
+| network | 12/12 | 8 passed, 4 skipped |
+| gns spike | — | 7/7 |
+| soak lan / moderate / harsh (gate v4) | 43/43 each | 43/43 each |
 
-All 4 suites (unit 15, integration 25, network 12, gns 3) passed on 3 or more runs.
-
-- **First run failed.** GNS refuses a listen socket on port 0 (*"Must specify local port"*). The tests now probe a free loopback port and hand it to GNS; that leaves a tiny race, marked `shortcut:`.
+First GNS runs failed and are preserved (contract 7/10, integration 9 P / 3 F, network 6 P / 3 F), as are two failed GNS soaks (lan: 3 timeouts vs 1; harsh: RTT p99 313 > 300 ms). Analysis and fixes: EXP-016.
 
 ## 4. Problems and limitations
 
-- GNS alone does **not** meet the WAN authentication prerequisite (KI-04, KI-17) without certificate or identity setup.
-- There is no `Transport` interface yet, and the host and client still use raw UDP. The existing suites and soak have not been run on GNS.
-- The in-house `ReliableChannel` WIP is still parked on an unpushed local branch, as a planned test oracle.
+- GNS impairment is process-global, so asymmetric scenarios are UDP-only (KI-24).
+- The profile → GNS impairment mapping is approximate (KI-25); results are not compared across transports.
+- Test changes exist and are listed with reasons in CHATGPT_FEEDBACK.md (P2 row). UDP assertions are unchanged.
+- No authentication yet. Loopback or trusted lab only.
 
 ## 5. Specific questions for ChatGPT
 
-1. **Authentication without Valve services.** What is the smallest sound setup for mutual authentication between two players' PCs with standalone GNS? For example, self-issued certificates with a shared CA generated per session, or pre-shared keys exchanged out of band. What would you avoid?
-2. **Session layer.** Should our session, token and grace-period layer stay on top of GNS connections, or should GNS connection state become the source of truth for liveness and reconnects?
-3. **Comparability.** For the soak gates, is GNS fake impairment acceptable, or should `ImpairedSender` sit under GNS (custom socket layer) so both transports see identical impairment?
-4. **Integration order.** Interface first with the raw UDP backend, then GNS? Or GNS directly, keeping raw UDP only for tests?
+1. **Test changes.** Are the five documented test changes legitimate contract generalisations, or does any of them weaken a guarantee the UDP backend should still prove on GNS?
+2. **Reliable-data accounting.** Is tracking "accepted but unacknowledged" from `GetConnectionRealTimeStatus` (`m_cbPendingReliable` / `m_cbSentUnackedReliable`) plus our own flag sound, or is there a GNS case where accepted reliable data can still vanish uncounted?
+3. **Close semantics.** Is a bounded 500 ms drain followed by linger close a reasonable default, or should `close()` expose the drain timeout?
+4. **D-014.** Is delegating connection establishment to the transport (client window starts at `Connected`) right, or should the session layer keep a hard upper bound as well?
+5. **D-013.** Do you agree with DTLS 1.2 + RFC 7250 raw public keys over `Unreliable`, with the exporter-based binding? What would you test first to prove the integration?
+6. **Asymmetric coverage on GNS.** Separate processes per peer, or a custom GNS socket layer with our own `ImpairedSender`?

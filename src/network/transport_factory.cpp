@@ -40,6 +40,7 @@ bool transport_available(TransportKind k) {
 std::unique_ptr<Transport> make_transport(TransportKind kind, const ImpairmentConfig& impairment, std::string* error) {
     if (kind == TransportKind::Udp) return std::make_unique<UdpTransport>(impairment);
 #ifdef MORDOR_HAVE_GNS
+    (void)error;
     return std::make_unique<GnsTransport>(impairment);
 #else
     // The GNS adapter is the next milestone (review #3 FB-3-02); until then only the UDP backend exists.

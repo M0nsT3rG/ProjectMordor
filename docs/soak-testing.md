@@ -100,6 +100,30 @@ Fixed before its first run. It keeps every v2 gate and adds:
 
 **Observation.** The 1 s download peaks exceed the *mean* ceiling under moderate and harsh impairment (23.95 > 23.39 and 24.84 > 24.08 kbit/s). The mean ceiling must not be reused as a peak bound. A burst gate needs its own derivation (KI-20).
 
+## Gate version 4 (GNS adapter, 2026-10-23)
+
+Fixed before its first run. Numeric thresholds are unchanged from v3. New gates:
+
+- `transport_declared`: `run.json` declares `transport` (`udp` or `gns`).
+- `transport_matches_host_log`: the host's `host_stopped` line reports the same transport.
+
+Results are recorded **per transport** and are not compared across transports: the impairment is applied differently (KI-25). Run with `./scripts/soak.ps1 -Profile <p> -Transport udp|gns`.
+
+| Run (gate v4, 120 s) | Gates | RTT p50 / p99 | Mean in / out kbit/s | 1 s peak in / out | Recovery |
+|---|---|---|---|---|---|
+| lan, udp | 43/43 | 10.5 / 12.1 ms | 21.6 / 13.7 | 21.9 / 15.2 | 15 ms |
+| moderate, udp | 43/43 | 103.4 / 121.8 ms | 21.1 / 21.6 | 23.9 / 24.3 | 153 ms |
+| harsh, udp | 43/43 | 205.2 / 239.8 ms | 19.3 / 29.4 | 23.0 / 29.6 | 810 ms |
+| lan, gns | 43/43 | 9.1 / 12.1 ms | 21.6 / 12.3 | 21.9 / 13.0 | 39 ms |
+| moderate, gns | 43/43 | 95.8 / 115.4 ms | 20.8 / 21.2 | 22.5 / 22.1 | 355 ms |
+| harsh, gns | 43/43 | 188.2 / 224.2 ms | 18.0 / 29.3 | 21.9 / 29.6 | 1239 ms |
+
+Bandwidth is the session-layer payload rate, not GNS wire bytes (GNS adds its own headers and encryption).
+
+**Failed v4 runs, preserved:**
+- `soak-2026-10-23-225258-lan-gns-g4`: `host_timeouts_match_stalls` failed (3 timeouts, 1 expected). Clean leaves became timeouts: the unreliable `Disconnect` was lost when GNS closed. Fixed: `Disconnect` is sent reliably where supported, and `close()` drains reliable data.
+- `soak-2026-10-23-230405-harsh-gns-g4`: `client1_rtt_p99` 313 > 300 ms. The first mapping gave the full jitter budget to both lag jitter and the reorder stage, exceeding the profile's worst-case delay. Fixed by splitting the budget; the gate was not changed.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

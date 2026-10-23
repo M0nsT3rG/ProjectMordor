@@ -1,0 +1,9 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"host","evt":"host_started","port":47813,"loopback_only":true,"session":3444748513,"tick_rate_hz":30,"protocol_version":1,"transport":"gns"}
+{"t_ms":168,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":174,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":51120,"lvl":"info","comp":"host","evt":"player_timeout","player":2,"grace_ms":30000}
+{"t_ms":53180,"lvl":"info","comp":"host","evt":"player_reconnected","player":2,"entity":2}
+{"t_ms":123110,"lvl":"info","comp":"host","evt":"player_timeout","player":1,"grace_ms":30000}
+{"t_ms":123135,"lvl":"info","comp":"host","evt":"player_timeout","player":2,"grace_ms":30000}
+{"t_ms":126006,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":7918,"packets_out":8245,"invalid":0,"bytes_in":396848,"bytes_out":664324,"world_tick":3781,"uptime_us":125999724,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":10302,"joins":2,"reconnects":1,"timeouts":3,"timeout_notices":1,"unknown_peer":2,"send_errors":0,"transport":"gns","transport_accepted_then_failed":0,"transport_discarded_on_close":0}

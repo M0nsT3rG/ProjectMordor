@@ -15,6 +15,9 @@ never tuned to results; a stricter or different gate is a new version, and old s
   v3 (2026-10-23, review #2 follow-up): manifest must be well-formed (valid, unique names) and equal to a
      known scenario's participants and stall plan, not a self-declared list; bandwidth gates are explicitly
      run-wide MEAN rates, and 1 s window peak/p95/p99 rates are reported (not gated yet).
+  v4 (2026-10-23, review #4 next steps): results are per transport. run.json must declare `transport` (udp|gns)
+     and it must match what the host itself logged. All numeric thresholds are unchanged from v3; bandwidth
+     budgets apply to OUR protocol payload bytes on every transport (GNS framing/crypto overhead is excluded).
 Usage: python -I tools/soak/analyze.py <run_dir>
 """
 from __future__ import annotations
@@ -25,7 +28,8 @@ import re
 import sys
 from pathlib import Path
 
-GATE_VERSION = 3
+GATE_VERSION = 4
+TRANSPORTS = {"udp", "gns"}
 
 # Known soak scenarios. run.json names one; its declared participants must match exactly (v3).
 SCENARIOS = {
@@ -159,6 +163,11 @@ def analyze(run_dir: Path) -> dict:
 
     hs = last(host, "host_stopped") or {}
     gate("host_reported_stop", bool(hs), "host_stopped event present")
+    # v4: one transport per run, declared and confirmed by the host's own log.
+    transport = run.get("transport")
+    gate("transport_declared", transport in TRANSPORTS, f"transport={transport!r}")
+    gate("transport_matches_host_log", transport in TRANSPORTS and hs.get("transport") == transport,
+         f"run.json={transport!r}, host_stopped={hs.get('transport')!r}")
     gate("host_exit_code", exit_codes.get("host") == 0, f"exit {exit_codes.get('host')}")
     gate("host_invalid_packets_zero", hs.get("invalid", -1) == 0, f"invalid={hs.get('invalid')}")
     uptime_s = hs.get("uptime_us", 0) / 1e6
@@ -226,6 +235,7 @@ def analyze(run_dir: Path) -> dict:
 
     return {
         "gate_version": GATE_VERSION,
+        "transport": run.get("transport"),
         "clock": "real-time (wall clock, separate processes, loopback)",
         "run": run,
         "budgets": {"rtt_p99_ms": rtt_limit, "download_kbit_s": round(down_budget, 2), "upload_kbit_s": round(up_budget, 2),

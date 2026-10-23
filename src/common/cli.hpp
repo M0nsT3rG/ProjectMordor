@@ -12,6 +12,7 @@
 #include <string_view>
 
 #include "network/impairment.hpp"
+#include "network/transport.hpp"
 
 namespace mordor::cli {
 
@@ -63,7 +64,16 @@ inline net::ImpairmentConfig impairment_from(const Args& a) {
     return c;
 }
 
+inline net::TransportKind transport_from(const Args& a) {
+    const auto s = a.str("transport", "udp");
+    const auto k = net::parse_transport(s);
+    if (!k) throw std::invalid_argument("--transport must be udp or gns, got: " + s);
+    if (!net::transport_available(*k)) throw std::invalid_argument("--transport " + s + " is not available in this build");
+    return *k;
+}
+
 inline constexpr const char* kImpairmentHelp =
+    "  --transport T     udp (default) or gns (needs a MORDOR_WITH_GNS build; impairment is then process-global)\n"
     "  --loss P          drop outgoing packets with probability P (0..1)\n"
     "  --duplicate P     duplicate outgoing packets with probability P\n"
     "  --latency-ms N    delay outgoing packets by N ms\n"

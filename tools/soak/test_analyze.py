@@ -18,16 +18,16 @@ def summary(p99=110.0, reconnects=0, kin=20.0, kout=25.0, max_corr=0.3, samples=
 
 def write_run(d: Path, *, host_invalid=0, c2_reconnects=1, c2_recovery_ms=800, c1=None, exit_c1=0, drift_ticks=0,
               expected=("client1", "client2"), logs=("client1", "client2"), manifest=True,
-              scenario="two-clients-one-stall", stalled=("client2",), statuses=None):
+              scenario="two-clients-one-stall", stalled=("client2",), statuses=None, transport="udp", host_transport="udp"):
     run = {"profile": "test", "duration_s": 120, "impairment": {"latency_ms": 40, "jitter_ms": 20, "loss": 0.05, "duplicate": 0.0},
-           "stall_s": 5, "host_timeout_ms": 3000, "stalled_clients": list(stalled), "scenario": scenario,
+           "stall_s": 5, "host_timeout_ms": 3000, "stalled_clients": list(stalled), "scenario": scenario, "transport": transport,
            "exit_codes": {"host": 0, "client1": exit_c1, "client2": 0}}
     if manifest:
         run["expected_clients"] = list(expected)
     (d / "run.json").write_text(json.dumps(run))
     host = [{"t_ms": 0, "evt": "host_started"},
             {"t_ms": 126_000, "evt": "host_stopped", "invalid": host_invalid, "uptime_us": 126_000_000, "tick_rate_hz": 30,
-             "world_tick": 3780 + drift_ticks, "skipped_ticks": 0, "shed_inputs": 3, "joins": 2, "reconnects": 1, "timeouts": 1}]
+             "world_tick": 3780 + drift_ticks, "skipped_ticks": 0, "shed_inputs": 3, "joins": 2, "reconnects": 1, "timeouts": 1, "transport": host_transport}]
     (d / "host.log").write_text("\n".join(map(json.dumps, host)))
     contents = {
         "client1": list(statuses or []) + [c1 or summary()],
@@ -51,7 +51,7 @@ class AnalyzeTests(unittest.TestCase):
     def test_healthy_run_passes(self):
         r = self.run_case()
         self.assertTrue(r["passed"], failed(r))
-        self.assertEqual(r["gate_version"], 3)
+        self.assertEqual(r["gate_version"], 4)
         self.assertEqual(r["clients"]["client2"]["recovery_after_stall_ms"], 800)
 
     def test_each_v1_gate_can_fail(self):
@@ -150,6 +150,15 @@ class AnalyzeTests(unittest.TestCase):
         self.assertAlmostEqual(w["out"]["peak"], 24.0)
         self.assertTrue(r["passed"], failed(r))         # peaks are reported, not gated (v3)
         self.assertIsNone(self.run_case()["clients"]["client1"]["window_rates_kbit_s"])  # no status lines
+
+    # v4: per-transport results.
+    def test_transport_must_be_declared_and_match_host_log(self):
+        self.assertIn("transport_declared", failed(self.run_case(transport=None)))
+        self.assertIn("transport_declared", failed(self.run_case(transport="tcp")))
+        self.assertIn("transport_matches_host_log", failed(self.run_case(transport="gns", host_transport="udp")))
+        r = self.run_case(transport="gns", host_transport="gns")
+        self.assertTrue(r["passed"], failed(r))
+        self.assertEqual(r["transport"], "gns")
 
     def test_existing_summary_is_never_overwritten(self):
         with tempfile.TemporaryDirectory() as d:

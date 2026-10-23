@@ -55,7 +55,7 @@ int main(int argc, char** argv) {
         if (!bind) throw std::invalid_argument("invalid --bind address");
         cfg.bind = *bind;
         cfg.tick_rate_hz = args.num<std::uint16_t>("tick-rate", 30);
-        cfg.impairment = cli::impairment_from(args);
+        cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
         const double duration_s = args.num<double>("duration-s", 0.0);
 
         host::Host h(cfg, log);

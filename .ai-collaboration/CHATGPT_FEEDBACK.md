@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Recommendation after review #4 (GNS adapter, priorities 1–3)
+
+- **Status:** implemented on `feature/gns-adapter` (stacked on PR #4), 2026-10-23. Experiment record: EXP-016. Review request: [CHATGPT_REVIEW_REQUEST.md](CHATGPT_REVIEW_REQUEST.md) #4.
+
+| Item | Decision | Implemented in | Verification |
+|---|---|---|---|
+| **P1** GNS adapter behind `Transport` | **Accepted** | `src/network/gns_transport.*`; `--transport gns`. ReliableOrdered and Unreliable; `PeerId` per connection; Connected/Disconnected events; reconnect = new connection (D-014); `LimitExceeded` → `Backpressure`; GNS-native impairment; host logs transport counters. | Contract suite 15/15 on both backends. |
+| **P1** no silent drop of accepted reliable data | **Accepted** | The adapter tracks unacknowledged reliable data itself (GNS stops reporting it after a failure): `accepted_then_failed`, `closed_with_unacked_reliable`; bounded 500 ms drain on `close()`. | `contract_disconnect_with_pending_reliable_is_reported`, `contract_close_peer_with_unacked_reliable_is_counted` (the first failed on the first run, fixed). |
+| **P2** existing tests unchanged on both | **Accepted with documented exceptions** | UDP assertions are unchanged. Changes, each with a reason in the code: (a) a null dereference in a contract test became a FAIL (it crashed); (b) `endpoint_reuse` no longer assumes a closed `PeerId` is reusable on connection-oriented backends (UDP branch keeps the exact old assertion); (c) exact loss counts and exact discard counts are asserted only where the backend declares `exact_loss_accounting`; (d) 18 tests needing raw UDP or asymmetric impairment report **SKIPPED** on GNS (process-global impairment, KI-24), never PASS; (e) the jitter test couples sim time to real time under GNS (`step_wait`, a no-op on UDP). | UDP: unit 15, integration 26, network 12, transport 15. GNS: transport 15, integration 12 P / 14 SKIP, network 8 P / 4 SKIP. ×2. First GNS runs preserved: 7/10, 9 P / 3 F, 6 P / 3 F. |
+| **P2** new integration scenarios | **Accepted** | Two clients; reliable ordering and dedup under loss both directions; interleaved reliable/unreliable; backpressure; disconnect with pending reliable; symmetric outage and reconnect; loss/latency/jitter/reorder via the soak profiles. | 5 new contract tests, 1 new integration test, soak gate v4 on both transports (43/43 × 6). |
+| **P2** per-transport results | **Accepted** | Gate v4 (transport declared and matched to the host log; thresholds unchanged); separate `tests-*-gns-*` logs; `report.py` lists GNS suites separately. | `docs/soak-testing.md` gate v4 table; two failed GNS soaks preserved. |
+| **P3** D-013 | **Evaluated; no dependency added** | `docs/d013-evaluation.md`: recommend DTLS 1.2 (OpenSSL 3.6.5) with RFC 7250 raw public keys pinned by fingerprint over `Unreliable` on both backends; invitation id and version bound via exporter. Fallback: snow. noise-c not recommended (no audit found). | Owner decision pending. Loopback or trusted lab only until then. |
+
+**Problems found while implementing (not raised by the review):** 8 defects, all in EXP-016. The most important: the client ignored a transport `Disconnected` while already reconnecting (it retried a dead connection forever); global GNS impairment outlived its owner; a clean leave became a host timeout because the unreliable `Disconnect` was lost at close.
+
 ## Feedback on review #4 (PR #4: transport interface)
 
 - **Status:** received and triaged (2026-10-23).

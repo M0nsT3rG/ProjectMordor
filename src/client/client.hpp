@@ -83,7 +83,7 @@ private:
     void handle(const net::Packet& p, std::uint64_t now_us);
     void on_snapshot(const net::Snapshot& s, std::uint64_t now_us);
     void produce_input(std::uint64_t now_us);
-    void send(const net::Message& m, std::uint64_t now_us);
+    void send(const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void set_state(ClientState s, std::string_view why);
     void begin_reconnect(std::uint64_t now_us, std::string_view why);
 
@@ -91,6 +91,7 @@ private:
     Logger& log_;
     std::unique_ptr<net::Transport> transport_;
     std::optional<net::PeerId> server_peer_;  // transport identity of the host connection (FB-4-02)
+    bool transport_up_ = false;                // transport reported Connected for server_peer_ (D-014)
     std::vector<net::TransportEvent> events_;
     std::mt19937_64 rng_;
     ClientStats stats_;

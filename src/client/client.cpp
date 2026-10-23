@@ -108,7 +108,11 @@ void Client::update(std::uint64_t now_us) {
         case ClientState::Reconnecting: {
             const bool reconnecting = state_ == ClientState::Reconnecting;
             const auto window = reconnecting ? cfg_.reconnect_window_us : cfg_.connect_timeout_us;
-            if (now_us - phase_started_us_ > window) {
+            // D-014: on a connection-oriented transport the transport owns connection establishment (its own
+            // initial timeout); our connect window starts once it reports Connected, so the two never race.
+            const bool waiting_for_transport =
+                !reconnecting && transport_->capabilities().reports_disconnects && !transport_up_;
+            if (!waiting_for_transport && now_us - phase_started_us_ > window) {
                 set_state(ClientState::Failed, reconnecting ? "reconnect_window_expired" : "connect_timeout");
                 break;
             }
@@ -149,13 +153,26 @@ void Client::receive(std::uint64_t now_us) {
     for (auto& e : events_) {
         const bool from_host = server_peer_ && e.peer == *server_peer_;
         switch (e.kind) {
-            case TransportEvent::Kind::Connected: break;
+            case TransportEvent::Kind::Connected:
+                if (from_host) {
+                    transport_up_ = true;
+                    if (state_ == ClientState::Connecting) phase_started_us_ = now_us;  // D-014: full window from here
+                }
+                break;
             case TransportEvent::Kind::Disconnected:
-                // A connection-oriented backend lost the host: reconnect with the token over a new connection.
-                if (from_host && state_ == ClientState::Connected) {
+                if (from_host && state_ == ClientState::Connecting && !transport_up_) {
+                    transport_up_ = false;  // the transport itself gave up on the handshake: that is final (D-014)
+                    set_state(ClientState::Failed, "transport_handshake_failed");
+                    break;
+                }
+                if (from_host) transport_up_ = false;
+                // A connection-oriented backend lost the host: always open a new transport connection, in ANY state.
+                // (If our own timeout already moved us to Reconnecting, ignoring this left us sending reconnect
+                // requests on a dead PeerId forever; found by the first GNS run, EXP-016.)
+                if (from_host) {
                     ++stats_.transport_disconnects;
                     server_peer_ = transport_->connect(cfg_.host);
-                    begin_reconnect(now_us, "transport_disconnected");
+                    if (state_ == ClientState::Connected) begin_reconnect(now_us, "transport_disconnected");
                 }
                 break;
             case TransportEvent::Kind::DroppedInbound:
@@ -264,6 +281,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
 }
 
 void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
+    // Connection-oriented transport: a reconnect always uses a NEW transport connection (review #3 answer 2).
+    // Reusing the old one fails when the host restarted: the new host does not know that connection (EXP-016).
+    if (transport_ && transport_->capabilities().reports_disconnects && server_peer_) {
+        transport_->close_peer(*server_peer_);
+        server_peer_ = transport_->connect(cfg_.host);
+        transport_up_ = false;
+    }
     phase_started_us_ = reconnect_started_us_ = now_us;
     attempted_ = false;
     do nonce_ = rng_(); while (nonce_ == 0);  // new attempt: accepts for the old nonce are now stale
@@ -320,7 +344,7 @@ void Client::produce_input(std::uint64_t now_us) {
     send(batch, now_us);
 }
 
-void Client::send(const Message& m, std::uint64_t now_us) {
+void Client::send(const Message& m, std::uint64_t now_us, Delivery delivery) {
     Header h;
     h.version = cfg_.protocol_version;
     h.session = session_;
@@ -333,7 +357,7 @@ void Client::send(const Message& m, std::uint64_t now_us) {
     }
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    const auto r = server_peer_ ? transport_->send(*server_peer_, bytes, Delivery::Unreliable, now_us) : SendResult::NotConnected;
+    const auto r = server_peer_ ? transport_->send(*server_peer_, bytes, delivery, now_us) : SendResult::NotConnected;
     if (r != SendResult::Sent) {
         ++stats_.send_errors;  // surfaced, never silent (review FB-4-04)
         log_.debug("send_failed", {kv("result", to_string(r))});
@@ -341,9 +365,13 @@ void Client::send(const Message& m, std::uint64_t now_us) {
 }
 
 void Client::disconnect() {
-    // Unreliable channel: send the notice a few times; the host ignores repeats. Timeout remains the fallback.
-    if (state_ == ClientState::Connected && transport_)
-        for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
+    // Reliable transport: send the notice once, reliably. Unreliable transport: a few times; the host ignores
+    // repeats. Timeout remains the fallback either way.
+    if (state_ == ClientState::Connected && transport_) {
+        if (transport_->capabilities().reliable_ordered) send(Disconnect{DisconnectReason::ClientQuit}, 0, Delivery::ReliableOrdered);
+        else
+            for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
+    }
     if (transport_) transport_->flush_all();
     disconnect_reason_ = DisconnectReason::ClientQuit;
     set_state(ClientState::Disconnected, "local_disconnect");

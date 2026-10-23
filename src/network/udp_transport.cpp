@@ -24,7 +24,8 @@ void UdpTransport::close() {
 }
 
 TransportCapabilities UdpTransport::capabilities() const {
-    return {.reliable_ordered = false, .reports_disconnects = false, .max_payload = kMaxPacketSize};
+    return {.reliable_ordered = false, .reports_disconnects = false, .max_payload = kMaxPacketSize,
+            .exact_loss_accounting = true, .per_instance_impairment = true};
 }
 
 PeerId UdpTransport::peer_for(const Endpoint& e) {

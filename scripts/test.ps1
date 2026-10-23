@@ -11,6 +11,7 @@ param(
     [string]$Config = 'Release',
     [string]$BuildDir = 'build',
     [switch]$E2E,
+    [switch]$GnsBuild,  # also run build-gns (MORDOR_WITH_GNS) suites, incl. integration/network on the GNS adapter
     [int]$Repeat = 1
 )
 $ErrorActionPreference = 'Stop'
@@ -24,9 +25,20 @@ try {
         ctest --test-dir $BuildDir -C $Config --output-on-failure
         if ($LASTEXITCODE -ne 0) { $failed = $true }
     }
-    foreach ($suite in 'unit', 'integration', 'network') {
+    foreach ($suite in 'unit', 'integration', 'network', 'transport') {
         $src = Join-Path $BuildDir "test-results/$suite.json"
         if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$suite-$stamp.json") -Force }
+    }
+    # Optional GNS build: per-transport results are recorded separately (review #4 next steps).
+    $gnsResults = Join-Path 'build-gns' 'test-results'
+    if ($GnsBuild -and (Test-Path $gnsResults)) {
+        ctest --test-dir build-gns -C $Config --output-on-failure
+        if ($LASTEXITCODE -ne 0) { $failed = $true }
+        $map = @{ 'integration-gns' = 'integration-gns'; 'network-gns' = 'network-gns'; 'transport' = 'transport-both'; 'gns' = 'gns' }
+        foreach ($k in $map.Keys) {
+            $src = Join-Path $gnsResults "$k.json"
+            if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$($map[$k])-$stamp.json") -Force }
+        }
     }
     if ($E2E) {
         $bin = Join-Path $BuildDir $Config

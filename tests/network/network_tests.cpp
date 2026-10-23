@@ -57,6 +57,7 @@ void move_and_check_convergence(test::Session& s, client::Client& mover, client:
 }  // namespace
 
 TEST(impairment_loss_is_deterministic_and_close_to_configured_rate) {
+    UDP_ONLY("tests ImpairedSender, the UDP backend's impairment");
     std::uint64_t results[2];
     for (int run = 0; run < 2; ++run) {
         UdpSocket rx, tx;
@@ -72,6 +73,7 @@ TEST(impairment_loss_is_deterministic_and_close_to_configured_rate) {
 }
 
 TEST(impairment_delays_until_due) {
+    UDP_ONLY("tests ImpairedSender, the UDP backend's impairment");
     UdpSocket rx, tx;
     CHECK(rx.open(Endpoint::loopback(0)));
     CHECK(tx.open(Endpoint::loopback(0)));
@@ -149,6 +151,7 @@ TEST(heavy_loss_and_duplication_never_crash) {
 
 // Test 9: a client that loses connectivity times out on both ends, then recovers its identity.
 TEST(timed_out_client_reconnects_with_same_identity) {
+    UDP_ONLY("asymmetric between clients (b keeps reaching the host while a is cut); GNS fake loss is process-global and cuts both (see symmetric_outage_recovers_fast_with_same_identity)");
     test::Session s;
     auto& a = s.add_client();
     auto& b = s.add_client();
@@ -189,6 +192,7 @@ TEST(reconnect_gives_up_after_window) {
 }
 
 TEST(silent_host_loss_ends_in_failed_state) {
+    UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     test::SimClock clk;
     UdpSocket silent;  // a "host" that never answers
     CHECK(silent.open(Endpoint::loopback(0)));
@@ -240,7 +244,7 @@ TEST(jitter_never_exceeds_tick_movement_budget) {
             last_tick = s.host.world().tick();
         }
         s.clk.now += 5'000;
-        std::this_thread::yield();
+        test::step_wait(5'000);
     }
     CHECK(worst_ratio <= 1.0f + 1e-3f);
     CHECK(s.host.player_transform(a.player_id())->x > 5.0f);  // it really moved

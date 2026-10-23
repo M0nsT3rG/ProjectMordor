@@ -12,7 +12,8 @@ param(
     [double]$StallS = 5,
     [int]$Port = 47813,
     [string]$Config = 'Release',
-    [string]$BuildDir = 'build'
+    [string]$BuildDir = '',
+    [ValidateSet('udp', 'gns')][string]$Transport = 'udp'
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -24,17 +25,18 @@ try {
         harsh    = @{ latency_ms = 80; jitter_ms = 40; loss = 0.15; duplicate = 0.05 }
     }
     $p = $profiles[$Profile]
-    $imp = "--latency-ms $($p.latency_ms) --jitter-ms $($p.jitter_ms) --loss $($p.loss) --duplicate $($p.duplicate)"
+    if (-not $BuildDir) { $BuildDir = if ($Transport -eq 'gns') { 'build-gns' } else { 'build' } }
+    $imp = "--transport $Transport --latency-ms $($p.latency_ms) --jitter-ms $($p.jitter_ms) --loss $($p.loss) --duplicate $($p.duplicate)"
     $bin = Join-Path $BuildDir $Config
     # Every run gets a fresh directory; existing runs are evidence and are never deleted or reused (FB-2-01).
-    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-g3" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile)
+    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g4" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $Transport)
     if (Test-Path $out) { throw "Run directory $out already exists; refusing to overwrite evidence." }
     New-Item -ItemType Directory $out | Out-Null
     $stallAt = [math]::Round($DurationS * 0.4)
 
     # Warm-up (EXP-006 workaround, cause unknown).
-    & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --log "$out/warmup-host.log"
-    & (Join-Path $bin 'mordor-client.exe') --port ($Port + 1) --duration-s 1 --log "$out/warmup-client.log"
+    & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-host.log"
+    & (Join-Path $bin 'mordor-client.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-client.log"
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
 
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow `
@@ -63,7 +65,8 @@ try {
         scenario         = 'two-clients-one-stall'  # must match tools/soak/analyze.py SCENARIOS
         expected_clients = @('client1', 'client2')
         stalled_clients  = @('client2')
-        gate_version     = 3
+        gate_version     = 4
+        transport        = $Transport
         stall_at_s       = $stallAt
         stall_s          = $StallS
         host_timeout_ms  = 3000

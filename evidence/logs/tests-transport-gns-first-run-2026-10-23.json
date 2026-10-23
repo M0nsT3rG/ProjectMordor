@@ -1,0 +1,12 @@
+[
+  {"name":"contract_closed_transport_refuses_sends","result":"PASSED","ms":26,"error":""},
+  {"name":"contract_connected_precedes_first_message_and_bytes_roundtrip","result":"PASSED","ms":27,"error":""},
+  {"name":"contract_reliable_delivery_is_provided_or_explicitly_unsupported","result":"PASSED","ms":21,"error":""},
+  {"name":"contract_oversized_send_is_refused","result":"PASSED","ms":21,"error":""},
+  {"name":"contract_unknown_peer_is_not_connected","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_endpoint_reuse_gets_new_peer_generation","result":"FAILED","ms":4495,"error":"expected a Message event but none arrived"},
+  {"name":"contract_two_simultaneous_peers_are_routed_separately","result":"PASSED","ms":29,"error":""},
+  {"name":"contract_oversized_inbound_is_reported_not_delivered","result":"PASSED","ms":0,"error":""},
+  {"name":"contract_simulated_loss_is_sent_and_counted","result":"FAILED","ms":1615,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\transport\\transport_tests.cpp:215: CHECK(client->stats().simulated_drops == 10)"},
+  {"name":"contract_queued_data_discarded_on_close_is_counted","result":"FAILED","ms":22,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\transport\\transport_tests.cpp:232: CHECK(client->stats().discarded_on_close == 2)"}
+]

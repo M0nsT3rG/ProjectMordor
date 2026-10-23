@@ -1,6 +1,17 @@
 # Transport interface (design, D-012)
 
-**Status:** **contract v2** after review #4: `PeerId{id, generation}`, lifecycle events, delivery classes, explicit `SendResult`, failure counters. See `src/network/transport.hpp` for the normative comments. The interface and the **UDP backend are implemented** (`src/network/transport.hpp`, `udp_transport.hpp`, `transport_factory.cpp`). Host and client use it, and every existing test passes unchanged (EXP-014). The **GNS adapter is the next milestone.**
+**Status:** **contract v2** after review #4: `PeerId{id, generation}`, lifecycle events, delivery classes, explicit `SendResult`, failure counters. See `src/network/transport.hpp` for the normative comments. The interface and the **UDP backend are implemented** (`src/network/transport.hpp`, `udp_transport.hpp`, `transport_factory.cpp`). Host and client use it, and every existing test passes unchanged (EXP-014). The **GNS adapter is implemented** (`gns_transport.hpp/.cpp`, build with `-DMORDOR_WITH_GNS=ON`; select with `--transport gns` or `MORDOR_TRANSPORT=gns` in tests). See EXP-016 and the section below.
+
+## GNS adapter (EXP-016)
+
+- **Runtime.** One process-wide GNS instance (refcounted). Callbacks are routed to the owning `GnsTransport` by listen socket or connection handle. Each instance has a poll group.
+- **Identity.** Each GNS connection maps to a `PeerId`. A reconnect is a new connection and therefore a new `PeerId` (D-014).
+- **Events.** `Connected` on `k_ESteamNetworkingConnectionState_Connected`; `Disconnected` on closed-by-peer or problem-detected-locally.
+- **Sends.** `Unreliable` → `UnreliableNoDelay`; `ReliableOrdered` → `Reliable | NoNagle`. `k_EResultLimitExceeded` → `Backpressure`; `NoConnection`/`InvalidState` → `NotConnected`.
+- **No silent loss of accepted reliable data.** The adapter tracks accepted-but-unacknowledged reliable data itself, because GNS stops reporting pending bytes after a failure. A failure with such data counts `accepted_then_failed`; `close_peer` counts `closed_with_unacked_reliable`; `close()` drains for at most 500 ms (KI-26).
+- **Timeouts.** `TimeoutInitial` 10 s (client), `TimeoutConnected` 3 s.
+- **Impairment.** GNS fake loss, lag, jitter, reorder and duplication are **process-global** (`per_instance_impairment=false`, KI-24). The owner instance resets them on close. Mapping: loss → `FakePacketLoss_Send`; latency → `FakePacketLag_Send`; jitter budget split in half between lag jitter and a reorder stage (GNS jitter does not reorder, KI-25); duplication → `FakePacketDup_Send`.
+- **Capabilities.** `{reliable_ordered=true, reports_disconnects=true, exact_loss_accounting=false, per_instance_impairment=false}`. Tests branch on capabilities, never on the backend name.
 
 ## Goal
 
@@ -50,7 +61,9 @@ public:
 
 ## Open questions
 
-The spike and the integration will answer these:
+Answered by EXP-016: (1) yes, the session layer stays on top; (2) not identical, so gate v4 labels results per transport; (3) see D-013.
+
+The spike and the integration were to answer these:
 
 1. **Session layer on GNS.** Do we keep our protocol's session, token and grace-period logic on top of GNS connections? (Probably yes: GNS connections are transport-level, while our slots and tokens are game-level identity.)
 2. **Impairment parity.** Does GNS fake-lag/loss behave closely enough to `ImpairedSender` for the soak gates to stay comparable? If not, the gates need a transport label in a new gate version.

@@ -67,6 +67,18 @@ Each entry gives the context, the decision, the alternatives considered and how 
 
   libsodium `crypto_kx` plus our own handshake is rejected. Full state machine: `docs/authentication-design.md` §4a.
 - **Status.** Awaiting the user's approval to add the dependency.
+- **Evaluation (2026-10-23, after the GNS adapter).** [d013-evaluation.md](d013-evaluation.md) recommends **DTLS 1.2 via OpenSSL 3.6.5 with RFC 7250 raw public keys pinned by fingerprint**, carried over the Transport's `Unreliable` class on both backends, with the invitation id and protocol version bound through a keying-material exporter. Fallback: Noise via snow. No dependency has been added; until authentication is implemented and independently reviewed, the prototype stays on loopback or explicitly trusted lab networks.
+
+## D-014: On connection-oriented transports, the transport owns connection establishment (2026-10-23)
+
+- **Context.** EXP-016: under 60% loss the client's own 5 s connect timer raced GNS's handshake timeout, and `heavy_loss_and_duplication_never_crash` passed only 3/8 on GNS.
+- **Decision.**
+  - On backends with `reports_disconnects`, the client's connect window starts at the transport `Connected` event.
+  - A transport `Disconnected` before that is a handshake failure (`Failed`, reason `transport_handshake_failed`).
+  - Every reconnect opens a new transport connection; a restarted host does not know the old one (review #3 answer 2).
+  - GNS gets `TimeoutInitial` 10 s and `TimeoutConnected` 3 s.
+- **Result.** 8/8 on GNS; UDP behaviour unchanged (it reports no transport events, so the old timers apply).
+- **Revisit** if a backend's establishment timeout is not configurable.
 
 ## D-012: GameNetworkingSockets for the transport, behind an interface (2026-10-23, user decision)
 

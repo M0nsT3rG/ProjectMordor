@@ -79,9 +79,9 @@ private:
     void step();
     void broadcast(std::uint64_t now_us);
     void check_timeouts(std::uint64_t now_us);
-    void send(Slot& s, const net::Message& m, std::uint64_t now_us);
+    void send(Slot& s, const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void send_unconnected(net::PeerId to, const net::Message& m, std::uint64_t now_us);
-    void transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us);
+    void transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, net::Delivery delivery);
     void accept(Slot& s, std::uint64_t now_us);
     // close_transport_peer = false when the same transport peer is about to be reused (e.g. new client instance).
     void remove_slot(std::uint16_t player_id, bool close_transport_peer = true);

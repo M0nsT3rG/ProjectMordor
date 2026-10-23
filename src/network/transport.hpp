@@ -63,15 +63,24 @@ struct TransportEvent {
 struct TransportStats {
     std::uint64_t sent = 0, send_failed = 0, unsupported = 0, too_large = 0, not_connected = 0, backpressure = 0;
     std::uint64_t received = 0, dropped_inbound_oversized = 0;
-    std::uint64_t accepted_then_failed = 0;     // accepted by send() but the delayed transmit failed
-    std::uint64_t discarded_on_close = 0;       // accepted by send() but still queued when close() ran
+    std::uint64_t accepted_then_failed = 0;     // accepted, then provably never delivered (failed transmit, or the
+                                                // connection died with reliable data still unacknowledged)
+    std::uint64_t discarded_on_close = 0;       // accepted but still queued/unacknowledged when close() ran
+    std::uint64_t closed_with_unacked_reliable = 0;  // close_peer() while reliable data was still unacknowledged
     std::uint64_t simulated_drops = 0;          // removed by impairment simulation (network behaviour, not an error)
 };
 
 struct TransportCapabilities {
     bool reliable_ordered = false;
-    bool reports_disconnects = false;  // backend detects peer loss itself
+    bool reports_disconnects = false;  // backend detects peer loss itself (connection-oriented)
     std::size_t max_payload = 0;
+    // true: simulated_drops and discarded_on_close are exact per-message counts (UDP: impairment runs in our code).
+    // false: the backend's fault injection and queues are internal (GNS); counts are per connection and cover
+    // reliable data only. Loss of reliable data is still never silent: see accepted_then_failed /
+    // closed_with_unacked_reliable / discarded_on_close.
+    bool exact_loss_accounting = false;
+    // false: impairment is process-global (GNS fake-packet settings), so set_impairment() affects every instance.
+    bool per_instance_impairment = false;
 };
 
 class Transport {

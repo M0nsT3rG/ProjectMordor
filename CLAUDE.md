@@ -38,8 +38,9 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 25, network 12, transport 10 contract tests)
-./scripts/soak.ps1 -Profile moderate -DurationS 120   # real-time soak: lan | moderate | harsh; gates in tools/soak/analyze.py
+./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 26, network 12, transport 15 contract tests)
+./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends, gns spike
+./scripts/soak.ps1 -Profile moderate -DurationS 120 -Transport udp   # lan | moderate | harsh; udp | gns; gates in tools/soak/analyze.py
 python -I tools/soak/test_analyze.py
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
 python -I tools/evidence/evidence.py validate | index
@@ -75,12 +76,14 @@ python -I tools/collab/test_report.py
 - On PowerShell 5.1, `2>$null` on a native exe under `ErrorActionPreference=Stop` throws. Use `--log FILE` instead.
 - The Bash tool can fail on heredocs that contain apostrophes. Write the file with the Write tool instead.
 - The executables' main loops use `PreciseSleeper` (high-resolution waitable timer). Plain `sleep_for(1ms)` sleeps about 15.6 ms on Windows and added about 50 ms of RTT (KI-02, fixed).
-- Soak gates are fixed in `tools/soak/analyze.py` and versioned (`GATE_VERSION`, currently 3; v3 requires `run.json` `scenario` to match `SCENARIOS`). Never tune them to results. A gate change is a new version, decided and documented before the runs that use it.
+- Soak gates are fixed in `tools/soak/analyze.py` and versioned (`GATE_VERSION`, currently 4; v3 requires `run.json` `scenario` to match `SCENARIOS`; v4 requires `transport` to be declared and to match the host log; results are per transport). Never tune them to results. A gate change is a new version, decided and documented before the runs that use it.
 - Soak evidence is immutable: each run gets a fresh `evidence/logs/soak-<timestamp>-<profile>-g<N>/` directory. Never delete or re-analyze an existing run into the same directory (the analyzer refuses).
-- Host and Client talk through `net::Transport` contract v2 (`PeerId{id,generation}`, events, `Delivery`, `SendResult`; normative comments in `src/network/transport.hpp`). Only the UDP backend exists; the GNS adapter is next and **must pass `tests/transport` unchanged**. Never let host/client code touch sockets directly, and never treat a PeerId as an address.
-- GNS 1.6.1 open-source accepts unauthenticated peers by default (`IP_AllowWithoutAuth=2`) and has no public certificate-trust API. Authentication must be end-to-end at our layer (`docs/authentication-design.md`; library choice D-013 pending).
+- Host and Client talk through `net::Transport` contract v2 (`PeerId{id,generation}`, events, `Delivery`, `SendResult`; normative comments in `src/network/transport.hpp`). Backends: UDP and GNS (`gns_transport.cpp`, `-DMORDOR_WITH_GNS=ON`, `--transport gns`, `MORDOR_TRANSPORT=gns` for tests). Tests branch on `capabilities()`, never on the backend name; a test that cannot apply uses `UDP_ONLY(reason)` and reports SKIPPED, never PASS. Never let host/client code touch sockets directly, and never treat a PeerId as an address.
+- GNS fake impairment is **process-global** (KI-24): two transports in one process share it. Asymmetric-impairment tests are UDP-only. GNS jitter does not reorder (KI-25). GNS rejects listen port 0.
+- On GNS the transport owns connection establishment and every reconnect is a new connection (D-014). Under GNS, tests must couple the sim clock to real time (`test::step_wait`).
+- GNS 1.6.1 open-source accepts unauthenticated peers by default (`IP_AllowWithoutAuth=2`) and has no public certificate-trust API. Authentication must be end-to-end at our layer (`docs/authentication-design.md`; library choice D-013 pending, recommendation in `docs/d013-evaluation.md`). Until it is implemented and reviewed: loopback or explicitly trusted lab networks only. Add no crypto dependency without the owner's approval.
 - Git on this machine checks files out with CRLF. Exact-match edit scripts must handle `\r\n`; prefer the Edit tool.
-- Paused work: local branch `feature/reliable-events` (not pushed) holds the in-house reliable-channel WIP. The transport choice (in-house, ENet or GameNetworkingSockets) waits for the user.
+- Paused work: local branch `feature/reliable-events` (not pushed) holds the in-house reliable-channel WIP (parked as a possible test oracle; the user chose GNS, D-012).
 - Codex review fails here with `CryptUnprotectData failed: 2148073483` (EXP-008). Use an independent reviewer agent until that is fixed.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.
 

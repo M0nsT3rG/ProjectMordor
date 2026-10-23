@@ -322,16 +322,16 @@ void Host::check_timeouts(std::uint64_t now_us) {
     }
 }
 
-void Host::transmit(PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us) {
+void Host::transmit(PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, Delivery delivery) {
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    if (const auto r = transport_->send(to, bytes, Delivery::Unreliable, now_us); r != SendResult::Sent) {
+    if (const auto r = transport_->send(to, bytes, delivery, now_us); r != SendResult::Sent) {
         ++stats_.send_errors;  // surfaced, never silent (review FB-4-04)
         log_.debug("send_failed", {kv("result", to_string(r))});
     }
 }
 
-void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
+void Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery delivery) {
     Header h;
     h.session = session_;
     h.sequence = ++s.send_seq;
@@ -341,20 +341,24 @@ void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
         log_.error("encode_failed", {kv("type", static_cast<int>(type_of(m)))});
         return;
     }
-    transmit(s.peer, bytes, now_us);
+    transmit(s.peer, bytes, now_us, delivery);
 }
 
 void Host::send_unconnected(PeerId to, const Message& m, std::uint64_t now_us) {
     auto bytes = encode(Header{}, m);
     if (bytes.empty()) return;
-    transmit(to, bytes, now_us);
+    transmit(to, bytes, now_us, Delivery::Unreliable);
 }
 
 void Host::shutdown() {
     if (!running_) return;
+    const bool reliable = transport_->capabilities().reliable_ordered;
     for (auto& s : slots_)
-        if (s.connected)
-            for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
+        if (s.connected) {
+            if (reliable) send(s, Disconnect{DisconnectReason::HostShutdown}, 0, Delivery::ReliableOrdered);
+            else
+                for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
+        }
     transport_->flush_all();
     const auto& ts = transport_->stats();
     transport_->close();
