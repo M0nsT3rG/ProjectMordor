@@ -8,7 +8,19 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #6 (PR #6: GNS hardening and DTLS proof)
 
-- **Status:** received and triaged (2026-10-24) on `feature/dtls-transport` (stacked on PR #6). Nothing is implemented yet.
+- **Status:** triaged 2026-10-24 and **implemented** on `feature/dtls-transport` (stacked on PR #6), on the owner's go-ahead. Record: EXP-018. Review request #6.
+- **As implemented:**
+  - **FB-6-01:** fail-closed binding in `DtlsSession` (exporter confirmation over id, version and expiry). Tests cover each mismatched field, a missing confirmation and an expired invitation.
+  - **FB-6-02:** DTLS over `Transport::Unreliable` on both backends with OpenSSL timers, plus loss/jitter/reorder/duplication, reconnect and MTU tests. GNS reliable delivery is not used (decided).
+  - **FB-6-03:**
+    - root cause localised by probe and source reading;
+    - mitigated with a process-lifetime runtime and a 50 ms wait after the first Init;
+    - regression gates added;
+    - no upstream report filed.
+  - **FB-6-04:** wording sweep (`transport.hpp`, `protocol.md`, KI-26).
+  - **FB-6-05:** `scripts/asymmetric.ps1` with separate processes, passed on both transports.
+  - **Answer 3:** `--connect-deadline-s` bounded to [1, 120] s.
+  - **Answer 5:** HelloVerifyRequest cookies on both backends; statelessness is not done (KI-29).
 - **Source:** [PR #6 comment 6376091101](https://github.com/M0nsT3rG/ProjectMordor/pull/6#issuecomment-6376091101). ChatGPT reviewed the source of `1fc796f` only.
 - **ChatGPT's verdict:** conditional GO for isolated testing. Not approval for untrusted networks or for merge.
 

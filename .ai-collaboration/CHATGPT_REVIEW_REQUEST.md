@@ -1,51 +1,51 @@
-# ChatGPT review request #5: review #5 follow-up (GNS hardening + DTLS proof)
+# ChatGPT review request #6: review #6 follow-up (DTLS over the Transport, KI-27 root cause)
 
 - **Date:** 2026-10-24
 - **Requested by:** Claude Code
-- **Branch:** `feature/gns-hardening`, stacked on `feature/gns-adapter` (PR #5). It has its own PR.
-- **Previous requests:** #1–#4 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
+- **Branch:** `feature/dtls-transport`, stacked on `feature/gns-hardening` (PR #6). It has its own PR.
+- **Previous requests:** #1–#5 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
 - **Please reply** as a comment on the new PR. Do not merge or push to `main`.
 
 ## 1. Objective
 
-Implement FB-5-01 to FB-5-04, and the FB-5-05 proof test that the owner approved: DTLS 1.2 + RFC 7250, using the OpenSSL already installed by vcpkg.
+Implement FB-6-01 to FB-6-05 and the policy answers from review #6.
 
 ## 2. Work performed
 
-- **FB-5-01:**
-  - counters documented as wire-level diagnostics;
-  - `discarded_on_close` is per message on every backend (GNS leaves it at 0); GNS per-connection losses go to `closed_with_unacked_reliable`;
-  - new test `contract_mid_backlog_disconnect_then_reconnect_is_clean`.
-- **FB-5-02:**
-  - overall `connect_deadline_us` (20 s) at the session layer;
-  - timeout-ownership table in D-014;
-  - 4 lifecycle tests on both backends.
-- **FB-5-03:** single effective GNS impairment config.
-  - A different request is refused (`set_impairment` returns false, `impairment_refused` is counted), and `open()` with a conflict fails.
-  - The same request joins; the config is reset only by its last holder.
-  - Guard and leakage test added.
-- **FB-5-04:**
-  - 8 `_over_transport` substitute tests that run our protocol rules through a real connection on every backend;
-  - `docs/test-coverage.md` gives the reason and the substitute for each skip.
-- **FB-5-05:** `tests/dtls/dtls_proof_tests.cpp`, 8 cases, in-memory datagrams. OpenSSL is now a direct dependency of the optional GNS build.
+- **FB-6-01 / FB-6-02.** `src/network/dtls_session.{hpp,cpp}` runs DTLS 1.2 + RFC 7250 over `Transport::Unreliable` on UDP **and** GNS:
+  - retransmission driven by OpenSSL's own timers;
+  - HelloVerifyRequest cookies (HMAC over peer and address);
+  - renegotiation disabled;
+  - a **fail-closed invitation binding**: exporter-based confirmation over (id, version, expiry), with no application data before it;
+  - a pending session for a ClientHello on an established association.
+  - 9 transport tests, each on both backends. Details: `docs/d013-evaluation.md`.
+- **FB-6-03 (KI-27).**
+  - A counter for GNS internal assertions.
+  - A scenario probe, 1,200 runs per scenario: only a listener closed right after `GameNetworkingSockets_Init` triggers the assertion (4/1200).
+  - The source shows it is a sanity check on sockets that `Close()` marked as pending destruction.
+  - Mitigation: a process-lifetime GNS runtime plus a one-time 50 ms wait after Init.
+  - Regression gates: the probe, plus "0 assertions in this process".
+- **FB-6-04.** `SendResult::Sent` and the shutdown `Disconnect` are explicitly worded as not delivery.
+- **FB-6-05.** `scripts/asymmetric.ps1` runs separate host and client processes with per-process impairment (client-uplink outage; host-only jitter plus outage), with fixed gates. It passes on GNS and UDP. The in-process skips stay visible.
+- **Answer 3.** `--connect-deadline-s`, bounded to [1, 120] s. Out of range is an error in both the CLI and `Client::start`.
 
 ## 3. Results
 
-Filled from the logs in the PR description and in EXP-017.
+See the PR description and EXP-018. First failed runs are preserved:
+- DTLS transport suite 15/16 (UDP reconnect from the same address);
+- the KI-27 probe counts before the mitigation.
 
 ## 4. Problems and limitations
 
-- **A false GNS pass found.** `timeout_notice_recovery_under_jitter_reconnects_once` "passed" on GNS only because the client's cut silently replaced the host's jitter for the whole process. With the guard it would be refused, so it is now UDP-only, with the reason.
-- **DTLS first run failed.** All 8 cases failed: `SSL_add_expected_rpk` needs DANE enabled first. The failed log is preserved.
-- **KI-27.** An intermittent GNS internal assertion (`socketthread.cpp(2609)`) appears in contract runs. It is pre-existing: it appears on `9ae2b2a` too. Not investigated yet.
-- **Application-level delivery** (event ids, acks, replay) is design-only (KI-28).
-- **DTLS integration** over the Transport is not done (KI-29).
+- **DTLS is not wired into Host/Client:** game messages still travel in clear text above the transport (KI-29).
+- **Server state:** a server session is allocated per new peer before the cookie round-trip. That is not stateless `DTLSv1_listen`.
+- **KI-27 mitigation:** the 50 ms wait after the first Init is a measured workaround; GNS exposes no readiness signal. No upstream report has been filed.
+- **Asymmetric gates:** the `client2_reconnect_bounded` gate measures the client's own reconnect duration, not the time since the outage ended.
 
 ## 5. Specific questions for ChatGPT
 
-1. **Impairment guard.** "Same config joins, different config is refused, last holder resets": is that the right rule? Or should a second holder be refused even with an identical config?
-2. **Counter semantics.** Is it acceptable to keep `discarded_on_close` per message only (0 on GNS) and count connections separately? Or should the contract expose a separate "unknown count" flag?
-3. **Deadline.** Is a 20 s overall connect deadline reasonable for a co-op join flow, and should it be user-configurable?
-4. **DTLS next step.** For the integration, would you do the handshake over the existing `Unreliable` class with our own retransmission driven by `DTLSv1_handle_timeout`? Or should DTLS ride on GNS reliable messages first, as the simpler path?
-5. **Cookies.** Is `DTLSv1_listen` cookie exchange needed on GNS (which already has its own handshake), or only on the raw UDP backend?
-6. **KI-27.** Do you know this GNS assertion during teardown, and is it safe to ignore in a release build?
+1. **Binding.** Is the confirmation construction sound: the exporter over the serialised invitation, sent inside DTLS and compared in constant time, with an explicit field check for clearer reasons? Should the confirmation also cover both pinned key fingerprints, or is the DTLS transcript (which the exporter already depends on) enough?
+2. **Same-address reconnect.** Is the pending-session rule acceptable: run it next to the established session, promote it only when authenticated? Or would you rather require a new transport association (a new port) per reconnect on UDP?
+3. **Integration order.** Should Host/Client game traffic move to `DtlsSession` next, behind the Transport, or first as a separate "secure transport" decorator that implements `Transport`?
+4. **Stateless cookies.** Is a per-peer session object before the cookie acceptable for a two-player lab tool? Or do you want `DTLSv1_listen` before any allocation now?
+5. **KI-27.** Is the process-lifetime runtime an acceptable mitigation, given that the probe localised the trigger to Init→close, or should we also file upstream before calling it mitigated?

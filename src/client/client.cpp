@@ -43,6 +43,10 @@ bool Client::start(std::string* error) {
         if (error) *error = "invalid impairment configuration";
         return false;
     }
+    if (cfg_.connect_deadline_us < kMinConnectDeadlineUs || cfg_.connect_deadline_us > kMaxConnectDeadlineUs) {
+        if (error) *error = "connect_deadline_us outside [1 s, 120 s]";
+        return false;
+    }
     // Bind to loopback when talking to a loopback host so tests never open a LAN-facing port.
     const Endpoint bind_to = cfg_.host.is_loopback() ? Endpoint::loopback(0) : Endpoint{0, 0};
     transport_ = make_transport(cfg_.transport, cfg_.impairment, error);

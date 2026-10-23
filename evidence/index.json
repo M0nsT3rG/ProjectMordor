@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 79,
+  "count": 80,
   "records": [
     {
       "id": "EXP-001",
@@ -188,6 +188,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #5 FB-5-01..04 and the owner-approved FB-5-05 DTLS 1.2 + RFC 7250 proof test."
+    },
+    {
+      "id": "EXP-018",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-018.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #6 FB-6-01..05: fail-closed invitation binding, DTLS over a real Transport::Unreliable link on both backends, KI-27 root cause, wording, separate-process asymmetric scenarios; plus the bounded connect-deadline policy."
     },
     {
       "id": "F-COMM-001",

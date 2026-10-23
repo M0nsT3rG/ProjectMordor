@@ -45,6 +45,9 @@ int main(int argc, char** argv) {
                          "  --no-prediction   disable client-side prediction\n"
                          "  --stall-at-s N    freeze the client loop at N seconds (simulates a paused process)\n"
                          "  --stall-s N       stall length in seconds (default 5)\n"
+                         "  --outage-at-s N   cut this process's outgoing traffic at N seconds (100% send loss)\n"
+                         "  --outage-s N      outage length in seconds (default 5); with GNS only this process is cut\n"
+                         "  --connect-deadline-s N  overall connect deadline, 1..120 s (default 20)\n"
                       << cli::kImpairmentHelp;
             return 0;
         }
@@ -62,11 +65,18 @@ int main(int argc, char** argv) {
         cfg.host = *host;
         cfg.prediction = !args.has("no-prediction");
         cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
+        cfg.connect_deadline_us = cli::connect_deadline_us_from(args, client::kMinConnectDeadlineUs, client::kMaxConnectDeadlineUs,
+                                                                cfg.connect_deadline_us);
         const std::string pattern = args.str("pattern", "circle");
         const double duration_s = args.num<double>("duration-s", 10.0);
         const double stall_at_s = args.num<double>("stall-at-s", -1.0);
         const double stall_s = args.num<double>("stall-s", 5.0);
         bool stalled = false;
+        // Review #6 FB-6-05: an outage of THIS process's uplink only. With GNS (process-global impairment) this is
+        // how asymmetric scenarios run: separate processes, each with its own impairment.
+        const double outage_at_s = args.num<double>("outage-at-s", -1.0);
+        const double outage_s = args.num<double>("outage-s", 5.0);
+        enum class Outage { Before, During, After } outage = Outage::Before;
 
         client::Client c(cfg, log);
         std::string err;
@@ -89,6 +99,17 @@ int main(int argc, char** argv) {
                 std::this_thread::sleep_for(std::chrono::duration<double>(stall_s));
                 log.info("stall_end");
                 continue;
+            }
+            if (outage_at_s >= 0 && outage == Outage::Before && el >= outage_at_s) {
+                net::ImpairmentConfig cut = cfg.impairment;
+                cut.loss = 1.0;
+                if (!c.set_impairment(cut)) throw std::runtime_error("outage impairment refused");
+                outage = Outage::During;
+                log.info("outage_begin", {kv("outage_ms", static_cast<std::uint64_t>(outage_s * 1000))});
+            } else if (outage == Outage::During && el >= outage_at_s + outage_s) {
+                if (!c.set_impairment(cfg.impairment)) throw std::runtime_error("outage restore refused");
+                outage = Outage::After;
+                log.info("outage_end");
             }
             if (pattern == "circle") c.set_move(static_cast<float>(std::cos(el)), static_cast<float>(std::sin(el)));
             else if (pattern == "line") c.set_move(std::fmod(el, 4.0) < 2.0 ? 1.0f : -1.0f, 0.0f);

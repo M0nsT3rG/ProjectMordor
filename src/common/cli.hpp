@@ -72,6 +72,16 @@ inline net::TransportKind transport_from(const Args& a) {
     return *k;
 }
 
+// --connect-deadline-s: overall bound for one connect attempt (D-014 amended). Out of range is an error, not a clamp.
+inline std::uint64_t connect_deadline_us_from(const Args& a, std::uint64_t min_us, std::uint64_t max_us, std::uint64_t def_us) {
+    const double s = a.num<double>("connect-deadline-s", static_cast<double>(def_us) / 1e6);
+    const auto us = static_cast<std::uint64_t>(s * 1e6);
+    if (!(s > 0) || us < min_us || us > max_us)
+        throw std::invalid_argument("--connect-deadline-s must be within [" + std::to_string(min_us / 1'000'000) + ", " +
+                                    std::to_string(max_us / 1'000'000) + "] seconds");
+    return us;
+}
+
 inline constexpr const char* kImpairmentHelp =
     "  --transport T     udp (default) or gns (needs a MORDOR_WITH_GNS build; impairment is then process-global)\n"
     "  --loss P          drop outgoing packets with probability P (0..1)\n"

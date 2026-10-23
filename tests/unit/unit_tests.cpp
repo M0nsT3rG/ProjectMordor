@@ -3,6 +3,7 @@
 #include <numbers>
 #include <random>
 
+#include "common/cli.hpp"
 #include "test_support.hpp"
 
 using namespace mordor;
@@ -261,6 +262,32 @@ TEST(interpolation_is_consistent) {
     }
     for (std::uint32_t t = 13; t < 13 + 2 * sim::InterpolationBuffer::kCapacity; ++t) buf.push(t, {});
     CHECK(buf.size() == sim::InterpolationBuffer::kCapacity);
+}
+
+// Review #6 answer 3: the connect deadline is a configurable policy with an explicit range; out of range fails.
+TEST(connect_deadline_policy_is_bounded) {
+    auto parse = [](std::vector<const char*> argv) {
+        argv.insert(argv.begin(), "mordor-client");
+        cli::Args a(static_cast<int>(argv.size()), const_cast<char**>(argv.data()));
+        return cli::connect_deadline_us_from(a, client::kMinConnectDeadlineUs, client::kMaxConnectDeadlineUs, 20'000'000);
+    };
+    CHECK(parse({}) == 20'000'000);
+    CHECK(parse({"--connect-deadline-s", "30"}) == 30'000'000);
+    CHECK(parse({"--connect-deadline-s", "120"}) == 120'000'000);
+    for (const char* bad : {"0", "0.5", "121", "-3"}) {
+        bool threw = false;
+        try {
+            parse({"--connect-deadline-s", bad});
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+    client::ClientConfig cc;
+    cc.connect_deadline_us = 200'000'000;
+    client::Client c(cc, test::test_logger("client"));
+    std::string err;
+    CHECK(!c.start(&err) && !err.empty());  // the library refuses it too, not only the CLI
 }
 
 TEST(interpolation_takes_short_path_for_yaw) {

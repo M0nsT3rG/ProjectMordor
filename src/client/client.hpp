@@ -20,6 +20,10 @@ namespace mordor::client {
 enum class ClientState { Idle, Connecting, Connected, Reconnecting, Rejected, Disconnected, Failed };
 const char* to_string(ClientState s);
 
+// Application policy for the overall connect deadline (review #6 answer 3): configurable, explicitly bounded.
+inline constexpr std::uint64_t kMinConnectDeadlineUs = 1'000'000;
+inline constexpr std::uint64_t kMaxConnectDeadlineUs = 120'000'000;
+
 struct ClientConfig {
     net::Endpoint host = net::Endpoint::loopback(47800);
     std::uint64_t timeout_us = 3'000'000;

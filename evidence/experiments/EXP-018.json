@@ -1,0 +1,43 @@
+{
+  "id": "EXP-018",
+  "type": "experiment",
+  "date": "2026-10-24",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; real time",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #6 FB-6-01..05: fail-closed invitation binding, DTLS over a real Transport::Unreliable link on both backends, KI-27 root cause, wording, separate-process asymmetric scenarios; plus the bounded connect-deadline policy.",
+  "hypothesis": "DTLS 1.2 + RFC 7250 works over our Transport on UDP and GNS with OpenSSL's retransmission under impairment, and an exporter-based confirmation can bind the invitation fail-closed; the GNS assertion has an identifiable trigger.",
+  "procedure": "DtlsSession over Transport::Unreliable (BIO_s_dgram_mem shuttle, DTLSv1_get_timeout/handle_timeout, HVR cookies, no renegotiation, binding = exporter over (id, version, expiry) sent inside DTLS, constant-time compare, app data dropped before auth, pending session for ClientHello on an established association). 9 transport tests x 2 backends. KI-27: counted GNS asserts via the debug callback; probe of 7 teardown scenarios x 200 runs x 6 processes; source reading of steamnetworkingsockets_socketthread.cpp; mitigation = process-lifetime runtime + 50 ms settle after first Init; regression gates. Separate-process asymmetric scripts with fixed gates on both transports. All suites x2, E2E, soak v4 x6.",
+  "expected_result": "All tests and soaks pass on both transports; asymmetric gates pass; 0 GNS internal assertions after mitigation.",
+  "observed_result": "DTLS transport suite first run: {'PASSED': 15, 'FAILED': 1} (UDP reconnect from the same address reached the established session, which ignored the new ClientHello) -> pending-session rule; a first draft of the spurious-ClientHello test proved nothing (it could pass without the pending session ever opening, and injected nothing on GNS) and was strengthened. DTLS over the transport: authenticated on UDP and GNS; under 25% loss, 20% duplication, 20 ms latency, 30 ms jitter, 2-5 retransmission timeouts handled (UDP deterministic 3) and no app record delivered twice; wrong key rejected (no matching DANE TLSA records); each invitation field mismatch rejected on both sides with the specific reason; missing confirmation -> binding_timeout with app data dropped; expired invitation refused; reconnect = fresh confirmation; MTU 256 respected. KI-27: only 'listener closed right after GameNetworkingSockets_Init' triggered (4/1200; 50 ms after Init 0/1200; runtime kept alive 0/1200); source shows a debug sanity Assert(m_callback) over sockets that Close() marks as pending destruction (DBGFLAG_ASSERT is on in release). After mitigation 0 assertions in 6 full contract processes (8 before). Asymmetric separate-process scenarios: asym-2026-10-24-005931-uplink-outage-gns: PASSED | asym-2026-10-24-010013-host-jitter-client-outage-gns: PASSED | asym-2026-10-24-010045-uplink-outage-udp: PASSED | asym-2026-10-24-010127-host-jitter-client-outage-udp: PASSED. FINAL: {'unit': {'PASSED': 16}, 'integration': {'PASSED': 34}, 'network': {'PASSED': 16}, 'transport': {'PASSED': 17}, 'transport-both': {'PASSED': 19}, 'integration-gns': {'PASSED': 20, 'SKIPPED': 14}, 'network-gns': {'SKIPPED': 5, 'PASSED': 11}, 'gns': {'PASSED': 7}, 'dtls': {'PASSED': 17}}. Soak v4: soak-2026-10-24-010313-lan-udp-g4: 43/43; rtt p50/p99 10.5/12.2 ms; recovery 15.0 ms | soak-2026-10-24-010521-moderate-udp-g4: 43/43; rtt p50/p99 104.0/120.7 ms; recovery 163.0 ms | soak-2026-10-24-010729-harsh-udp-g4: 43/43; rtt p50/p99 204.3/237.7 ms; recovery 341.0 ms | soak-2026-10-24-010937-lan-gns-g4: 43/43; rtt p50/p99 9.0/12.1 ms; recovery 535.0 ms | soak-2026-10-24-011145-moderate-gns-g4: 43/43; rtt p50/p99 95.7/115.3 ms; recovery 700.0 ms | soak-2026-10-24-011354-harsh-gns-g4: 43/43; rtt p50/p99 187.6/234.2 ms; recovery 1255.0 ms.",
+  "evidence_paths": [
+    "evidence/logs/tests-dtls-transport-first-run-2026-10-24.json",
+    "evidence/logs/ki27-probe-2026-10-24.json",
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json",
+    "evidence/logs/soak-2026-10-24-010313-lan-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-010521-moderate-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-010729-harsh-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-010937-lan-gns-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-011145-moderate-gns-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-011354-harsh-gns-g4/summary.json",
+    "evidence/logs/asym-2026-10-24-005931-uplink-outage-gns/check.json",
+    "evidence/logs/asym-2026-10-24-010013-host-jitter-client-outage-gns/check.json",
+    "evidence/logs/asym-2026-10-24-010045-uplink-outage-udp/check.json",
+    "evidence/logs/asym-2026-10-24-010127-host-jitter-client-outage-udp/check.json"
+  ],
+  "result": "PASSED",
+  "errors": "DTLS transport first run 15/16; a weak first draft of one test; KI-27 probe counts are transcribed from console output (no log file existed).",
+  "confidence": "medium",
+  "follow_up": "Carry Host/Client game traffic over DtlsSession; cookie before per-peer state; independent review (KI-29). Upstream GNS report for KI-27 needs the owner (public posting).",
+  "related": [
+    "EXP-017",
+    "EXP-016"
+  ]
+}

@@ -40,7 +40,8 @@ struct PeerId {
 enum class Delivery { Unreliable, ReliableOrdered };
 
 enum class SendResult {
-    Sent,          // handed to the backend (or to the simulated network); may still be lost in the network
+    Sent,          // accepted by the backend (or the simulated network). NOT delivery: it may still be lost, and
+                   // even delivered data may never be processed by the peer application (FB-5-01, FB-6-04)
     Unsupported,   // backend cannot provide this delivery class
     NotConnected,  // unknown or stale PeerId
     TooLarge,      // payload above max_payload()

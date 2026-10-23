@@ -17,6 +17,9 @@ struct SteamNetConnectionStatusChangedCallback_t;
 
 namespace mordor::net {
 
+// Number of "Assertion Failed" messages GNS reported through its debug output in this process (KI-27).
+std::uint64_t gns_internal_assertions();
+
 class GnsTransport final : public Transport {
 public:
     explicit GnsTransport(const ImpairmentConfig& impairment);

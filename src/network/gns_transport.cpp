@@ -3,7 +3,9 @@
 #include <steam/isteamnetworkingutils.h>
 #include <steam/steamnetworkingsockets.h>
 
+#include <atomic>
 #include <chrono>
+#include <cstring>
 #include <cmath>
 #include <cstdio>
 #include <set>
@@ -24,6 +26,7 @@ constexpr int kCloseDrainMs = 500;         // bounded wait for unacknowledged re
 // Process-wide GNS runtime: init/kill refcount and routing of the plain-function status callback to its owner.
 struct Runtime {
     int refs = 0;
+    bool initialized = false;  // the GNS library lives for the whole process once started (KI-27)
     // Process-global fake impairment (FB-5-03): one effective config. Several instances may hold it only if they
     // asked for the same one; a different request is refused, and the config is reset when the last holder lets go.
     std::set<const GnsTransport*> impairment_holders;
@@ -46,7 +49,12 @@ void status_cb(SteamNetConnectionStatusChangedCallback_t* info) {
         if (auto it = r.listen_owner.find(info->m_info.m_hListenSocket); it != r.listen_owner.end()) it->second->on_status(info);
 }
 
-void debug_cb(ESteamNetworkingSocketsDebugOutputType, const char* msg) { std::fprintf(stderr, "[gns] %s\n", msg); }
+std::atomic<std::uint64_t> g_internal_assertions{0};  // KI-27 / FB-6-03: GNS asserts are counted, never ignored
+
+void debug_cb(ESteamNetworkingSocketsDebugOutputType, const char* msg) {
+    if (std::strstr(msg, "Assertion Failed")) ++g_internal_assertions;  // GNS service thread: atomic
+    std::fprintf(stderr, "[gns] %s\n", msg);
+}
 
 void set_global_f(ESteamNetworkingConfigValue v, float x) {
     SteamNetworkingUtils()->SetConfigValue(v, k_ESteamNetworkingConfig_Global, 0, k_ESteamNetworkingConfig_Float, &x);
@@ -55,17 +63,29 @@ void set_global_i(ESteamNetworkingConfigValue v, int32 x) {
     SteamNetworkingUtils()->SetConfigValue(v, k_ESteamNetworkingConfig_Global, 0, k_ESteamNetworkingConfig_Int32, &x);
 }
 
+// KI-27 / FB-6-03: GNS 1.6.1 marks a closed raw socket as "pending destruction" by clearing its callback and
+// deletes it later on its service thread; a debug sanity check in PollRawUDPSockets (socketthread.cpp:2609,
+// compiled in release too) asserts if it polls such a socket before that cleanup. Measured (EXP-018, 1200 runs
+// per scenario): only a listener closed right after GameNetworkingSockets_Init triggered it (4/1200); with the
+// runtime kept alive, or 50 ms after Init, 0/1200. So the library is initialised once per process and never
+// killed by us, and the first Init waits for the service thread to settle.
+constexpr int kInitSettleMs = 50;
+
 bool acquire(std::string* error) {
     auto& r = rt();
-    if (r.refs++ > 0) return true;
-    SteamDatagramErrMsg err{};
-    if (!GameNetworkingSockets_Init(nullptr, err)) {
-        r.refs = 0;
-        if (error) *error = std::string("GameNetworkingSockets_Init failed: ") + err;
-        return false;
+    if (!r.initialized) {
+        SteamDatagramErrMsg err{};
+        if (!GameNetworkingSockets_Init(nullptr, err)) {
+            if (error) *error = std::string("GameNetworkingSockets_Init failed: ") + err;
+            return false;
+        }
+        SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(status_cb);
+        SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Warning, debug_cb);
+        // shortcut: a fixed wait, not a readiness signal (GNS exposes none); measured sufficient, EXP-018.
+        std::this_thread::sleep_for(std::chrono::milliseconds(kInitSettleMs));
+        r.initialized = true;
     }
-    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(status_cb);
-    SteamNetworkingUtils()->SetDebugOutputFunction(k_ESteamNetworkingSocketsDebugOutputType_Warning, debug_cb);
+    ++r.refs;
     return true;
 }
 
@@ -106,15 +126,15 @@ void release() {
     apply_global_impairment({});  // never leak fake impairment into the next session/test
     r.impairment_holders.clear();
     r.impairment_active = {};
-    SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(nullptr);
-    GameNetworkingSockets_Kill();
-    r.listen_owner.clear();
-    r.conn_owner.clear();
+    // No GameNetworkingSockets_Kill (KI-27): the runtime stays up. Lingering connections closed with linger=true
+    // keep flushing their reliable data instead of being destroyed (KI-26). The OS reclaims it all at exit.
 }
 
 Endpoint to_endpoint(const SteamNetworkingIPAddr& a) { return {a.GetIPv4(), a.m_port}; }
 
 }  // namespace
+
+std::uint64_t gns_internal_assertions() { return g_internal_assertions.load(); }
 
 GnsTransport::GnsTransport(const ImpairmentConfig& impairment) : impairment_(impairment) {}
 
@@ -170,8 +190,9 @@ void GnsTransport::close() {
     if (runtime_acquired_) {
         auto* s = SteamNetworkingSockets();
         // Give reliable data (e.g. a graceful Disconnect) a bounded chance to be acknowledged before closing:
-        // GameNetworkingSockets_Kill would otherwise destroy lingering connections (found by the first GNS soak,
-        // where clean leaves turned into host-side timeouts, EXP-016).
+        // GameNetworkingSockets_Kill used to destroy lingering connections (found by the first GNS soak, where
+        // clean leaves turned into host-side timeouts, EXP-016). We no longer Kill (KI-27), but a process that
+        // exits right after close() still would, so the bounded drain stays.
         const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(kCloseDrainMs);
         for (const auto& [conn, c] : conns_) s->FlushMessagesOnConnection(conn);
         auto any_unacked = [&] {

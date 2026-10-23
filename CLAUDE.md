@@ -38,8 +38,9 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 34, network 16, transport 17 contract tests)
-./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends, gns spike, dtls proof
+./scripts/test.ps1 -Repeat 3   # ctest (unit 16, integration 34, network 16, transport 17 contract tests)
+./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (19), gns spike, dtls (17)
+./scripts/asymmetric.ps1 -Scenario uplink-outage -Transport gns   # separate-process asymmetric impairment
 ./scripts/soak.ps1 -Profile moderate -DurationS 120 -Transport udp   # lan | moderate | harsh; udp | gns; gates in tools/soak/analyze.py
 python -I tools/soak/test_analyze.py
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
@@ -81,7 +82,10 @@ python -I tools/collab/test_report.py
 - Host and Client talk through `net::Transport` contract v2 (`PeerId{id,generation}`, events, `Delivery`, `SendResult`; normative comments in `src/network/transport.hpp`). Backends: UDP and GNS (`gns_transport.cpp`, `-DMORDOR_WITH_GNS=ON`, `--transport gns`, `MORDOR_TRANSPORT=gns` for tests). Tests branch on `capabilities()`, never on the backend name; a test that cannot apply uses `UDP_ONLY(reason)` and reports SKIPPED, never PASS. Never let host/client code touch sockets directly, and never treat a PeerId as an address.
 - GNS fake impairment is **process-global** (KI-24): two transports in one process share it, and a different config while another instance holds one is refused (`set_impairment` returns false). Asymmetric-impairment tests are UDP-only; asymmetric GNS cases need separate processes. Substitutes and the per-skip matrix: `docs/test-coverage.md`.
 - Transport counters are wire-level diagnostics, never proof of delivery (FB-5-01). `discarded_on_close` counts messages; `closed_with_unacked_reliable` counts connections.
-- The client has an overall `connect_deadline_us` (20 s) on top of the transport timeouts (D-014 amended). `tests/dtls` is the D-013 DTLS proof (GNS build only, OpenSSL direct dependency); `SSL_add_expected_rpk` needs DANE enabled first. GNS jitter does not reorder (KI-25). GNS rejects listen port 0.
+- The client has an overall `connect_deadline_us` (20 s) on top of the transport timeouts (D-014 amended). `tests/dtls` is the D-013 DTLS proof (GNS build only, OpenSSL direct dependency); `SSL_add_expected_rpk` needs DANE enabled first.
+- `src/network/dtls_session.*` (GNS build only): DTLS 1.2 + RFC 7250 over `Transport::Unreliable` on both backends, with fail-closed invitation binding. It is not wired into Host/Client yet (KI-29). Never carry DTLS over GNS reliable delivery.
+- The GNS runtime is initialised once per process and never killed (KI-27). `gns_internal_assertions()` counts GNS asserts; the transport suite requires 0.
+- `./scripts/asymmetric.ps1 -Scenario uplink-outage|host-jitter-client-outage -Transport gns|udp` runs asymmetric impairment in separate processes (gates in `tools/e2e/check_asymmetric.py`). GNS jitter does not reorder (KI-25). GNS rejects listen port 0.
 - On GNS the transport owns connection establishment and every reconnect is a new connection (D-014). Under GNS, tests must couple the sim clock to real time (`test::step_wait`).
 - GNS 1.6.1 open-source accepts unauthenticated peers by default (`IP_AllowWithoutAuth=2`) and has no public certificate-trust API. Authentication must be end-to-end at our layer (`docs/authentication-design.md`; library choice D-013 pending, recommendation in `docs/d013-evaluation.md`). Until it is implemented and reviewed: loopback or explicitly trusted lab networks only. Add no crypto dependency without the owner's approval.
 - Git on this machine checks files out with CRLF. Exact-match edit scripts must handle `\r\n`; prefer the Edit tool.

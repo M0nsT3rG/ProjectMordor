@@ -4,7 +4,7 @@
 
 ## GNS adapter (EXP-016)
 
-- **Runtime.** One process-wide GNS instance (refcounted). Callbacks are routed to the owning `GnsTransport` by listen socket or connection handle. Each instance has a poll group.
+- **Runtime.** One process-wide GNS instance, initialised on first use and **never killed** by us (KI-27, EXP-018: rapid Init/Kill cycles exposed a GNS-internal assertion; the first Init waits 50 ms). Callbacks are routed to the owning `GnsTransport` by listen socket or connection handle. Each instance has a poll group.
 - **Identity.** Each GNS connection maps to a `PeerId`. A reconnect is a new connection and therefore a new `PeerId` (D-014).
 - **Events.** `Connected` on `k_ESteamNetworkingConnectionState_Connected`; `Disconnected` on closed-by-peer or problem-detected-locally.
 - **Sends.** `Unreliable` → `UnreliableNoDelay`; `ReliableOrdered` → `Reliable | NoNagle`. `k_EResultLimitExceeded` → `Backpressure`; `NoConnection`/`InvalidState` → `NotConnected`.

@@ -26,6 +26,17 @@
 | `silent_host_loss_ends_in_failed_state` (network) | raw UDP silent "host" | `connect_to_absent_host_fails_within_deadline`, `black_holed_connect_hits_overall_deadline` |
 | `timeout_notice_recovery_under_jitter_reconnects_once` (network) | per-instance impairment. **Its earlier GNS "pass" was false:** the client's cut silently replaced the host's jitter process-wide, so the scenario never ran. The FB-5-03 guard now refuses that overwrite. | Soak harsh profile (host and client jitter, client stall) on GNS |
 
+## Separate-process asymmetric scenarios (review #6 FB-6-05)
+
+`scripts/asymmetric.ps1` runs host, client1 and client2 as separate processes, so each has its own impairment, even on GNS. Gates are in `tools/e2e/check_asymmetric.py`, fixed before the first run, with self-checks in `test_check_asymmetric.py`.
+
+| Scenario | What it covers | GNS | UDP |
+|---|---|---|---|
+| `uplink-outage` | client2's uplink alone is cut for 5 s; client1 is unaffected (in-process skips: `timed_out_client_is_told_and_reconnects_fast`, `timed_out_client_reconnects_with_same_identity`) | passed | passed |
+| `host-jitter-client-outage` | host-only latency and jitter, plus the client2 uplink outage (in-process skip: `timeout_notice_recovery_under_jitter_reconnects_once`) | passed | passed |
+
+These scenarios cover the in-process skips **as behaviour**: they do not turn them into passes. The 14 + 5 in-process skips stay SKIPPED and visible.
+
 ## Coverage by area
 
 | Area | UDP | GNS |

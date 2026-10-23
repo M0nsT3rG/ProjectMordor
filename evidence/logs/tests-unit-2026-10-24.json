@@ -13,5 +13,6 @@
   {"name":"simulation_replay_is_deterministic","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"world_assigns_unique_entity_ids","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"interpolation_is_consistent","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"connect_deadline_policy_is_bounded","result":"PASSED","transport":"udp","ms":1,"error":""},
   {"name":"interpolation_takes_short_path_for_yaw","result":"PASSED","transport":"udp","ms":0,"error":""}
 ]

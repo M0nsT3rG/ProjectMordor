@@ -8,7 +8,7 @@ Source: [`src/network/protocol.hpp`](../src/network/protocol.hpp). This protocol
 - Every packet is unreliable. Robustness comes from repetition:
   - inputs are sent redundantly;
   - snapshots supersede each other;
-  - Disconnect is sent 3 times;
+  - Disconnect is sent 3 times on unreliable-only backends (UDP), and once as `ReliableOrdered` where the backend offers it (GNS, EXP-016). In both cases this is best effort, not a delivery guarantee: the peer's timeout remains the backstop;
   - connect requests are retried.
 
 ## Header (22 bytes, little-endian, frozen across versions)

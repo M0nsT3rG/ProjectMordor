@@ -77,7 +77,43 @@ The owner approved a minimal proof test with the vcpkg OpenSSL, now a **direct**
 
 OpenSSL's error queue is per thread and both peers share one thread here, so the printed reasons can mix both sides. The tests assert `SSL_get_verify_result` on the side that must reject.
 
-**Status:** the evidence supports Option A as the working choice for the next step (integration behind the Transport). D-013 is **not** closed: the integration and an independent review are still required, and until then the prototype stays on loopback or trusted lab networks.
+## DTLS over a real transport, with the invitation binding (review #6 FB-6-01/02, 2026-10-24)
+
+`src/network/dtls_session.{hpp,cpp}` (GNS build only) runs one DTLS 1.2 session per peer. Records travel as plain `Transport::Unreliable` payloads on **both** backends. OpenSSL's own timers drive retransmission (`DTLSv1_get_timeout`/`DTLSv1_handle_timeout`). GNS reliable delivery is deliberately **not** used to carry DTLS: DTLS is designed for datagrams, and one code path for both backends keeps the security layer independent of the transport (review #6 answer 4).
+
+**Fail-closed binding (FB-6-01).** After the handshake, each side sends inside the channel the invitation it holds (id, protocol version, expiry) and a confirmation value: the TLS exporter (RFC 5705, label `EXPORTER-mordor-invitation-binding`, context = that invitation).
+- The receiver accepts only if every field equals its own invitation, its own invitation has not expired, and the confirmation equals its own exporter value (`CRYPTO_memcmp`).
+- Application data before that is counted and dropped.
+- A binding is resent every 200 ms until the peer's arrives; with no binding after 5 s the session is rejected.
+- No custom crypto: identity is the pinned key, and binding and freshness come from DTLS and its exporter.
+
+**Other rules:**
+- **Cookies:** HelloVerifyRequest cookies on every server session, as HMAC-SHA256 over the peer id and address with a per-process random key (answer 5).
+- **Renegotiation:** disabled.
+- **Reconnect from the same address (UDP):** an epoch-0 ClientHello on an established association opens a **pending** session next to it. The pending session is promoted only once it authenticates, so a spoofed ClientHello cannot tear down a valid session.
+
+Suite `dtls`: 17 tests, the 8 in-memory proofs above plus 9 over a real link, each run on UDP and GNS.
+
+| Case (both backends) | Result |
+|---|---|
+| Pinned keys + binding | authenticated; fingerprints = pins; same confirmation on both sides; ≥1 cookie verified; data both ways |
+| 25% loss, 20% duplication, 20 ms latency, 30 ms jitter (reorders) | authenticated; retransmission timeouts handled (UDP 3, seeded; GNS 2–5); app records never delivered twice |
+| Wrong pinned key | rejected (`no matching DANE TLSA records`) |
+| Invitation id / version / expiry mismatch | **both** sides rejected with the specific reason; no application data |
+| Peer never sends its confirmation | host drops its data (`app_dropped_before_auth`), then `binding_timeout` |
+| Expired invitation (client clock ahead) | client refuses before handshaking; the host never authenticates |
+| Reconnect | new handshake and a fresh confirmation (UDP: pending session promoted; GNS: new connection) |
+| Spurious ClientHello on an established UDP association | the pending session fails; the established one is untouched and keeps working (n/a on GNS: nobody can inject into a connection) |
+| MTU 256 | authenticated; no datagram above 256 bytes |
+
+**First run: 15/16** (log `tests-dtls-transport-first-run-2026-10-24.json`). A UDP reconnect from the same address hit the established session, which ignored the new ClientHello. Fixed by the pending-session rule above.
+
+**Status:** the evidence supports Option A as the working choice for the next step (integration behind the Transport). D-013 is **not** closed. Still required:
+- carrying Host/Client game messages over `DtlsSession` (they still travel in clear text above the transport);
+- a cookie exchange before allocating any per-peer state;
+- an independent review.
+
+Until then the prototype stays on loopback or trusted lab networks.
 
 ## Sources
 

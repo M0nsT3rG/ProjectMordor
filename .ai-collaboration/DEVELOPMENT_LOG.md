@@ -2,6 +2,26 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #6 follow-up (`feature/dtls-transport`, stacked on #6)
+
+- **Input:** [PR #6 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/6#issuecomment-6376091101), FB-6-01 to FB-6-05, on the owner's go-ahead.
+- **Changes:**
+  - `DtlsSession` over `Transport::Unreliable` with a fail-closed invitation binding, HVR cookies and a pending session for same-address reconnects.
+  - KI-27 root cause and mitigation: process-lifetime GNS runtime plus 50 ms settle; assertion counter and regression gates.
+  - `scripts/asymmetric.ps1` with `tools/e2e/check_asymmetric.py`.
+  - `--connect-deadline-s` bounded to [1, 120] s.
+  - Wording sweep.
+- **Tests:**
+  - unit {'PASSED': 16}; integration {'PASSED': 34}; network {'PASSED': 16}; transport {'PASSED': 17}; transport-both {'PASSED': 19}; integration-gns {'PASSED': 20, 'SKIPPED': 14}; network-gns {'SKIPPED': 5, 'PASSED': 11}; gns {'PASSED': 7}; dtls {'PASSED': 17};
+  - ×2 in both builds, plus E2E;
+  - soak v4 43/43 × 6;
+  - asymmetric 4/4.
+- **Problems encountered:**
+  - DTLS transport first run 15/16;
+  - a weak first test draft;
+  - KI-27 probe numbers exist only as console transcriptions.
+- **Remaining:** game traffic over DTLS, a stateless cookie, an independent review (KI-29).
+
 ## 2026-10-24: Review #5 follow-up (`feature/gns-hardening`, stacked on #5)
 
 - **Input:** [PR #5 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/5#issuecomment-6375464043), FB-5-01 to FB-5-05; the owner approved the implementation and the DTLS proof test.

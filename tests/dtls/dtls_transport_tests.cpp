@@ -1,0 +1,340 @@
+// DTLS 1.2 + RFC 7250 over a REAL Transport::Unreliable link, on every backend in this build (review #6
+// FB-6-01/FB-6-02). Real time, loopback; OpenSSL's own timers drive retransmission. Impairment: UDP per instance
+// (both directions), GNS process-global (one holder).
+#include <openssl/evp.h>
+
+#include <chrono>
+#include <ctime>
+#include <memory>
+#include <set>
+
+#include "network/dtls_session.hpp"
+#include "test_support.hpp"
+
+using namespace mordor;
+using namespace mordor::net;
+
+namespace {
+
+struct Key {
+    EVP_PKEY* p = EVP_PKEY_Q_keygen(nullptr, nullptr, "EC", "P-256");
+    Key() { if (!p) throw test::CheckFailure("keygen failed"); }
+    ~Key() { EVP_PKEY_free(p); }
+    Key(const Key&) = delete;
+    Key& operator=(const Key&) = delete;
+    std::vector<std::uint8_t> spki() const { return spki_der(p); }
+};
+
+std::uint64_t now_us() {
+    return static_cast<std::uint64_t>(
+        std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now().time_since_epoch()).count());
+}
+std::uint64_t now_unix() { return static_cast<std::uint64_t>(std::time(nullptr)); }
+
+std::vector<TransportKind> backends() {
+    std::vector<TransportKind> out;
+    for (auto k : {TransportKind::Udp, TransportKind::Gns})
+        if (transport_available(k)) out.push_back(k);
+    return out;
+}
+
+Invitation invite(const char* id = "invite-0001") { return {id, kProtocolVersion, now_unix() + 3600}; }
+
+// A host transport + session per incoming peer, and a client transport + session to the host.
+struct Link {
+    TransportKind kind;
+    Key host_key, client_key;
+    DtlsConfig host_cfg, client_cfg;
+    std::unique_ptr<Transport> host_t, client_t;
+    std::unique_ptr<DtlsSession> host_s, client_s;
+    std::unique_ptr<DtlsSession> host_pending;  // a new handshake on an established association (UDP reconnect)
+    int promotions = 0, pending_opened = 0, pending_rejected = 0;
+    PeerId to_host{};
+    std::uint64_t client_clock_offset_s = 0;  // to simulate a client whose wall clock is ahead
+
+    explicit Link(TransportKind k, ImpairmentConfig imp = {}) : kind(k) {
+        host_cfg.server = true;
+        host_cfg.own_key = host_key.p;
+        host_cfg.peer_spki = client_key.spki();
+        host_cfg.invitation = invite();
+        client_cfg.own_key = client_key.p;
+        client_cfg.peer_spki = host_key.spki();
+        client_cfg.invitation = host_cfg.invitation;
+        std::string err;
+        // UDP: impair both sides independently (different seeds). GNS: one process-global holder.
+        ImpairmentConfig host_imp = imp, client_imp = imp;
+        client_imp.seed = imp.seed + 1;
+        const bool per_instance = make_transport(k, {}, &err)->capabilities().per_instance_impairment;
+        host_t = make_transport(k, host_imp, &err);
+        client_t = make_transport(k, per_instance ? client_imp : ImpairmentConfig{}, &err);
+        if (!host_t || !host_t->open(Endpoint::loopback(0), true, &err)) throw test::CheckFailure("host open: " + err);
+        if (!client_t || !client_t->open(Endpoint::loopback(0), false, &err)) throw test::CheckFailure("client open: " + err);
+    }
+    ~Link() {
+        host_s.reset();
+        client_s.reset();
+        if (host_t) host_t->set_impairment({});
+        if (client_t) client_t->set_impairment({});
+    }
+    void start_client() {
+        to_host = client_t->connect(Endpoint::loopback(host_t->local_endpoint().port)).value();
+        client_s = std::make_unique<DtlsSession>(*client_t, to_host, Endpoint::loopback(host_t->local_endpoint().port), client_cfg);
+    }
+    template <class Pred>
+    bool pump(Pred done, int max_ms) {
+        const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(max_ms);
+        while (std::chrono::steady_clock::now() < deadline) {
+            std::vector<TransportEvent> ev;
+            host_t->poll(now_us(), ev);
+            for (auto& e : ev) {
+                if (e.kind != TransportEvent::Kind::Message) continue;
+                if (!host_s || host_s->peer() != e.peer) {  // first datagram of a (new) connection: new session
+                    host_s = std::make_unique<DtlsSession>(*host_t, e.peer, e.remote, host_cfg);
+                    host_pending.reset();
+                } else if (!host_pending && host_s->state() != DtlsState::Handshaking && dtls_is_client_hello(e.bytes)) {
+                    host_pending = std::make_unique<DtlsSession>(*host_t, e.peer, e.remote, host_cfg);
+                    ++pending_opened;
+                }
+                // Each session silently drops records it cannot decrypt, so both may see every datagram.
+                host_s->on_datagram(e.bytes, now_us(), now_unix());
+                if (host_pending) host_pending->on_datagram(e.bytes, now_us(), now_unix());
+            }
+            if (host_pending) {
+                host_pending->service(now_us(), now_unix());
+                if (host_pending->state() == DtlsState::Authenticated) {
+                    host_s = std::move(host_pending);
+                    ++promotions;
+                } else if (host_pending->state() == DtlsState::Rejected) {
+                    host_pending.reset();  // the established session is untouched
+                    ++pending_rejected;
+                }
+            }
+            ev.clear();
+            client_t->poll(now_us(), ev);
+            for (auto& e : ev)
+                if (e.kind == TransportEvent::Kind::Message && client_s && e.peer == to_host)
+                    client_s->on_datagram(e.bytes, now_us(), now_unix() + client_clock_offset_s);
+            if (client_s) client_s->service(now_us(), now_unix() + client_clock_offset_s);
+            if (host_s) host_s->service(now_us(), now_unix());
+            host_t->flush(now_us());
+            client_t->flush(now_us());
+            if (done()) return true;
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        return done();
+    }
+    bool both(DtlsState s) const { return host_s && client_s && host_s->state() == s && client_s->state() == s; }
+    bool settled() const {  // both sides reached a final state
+        auto final = [](const std::unique_ptr<DtlsSession>& x) {
+            return x && (x->state() == DtlsState::Authenticated || x->state() == DtlsState::Rejected);
+        };
+        return final(host_s) && final(client_s);
+    }
+    void report(const char* test) const {
+        auto st = [](const std::unique_ptr<DtlsSession>& x) {
+            return x ? std::string(to_string(x->state())) + (x->reason().empty() ? "" : " (" + x->reason().substr(0, 60) + ")") : "none";
+        };
+        std::printf("       %s on %s: host %s, client %s\n", test, to_string(kind), st(host_s).c_str(), st(client_s).c_str());
+    }
+};
+
+ImpairmentConfig bad_network() {
+    ImpairmentConfig c;
+    c.loss = 0.25;
+    c.duplicate = 0.2;
+    c.latency_ms = 20;
+    c.jitter_ms = 30;
+    c.seed = 41;
+    return c;
+}
+
+}  // namespace
+
+TEST(dtls_over_transport_authenticates_with_pinned_keys_and_binding) {
+    for (auto k : backends()) {
+        Link l(k);
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        l.report("dtls_over_transport_authenticates_with_pinned_keys_and_binding");
+        CHECK(l.host_s->peer_fingerprint() == spki_fingerprint(l.client_key.spki()));
+        CHECK(l.client_s->peer_fingerprint() == spki_fingerprint(l.host_key.spki()));
+        CHECK(l.host_s->confirmation() == l.client_s->confirmation());
+        CHECK(l.host_s->stats().cookies_verified >= 1);  // HelloVerifyRequest exchange happened
+        const std::vector<std::uint8_t> a{1, 2, 3}, b{4, 5};
+        CHECK(l.client_s->send(a));
+        CHECK(l.host_s->send(b));
+        std::vector<std::vector<std::uint8_t>> at_host, at_client;
+        CHECK(l.pump([&] {
+            for (auto& m : l.host_s->take_received()) at_host.push_back(m);
+            for (auto& m : l.client_s->take_received()) at_client.push_back(m);
+            return !at_host.empty() && !at_client.empty();
+        }, 3000));
+        CHECK(at_host.size() == 1 && at_host[0] == a);
+        CHECK(at_client.size() == 1 && at_client[0] == b);
+    }
+}
+
+// OpenSSL's retransmission under loss, duplication, delay and reordering; replay protection over a real link.
+TEST(dtls_over_transport_survives_loss_jitter_reorder_and_duplication) {
+    for (auto k : backends()) {
+        Link l(k, bad_network());
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 15000));
+        l.report("dtls_over_transport_survives_loss_jitter_reorder_and_duplication");
+        const auto retransmits = l.host_s->stats().timeouts_handled + l.client_s->stats().timeouts_handled;
+        std::printf("       %s: %llu retransmission timeouts handled\n", to_string(k), static_cast<unsigned long long>(retransmits));
+        if (k == TransportKind::Udp) CHECK(retransmits >= 1);  // seeded loss: deterministic; GNS loss is random
+        std::multiset<std::uint8_t> got;
+        for (std::uint8_t i = 1; i <= 60; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}));
+        l.pump([&] {
+            for (auto& m : l.host_s->take_received()) got.insert(m[0]);
+            return false;
+        }, 2000);
+        for (auto v : got) CHECK(got.count(v) == 1 && v >= 1 && v <= 60);  // duplicated datagrams never delivered twice
+        std::printf("       %s: %zu of 60 unreliable app records arrived, none twice\n", to_string(k), got.size());
+        CHECK(!got.empty());
+    }
+}
+
+TEST(dtls_over_transport_wrong_pinned_key_is_rejected) {
+    for (auto k : backends()) {
+        Link l(k);
+        Key mitm;
+        l.client_cfg.peer_spki = mitm.spki();  // the client expects someone else
+        l.start_client();
+        CHECK(l.pump([&] { return l.client_s->state() == DtlsState::Rejected; }, 10000));
+        l.pump([&] { return l.host_s && l.host_s->state() == DtlsState::Rejected; }, 2000);
+        l.report("dtls_over_transport_wrong_pinned_key_is_rejected");
+        CHECK(l.client_s->reason().rfind("handshake_failed", 0) == 0);
+        CHECK(!l.host_s || l.host_s->state() != DtlsState::Authenticated);
+    }
+}
+
+// FB-6-01: the binding is fail-closed. Each mismatched field is rejected; neither side ever authenticates.
+TEST(dtls_binding_rejects_mismatched_invitation_id_version_and_expiry) {
+    struct Case {
+        const char* name;
+        void (*mutate)(Invitation&);
+        const char* reason;
+    };
+    const Case cases[] = {
+        {"id", [](Invitation& i) { i.id = "invite-9999"; }, "binding_invitation_mismatch"},
+        {"version", [](Invitation& i) { i.protocol_version = static_cast<std::uint16_t>(i.protocol_version + 1); }, "binding_version_mismatch"},
+        {"expiry", [](Invitation& i) { i.expires_unix_s += 60; }, "binding_expiry_mismatch"},
+    };
+    for (auto k : backends())
+        for (const auto& c : cases) {
+            Link l(k);
+            c.mutate(l.client_cfg.invitation);
+            l.start_client();
+            CHECK(l.pump([&] { return l.settled(); }, 10000));
+            std::printf("       mismatched %s: ", c.name);
+            l.report("binding");
+            CHECK(l.both(DtlsState::Rejected));
+            CHECK(l.host_s->reason() == c.reason || l.client_s->reason() == c.reason);
+            CHECK(l.host_s->stats().app_in == 0 && l.client_s->stats().app_in == 0);
+        }
+}
+
+// A peer that completes DTLS but never sends its confirmation: the other side drops everything it sends and
+// gives up (binding_timeout); it never accepts application data.
+TEST(dtls_binding_missing_confirmation_fails_closed) {
+    for (auto k : backends()) {
+        Link l(k);
+        l.client_cfg.send_binding = false;
+        l.host_cfg.binding_timeout_us = 1'500'000;
+        l.start_client();
+        CHECK(l.pump([&] { return l.client_s->state() == DtlsState::Authenticated; }, 10000));  // it saw OUR binding
+        for (std::uint8_t i = 0; i < 5; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}));
+        CHECK(l.pump([&] { return l.host_s->state() == DtlsState::Rejected; }, 5000));
+        l.report("dtls_binding_missing_confirmation_fails_closed");
+        CHECK(l.host_s->reason() == "binding_timeout");
+        CHECK(l.host_s->stats().app_in == 0);
+        CHECK(l.host_s->stats().app_dropped_before_auth >= 1);
+        CHECK(l.host_s->take_received().empty());
+    }
+}
+
+TEST(dtls_binding_expired_invitation_is_refused) {
+    for (auto k : backends()) {
+        Link l(k);
+        l.client_clock_offset_s = 7200;  // the client's clock says the invitation (1 h) is already expired
+        l.start_client();
+        CHECK(l.pump([&] { return l.client_s->state() == DtlsState::Rejected; }, 3000));
+        l.pump([] { return false; }, 300);
+        l.report("dtls_binding_expired_invitation_is_refused");
+        CHECK(l.client_s->reason() == "invitation_expired");
+        CHECK(!l.host_s || l.host_s->state() != DtlsState::Authenticated);
+    }
+}
+
+// Reconnect = a new transport connection and a completely new handshake; nothing carries over.
+TEST(dtls_reconnect_is_a_new_handshake_with_a_fresh_binding) {
+    for (auto k : backends()) {
+        Link l(k);
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        const auto first = l.client_s->confirmation();
+        const auto* first_session = l.host_s.get();
+        l.client_t->close_peer(l.to_host);
+        l.client_s.reset();
+        l.start_client();
+        // UDP: same PeerId, pending session promoted. GNS: new connection, new PeerId, new session.
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated) && l.host_s.get() != first_session; }, 10000));
+        std::printf("       %s: host promotions of a pending session: %d\n", to_string(k), l.promotions);
+        l.report("dtls_reconnect_is_a_new_handshake_with_a_fresh_binding");
+        CHECK(l.client_s->confirmation() != first);
+        CHECK(l.client_s->confirmation() == l.host_s->confirmation());
+    }
+}
+
+// A forged/replayed ClientHello on an established association must not disturb it: the pending session that it
+// opens fails (no valid peer behind it) and the established one keeps working.
+TEST(dtls_spurious_client_hello_does_not_disturb_an_established_session) {
+    for (auto k : backends()) {
+        Link l(k);
+        if (l.client_t->capabilities().reports_disconnects) {
+            // Connection-oriented: a third party cannot inject into the client's connection (GNS's own handshake
+            // and encryption sit below us), so there is no association to spoof here.
+            std::printf("       not applicable on %s: cannot inject into an existing connection\n", to_string(k));
+            continue;
+        }
+        l.host_cfg.handshake_timeout_us = 1'500'000;
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        const auto* established = l.host_s.get();
+        // An epoch-0 ClientHello from the client's address with a key the host does not pin (what an off-path
+        // attacker spoofing the address, or a replay, would produce).
+        Key other;
+        DtlsConfig fake = l.client_cfg;
+        fake.own_key = other.p;
+        {
+            DtlsSession probe(*l.client_t, l.to_host, Endpoint::loopback(l.host_t->local_endpoint().port), fake);
+            probe.service(now_us(), now_unix());  // emits one ClientHello through the client's socket, then goes away
+        }
+        CHECK(l.pump([&] { return l.pending_opened == 1 && l.host_pending == nullptr; }, 4000));
+        CHECK(l.pending_rejected == 1 && l.promotions == 0);
+        CHECK(l.host_s.get() == established && l.host_s->state() == DtlsState::Authenticated);
+        CHECK(l.client_s->send(std::vector<std::uint8_t>{42}));
+        std::vector<std::vector<std::uint8_t>> got;
+        CHECK(l.pump([&] {
+            for (auto& m : l.host_s->take_received()) got.push_back(m);
+            return !got.empty();
+        }, 3000));
+        l.report("dtls_spurious_client_hello_does_not_disturb_an_established_session");
+        CHECK(l.host_s.get() == established && got[0] == std::vector<std::uint8_t>{42});
+    }
+}
+
+TEST(dtls_small_mtu_fragments_the_handshake_within_the_limit) {
+    for (auto k : backends()) {
+        Link l(k);
+        l.host_cfg.mtu = l.client_cfg.mtu = 256;
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        l.report("dtls_small_mtu_fragments_the_handshake_within_the_limit");
+        std::printf("       %s: largest datagram host %zu, client %zu bytes\n", to_string(k), l.host_s->stats().max_datagram_out,
+                    l.client_s->stats().max_datagram_out);
+        CHECK(l.host_s->stats().max_datagram_out <= 256 && l.client_s->stats().max_datagram_out <= 256);
+    }
+}

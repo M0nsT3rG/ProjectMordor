@@ -539,3 +539,65 @@ TEST(contract_process_global_impairment_is_guarded_and_never_leaks) {
         std::printf("       %s: conflicting config refused, same config shared, released by the last holder\n", to_string(k));
     }
 }
+
+// ---- KI-27 / review #6 FB-6-03: GNS internal assertion during teardown. Each scenario is repeated and the
+// assertions GNS reports are counted per scenario, so the trigger can be isolated (and a fix regression-tested).
+#ifdef MORDOR_HAVE_GNS
+#include "network/gns_transport.hpp"
+
+TEST(gns_teardown_assertion_probe) {
+    constexpr int kRuns = 200;
+    struct Scenario {
+        const char* name;
+        void (*run)();
+    };
+    const Scenario scenarios[] = {
+        {"open_close_client", [] { auto c = make_open(TransportKind::Gns, false); }},
+        {"open_close_listener", [] { auto h = make_open(TransportKind::Gns, true); }},
+        {"open_listener_wait_50ms_close", [] {
+             auto h = make_open(TransportKind::Gns, true);
+             std::this_thread::sleep_for(std::chrono::milliseconds(50));
+         }},
+        {"listener_with_runtime_kept_alive", [] {  // another instance holds the runtime: no Init/Kill per run
+             static auto keeper = make_open(TransportKind::Gns, false);
+             auto h = make_open(TransportKind::Gns, true);
+         }},
+        {"connect_then_close_immediately", [] {
+             auto h = make_open(TransportKind::Gns, true);
+             auto c = make_open(TransportKind::Gns, false);
+             const auto p = c->connect(Endpoint::loopback(h->local_endpoint().port));
+             c->send(*p, payload(1), Delivery::Unreliable, now_us());
+         }},
+        {"connected_close_client_first", [] {
+             auto h = make_open(TransportKind::Gns, true);
+             auto c = make_open(TransportKind::Gns, false);
+             c->connect(Endpoint::loopback(h->local_endpoint().port));
+             poll_until({h.get(), c.get()}, c.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; });
+             c.reset();
+         }},
+        {"connected_close_host_first", [] {
+             auto h = make_open(TransportKind::Gns, true);
+             auto c = make_open(TransportKind::Gns, false);
+             c->connect(Endpoint::loopback(h->local_endpoint().port));
+             poll_until({h.get(), c.get()}, c.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; });
+             h.reset();
+         }},
+    };
+    std::uint64_t total = 0;
+    for (const auto& s : scenarios) {
+        const auto before = gns_internal_assertions();
+        for (int i = 0; i < kRuns; ++i) s.run();
+        const auto n = gns_internal_assertions() - before;
+        total += n;
+        std::printf("       KI-27 probe %-32s %llu assertions in %d runs\n", s.name, static_cast<unsigned long long>(n), kRuns);
+    }
+    std::printf("       KI-27 probe total: %llu\n", static_cast<unsigned long long>(total));
+    CHECK(total == 0);  // regression gate for the KI-27 mitigation (process-lifetime runtime + settle after Init)
+}
+
+// Registered last in this file: no GNS internal assertion anywhere in this process's contract run.
+TEST(gns_reported_no_internal_assertions_in_this_run) {
+    std::printf("       GNS internal assertions in this process: %llu\n", static_cast<unsigned long long>(gns_internal_assertions()));
+    CHECK(gns_internal_assertions() == 0);
+}
+#endif
