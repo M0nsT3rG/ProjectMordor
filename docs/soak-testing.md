@@ -83,6 +83,23 @@ The **RTT gate is unchanged** (configured + 60 ms) for comparability. It is a *s
 | moderate | 36/36 | 103.9 / 121.6 ms | 0.33 (1.40) | 21.1 / 22.2 (23.4 / 31.0) | 161 ms | 8 |
 | harsh | 36/36 | 203.9 / 241.6 ms | 0.33 (2.00) | 19.2 / 29.4 (24.1 / 31.0) | 1567 ms | 110 |
 
+## Gate version 3 (review #2 follow-up, 2026-10-23)
+
+Fixed before its first run. It keeps every v2 gate and adds:
+
+- **Well-formed manifest.** Client names must match `^client[1-9][0-9]{0,2}$` and be unique. A duplicate can no longer be gated twice or inflate counts.
+- **Scenario match.** `run.json` declares a `scenario`, which must be in the analyzer's fixed `SCENARIOS` table. The manifest and the stall plan must equal that scenario's. A self-declared list is no longer trusted.
+- **Bandwidth gates are explicitly mean-rate gates** (`*_mean_budget`).
+- **Burst reporting.** p95, p99 and peak of the 1 s window rates are reported (`window_rates_kbit_s`) but not gated.
+
+| Run (gate v3, 120 s) | Gates | RTT p50 / p99 | Mean in / out kbit/s | 1 s peak in / out | Recovery | Shed |
+|---|---|---|---|---|---|---|
+| lan | 41/41 | 10.5 / 12.1 ms | 21.6 / 15.1 | 21.9 / 15.4 | 21 ms | 0 |
+| moderate | 41/41 | 104.3 / 120.5 ms | 21.1 / 22.3 | 23.9 / 23.7 | 154 ms | 9 |
+| harsh | 41/41 | 204.6 / 237.5 ms | 19.3 / 29.4 | 24.8 / 29.6 | 1328 ms | 107 |
+
+**Observation.** The 1 s download peaks exceed the *mean* ceiling under moderate and harsh impairment (23.95 > 23.39 and 24.84 > 24.08 kbit/s). The mean ceiling must not be reused as a peak bound. A burst gate needs its own derivation (KI-20).
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

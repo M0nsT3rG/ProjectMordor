@@ -2,6 +2,22 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: Review #2 follow-up, soak gate v3 (`feature/realtime-soak`)
+
+- **Input:** [PR #2 comment 6372799837](https://github.com/M0nsT3rG/ProjectMordor/pull/2#issuecomment-6372799837).
+- **Changes:**
+  - Gate v3: valid and unique manifest names; a known scenario; manifest and stall plan must equal the scenario.
+  - Bandwidth gates relabelled as mean-rate.
+  - 1 s window peak/p95/p99 reporting; client status lines carry cumulative bytes.
+  - `soak.ps1` writes `scenario` and `-g3` run directories.
+- **Tests:**
+  - Analyzer self-checks 17/17 (6 new).
+  - Suites 52/52 ×3 (built in a separate git worktree while GNS compiled).
+  - v3 soak: lan, moderate and harsh at 120 s, 41/41 gates each (EXP-012).
+- **Problems encountered:**
+  - The new self-checks found that a non-string client name crashed the analyzer. Fixed.
+  - Burst peaks exceed the mean ceiling (KI-20).
+
 ## 2026-10-23: ChatGPT review #2 triage and fixes (`feature/realtime-soak`)
 
 - **Input:** [PR #2 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/2#issuecomment-6372084762), findings FB-2-01 through FB-2-06. The triage is in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).

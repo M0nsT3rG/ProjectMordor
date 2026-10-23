@@ -6,6 +6,29 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Follow-up verification of review #2
+
+- **Status:** received and triaged (2026-10-23).
+- **Source:** [PR #2 comment 6372799837](https://github.com/M0nsT3rG/ProjectMordor/pull/2#issuecomment-6372799837). ChatGPT verified the source only.
+- **ChatGPT's verdict:** no new blocking correctness defect; conditional acceptance for continuing Phase 2A lab work.
+
+| Item | Assumptions verified? | Decision | Implemented in | Verification |
+|---|---|---|---|---|
+| **FU-2-1: manifest uniqueness, names and cardinality; match the chosen scenario** | **Yes.** v2 checked only for a non-empty list. A duplicate (`client1, client1, client2`) produced duplicated per-client gates, and a self-consistent but different manifest was trusted. | **Accepted** as gate **v3** | `run.json` names a `scenario`, and `analyze.py` has a fixed `SCENARIOS` table. New gates: `manifest_names_valid` (`^client[1-9][0-9]{0,2}$`), `manifest_names_unique`, `scenario_known`, `manifest_matches_scenario`, `stall_plan_matches_scenario`. Each client is gated once even if listed twice. | 6 new self-checks: duplicates; invalid names (`../host`, empty, the integer `7`, `client0`); unknown or missing scenario; a self-consistent one-client manifest that differs from the scenario; stall-plan mismatch; window rates. **Writing them exposed a defect in the new code:** a non-string name crashed the analyzer (`TypeError` in `sorted`) instead of failing a gate. Fixed. Self-checks: **17/17**. |
+| **FU-2-2: bandwidth gate is a run-wide mean, not burst/peak** | **Yes.** | **Accepted**: relabelled. Peak gate **deferred** with a measured reason. | Gates renamed `*_download_mean_budget` and `*_upload_mean_budget`, and their detail text says "mean-rate gate, not a peak gate". Client status lines now carry cumulative bytes. `window_rates_kbit_s` reports the p95, p99 and peak of the 1 s window rates. These are reported, not gated. | **The v3 soak shows why a peak gate needs its own bound.** In moderate and harsh, 1 s download peaks **exceed the mean ceiling**: 23.95 against 23.39 kbit/s, and 24.84 against 24.08. Jitter bunching and duplication cause short bursts above the mean. A peak gate will be a later gate version with a separately derived bound (KI-20). |
+
+**v3 soak** (real-time, 120 s, fresh `-g3` directories, 41 gates each):
+
+| Run | Gates | RTT p50 / p99 | Mean in / out | 1 s window peak in / out | Recovery | Shed |
+|---|---|---|---|---|---|---|
+| `soak-2026-10-23-212948-lan-g3` | 41/41 | 10.5 / 12.1 ms | 21.6 / 15.1 | 21.9 / 15.4 | 21 ms | 0 |
+| `soak-2026-10-23-213209-moderate-g3` | 41/41 | 104.3 / 120.5 ms | 21.1 / 22.3 | 23.9 / 23.7 | 154 ms | 9 |
+| `soak-2026-10-23-213417-harsh-g3` | 41/41 | 204.6 / 237.5 ms | 19.3 / 29.4 | 24.8 / 29.6 | 1328 ms | 107 |
+
+The host's `timeout_notices` counter is now logged: 1 per run, as expected for one stall. Experiment record: EXP-012. The v1 and v2 evidence is untouched.
+
+---
+
 ## Feedback on review request #2 (real-time soak)
 
 - **Status:** received and triaged (2026-10-23).

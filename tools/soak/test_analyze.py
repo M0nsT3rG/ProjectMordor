@@ -17,9 +17,10 @@ def summary(p99=110.0, reconnects=0, kin=20.0, kout=25.0, max_corr=0.3, samples=
 
 
 def write_run(d: Path, *, host_invalid=0, c2_reconnects=1, c2_recovery_ms=800, c1=None, exit_c1=0, drift_ticks=0,
-              expected=("client1", "client2"), logs=("client1", "client2"), manifest=True):
+              expected=("client1", "client2"), logs=("client1", "client2"), manifest=True,
+              scenario="two-clients-one-stall", stalled=("client2",), statuses=None):
     run = {"profile": "test", "duration_s": 120, "impairment": {"latency_ms": 40, "jitter_ms": 20, "loss": 0.05, "duplicate": 0.0},
-           "stall_s": 5, "host_timeout_ms": 3000, "stalled_clients": ["client2"],
+           "stall_s": 5, "host_timeout_ms": 3000, "stalled_clients": list(stalled), "scenario": scenario,
            "exit_codes": {"host": 0, "client1": exit_c1, "client2": 0}}
     if manifest:
         run["expected_clients"] = list(expected)
@@ -29,7 +30,7 @@ def write_run(d: Path, *, host_invalid=0, c2_reconnects=1, c2_recovery_ms=800, c
              "world_tick": 3780 + drift_ticks, "skipped_ticks": 0, "shed_inputs": 3, "joins": 2, "reconnects": 1, "timeouts": 1}]
     (d / "host.log").write_text("\n".join(map(json.dumps, host)))
     contents = {
-        "client1": [c1 or summary()],
+        "client1": list(statuses or []) + [c1 or summary()],
         "client2": [{"t_ms": 48_000, "evt": "stall_begin"}, {"t_ms": 53_000, "evt": "stall_end"},
                     {"t_ms": 53_000 + c2_recovery_ms, "evt": "reconnected"}, summary(reconnects=c2_reconnects)],
     }
@@ -50,7 +51,7 @@ class AnalyzeTests(unittest.TestCase):
     def test_healthy_run_passes(self):
         r = self.run_case()
         self.assertTrue(r["passed"], failed(r))
-        self.assertEqual(r["gate_version"], 2)
+        self.assertEqual(r["gate_version"], 3)
         self.assertEqual(r["clients"]["client2"]["recovery_after_stall_ms"], 800)
 
     def test_each_v1_gate_can_fail(self):
@@ -97,8 +98,8 @@ class AnalyzeTests(unittest.TestCase):
 
     # FB-2-03: design-derived ceilings and sample minimums.
     def test_bandwidth_correction_and_coverage_gates_can_fail(self):
-        self.assertIn("client1_download_budget", failed(self.run_case(c1=summary(kin=30.0))))
-        self.assertIn("client1_upload_budget", failed(self.run_case(c1=summary(kout=40.0))))
+        self.assertIn("client1_download_mean_budget", failed(self.run_case(c1=summary(kin=30.0))))
+        self.assertIn("client1_upload_mean_budget", failed(self.run_case(c1=summary(kout=40.0))))
         self.assertIn("client1_correction_budget", failed(self.run_case(c1=summary(max_corr=2.0))))
         self.assertIn("client1_rtt_sample_count", failed(self.run_case(c1=summary(samples=100))))
         self.assertIn("client1_ran_full_duration", failed(self.run_case(c1=summary(elapsed_ms=60_000))))
@@ -109,6 +110,46 @@ class AnalyzeTests(unittest.TestCase):
         # 119-byte input batch x 30 Hz + 30-byte heartbeat x 4 Hz = 3690 B/s = 29.52 kbit/s, x1.05 margin
         self.assertAlmostEqual(analyze.upload_budget_kbit(), 30.996, places=3)
         self.assertAlmostEqual(analyze.correction_budget(180.0), 5.0 * (0.18 + 0.1), places=6)
+
+    # Review #2 follow-up (gate v3): the manifest must be well-formed and equal the declared scenario.
+    def test_duplicate_client_names_fail(self):
+        r = self.run_case(expected=("client1", "client1", "client2"))
+        self.assertIn("manifest_names_unique", failed(r))
+        self.assertIn("manifest_matches_scenario", failed(r))
+        # each client is still gated once: no duplicated per-client gates
+        names = [g["gate"] for g in r["gates"]]
+        self.assertEqual(names.count("client1_summary_present"), 1)
+
+    def test_invalid_client_names_fail(self):
+        for bad in (("client1", "../host"), ("client1", ""), ("client1", 7), ("client1", "client0")):
+            r = self.run_case(expected=bad)
+            self.assertIn("manifest_names_valid", failed(r), bad)
+            self.assertFalse(r["passed"])
+
+    def test_unknown_or_missing_scenario_fails(self):
+        self.assertIn("scenario_known", failed(self.run_case(scenario="free-for-all")))
+        self.assertIn("scenario_known", failed(self.run_case(scenario=None)))
+
+    def test_manifest_must_equal_scenario_not_self_declared(self):
+        # A self-consistent but different manifest (one client, logs present) must still fail.
+        r = self.run_case(expected=("client1",), logs=("client1",), stalled=())
+        self.assertIn("manifest_matches_scenario", failed(r))
+        self.assertIn("stall_plan_matches_scenario", failed(r))
+        self.assertFalse(r["passed"])
+
+    def test_stall_plan_must_match_scenario(self):
+        self.assertIn("stall_plan_matches_scenario", failed(self.run_case(stalled=("client1", "client2"))))
+
+    def test_window_rates_report_peaks(self):
+        statuses = [{"t_ms": 1000 * i, "evt": "status", "bytes_in": 2500 * i, "bytes_out": 3000 * i} for i in range(1, 11)]
+        statuses[5]["bytes_in"] += 5000  # one burst window: +40 kbit/s for one second
+        r = self.run_case(statuses=statuses)
+        w = r["clients"]["client1"]["window_rates_kbit_s"]
+        self.assertEqual(w["windows"], 9)
+        self.assertAlmostEqual(w["in"]["peak"], 60.0)   # 20 kbit/s steady + 40 burst
+        self.assertAlmostEqual(w["out"]["peak"], 24.0)
+        self.assertTrue(r["passed"], failed(r))         # peaks are reported, not gated (v3)
+        self.assertIsNone(self.run_case()["clients"]["client1"]["window_rates_kbit_s"])  # no status lines
 
     def test_existing_summary_is_never_overwritten(self):
         with tempfile.TemporaryDirectory() as d:

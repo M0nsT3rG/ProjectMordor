@@ -12,15 +12,26 @@ never tuned to results; a stricter or different gate is a new version, and old s
   v1 (2026-10-23): exit codes, final state, invalid packets, drift, RTT p99, stall recovery, bookkeeping.
   v2 (2026-10-23, review #2): + exact participant manifest (FB-2-01), duration and sample minimums,
      design-derived bandwidth and correction ceilings (FB-2-03).
+  v3 (2026-10-23, review #2 follow-up): manifest must be well-formed (valid, unique names) and equal to a
+     known scenario's participants and stall plan, not a self-declared list; bandwidth gates are explicitly
+     run-wide MEAN rates, and 1 s window peak/p95/p99 rates are reported (not gated yet).
 Usage: python -I tools/soak/analyze.py <run_dir>
 """
 from __future__ import annotations
 
 import json
+import math
+import re
 import sys
 from pathlib import Path
 
-GATE_VERSION = 2
+GATE_VERSION = 3
+
+# Known soak scenarios. run.json names one; its declared participants must match exactly (v3).
+SCENARIOS = {
+    "two-clients-one-stall": {"clients": ["client1", "client2"], "stalled": ["client2"]},
+}
+CLIENT_NAME = re.compile(r"^client[1-9][0-9]{0,2}$")
 
 # Synthetic loopback regression bound, not a LAN latency criterion (FB-2-04). Kept at the v1 value for
 # comparability. Rationale at v1: ~1 ms sleeps with ~15.6 ms Windows timer granularity on both sides; since
@@ -89,6 +100,27 @@ def recovery_ms(events: list[dict]) -> float | None:
     return None if rec is None else float(rec["t_ms"] - end["t_ms"])
 
 
+def window_rates(events: list[dict]) -> dict | None:
+    """kbit/s per ~1 s window from consecutive client 'status' lines that carry cumulative byte counters.
+    Reported only (v3); windows spanning a stall are skipped because no status line is written during it."""
+    st = [e for e in events if e.get("evt") == "status" and "bytes_in" in e and "bytes_out" in e]
+    rates_in, rates_out = [], []
+    for a, b in zip(st, st[1:]):
+        dt_ms = b["t_ms"] - a["t_ms"]
+        if 500 <= dt_ms <= 2000:
+            rates_in.append((b["bytes_in"] - a["bytes_in"]) * 8 / dt_ms)
+            rates_out.append((b["bytes_out"] - a["bytes_out"]) * 8 / dt_ms)
+    if not rates_in:
+        return None
+
+    def pct(v: list[float], p: float) -> float:
+        s = sorted(v)
+        return round(s[max(1, math.ceil(p / 100 * len(s))) - 1], 2)
+    return {"windows": len(rates_in),
+            "in": {"p95": pct(rates_in, 95), "p99": pct(rates_in, 99), "peak": round(max(rates_in), 2)},
+            "out": {"p95": pct(rates_out, 95), "p99": pct(rates_out, 99), "peak": round(max(rates_out), 2)}}
+
+
 def analyze(run_dir: Path) -> dict:
     run = json.loads((run_dir / "run.json").read_text(encoding="utf-8"))
     imp = run["impairment"]
@@ -100,14 +132,27 @@ def analyze(run_dir: Path) -> dict:
         gates.append({"gate": name, "passed": bool(ok), "detail": detail})
 
     # FB-2-01: the participant set comes from the manifest, never from whatever logs happen to exist.
-    expected = run.get("expected_clients")
-    gate("manifest_lists_expected_clients", isinstance(expected, list) and len(expected) > 0,
-         f"expected_clients={expected!r}")
-    expected = list(expected) if isinstance(expected, list) else []
+    raw = run.get("expected_clients")
+    gate("manifest_lists_expected_clients", isinstance(raw, list) and len(raw) > 0, f"expected_clients={raw!r}")
+    raw = list(raw) if isinstance(raw, list) else []
+    # v3: well-formed and unique, so a duplicate cannot be gated twice or inflate counts.
+    bad_names = [n for n in raw if not (isinstance(n, str) and CLIENT_NAME.match(n))]
+    dupes = sorted({n for n in raw if isinstance(n, str) and raw.count(n) > 1})
+    gate("manifest_names_valid", not bad_names, f"invalid={bad_names!r}")
+    gate("manifest_names_unique", not dupes, f"duplicates={dupes}")
+    expected = list(dict.fromkeys(n for n in raw if isinstance(n, str)))  # de-duplicated, order kept
+    # v3: the manifest must equal the declared scenario's participants and stall plan.
+    scenario = SCENARIOS.get(run.get("scenario"))
+    gate("scenario_known", scenario is not None, f"scenario={run.get('scenario')!r}, known={sorted(SCENARIOS)}")
+    gate("manifest_matches_scenario", scenario is not None and not bad_names and sorted(map(str, raw)) == sorted(scenario["clients"]),
+         f"manifest={sorted(map(str, raw))}, scenario={scenario and scenario['clients']}")
     missing, extra = sorted(set(expected) - set(found)), sorted(set(found) - set(expected))
     gate("client_logs_match_manifest", not missing and not extra, f"missing={missing}, unexpected={extra}")
-    stalled = set(run.get("stalled_clients", []))
-    gate("stalled_clients_in_manifest", stalled <= set(expected), f"stalled={sorted(stalled)}")
+    stalled_raw = run.get("stalled_clients", [])
+    stalled = {str(x) for x in stalled_raw} if isinstance(stalled_raw, list) else {"<not a list>"}
+    gate("stalled_clients_in_manifest", stalled <= set(expected), f"stalled={sorted(map(str, stalled))}")
+    gate("stall_plan_matches_scenario", scenario is not None and sorted(map(str, stalled)) == sorted(scenario["stalled"]),
+         f"stalled={sorted(map(str, stalled))}, scenario={scenario and scenario['stalled']}")
     exit_codes = run.get("exit_codes", {})
     gate("exit_codes_cover_all_processes", set(exit_codes) == {"host", *expected},
          f"exit_codes for {sorted(exit_codes)}")
@@ -145,7 +190,8 @@ def analyze(run_dir: Path) -> dict:
                                                       "reconnects", "max_reconnect_ms", "stale_notices", "invalid",
                                                       "bytes_in", "bytes_out", "elapsed_ms")},
                             "stalled": is_stalled, "recovery_after_stall_ms": rec, "kbit_s_in": kin, "kbit_s_out": kout,
-                            "high_resolution_timer": (last(ev, "loop_timer") or {}).get("high_resolution")}
+                            "high_resolution_timer": (last(ev, "loop_timer") or {}).get("high_resolution"),
+                            "window_rates_kbit_s": window_rates(ev)}
         gate(f"{name}_summary_present", bool(s), "summary event present")
         gate(f"{name}_exit_code", exit_codes.get(name) == 0, f"exit {exit_codes.get(name)}")
         gate(f"{name}_final_connected", s.get("final_state") == "connected", f"final_state={s.get('final_state')}")
@@ -158,8 +204,11 @@ def analyze(run_dir: Path) -> dict:
         p99 = s.get("rtt_p99_ms", -1)
         gate(f"{name}_rtt_p99", 0 <= p99 <= rtt_limit,
              f"p99={p99} ms, limit={rtt_limit} ms (configured {configured_rtt} + {RTT_SCHEDULING_ALLOWANCE_MS}; synthetic loopback bound)")
-        gate(f"{name}_download_budget", bool(s) and kin <= down_budget, f"in={kin} kbit/s, budget={down_budget:.2f}")
-        gate(f"{name}_upload_budget", bool(s) and kout <= up_budget, f"out={kout} kbit/s, budget={up_budget:.2f}")
+        # Run-wide MEAN rates only (review #2 follow-up); burst peaks are reported in window_rates_kbit_s.
+        gate(f"{name}_download_mean_budget", bool(s) and kin <= down_budget,
+             f"mean in={kin} kbit/s, budget={down_budget:.2f} (mean-rate gate, not a peak gate)")
+        gate(f"{name}_upload_mean_budget", bool(s) and kout <= up_budget,
+             f"mean out={kout} kbit/s, budget={up_budget:.2f} (mean-rate gate, not a peak gate)")
         mc = s.get("max_correction")
         gate(f"{name}_correction_budget", mc is not None and mc <= corr_budget, f"max_correction={mc}, budget={corr_budget:.3f}")
         if is_stalled:

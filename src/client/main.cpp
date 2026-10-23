@@ -106,7 +106,8 @@ int main(int argc, char** argv) {
                                     kv("rtt_ms", c.rtt_ms().value_or(-1.0)), kv("x", p ? p->x : 0.0f), kv("z", p ? p->z : 0.0f),
                                     kv("remotes", c.remote_entities().size()), kv("snapshots", s.snapshots_applied),
                                     kv("stale", s.stale_snapshots), kv("corrections", s.corrections),
-                                    kv("max_correction", s.max_correction), kv("reconnects", s.reconnects)});
+                                    kv("max_correction", s.max_correction), kv("reconnects", s.reconnects),
+                                    kv("bytes_in", s.bytes_in), kv("bytes_out", s.bytes_out)});  // window rates (v3)
             }
             sleeper.sleep_us(1000);
         }

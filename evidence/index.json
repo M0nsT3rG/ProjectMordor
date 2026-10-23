@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 73,
+  "count": 74,
   "records": [
     {
       "id": "EXP-001",
@@ -122,6 +122,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Verify and address ChatGPT review #2 (FB-2-01 manifest validation, FB-2-02 timeout-notice robustness, FB-2-03 budgets) and re-run the soak under gate version 2."
+    },
+    {
+      "id": "EXP-012",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-012.json",
+      "date": "2026-10-23",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Address ChatGPT's review #2 follow-up (manifest well-formedness and scenario match; mean vs peak bandwidth) as soak gate version 3 and re-run the soak."
     },
     {
       "id": "F-COMM-001",
