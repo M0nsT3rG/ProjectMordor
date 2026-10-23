@@ -50,6 +50,35 @@ Required properties, from `docs/authentication-design.md` §4a:
 
 **Fallback.** If RPK + DTLS 1.2 turns out impractical in tests, use **Option B (snow)**, accepting the Rust toolchain.
 
+## Proof test (review #5 FB-5-05, 2026-10-24)
+
+The owner approved a minimal proof test with the vcpkg OpenSSL, now a **direct** dependency of the optional GNS build (`vcpkg.json`). It lives in `tests/dtls/dtls_proof_tests.cpp` (suite `dtls`). Both peers run in one process over datagram-preserving memory BIOs (`BIO_s_dgram_mem`): no sockets, no network. EXP-017 holds the record.
+
+| Case | Result |
+|---|---|
+| DTLS 1.2, RPK in both directions, pins correct | handshake completes. `DTLSv1.2`, `ECDHE-ECDSA-AES128-GCM-SHA256`. Negotiated cert type is RPK on both sides; no X.509 certificate; the peer key's fingerprint equals the pin; data flows. |
+| Host presents a different key (relay/MITM) | rejected by the client (verify result not OK) |
+| Client presents a different key | rejected by the host |
+| Peer offers no raw public key (downgrade to X.509 / none) | rejected (handshake failure) |
+| Peer offers DTLS 1.0 only (version downgrade) | rejected (protocol version alert) |
+| Peer offers only an ECDHE CBC suite (non-AEAD) | rejected (handshake failure) |
+| Exporter (`EXPORTER-mordor-invitation`, context = invitation id) | equal on both sides; different for another invitation; different for every new handshake with the same keys (fresh ECDHE) |
+| Replayed record; tampered record | both dropped; the channel keeps working |
+
+**First run failed** (all 8 tests at `SSL_add_expected_rpk`; log `tests-dtls-first-run-2026-10-24.json`). OpenSSL stores the pin as a DANE-EE SPKI record, so DANE must be enabled first: `SSL_CTX_dane_enable` + `SSL_dane_enable(ssl, NULL)`. The header alone did not show this: exactly the gap FB-5-05 pointed at.
+
+**What this does NOT prove:**
+- integration with the Transport (handshake over real `Unreliable` delivery, with loss and retransmission timers);
+- the binding message exchange inside the channel;
+- invitation expiry (an application rule, not crypto);
+- cookie exchange (`DTLSv1_listen`) against address spoofing;
+- behaviour under packet loss or reordering during the handshake;
+- an independent review.
+
+OpenSSL's error queue is per thread and both peers share one thread here, so the printed reasons can mix both sides. The tests assert `SSL_get_verify_result` on the side that must reject.
+
+**Status:** the evidence supports Option A as the working choice for the next step (integration behind the Transport). D-013 is **not** closed: the integration and an independent review are still required, and until then the prototype stays on loopback or trusted lab networks.
+
 ## Sources
 
 - 1Password, "Strengthening snow for the open-source community": https://1password.com/blog/strengthening-snow-for-the-open-source-community

@@ -375,7 +375,9 @@ void Host::shutdown() {
                                kv("unknown_peer", stats_.unknown_peer), kv("send_errors", stats_.send_errors),
                                kv("transport", to_string(cfg_.transport)),
                                kv("transport_accepted_then_failed", ts.accepted_then_failed),
-                               kv("transport_discarded_on_close", ts.discarded_on_close)});
+                               kv("transport_discarded_on_close", ts.discarded_on_close),
+                               kv("transport_closed_with_unacked_reliable", ts.closed_with_unacked_reliable),
+                               kv("transport_impairment_refused", ts.impairment_refused)});
 }
 
 }  // namespace mordor::host

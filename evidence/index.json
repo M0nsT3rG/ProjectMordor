@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 78,
+  "count": 79,
   "records": [
     {
       "id": "EXP-001",
@@ -177,6 +177,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement the GameNetworkingSockets adapter behind Transport contract v2 and validate it with the UNCHANGED contract, host/client and soak suites (ChatGPT recommendation after review #4)."
+    },
+    {
+      "id": "EXP-017",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-017.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #5 FB-5-01..04 and the owner-approved FB-5-05 DTLS 1.2 + RFC 7250 proof test."
     },
     {
       "id": "F-COMM-001",

@@ -205,6 +205,90 @@ TEST(silent_host_loss_ends_in_failed_state) {
     CHECK(test::pump(clk, nullptr, {&c}, [&] { return c.state() == ClientState::Failed; }, 4 * kSec));
 }
 
+// ---- Connection lifecycle and timeout ownership, every backend (review #5 FB-5-02). ----
+namespace {
+std::uint16_t unused_port() {  // a loopback port nobody listens on (probed, then released)
+    UdpSocket probe;
+    if (!probe.open(Endpoint::loopback(0))) throw test::CheckFailure("probe socket failed");
+    const auto p = probe.local_endpoint().port;
+    probe.close();
+    return p;
+}
+void report(const char* test, const client::Client& c, std::uint64_t elapsed_us) {
+    std::printf("       %s on %s: %s (%s) after %llu ms\n", test, to_string(test::test_transport()), to_string(c.state()),
+                c.state_reason().c_str(), static_cast<unsigned long long>(elapsed_us / 1000));
+}
+}  // namespace
+
+TEST(connect_to_absent_host_fails_within_deadline) {
+    test::SimClock clk;
+    client::ClientConfig cc;
+    cc.host = Endpoint::loopback(unused_port());
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    const auto t0 = clk.now;
+    c.connect(clk.now);
+    CHECK(test::pump(clk, nullptr, {&c}, [&] { return c.state() == ClientState::Failed; }, cc.connect_deadline_us + kSec));
+    report("connect_to_absent_host_fails_within_deadline", c, clk.now - t0);
+    CHECK(clk.now - t0 <= cc.connect_deadline_us + 50'000);  // never beyond the overall bound (one step of slack)
+}
+
+// The overall deadline holds even when the transport's own handshake timeout is longer (GNS: 10 s) and the
+// session window has not started: nothing ever answers, and nothing reports a failure.
+TEST(black_holed_connect_hits_overall_deadline) {
+    test::Session s;
+    client::ClientConfig cc;
+    cc.connect_deadline_us = 3 * kSec;  // shorter than both connect_timeout_us (5 s) and GNS TimeoutInitial (10 s)
+    cc.impairment = impair(1.0, 0, 0, 3);
+    const auto t0 = s.clk.now;
+    auto& c = s.add_client(cc);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Failed; }, 5 * kSec));
+    report("black_holed_connect_hits_overall_deadline", c, s.clk.now - t0);
+    CHECK(c.state_reason() == "connect_deadline");
+    CHECK(s.clk.now - t0 >= 3 * kSec && s.clk.now - t0 <= 3 * kSec + 50'000);
+    CHECK(s.host.connected_count() == 0);
+    c.set_impairment({});
+}
+
+// The host goes away while the client is still connecting: the client must end in Failed within its bound,
+// never in Connected, on every backend (UDP: session timers; GNS: transport close during the handshake).
+TEST(host_gone_during_handshake_fails_within_deadline) {
+    test::Session s;
+    auto& c = s.add_client();
+    const auto t0 = s.clk.now;
+    s.host.shutdown();  // before the host ever processed the request: it can never have accepted
+    bool ever_connected = false;
+    CHECK(test::pump(s.clk, nullptr, s.ptrs(), [&] {
+        ever_connected = ever_connected || c.state() == ClientState::Connected;
+        return c.state() == ClientState::Failed || c.state() == ClientState::Disconnected;
+    }, c.config().connect_deadline_us + kSec));
+    report("host_gone_during_handshake_fails_within_deadline", c, s.clk.now - t0);
+    CHECK(!ever_connected);
+    CHECK(s.clk.now - t0 <= c.config().connect_deadline_us + 50'000);
+}
+
+// Repeated outages: each one ends in a reconnect with the same identity, and each recovery stays bounded.
+TEST(repeated_outages_reconnect_each_time_with_same_identity) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    const auto player = c.player_id();
+    for (std::uint64_t round = 1; round <= 3; ++round) {
+        const auto cut = impair(1.0, 0, 0, 70 + round);
+        CHECK(c.set_impairment(cut));
+        CHECK(s.host.set_impairment(cut));  // same config: allowed even where impairment is process-global
+        CHECK(s.pump_until([&] { return s.host.connected_count() == 0; }, 6 * kSec));
+        CHECK(c.set_impairment({}));
+        CHECK(s.host.set_impairment({}));
+        const auto restored = s.clk.now;
+        CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == round; }, 6 * kSec));
+        CHECK(s.clk.now - restored < 4 * kSec);
+        CHECK(c.player_id() == player);
+    }
+    CHECK(s.host.stats().joins == 1);
+}
+
 TEST(expired_grace_period_removes_entity) {
     host::HostConfig hc;
     hc.reconnect_grace_us = 1 * kSec;
@@ -259,6 +343,9 @@ TEST(jitter_never_exceeds_tick_movement_budget) {
 // does not prove the stale-notice guard; the deterministic proof is the fake-host tests in the
 // integration suite (delayed_timeout_notice_after_reconnect_is_ignored and friends).
 TEST(timeout_notice_recovery_under_jitter_reconnects_once) {
+    // Its earlier GNS "pass" was false: the client's cut silently replaced the host's jitter process-wide, so
+    // the scenario never ran there. The single-owner guard (review #5 FB-5-03) now refuses that overwrite.
+    UDP_ONLY("asymmetric (host jitter + client-only uplink cut); GNS fake impairment is process-global");
     host::HostConfig hc;
     hc.impairment = impair(0, 20, 400, 61);
     test::Session s(hc);

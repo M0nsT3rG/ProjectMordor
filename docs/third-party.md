@@ -6,7 +6,7 @@ The **default build has no third-party dependencies**: Winsock2 and the C++ stan
 |---|---|---|---|---|
 | vcpkg (tool) | commit `65a2c2391af39b773f83f91e0ab6c8ced8f9c727` | MIT | Builds the dependencies from source | `git clone https://github.com/microsoft/vcpkg` into `%USERPROFILE%\vcpkg`, bootstrapped with `-disableMetrics`. Installed with the user's approval on 2026-10-23. |
 | GameNetworkingSockets (Valve) | 1.6.1 (vcpkg port), `default-features: false` (no ICE/P2P) | BSD-3-Clause | Reliable and unreliable messages, fragmentation, congestion control, encryption | `vcpkg.json` manifest, pinned by `builtin-baseline` |
-| OpenSSL | 3.6.5 | Apache-2.0 | Crypto backend for GNS | transitive |
+| OpenSSL | 3.6.5 | Apache-2.0 | Crypto backend for GNS; since 2026-10-24 also used **directly** by the D-013 DTLS proof test (owner-approved, review #5 FB-5-05) | `vcpkg.json` (direct entry, same version as before); GNS build only |
 | protobuf (+ utf8-range), abseil | 7.36.2 (protoc 36.2.0), abseil 20260107.1 | BSD-3-Clause (protobuf), Apache-2.0 (abseil) | GNS's internal wire format | transitive |
 
 Resolved versions are confirmed in EXP-013 (2026-10-23). Building the dependencies from source took about 12 minutes on the dev machine; vcpkg's binary cache makes later configures fast.

@@ -68,6 +68,7 @@ Each entry gives the context, the decision, the alternatives considered and how 
   libsodium `crypto_kx` plus our own handshake is rejected. Full state machine: `docs/authentication-design.md` §4a.
 - **Status.** Awaiting the user's approval to add the dependency.
 - **Evaluation (2026-10-23, after the GNS adapter).** [d013-evaluation.md](d013-evaluation.md) recommends **DTLS 1.2 via OpenSSL 3.6.5 with RFC 7250 raw public keys pinned by fingerprint**, carried over the Transport's `Unreliable` class on both backends, with the invitation id and protocol version bound through a keying-material exporter. Fallback: Noise via snow. No dependency has been added; until authentication is implemented and independently reviewed, the prototype stays on loopback or explicitly trusted lab networks.
+- **Proof test (2026-10-24, owner-approved).** DTLS 1.2 + RFC 7250 pinned raw public keys work in OpenSSL 3.6.5. Every failure path tested (wrong key either way, no RPK, DTLS 1.0, non-AEAD suite, replay, tamper) is rejected. The exporter binding is fresh per handshake. Details: [d013-evaluation.md](d013-evaluation.md#proof-test-review-5-fb-5-05-2026-10-24), EXP-017. OpenSSL is now a direct dependency of the optional GNS build. **Still open:** integration behind the Transport and an independent review (KI-29).
 
 ## D-014: On connection-oriented transports, the transport owns connection establishment (2026-10-23)
 
@@ -79,6 +80,18 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - GNS gets `TimeoutInitial` 10 s and `TimeoutConnected` 3 s.
 - **Result.** 8/8 on GNS; UDP behaviour unchanged (it reports no transport events, so the old timers apply).
 - **Revisit** if a backend's establishment timeout is not configurable.
+- **Amended after review #5 (FB-5-02, 2026-10-24).** The session layer also keeps an overall bound, so the client never relies on the transport alone to report failure.
+
+  | Phase | Bound | Owner |
+  |---|---|---|
+  | Transport establishment | GNS `TimeoutInitial` 10 s | transport |
+  | Session handshake | `connect_timeout_us` 5 s from transport `Connected` (UDP: from `connect()`) | session |
+  | Whole connect operation | `connect_deadline_us` 20 s from `connect()` (`Failed`, reason `connect_deadline`) | session |
+  | Reconnect | `reconnect_window_us` 15 s from the start of the reconnect, never reset by transport retries | session |
+  | Connected liveness | GNS `TimeoutConnected` 3 s / our 3 s timeout | both, equal |
+  | Host slot reservation | grace 30 s (KI-11) | host |
+
+  Tests: `connect_to_absent_host_fails_within_deadline`, `black_holed_connect_hits_overall_deadline`, `host_gone_during_handshake_fails_within_deadline`, `repeated_outages_reconnect_each_time_with_same_identity`.
 
 ## D-012: GameNetworkingSockets for the transport, behind an interface (2026-10-23, user decision)
 

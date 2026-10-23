@@ -5,6 +5,8 @@
 // Verified constraints (GNS 1.6.1 headers, steamnetworkingtypes.h):
 //  - Fake loss/lag/jitter/reorder/dup are GLOBAL (process-wide), not per connection. set_impairment() therefore
 //    applies to every GNS transport in the process; capabilities().per_instance_impairment == false.
+//    Several instances may hold the same config; a DIFFERENT one is refused (returns false) while another
+//    instance holds one, and the config is reset only when the last holder clears it or closes (FB-5-03).
 //  - Listen sockets need an explicit port (port 0 is rejected); open() probes a free port with retries.
 //  - Plain-IP connections are encrypted but NOT authenticated (docs/authentication-design.md); lab use only.
 #include <map>
@@ -33,7 +35,7 @@ public:
     void flush(std::uint64_t) override {}  // GNS sends from its own service thread; NoNagle flags avoid batching delay
     void close_peer(PeerId peer) override;
     void flush_all() override;
-    void set_impairment(const ImpairmentConfig& c) override;
+    bool set_impairment(const ImpairmentConfig& c) override;
     TransportKind kind() const override { return TransportKind::Gns; }
     const TransportStats& stats() const override { return stats_; }
 

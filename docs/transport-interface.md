@@ -8,9 +8,14 @@
 - **Identity.** Each GNS connection maps to a `PeerId`. A reconnect is a new connection and therefore a new `PeerId` (D-014).
 - **Events.** `Connected` on `k_ESteamNetworkingConnectionState_Connected`; `Disconnected` on closed-by-peer or problem-detected-locally.
 - **Sends.** `Unreliable` → `UnreliableNoDelay`; `ReliableOrdered` → `Reliable | NoNagle`. `k_EResultLimitExceeded` → `Backpressure`; `NoConnection`/`InvalidState` → `NotConnected`.
-- **No silent loss of accepted reliable data.** The adapter tracks accepted-but-unacknowledged reliable data itself, because GNS stops reporting pending bytes after a failure. A failure with such data counts `accepted_then_failed`; `close_peer` counts `closed_with_unacked_reliable`; `close()` drains for at most 500 ms (KI-26).
+- **No silent loss of accepted reliable data.** The adapter tracks accepted-but-unacknowledged reliable data itself, because GNS stops reporting pending bytes after a failure. A failure with such data counts `accepted_then_failed`; `close_peer` and `close()` count `closed_with_unacked_reliable` (per **connection**); `close()` drains for at most 500 ms (KI-26). `discarded_on_close` is per **message**, so GNS leaves it at 0 (review #5 FB-5-01).
+- **Counters are wire-level diagnostics, not proof of delivery** (FB-5-01). A wire-acknowledged reliable message may still never be processed by the peer application. Consequential game events will need application ids, acks and resume or replay on top (KI-28).
 - **Timeouts.** `TimeoutInitial` 10 s (client), `TimeoutConnected` 3 s.
-- **Impairment.** GNS fake loss, lag, jitter, reorder and duplication are **process-global** (`per_instance_impairment=false`, KI-24). The owner instance resets them on close. Mapping: loss → `FakePacketLoss_Send`; latency → `FakePacketLag_Send`; jitter budget split in half between lag jitter and a reorder stage (GNS jitter does not reorder, KI-25); duplication → `FakePacketDup_Send`.
+- **Impairment.** GNS fake loss, lag, jitter, reorder and duplication are **process-global** (`per_instance_impairment=false`, KI-24). There is one effective config (FB-5-03):
+  - `set_impairment` returns `false` and counts `impairment_refused` when another instance holds a different config;
+  - an instance asking for the same config joins it;
+  - the config is reset only when its last holder clears it or closes;
+  - `open()` with a conflicting config fails with an error. Mapping: loss → `FakePacketLoss_Send`; latency → `FakePacketLag_Send`; jitter budget split in half between lag jitter and a reorder stage (GNS jitter does not reorder, KI-25); duplication → `FakePacketDup_Send`.
 - **Capabilities.** `{reliable_ordered=true, reports_disconnects=true, exact_loss_accounting=false, per_instance_impairment=false}`. Tests branch on capabilities, never on the backend name.
 
 ## Goal

@@ -251,7 +251,9 @@ TEST(contract_queued_data_discarded_on_close_is_counted) {
             client->close();
             CHECK(client->stats().discarded_on_close == 2);
         } else {
-            // Backend-internal queues: reliable data that cannot have been acknowledged is counted per connection.
+            // Backend-internal queues: reliable data that cannot have been acknowledged is counted per CONNECTION,
+            // in closed_with_unacked_reliable; discarded_on_close is per message and stays 0 here (review #5 FB-5-01:
+            // one counter must not mean messages on one backend and connections on another).
             ImpairmentConfig cut;
             cut.loss = 1.0;
             auto host = make_open(k, true);
@@ -260,7 +262,8 @@ TEST(contract_queued_data_discarded_on_close_is_counted) {
             CHECK(client->send(*to_host, payload(1), Delivery::ReliableOrdered, now_us()) == SendResult::Sent);
             CHECK(client->send(*to_host, payload(2), Delivery::ReliableOrdered, now_us()) == SendResult::Sent);
             client->close();
-            CHECK(client->stats().discarded_on_close == 1);
+            CHECK(client->stats().closed_with_unacked_reliable == 1);
+            CHECK(client->stats().discarded_on_close == 0);
         }
     }
 }
@@ -431,5 +434,108 @@ TEST(contract_close_peer_with_unacked_reliable_is_counted) {
         CHECK(client->stats().closed_with_unacked_reliable == 1);
         CHECK(client->send(*to_host, tagged(1, 3), Delivery::ReliableOrdered, now_us()) == SendResult::NotConnected);
         client->set_impairment({});
+    }
+}
+
+// Review #5 FB-5-01: a connection lost in the middle of a reliable backlog. The loss is reported, the transport
+// never replays the old backlog onto the new connection (replay is the application's job, with its own ids),
+// and the new connection delivers its own messages exactly and in order.
+TEST(contract_mid_backlog_disconnect_then_reconnect_is_clean) {
+    for (auto k : reliable_backends("contract_mid_backlog_disconnect_then_reconnect_is_clean")) {
+        auto host = make_open(k, true);
+        auto client = make_open(k, false);
+        const auto host_ep = Endpoint::loopback(host->local_endpoint().port);
+        const auto old_peer = client->connect(host_ep);
+        for (std::uint32_t i = 1; i <= 50; ++i) CHECK(client->send(*old_peer, tagged(1, i), Delivery::ReliableOrdered, now_us()) == SendResult::Sent);
+        std::uint32_t old_seen = 0;
+        poll_until({host.get(), client.get()}, host.get(), [&](const auto& ev) {
+            old_seen = 0;
+            for (const auto& e : ev)
+                if (e.kind == TransportEvent::Kind::Message) {
+                    CHECK(seq_of(e) == old_seen + 1);  // in order up to the cut
+                    ++old_seen;
+                }
+            return old_seen == 50;
+        });
+        CHECK(old_seen == 50);
+        ImpairmentConfig cut;
+        cut.loss = 1.0;
+        CHECK(client->set_impairment(cut));
+        for (std::uint32_t i = 51; i <= 100; ++i) CHECK(client->send(*old_peer, tagged(1, i), Delivery::ReliableOrdered, now_us()) == SendResult::Sent);
+        const auto lost = poll_until({host.get(), client.get()}, client.get(),
+                                     [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) == 1; }, 15000);
+        CHECK(count(lost, TransportEvent::Kind::Disconnected) == 1);
+        CHECK(client->stats().accepted_then_failed == 1);  // the unacknowledged backlog was reported, not silent
+        CHECK(client->set_impairment({}));
+        const auto new_peer = client->connect(host_ep);
+        CHECK(new_peer.has_value() && *new_peer != *old_peer);
+        for (std::uint32_t i = 1; i <= 20; ++i) CHECK(client->send(*new_peer, tagged(2, i), Delivery::ReliableOrdered, now_us()) == SendResult::Sent);
+        std::uint32_t fresh = 0, stale = 0;
+        poll_until({host.get(), client.get()}, host.get(), [&](const auto& ev) {
+            fresh = stale = 0;
+            for (const auto& e : ev) {
+                if (e.kind != TransportEvent::Kind::Message) continue;
+                if (e.bytes[0] == 1) ++stale;  // backlog of the dead connection
+                else {
+                    CHECK(seq_of(e) == fresh + 1);
+                    ++fresh;
+                }
+            }
+            return fresh == 20;
+        }, 10000);
+        CHECK(fresh == 20);
+        CHECK(stale == 0);
+        std::printf("       %s: 50 delivered before the cut, 50 reported lost, 20 delivered in order on the new connection\n", to_string(k));
+    }
+}
+
+// Review #5 FB-5-03: where impairment is process-global there is one effective config. A different request is
+// refused explicitly, the same request joins, and the config ends only when its last holder lets go: closing one
+// holder must not end another's simulation, and nothing leaks after the last.
+TEST(contract_process_global_impairment_is_guarded_and_never_leaks) {
+    for (auto k : backends()) {
+        auto a = make_open(k, false);
+        auto b = make_open(k, false);
+        ImpairmentConfig cut;
+        cut.loss = 1.0;
+        ImpairmentConfig slow;
+        slow.latency_ms = 50;
+        CHECK(a->set_impairment(cut));
+        if (a->capabilities().per_instance_impairment) {
+            CHECK(b->set_impairment(slow));  // independent per instance
+            std::printf("       %s: per-instance impairment, no guard needed\n", to_string(k));
+            continue;
+        }
+        // An observer pair, unimpaired itself, sees the effective global config.
+        auto x = make_open(k, true);
+        auto y = make_open(k, false);
+        CHECK(a->set_impairment({}));  // let the observers connect first
+        const auto to_x = y->connect(Endpoint::loopback(x->local_endpoint().port));
+        CHECK(y->send(*to_x, tagged(9, 1), Delivery::ReliableOrdered, now_us()) == SendResult::Sent);
+        CHECK(must_message(poll_until({x.get(), y.get()}, x.get(), [](const auto& e) { return first_message(e) != nullptr; })).bytes[0] == 9);
+        auto delivered = [&](std::uint32_t seq, int ms) {
+            CHECK(y->send(*to_x, tagged(7, seq), Delivery::Unreliable, now_us()) == SendResult::Sent);
+            const auto ev = poll_until({x.get(), y.get()}, x.get(), [&](const auto& e) {
+                for (const auto& m : e)
+                    if (m.kind == TransportEvent::Kind::Message && m.bytes[0] == 7 && seq_of(m) == seq) return true;
+                return false;
+            }, ms);
+            for (const auto& m : ev)
+                if (m.kind == TransportEvent::Kind::Message && m.bytes[0] == 7 && seq_of(m) == seq) return true;
+            return false;
+        };
+        CHECK(a->set_impairment(cut));
+        CHECK(!b->set_impairment(slow));            // different config: refused, explicitly
+        CHECK(b->stats().impairment_refused == 1);
+        std::string err;
+        auto c = make_transport(k, slow, &err);     // opening with a conflicting config fails, it does not override
+        CHECK(c && !c->open(Endpoint::loopback(0), false, &err) && !err.empty());
+        CHECK(b->set_impairment(cut));              // same config: joins
+        CHECK(!delivered(1, 300));                  // cut is in effect
+        a->close();                                 // one holder leaves...
+        CHECK(!delivered(2, 300));                  // ...the other's simulation is unchanged
+        CHECK(b->set_impairment({}));               // last holder lets go
+        CHECK(delivered(3, 2000));                  // nothing leaks
+        std::printf("       %s: conflicting config refused, same config shared, released by the last holder\n", to_string(k));
     }
 }

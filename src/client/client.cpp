@@ -57,6 +57,7 @@ void Client::set_state(ClientState s, std::string_view why) {
     if (s == state_) return;
     log_.info("state_change", {kv("from", to_string(state_)), kv("to", to_string(s)), kv("why", why)});
     state_ = s;
+    state_reason_ = why;
 }
 
 void Client::connect(std::uint64_t now_us) {
@@ -65,7 +66,7 @@ void Client::connect(std::uint64_t now_us) {
     token_ = 0;
     session_ = 0;
     attempted_ = false;
-    phase_started_us_ = now_us;
+    phase_started_us_ = connect_started_us_ = now_us;
     reject_reason_.reset();
     disconnect_reason_.reset();
     set_state(ClientState::Connecting, "connect_called");
@@ -114,6 +115,11 @@ void Client::update(std::uint64_t now_us) {
                 !reconnecting && transport_->capabilities().reports_disconnects && !transport_up_;
             if (!waiting_for_transport && now_us - phase_started_us_ > window) {
                 set_state(ClientState::Failed, reconnecting ? "reconnect_window_expired" : "connect_timeout");
+                break;
+            }
+            // The overall bound does not trust the transport to ever report failure (FB-5-02).
+            if (!reconnecting && now_us - connect_started_us_ > cfg_.connect_deadline_us) {
+                set_state(ClientState::Failed, "connect_deadline");
                 break;
             }
             const auto retry = reconnecting ? cfg_.reconnect_retry_us : cfg_.connect_retry_us;

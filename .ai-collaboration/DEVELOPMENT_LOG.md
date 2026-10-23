@@ -2,6 +2,27 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #5 follow-up (`feature/gns-hardening`, stacked on #5)
+
+- **Input:** [PR #5 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/5#issuecomment-6375464043), FB-5-01 to FB-5-05; the owner approved the implementation and the DTLS proof test.
+- **Changes:**
+  - Counter semantics fixed and documented (wire-level diagnostics).
+  - `connect_deadline_us` at the session layer.
+  - GNS impairment single-config guard (`set_impairment` returns bool; `impairment_refused`).
+  - 8 `_over_transport` substitute tests.
+  - `docs/test-coverage.md`.
+  - `tests/dtls` proof (OpenSSL is now a direct dependency of the GNS build).
+- **Tests:**
+  - UDP: unit 15, integration 34, network 16, transport 17.
+  - GNS: transport 17, integration 20 P / 14 SKIP, network 11 P / 5 SKIP, spike 7, dtls 8.
+  - ×2, plus E2E. Soak v4 43/43 × 6.
+- **Problems encountered:**
+  - a false GNS pass exposed by the guard;
+  - the DTLS first run failed (DANE);
+  - two substitute drafts failed on GNS (the old connection is really closed);
+  - a pre-existing GNS teardown assertion (KI-27).
+- **Remaining:** DTLS integration and an independent review (KI-29); application-level delivery (KI-28).
+
 ## 2026-10-23: GameNetworkingSockets adapter (`feature/gns-adapter`, stacked on #4)
 
 - **Input:** ChatGPT recommendation after review #4 (priorities 1–3).

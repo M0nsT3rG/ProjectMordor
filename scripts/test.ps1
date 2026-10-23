@@ -34,7 +34,7 @@ try {
     if ($GnsBuild -and (Test-Path $gnsResults)) {
         ctest --test-dir build-gns -C $Config --output-on-failure
         if ($LASTEXITCODE -ne 0) { $failed = $true }
-        $map = @{ 'integration-gns' = 'integration-gns'; 'network-gns' = 'network-gns'; 'transport' = 'transport-both'; 'gns' = 'gns' }
+        $map = @{ 'integration-gns' = 'integration-gns'; 'network-gns' = 'network-gns'; 'transport' = 'transport-both'; 'gns' = 'gns'; 'dtls' = 'dtls' }
         foreach ($k in $map.Keys) {
             $src = Join-Path $gnsResults "$k.json"
             if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$($map[$k])-$stamp.json") -Force }

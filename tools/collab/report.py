@@ -25,14 +25,15 @@ AUTO_BEGIN = "<!-- AUTO:BEGIN"
 AUTO_END = "<!-- AUTO:END -->"
 SUITES = ("unit", "integration", "network")  # required (UDP / default build)
 # Reported when present: contract suite and per-transport GNS results (review #4 next steps).
-OPTIONAL_SUITES = ("transport", "transport-both", "integration-gns", "network-gns", "gns")
+OPTIONAL_SUITES = ("transport", "transport-both", "integration-gns", "network-gns", "gns", "dtls")
 # Keep simulated-clock and real-time results visibly separate (review FB-1-03).
 CLOCK = {"unit": "none (pure logic)", "integration": "simulated clock, real loopback UDP",
          "network": "simulated clock, real loopback UDP, seeded impairment",
          "transport": "real time, loopback, UDP backend", "transport-both": "real time, loopback, UDP + GNS backends",
          "integration-gns": "simulated clock coupled to real time, GNS backend",
          "network-gns": "simulated clock coupled to real time, GNS backend, GNS fake impairment",
-         "gns": "real time, raw GNS spike"}
+         "gns": "real time, raw GNS spike",
+         "dtls": "in-memory datagrams, OpenSSL DTLS 1.2 + RFC 7250 proof (D-013), no network"}
 
 
 def git(repo: Path, *args: str) -> str:

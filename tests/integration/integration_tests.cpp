@@ -682,3 +682,328 @@ TEST(timeout_notice_from_other_session_or_endpoint_is_ignored) {
     CHECK(f.c.state() == ClientState::Connected);  // wrong source endpoint
     CHECK(f.c.stats().foreign_packets >= 2);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Review #5 FB-5-04: the raw-UDP fake-peer tests above check OUR protocol rules (validation, wrong direction,
+// sequence guards, input shedding, token migration). These substitutes check the same rules through a real
+// connection of the backend under test, so they run on every backend. What cannot be expressed on a
+// connection-oriented backend is listed in docs/test-coverage.md (for example a stranger injecting into an
+// existing connection: GNS itself rejects that below our layer).
+namespace {
+void settle() {  // lets real-time delivery happen (GNS runs its own thread); a no-op cost on UDP
+    std::this_thread::sleep_for(std::chrono::milliseconds(test::test_transport() == TransportKind::Udp ? 1 : 20));
+}
+
+std::unique_ptr<Transport> open_transport(bool listen) {
+    std::string err;
+    auto t = make_transport(test::test_transport(), {}, &err);
+    if (!t || !t->open(Endpoint::loopback(0), listen, &err)) throw test::CheckFailure("transport open failed: " + err);
+    return t;
+}
+
+std::size_t count_if_kind(const std::vector<TransportEvent>& ev, TransportEvent::Kind k) {
+    return static_cast<std::size_t>(std::count_if(ev.begin(), ev.end(), [&](const TransportEvent& e) { return e.kind == k; }));
+}
+
+std::vector<std::pair<PeerId, Packet>> drain(Transport& t, std::vector<TransportEvent>* events = nullptr) {
+    std::vector<TransportEvent> ev;
+    t.poll(0, ev);
+    std::vector<std::pair<PeerId, Packet>> out;
+    for (auto& e : ev) {
+        if (e.kind == TransportEvent::Kind::Message)
+            if (auto d = decode(e.bytes); d.packet) out.emplace_back(e.peer, *d.packet);
+        if (events) events->push_back(std::move(e));
+    }
+    return out;
+}
+
+struct TransportFakeClient {
+    std::unique_ptr<Transport> t = open_transport(false);
+    PeerId peer;
+    Header h;
+    ConnectAccept accept{};
+    explicit TransportFakeClient(std::uint16_t host_port) { peer = t->connect(Endpoint::loopback(host_port)).value(); }
+    void send(const Message& m) {
+        ++h.sequence;
+        CHECK(t->send(peer, encode(h, m), Delivery::Unreliable, 0) == SendResult::Sent);
+    }
+    // Retries ConnectRequest (like a real client) and steps the host until the matching ConnectAccept arrives.
+    void join(test::Session& s, std::uint64_t nonce, std::uint64_t token = 0) {
+        for (int i = 0; i < 200; ++i) {
+            if (i % 5 == 0) send(ConnectRequest{nonce, token});
+            settle();
+            s.host.update(s.clk.now);
+            settle();
+            for (auto& [from, p] : drain(*t))
+                if (const auto* a = std::get_if<ConnectAccept>(&p.message); a && a->client_nonce == nonce) {
+                    accept = *a;
+                    h.session = p.header.session;
+                    return;
+                }
+        }
+        throw test::CheckFailure("fake client was not accepted");
+    }
+    std::optional<Snapshot> latest_snapshot() {
+        std::optional<Snapshot> best;
+        settle();
+        for (auto& [from, p] : drain(*t))
+            if (const auto* snap = std::get_if<Snapshot>(&p.message); snap && (!best || seq_newer(snap->server_tick, best->server_tick)))
+                best = *snap;
+        return best;
+    }
+};
+
+struct TransportFakeHost {
+    std::unique_ptr<Transport> t = open_transport(true);
+    PeerId client;  // current connection of the client (a GNS reconnect is a new one)
+    Header h;
+    std::uint64_t nonce = 0;
+    TransportFakeHost() { h.session = 500; }
+    Endpoint endpoint() const { return Endpoint::loopback(t->local_endpoint().port); }
+    void expect_request(client::Client& c, test::SimClock& clk) {
+        for (int i = 0; i < 400; ++i) {
+            c.update(clk.now);
+            settle();
+            for (auto& [from, p] : drain(*t))
+                if (const auto* req = std::get_if<ConnectRequest>(&p.message)) {
+                    client = from;
+                    nonce = req->client_nonce;
+                    return;
+                }
+            clk.now += 10'000;
+        }
+        throw test::CheckFailure("no ConnectRequest from client");
+    }
+    std::vector<std::uint8_t> packet(const Message& m) {
+        ++h.sequence;
+        return encode(h, m);
+    }
+    // Returns false when the connection it targets no longer exists. Only a connection-oriented backend can say
+    // that: the peer closed it (for example the client reconnecting on a new connection), so nothing stale can
+    // arrive on it any more.
+    bool deliver(client::Client& c, const test::SimClock& clk, const std::vector<std::uint8_t>& bytes) {
+        const auto r = t->send(client, bytes, Delivery::Unreliable, 0);
+        CHECK(r == SendResult::Sent || (r == SendResult::NotConnected && t->capabilities().reports_disconnects));
+        if (r != SendResult::Sent) return false;
+        for (int i = 0; i < 10; ++i) {
+            settle();
+            c.update(clk.now);
+            drain(*t);  // keep our side serviced
+        }
+        return true;
+    }
+    void accept(client::Client& c, const test::SimClock& clk) { deliver(c, clk, packet(ConnectAccept{nonce, 1, 1, 77, 30, 0})); }
+};
+
+struct TransportNoticeFixture {
+    test::SimClock clk;
+    TransportFakeHost fh;
+    client::Client c;
+    TransportNoticeFixture() : c(make_cfg(fh), test::test_logger("client")) {
+        CHECK(c.start());
+        c.connect(clk.now);
+        fh.expect_request(c, clk);
+        fh.accept(c, clk);
+        CHECK(c.state() == ClientState::Connected);
+    }
+    static client::ClientConfig make_cfg(const TransportFakeHost& fh) {
+        client::ClientConfig cc;
+        cc.host = fh.endpoint();
+        cc.transport = test::test_transport();
+        return cc;
+    }
+};
+}  // namespace
+
+TEST(host_survives_invalid_payloads_over_transport) {
+    test::Session s;
+    TransportFakeClient attacker(s.host.port());
+    std::mt19937 rng(99);
+    std::vector<std::vector<std::uint8_t>> junk = {{1, 2, 3}, std::vector<std::uint8_t>(1200, 0xAB)};
+    auto valid = encode(Header{}, ConnectRequest{1, 0});
+    valid.push_back(0);  // length mismatch
+    junk.push_back(valid);
+    for (int i = 0; i < 200; ++i) {
+        std::vector<std::uint8_t> r(1 + rng() % 100);
+        for (auto& b : r) b = static_cast<std::uint8_t>(rng());
+        junk.push_back(r);
+    }
+    InputBatch b;  // well-formed, but from a peer that never joined
+    b.inputs.push_back({1, 1, 0});
+    junk.push_back(encode(Header{}, b));
+    // Reliable where offered, so every payload is known to arrive; plain datagrams on loopback otherwise.
+    const auto d = attacker.t->capabilities().reliable_ordered ? Delivery::ReliableOrdered : Delivery::Unreliable;
+    for (const auto& j : junk) CHECK(attacker.t->send(attacker.peer, j, d, 0) == SendResult::Sent);
+    for (int i = 0; i < 50; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+        s.clk.now += kTickUs;
+        drain(*attacker.t);
+    }
+    CHECK(s.host.running());
+    CHECK(s.host.stats().invalid_packets >= 200);
+    CHECK(s.host.stats().unknown_peer >= 1);
+    CHECK(s.host.slot_count() == 0);
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+}
+
+TEST(client_rejects_stale_snapshots_over_transport) {
+    TransportNoticeFixture f;
+    Snapshot snap;
+    snap.entities.push_back({1, 1, {10, 0, 0, 0}, 0, 0});
+    snap.entities.push_back({2, 2, {20, 0, 0, 0}, 0, 0});
+    snap.server_tick = 10;
+    f.fh.deliver(f.c, f.clk, f.fh.packet(snap));
+    CHECK(f.c.stats().snapshots_applied == 1);
+    snap.server_tick = 9;
+    snap.entities[0].transform.x = -50;
+    f.fh.deliver(f.c, f.clk, f.fh.packet(snap));  // older
+    snap.server_tick = 10;
+    f.fh.deliver(f.c, f.clk, f.fh.packet(snap));  // duplicate
+    CHECK(f.c.stats().snapshots_applied == 1);
+    CHECK(f.c.stats().stale_snapshots == 2);
+    CHECK(f.c.authoritative_self()->x == 10.0f);
+    Header other = f.fh.h;
+    other.session = 78;  // wrong session is ignored entirely
+    other.sequence += 1;
+    snap.server_tick = 11;
+    f.fh.deliver(f.c, f.clk, encode(other, snap));
+    CHECK(f.c.stats().snapshots_applied == 1);
+}
+
+TEST(client_ignores_wrong_direction_messages_over_transport) {
+    TransportNoticeFixture f;
+    for (int i = 0; i < 100 && f.c.state() == ClientState::Connected; ++i) {  // only host-bound message types
+        CHECK(f.fh.t->send(f.fh.client, f.fh.packet(i % 2 ? Message{Heartbeat{1}} : Message{inputs(1, 1, 0.0f)}),
+                           Delivery::Unreliable, 0) == SendResult::Sent);
+        settle();
+        f.clk.now += 50'000;
+        f.c.update(f.clk.now);
+        drain(*f.fh.t);
+    }
+    CHECK(f.c.state() == ClientState::Reconnecting);
+    CHECK(f.c.stats().invalid_packets >= 50);
+}
+
+TEST(host_ignores_wrong_direction_messages_over_transport) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 9);
+    Snapshot bogus;
+    bogus.server_tick = 1;
+    const auto invalid_before = s.host.stats().invalid_packets;
+    for (int i = 0; i < 150; ++i) {  // ~5 s of host-to-client-only message types sent by the client
+        fc.send(i % 2 ? Message{bogus} : Message{HeartbeatAck{1}});
+        settle();
+        s.clk.now += kTickUs;
+        s.host.update(s.clk.now);
+        drain(*fc.t);
+    }
+    CHECK(s.host.stats().timeouts == 1);
+    CHECK(s.host.connected_count() == 0);
+    CHECK(s.host.stats().invalid_packets >= invalid_before + 80);
+}
+
+TEST(input_burst_is_shed_over_transport) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 42);
+    const auto player = fc.accept.player_id;
+    fc.send(inputs(1, 8, 1.0f));
+    fc.send(inputs(9, 8, 1.0f));  // 16 inputs queued before the next tick
+    settle();
+    s.host.update(s.clk.now);  // receive both without a tick
+    const float step = sim::kMoveSpeed / 30.0f;
+    float x = s.host.player_transform(player)->x;
+    for (int tick = 0; tick < 10; ++tick) {
+        const auto world_tick = s.host.world().tick();
+        s.clk.now += kTickUs;
+        s.host.update(s.clk.now);
+        CHECK(s.host.world().tick() == world_tick + 1);
+        const float nx = s.host.player_transform(player)->x;
+        CHECK(nx - x <= step + 1e-4f);
+        x = nx;
+    }
+    const auto snap = fc.latest_snapshot();
+    CHECK(snap.has_value());
+    CHECK(snap->last_input_seq == 16);
+    CHECK(s.host.stats().shed_inputs == 13);
+    CHECK_NEAR(x - spawn_x(fc.accept.entity_id), 3 * step, 1e-4);
+}
+
+TEST(reconnect_token_moves_slot_to_new_connection_over_transport) {
+    test::Session s;
+    TransportFakeClient a(s.host.port());
+    a.join(s, 1);
+    TransportFakeClient b(s.host.port());
+    b.join(s, 2, a.accept.reconnect_token);
+    CHECK(b.accept.player_id == a.accept.player_id);
+    CHECK(b.accept.entity_id == a.accept.entity_id);
+    CHECK(s.host.slot_count() == 1);
+    const auto unknown_before = s.host.stats().unknown_peer;
+    ++a.h.sequence;  // the old connection is no longer a member of the session
+    const auto r = a.t->send(a.peer, encode(a.h, Heartbeat{1}), Delivery::Unreliable, 0);
+    if (a.t->capabilities().reports_disconnects) {
+        // Connection-oriented: the host closed the old connection when the slot moved, so the stale member
+        // cannot even send any more. Stronger than the UDP rule below.
+        std::vector<TransportEvent> ev;
+        for (int i = 0; i < 100 && count_if_kind(ev, TransportEvent::Kind::Disconnected) == 0; ++i) {
+            settle();
+            s.host.update(s.clk.now);
+            drain(*a.t, &ev);
+        }
+        CHECK(count_if_kind(ev, TransportEvent::Kind::Disconnected) == 1 || r == SendResult::NotConnected);
+        CHECK(a.t->send(a.peer, encode(a.h, Heartbeat{1}), Delivery::Unreliable, 0) == SendResult::NotConnected);
+    } else {
+        CHECK(r == SendResult::Sent);
+        settle();
+        s.host.update(s.clk.now);
+        CHECK(s.host.stats().unknown_peer == unknown_before + 1);
+    }
+}
+
+TEST(timeout_notice_is_rate_limited_and_scoped_over_transport) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 11);
+    s.clk.now += 4 * kSec;  // simulated silence: the slot times out at the next update (the connection stays up)
+    s.host.update(s.clk.now);
+    CHECK(s.host.connected_count() == 0);
+    for (int i = 0; i < 10; ++i) fc.send(Heartbeat{1});
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.stats().timeout_notices == 1);
+    TransportFakeClient stranger(s.host.port());  // right session, but a connection that never joined
+    stranger.h.session = fc.h.session;
+    stranger.send(Heartbeat{1});
+    settle();
+    s.clk.now += kSec;
+    s.host.update(s.clk.now);
+    CHECK(s.host.stats().timeout_notices == 1);
+}
+
+// Delayed, replayed and duplicate notices, and one from another session. On a connection-oriented backend the
+// replay arrives on the client's NEW connection, so only the sequence guard can reject it.
+TEST(stale_replayed_and_foreign_session_notices_are_ignored_over_transport) {
+    TransportNoticeFixture f;
+    Header old = f.fh.h;
+    old.session = 499;  // a previous host session
+    old.sequence = f.fh.h.sequence + 100;
+    f.fh.deliver(f.c, f.clk, encode(old, Disconnect{DisconnectReason::Timeout}));
+    CHECK(f.c.state() == ClientState::Connected);
+    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
+    CHECK(f.fh.deliver(f.c, f.clk, notice));  // a current notice is honoured
+    CHECK(f.c.state() == ClientState::Reconnecting);
+    for (int i = 0; i < 2; ++i) f.fh.deliver(f.c, f.clk, notice);  // duplicates (GNS: the old connection is gone)
+    CHECK(f.c.state() == ClientState::Reconnecting);
+    f.fh.expect_request(f.c, f.clk);
+    f.fh.accept(f.c, f.clk);
+    CHECK(f.c.state() == ClientState::Connected);
+    CHECK(f.c.stats().reconnects == 1);
+    for (int i = 0; i < 3; ++i) CHECK(f.fh.deliver(f.c, f.clk, notice));  // the old notice replayed late, on the
+    CHECK(f.c.state() == ClientState::Connected);                           // current connection
+    CHECK(f.c.stats().stale_notices == 3);  // only the sequence guard stands between the replay and a reconnect
+    CHECK(f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout})));  // a new one still works
+    CHECK(f.c.state() == ClientState::Reconnecting);
+}

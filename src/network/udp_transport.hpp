@@ -22,7 +22,10 @@ public:
     void close_peer(PeerId peer) override;
     void flush(std::uint64_t now_us) override { sender_.flush(now_us); }
     void flush_all() override { sender_.flush_all(); }
-    void set_impairment(const ImpairmentConfig& c) override { sender_.set_config(c); }
+    bool set_impairment(const ImpairmentConfig& c) override {
+        sender_.set_config(c);
+        return true;
+    }
     TransportKind kind() const override { return TransportKind::Udp; }
     const TransportStats& stats() const override;
 

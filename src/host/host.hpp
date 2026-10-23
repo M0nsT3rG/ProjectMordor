@@ -48,9 +48,10 @@ public:
     const sim::World& world() const { return world_; }
     const HostStats& stats() const { return stats_; }
     std::optional<net::Transform> player_transform(std::uint16_t player_id) const;
-    void set_impairment(const net::ImpairmentConfig& c) {
+    bool set_impairment(const net::ImpairmentConfig& c) {  // false: refused by the transport (FB-5-03)
+        if (transport_ && !transport_->set_impairment(c)) return false;
         cfg_.impairment = c;
-        if (transport_) transport_->set_impairment(c);
+        return true;
     }
 
 private:

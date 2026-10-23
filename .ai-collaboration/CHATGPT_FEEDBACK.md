@@ -8,7 +8,25 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #5 (PR #5: GNS adapter)
 
-- **Status:** received and triaged (2026-10-23). Nothing is implemented yet.
+- **Status:** triaged 2026-10-23. **Implemented** 2026-10-24 on `feature/gns-hardening` (stacked on PR #5), on the owner's go-ahead, which also approved the FB-5-05 proof test. Record: EXP-017. Review request #5.
+- **As implemented:**
+  - **FB-5-01:**
+    - the counter semantics are fixed in `transport.hpp`; GNS `close()` counts connections in `closed_with_unacked_reliable`;
+    - test `contract_mid_backlog_disconnect_then_reconnect_is_clean`;
+    - application-level delivery is deferred to the reliable-events milestone (KI-28).
+  - **FB-5-02:**
+    - `connect_deadline_us` at the session layer, with a timeout table in D-014;
+    - 4 lifecycle tests.
+  - **FB-5-03:**
+    - the guard (refuse a different config, join the same one, last holder resets) and `impairment_refused`;
+    - test `contract_process_global_impairment_is_guarded_and_never_leaks`.
+    - **It exposed a false GNS pass:** `timeout_notice_recovery_under_jitter_reconnects_once`, now UDP-only.
+  - **FB-5-04:**
+    - 8 `_over_transport` substitutes;
+    - `docs/test-coverage.md`.
+  - **FB-5-05:**
+    - `tests/dtls`, 8/8 after a failed first run (DANE must be enabled);
+    - see `docs/d013-evaluation.md`.
 - **Source:** [PR #5 comment 6375464043](https://github.com/M0nsT3rG/ProjectMordor/pull/5#issuecomment-6375464043). ChatGPT reviewed the source of `9ae2b2a` only.
 - **ChatGPT's verdict:** conditional GO for isolated lab work. Not production-ready, and no untrusted access.
 

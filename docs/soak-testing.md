@@ -120,6 +120,17 @@ Results are recorded **per transport** and are not compared across transports: t
 
 Bandwidth is the session-layer payload rate, not GNS wire bytes (GNS adds its own headers and encryption).
 
+**Re-run after review #5 (2026-10-24, EXP-017; connect deadline, impairment guard; gates unchanged):**
+
+| Run | Gates | RTT p50 / p99 | Recovery |
+|---|---|---|---|
+| lan, udp | 43/43 | 10.4 / 12.1 ms | 18 ms |
+| moderate, udp | 43/43 | 103.1 / 121.3 ms | 147 ms |
+| harsh, udp | 43/43 | 204.4 / 239.7 ms | 826 ms |
+| lan, gns | 43/43 | 9.0 / 12.1 ms | 30 ms |
+| moderate, gns | 43/43 | 97.0 / 115.5 ms | 378 ms |
+| harsh, gns | 43/43 | 188.6 / 228.5 ms | 783 ms |
+
 **Failed v4 runs, preserved:**
 - `soak-2026-10-23-225258-lan-gns-g4`: `host_timeouts_match_stalls` failed (3 timeouts, 1 expected). Clean leaves became timeouts: the unreliable `Disconnect` was lost when GNS closed. Fixed: `Disconnect` is sent reliably where supported, and `close()` drains reliable data.
 - `soak-2026-10-23-230405-harsh-gns-g4`: `client1_rtt_p99` 313 > 300 ms. The first mapping gave the full jitter budget to both lag jitter and the reorder stage, exceeding the profile's worst-case delay. Fixed by splitting the budget; the gate was not changed.

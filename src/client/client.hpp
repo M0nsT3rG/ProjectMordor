@@ -27,7 +27,10 @@ struct ClientConfig {
     std::uint64_t connect_retry_us = 250'000;
     std::uint64_t connect_timeout_us = 5'000'000;
     std::uint64_t reconnect_retry_us = 500'000;
-    std::uint64_t reconnect_window_us = 15'000'000;
+    std::uint64_t reconnect_window_us = 15'000'000;  // hard bound per reconnect: never reset by transport retries
+    // Hard upper bound for one connect() call, whatever the transport does: transport establishment (GNS
+    // TimeoutInitial 10 s, D-014) + session handshake (connect_timeout_us). Review #5 FB-5-02.
+    std::uint64_t connect_deadline_us = 20'000'000;
     double interp_delay_ticks = 3.0;
     bool prediction = true;
     std::uint16_t protocol_version = net::kProtocolVersion;  // overridable only to test version rejection
@@ -61,6 +64,7 @@ public:
     std::optional<net::RejectReason> reject_reason() const { return reject_reason_; }
     std::optional<net::DisconnectReason> disconnect_reason() const { return disconnect_reason_; }
     std::uint16_t player_id() const { return player_id_; }
+    const ClientConfig& config() const { return cfg_; }
     std::uint16_t entity_id() const { return entity_id_; }
     std::uint32_t session_id() const { return session_; }
     std::optional<std::uint32_t> latest_server_tick() const { return latest_tick_; }
@@ -70,12 +74,14 @@ public:
     std::optional<net::Transform> remote_view(std::uint16_t entity_id, std::uint64_t now_us) const;
     std::vector<std::uint16_t> remote_entities() const;
     const ClientStats& stats() const { return stats_; }
+    const std::string& state_reason() const { return state_reason_; }  // why the last state change happened
     const std::vector<float>& rtt_samples_ms() const { return rtt_samples_ms_; }  // raw samples for percentiles
     const std::vector<float>& correction_samples() const { return correction_samples_; }  // each correction's size
     std::uint16_t local_port() const { return transport_ ? transport_->local_endpoint().port : 0; }
-    void set_impairment(const net::ImpairmentConfig& c) {
+    bool set_impairment(const net::ImpairmentConfig& c) {  // false: refused by the transport (FB-5-03)
+        if (transport_ && !transport_->set_impairment(c)) return false;
         cfg_.impairment = c;
-        if (transport_) transport_->set_impairment(c);
+        return true;
     }
 
 private:
@@ -91,6 +97,8 @@ private:
     Logger& log_;
     std::unique_ptr<net::Transport> transport_;
     std::optional<net::PeerId> server_peer_;  // transport identity of the host connection (FB-4-02)
+    std::string state_reason_;
+    std::uint64_t connect_started_us_ = 0;     // connect() call time: connect_deadline_us counts from here
     bool transport_up_ = false;                // transport reported Connected for server_peer_ (D-014)
     std::vector<net::TransportEvent> events_;
     std::mt19937_64 rng_;

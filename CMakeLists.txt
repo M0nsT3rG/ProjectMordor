@@ -65,6 +65,13 @@ if(MORDOR_WITH_GNS)
   target_link_libraries(mordor_gns_tests PRIVATE mordor_host_lib mordor_client_lib GameNetworkingSockets::shared)
   add_test(NAME gns COMMAND mordor_gns_tests --json ${CMAKE_BINARY_DIR}/test-results/gns.json)
   set_tests_properties(gns PROPERTIES TIMEOUT 300)
+  # D-013 proof test (review #5 FB-5-05, approved by the owner): DTLS 1.2 + RFC 7250 raw public keys.
+  find_package(OpenSSL REQUIRED)
+  add_executable(mordor_dtls_tests tests/dtls/dtls_proof_tests.cpp tests/test_main.cpp)
+  target_include_directories(mordor_dtls_tests PRIVATE tests)
+  target_link_libraries(mordor_dtls_tests PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
+  add_test(NAME dtls COMMAND mordor_dtls_tests --json ${CMAKE_BINARY_DIR}/test-results/dtls.json)
+  set_tests_properties(dtls PROPERTIES TIMEOUT 300)
   # The same host/client suites, run on the GNS adapter (results recorded per transport).
   foreach(suite integration network)
     add_test(NAME ${suite}-gns COMMAND mordor_${suite}_tests --json ${CMAKE_BINARY_DIR}/test-results/${suite}-gns.json)

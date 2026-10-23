@@ -6,6 +6,7 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <set>
 #include <thread>
 
 #include "network/protocol.hpp"
@@ -23,7 +24,10 @@ constexpr int kCloseDrainMs = 500;         // bounded wait for unacknowledged re
 // Process-wide GNS runtime: init/kill refcount and routing of the plain-function status callback to its owner.
 struct Runtime {
     int refs = 0;
-    const GnsTransport* impairment_owner = nullptr;  // instance whose settings are in the process-global config
+    // Process-global fake impairment (FB-5-03): one effective config. Several instances may hold it only if they
+    // asked for the same one; a different request is refused, and the config is reset when the last holder lets go.
+    std::set<const GnsTransport*> impairment_holders;
+    ImpairmentConfig impairment_active{};
     std::map<HSteamListenSocket, GnsTransport*> listen_owner;
     std::map<HSteamNetConnection, GnsTransport*> conn_owner;
 };
@@ -83,11 +87,25 @@ void apply_global_impairment(const ImpairmentConfig& c) {
     set_global_i(k_ESteamNetworkingConfig_FakePacketReorder_Time, static_cast<int32>(c.jitter_ms / 2));
 }
 
+// Same effect on the wire (GNS ignores the seed).
+bool same_impairment(const ImpairmentConfig& a, const ImpairmentConfig& b) {
+    return a.loss == b.loss && a.duplicate == b.duplicate && a.latency_ms == b.latency_ms && a.jitter_ms == b.jitter_ms;
+}
+
+void drop_impairment_hold(const GnsTransport* t) {
+    auto& r = rt();
+    if (r.impairment_holders.erase(t) && r.impairment_holders.empty()) {
+        apply_global_impairment({});
+        r.impairment_active = {};
+    }
+}
+
 void release() {
     auto& r = rt();
     if (r.refs == 0 || --r.refs > 0) return;
     apply_global_impairment({});  // never leak fake impairment into the next session/test
-    r.impairment_owner = nullptr;
+    r.impairment_holders.clear();
+    r.impairment_active = {};
     SteamNetworkingUtils()->SetGlobalCallback_SteamNetConnectionStatusChanged(nullptr);
     GameNetworkingSockets_Kill();
     r.listen_owner.clear();
@@ -140,7 +158,11 @@ bool GnsTransport::open(const Endpoint& bind, bool listen, std::string* error) {
     }
     open_ = true;
     // Process-global setting: opening an unimpaired transport must not wipe impairment another instance set.
-    if (impairment_.enabled()) set_impairment(impairment_);
+    if (impairment_.enabled() && !set_impairment(impairment_)) {
+        if (error) *error = "GNS impairment is process-global and another transport holds a different config";
+        close();
+        return false;
+    }
     return true;
 }
 
@@ -162,7 +184,9 @@ void GnsTransport::close() {
             std::this_thread::sleep_for(std::chrono::milliseconds(1));
         }
         for (auto& [conn, c] : conns_) {
-            if (has_unacked_reliable(conn)) ++stats_.discarded_on_close;  // per connection: GNS has no per-message count
+            // Per CONNECTION, so it goes in closed_with_unacked_reliable; discarded_on_close stays a per-message
+            // count, which GNS cannot provide (FB-5-01).
+            if (has_unacked_reliable(conn)) ++stats_.closed_with_unacked_reliable;
             s->CloseConnection(conn, 0, "transport closed", true);         // linger: keep sending queued reliable data
             rt().conn_owner.erase(conn);
         }
@@ -172,11 +196,9 @@ void GnsTransport::close() {
         }
         if (poll_group_ != k_HSteamNetPollGroup_Invalid) s->DestroyPollGroup(poll_group_);
         // Our process-global impairment must not outlive us (found by the first GNS run: a closed host's 100%
-        // loss kept blocking the next host in the same process, EXP-016).
-        if (rt().impairment_owner == this) {
-            apply_global_impairment({});
-            rt().impairment_owner = nullptr;
-        }
+        // loss kept blocking the next host in the same process, EXP-016), but it must not end another holder's
+        // either (FB-5-03).
+        drop_impairment_hold(this);
         release();
     }
     conns_.clear();
@@ -350,11 +372,28 @@ void GnsTransport::flush_all() {
 // alone never reorders; the two halves keep the profile's worst case latency + jitter), duplicate ->
 // FakePacketDup_Send (%) with TimeMax = latency + jitter. Approximate, not identical
 // to ImpairedSender's uniform jitter: results are recorded per transport and never compared latency-for-latency.
-void GnsTransport::set_impairment(const ImpairmentConfig& c) {
+bool GnsTransport::set_impairment(const ImpairmentConfig& c) {
+    if (!runtime_acquired_) {
+        impairment_ = c;  // applied (or refused) at open()
+        return true;
+    }
+    auto& r = rt();
+    if (!c.enabled()) {
+        impairment_ = c;
+        drop_impairment_hold(this);
+        return true;
+    }
+    const bool sole_or_none = r.impairment_holders.empty() ||
+                              (r.impairment_holders.size() == 1 && r.impairment_holders.contains(this));
+    if (!sole_or_none && !same_impairment(c, r.impairment_active)) {
+        ++stats_.impairment_refused;  // explicit: another instance's simulation is never silently changed
+        return false;
+    }
     impairment_ = c;
-    if (!runtime_acquired_) return;
+    r.impairment_holders.insert(this);
+    r.impairment_active = c;
     apply_global_impairment(c);
-    rt().impairment_owner = c.enabled() ? this : nullptr;
+    return true;
 }
 
 }  // namespace mordor::net
