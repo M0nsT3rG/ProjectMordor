@@ -6,6 +6,28 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #5 (PR #5: GNS adapter)
+
+- **Status:** received and triaged (2026-10-23). Nothing is implemented yet.
+- **Source:** [PR #5 comment 6375464043](https://github.com/M0nsT3rG/ProjectMordor/pull/5#issuecomment-6375464043). ChatGPT reviewed the source of `9ae2b2a` only.
+- **ChatGPT's verdict:** conditional GO for isolated lab work. Not production-ready, and no untrusted access.
+
+| ID | Assumptions verified? | Decision | Plan | Verification planned |
+|---|---|---|---|---|
+| **FB-5-01** (major) reliability accounting | **Yes, confirmed in the code.** `Conn::reliable_outstanding` is one boolean per connection, cleared when the aggregate `m_cbPendingReliable`/`m_cbSentUnackedReliable` reach 0. It is wire-level only and says nothing about the peer application. GNS `discarded_on_close` counts **connections** (`gns_transport.cpp:165`), while UDP counts **messages**, so the same counter has two meanings. Also: if the last instance closes, `release()` calls `GameNetworkingSockets_Kill()`, which can end lingering connections early. | **Accepted** | (a) Document the transport counters as wire-level diagnostics, not proof of delivery. Give GNS a separate per-connection counter so `discarded_on_close` keeps one meaning. (b) Application-level delivery (event ids, app ACK, resume or snapshot replay) becomes part of the reliable-events milestone: there are no consequential events yet. (c) Add disconnect-mid-backlog and reconnect tests. | Contract tests for the counter semantics; mid-backlog tests on GNS. |
+| **FB-5-02** (major) lifecycle and timeouts | **Partly confirmed.** The initial connect is bounded only by GNS's `TimeoutInitial` (10 s) plus our 5 s window; our own timer is skipped until transport `Connected` (`client.cpp:113`). If GNS never reported `Disconnected`, nothing would bound it: there is **no overall session deadline**. Reconnect is bounded by the 15 s window. No test covers a black-holed connect, no listener, or a close during the handshake. | **Accepted** | Add an overall connect deadline at the session layer that covers transport and session attempts. Document which layer owns each timeout. Add tests: no listener, black-holed connect, remote close during handshake, repeated reconnects, host restart (the last already exists). | New tests on both backends. |
+| **FB-5-03** (major) process-global impairment | **Yes, confirmed.** Any instance's `set_impairment` overwrites the global config and takes ownership (`gns_transport.cpp:353–357`). An owner's `close()` resets impairment for every other instance. The single-owner rule is not enforced. | **Accepted** | Enforce a single owner: a second impairing instance gets an explicit error, never a silent overwrite. Add a leakage test. Run asymmetric GNS scenarios in **separate processes** (answer 6). | Leakage and guard tests; separate-process asymmetric test. |
+| **FB-5-04** (minor) test completeness | **Partly.** Each of the 18 skips already states its reason in the code, and our reports gave skip counts. But 11 skips use a raw UDP fake peer, and several of them (malformed messages, foreign session, timeout-notice replay) test **our** protocol checks, which could run over a GNS connection carrying bad payloads. There is no coverage matrix. | **Accepted** | A coverage matrix (`docs/`) per test × backend, naming the capability behind each skip. GNS substitutes that send malformed or replayed protocol payloads through a real GNS connection. | Matrix plus new GNS tests. |
+| **FB-5-05** (minor) D-013 | **Yes.** Our evaluation already required proof tests (condition 2), but it rests on header availability only. | **Accepted** | A minimal two-peer DTLS 1.2 + RFC 7250 proof test covering a correct pinned key, a wrong key, session binding and downgrade rejection. It links OpenSSL directly, so **it needs the owner's approval**: no new crypto dependency without it. | The proof test, if approved. |
+
+**Answers received:**
+1. Test changes are acceptable only where a backend capability differs, with a substitute invariant.
+2. The counters are diagnostics; use app ACK and replay for events.
+3. The 500 ms drain is a policy, not a guarantee.
+4. Keep an overall deadline.
+5. DTLS + RPK is plausible but unproven.
+6. Use separate processes.
+
 ## Recommendation after review #4 (GNS adapter, priorities 1–3)
 
 - **Status:** implemented on `feature/gns-adapter` (stacked on PR #4), 2026-10-23. Experiment record: EXP-016. Review request: [CHATGPT_REVIEW_REQUEST.md](CHATGPT_REVIEW_REQUEST.md) #4.
