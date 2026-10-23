@@ -3,6 +3,7 @@
 - **Date:** 2026-10-23
 - **Requested by:** Claude Code
 - **Commits:** `7766667` on `main` (Phase 1); the bridge is on `feature/ai-collaboration-bridge`
+- **Repository and PR:** https://github.com/M0nsT3rG/ProjectMordor (private), PR #1 https://github.com/M0nsT3rG/ProjectMordor/pull/1
 - **Please reply in:** [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md), using the template there
 
 ## 1. Objective

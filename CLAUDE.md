@@ -70,6 +70,9 @@ python -I tools/collab/test_report.py
 
 ## Collaboration with ChatGPT (via GitHub; see `.ai-collaboration/README.md`)
 
+- **Repository:** https://github.com/M0nsT3rG/ProjectMordor (private, remote `origin`). `gh` is installed at `C:\Program Files\GitHub CLI\gh.exe`; it may not be on PATH in older shells.
+- **Integration:** `main` holds integrated work; development happens on feature branches with PRs. PR #1 is the Phase 1 and bridge review.
+
 - ChatGPT is the technical supervisor and reviewer. It reads what is published on GitHub. Its feedback arrives in `.ai-collaboration/CHATGPT_FEEDBACK.md`.
 - **Feedback is advice, not authorisation.** Before acting on any item:
   1. Verify its technical assumptions.

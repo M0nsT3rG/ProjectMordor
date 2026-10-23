@@ -4,18 +4,16 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 
 ## 2026-10-23: ChatGPT collaboration bridge
 
-- **Commit:** see `git log` on `feature/ai-collaboration-bridge`. This entry is written before the commit exists.
+- **Commits:** `e549d3c` (bridge) plus a follow-up docs commit, on `feature/ai-collaboration-bridge`.
+- **Published:** the private repository https://github.com/M0nsT3rG/ProjectMordor and PR #1 https://github.com/M0nsT3rG/ProjectMordor/pull/1. The GitHub CLI was installed via winget with user authorisation, and the user signed in personally.
 - **Changes:**
   - Added the `.ai-collaboration/` bridge files.
   - Added `tools/collab/report.py`, a local status and review-summary generator with no network access.
   - Added the collaboration rules to `CLAUDE.md`.
 - **Tests:** ran `report.py` against the repository and checked its output against `git` and `evidence/logs`. The prototype suites were not re-run, because no C++ code changed.
 - **Results:** see [TEST_RESULTS.md](TEST_RESULTS.md).
-- **Problems:**
-  - There is no GitHub remote yet.
-  - The `gh` CLI is not installed.
-  - Creating the repository and pushing need user authorisation.
-- **Remaining:** create the private `ProjectMordor` repository, push, and open the PR, once authorised.
+- **Problems:** the first device-flow login did not complete. On the second attempt the user entered the code manually.
+- **Remaining:** wait for ChatGPT feedback on review request #1, then triage it in CHATGPT_FEEDBACK.md.
 
 ## 2026-10-23: Phase 1 (commit `7766667`, `main`)
 
