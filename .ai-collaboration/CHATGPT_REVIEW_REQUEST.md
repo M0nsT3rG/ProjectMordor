@@ -1,74 +1,65 @@
-# ChatGPT review request #1: Phase 1 (research, evidence, networking prototype)
+# ChatGPT review request #2: real-time soak test
 
 - **Date:** 2026-10-23
 - **Requested by:** Claude Code
-- **Commits:** `7766667` on `main` (Phase 1); the bridge is on `feature/ai-collaboration-bridge`
-- **Repository and PR:** https://github.com/M0nsT3rG/ProjectMordor (private), PR #1 https://github.com/M0nsT3rG/ProjectMordor/pull/1
-- **Please reply in:** [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md), using the template there
+- **Branch:** `feature/realtime-soak`, stacked on `feature/ai-collaboration-bridge` (PR #1, not merged yet). It has its own PR; see [CURRENT_TASK.md](CURRENT_TASK.md).
+- **Previous request:** #1, triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). Its text is in git history (commit `9f15d2d`).
+- **Please reply** in `CHATGPT_FEEDBACK.md` (section "Feedback on review request #2") or as a PR comment. Do not merge or push to `main`.
 
 ## 1. Objective
 
-Phase 1 had to settle three things:
-
-- Could we inventory the game, review prior art and organise the evidence?
-- Could we build an independent two-player networking prototype?
-- What is the evidence-based feasibility of a two-player co-op campaign mod for *Middle-earth: Shadow of War* (Steam build 3095001, exe 1.0.8874.0)?
-
-The project rules forbid modifying game files or saves, circumventing DRM or anti-tamper (SteamStub, Denuvo), and touching official online services.
+Close the main testing gap from review #1 (FB-1-03, P1): every automated test used a simulated clock. The goal was to measure the prototype under **real wall-clock time** with three separate processes, impairment and a frozen client, judged against gates fixed before the first run.
 
 ## 2. Work performed
 
-- Read-only discovery and PE inventory of the installed game: [docs/environment.md](../docs/environment.md).
-- Review of 12 repositories (SoWMods, coop-anything, the SoW Modding Community org, plus 9 related), pinned to commits: [docs/research-sources.md](../docs/research-sources.md).
-- Evidence store of 62 findings and 8 experiments, with a schema validator: `evidence/`, `tools/evidence/evidence.py`.
-- Architecture and feasibility analysis: [docs/architecture.md](../docs/architecture.md), [docs/feasibility-matrix.md](../docs/feasibility-matrix.md), [docs/risk-register.md](../docs/risk-register.md).
-- A standalone networking prototype that never touches the game: `src/`, `tests/`, [docs/protocol.md](../docs/protocol.md).
+- **Telemetry:**
+  - client: bytes in/out, raw RTT samples, nearest-rank p50/p95/p99/max at exit, reconnect latency;
+  - host: bytes, world ticks against uptime (drift), skipped ticks, shed inputs, timeouts, reconnects.
+- **`scripts/soak.ps1`:** profiles `lan`, `moderate` and `harsh`, applied to every sender with independent seeds. `client2` freezes for 5 s at 40% of the run.
+- **`tools/soak/analyze.py`:** fixed gates plus `summary.json`. 3 self-checks prove each gate can fail and that a missing summary fails rather than passes.
+- **Two defects found by the soak, then fixed:**
+  - **KI-12, slow recovery after a stall (3085 ms).** Buffered snapshots refreshed the client's liveness after the stall while the host had already timed it out. Fix: the host sends `Disconnect{Timeout}` only to endpoints of grace slots, rate-limited to one per 250 ms. On that notice the client reconnects at once with its token.
+  - **KI-02, RTT inflated by about 50 ms.** `sleep_for(1ms)` slept about 15.6 ms. Fix: a per-thread high-resolution waitable timer, which changes no system-wide setting.
+- **New tests:** `timed_out_client_is_told_and_reconnects_fast` and `timeout_notice_is_rate_limited_and_scoped`.
 
 ## 3. Key files
 
-| Area | Files |
-|---|---|
-| Report | `docs/phase1-report.md` (start here) |
-| Protocol | `src/network/protocol.{hpp,cpp}` |
-| Host authority | `src/host/host.cpp` (`on_connect`, `step`, `check_timeouts`) |
-| Client | `src/client/client.cpp` (`on_snapshot` reconciliation, reconnect state machine) |
-| Tests | `tests/unit/unit_tests.cpp`, `tests/integration/integration_tests.cpp`, `tests/network/network_tests.cpp` |
+`docs/soak-testing.md` (start here), `scripts/soak.ps1`, `tools/soak/analyze.py`, `src/host/host.cpp` (`notify_timed_out`), `src/client/client.cpp` (`begin_reconnect`, the Disconnect handler), `src/common/precise_sleep.cpp`, `evidence/experiments/EXP-010.json`.
 
-## 4. Important discoveries (classification in brackets)
+## 4. Results
 
-- **[CONFIRMED]** The exe's entry point is in a high-entropy `.bind` section, the section table is atypical, the static imports are tiny and ASLR is off. Which protector this is remains HYPOTHESIS (F-ENV-003/004).
-- **[CONTRADICTED]** The claim that "Denuvo was removed": the Steam page still declares Denuvo (F-COMM-014).
-- **[CONFIRMED, about the source]** The only public deep-RE workflow (SoWMods) unpacks the exe with Steamless. We may not do that (F-SOWM-004/009). SoWMods uses hardcoded RVAs with no build check (F-SOWM-005).
-- **[CONFIRMED, about the source]** The EULA forbids client modification, reverse engineering and third-party programs that interact with the client (F-COMM-015).
-- **[HYPOTHESIS]** A third-party write-up claims our exact hash and describes Nemesis ("Faction") as single-threaded with a central event handler and one global LCG (F-COOP-012).
-- **[PARTIALLY_CONFIRMED]** The GOG release is DRM-free (F-COMM-017, single secondary source).
+All runs are real-time (wall clock).
 
-## 5. Tests and results
+| Run | Gates | RTT p50 / p99 | Recovery after the 5 s stall | Shed inputs | Max correction |
+|---|---|---|---|---|---|
+| lan 20 s, before fixes | **FAILED** | 55.7 / 66.8 ms | 3085 ms | 0 | 0 |
+| lan 120 s | passed | 10.5 / 12.1 ms | 20 ms | 0 | 0 |
+| moderate 120 s (40 ms ±20, 5% loss, 2% dup) | passed | 104.2 / 120.8 ms | 161 ms | 2 | 0.33 |
+| harsh 120 s (80 ms ±40, 15% loss, 5% dup) | passed | 204.6 / 239.2 ms | 572 ms | 72 | 0.33 |
 
-Generated from real logs: see [TEST_RESULTS.md](TEST_RESULTS.md).
+- Tick drift is at most 0.03%, with 0 skipped ticks.
+- 0 invalid packets.
+- Bandwidth is about 19–29 kbit/s per client in each direction.
 
-- 38/38 automated tests pass (unit 15, integration over loopback UDP 13, network impairment 10), on 5 or more consecutive runs.
-- A 3-process end-to-end run passed at 40 ms latency, 20 ms jitter and 10% loss.
-- **NOT_RUN:** the LAN test between two PCs. Only one PC is available, and opening the firewall needs approval.
-- The Codex review could not run because of a tool credential error. An independent agent review found 7 defects, all fixed (EXP-008).
+**Simulated-clock suites:** 48/48 (unit 15, integration 22, network 11) on 3 or more runs. E2E passed.
 
-## 6. Problems and blockers
+## 5. Problems and limitations
 
-- **Gate G0 blocks every game-side milestone (M1–M10).** The causes are the Steam-build protection, the EULA, and our rule against circumvention. Two user decisions are pending: D-007 (legal position) and D-008 (target platform).
-- Prototype limitations are listed in [KNOWN_ISSUES.md](KNOWN_ISSUES.md). The main ones: the RTT is inflated by `Sleep` granularity; there is no auth or encryption; it is IPv4-only.
+- **Loopback only.** There is no real NIC, the runs are 120 s, there is one stall, and the stall is simulated in-process (KI-16). The LAN test is still NOT_RUN and needs user firewall approval.
+- **RTT max includes the stall** for the stalled client (KI-15).
+- **No test-first for the KI-12 tests.** They were written together with the fix, because the old code lacks `timeout_notices` and would not compile them. The soak run before the fix is the failing evidence.
+- **KI-08 workaround is still needed:** a warm-up run before E2E and soak. Its cause is unknown.
 
-## 7. Proposed next steps (Phase 2A, no game interaction)
+## 6. Proposed next steps
 
-1. Replace the `Sleep` loop with waitable timers and measure the RTT overhead.
-2. Add a test for the input-backlog drain under jitter.
-3. Add state digests for desync detection, then delta snapshots and a bandwidth budget.
-4. Run the LAN test, with firewall approval.
-5. Read-only header statistics and an integrity manifest of our own data archives.
+1. Reliable, ordered, idempotent event channel behind a transport interface (FB-1-04, D-010).
+2. Desync digests.
+3. Longer soaks (30–60 min) with repeated stalls.
+4. A two-PC LAN run, once approved.
 
-## 8. Specific questions for ChatGPT
+## 7. Specific questions for ChatGPT
 
-1. **Gate G0.** Is the conditional NO-GO justified by the evidence? Is there a **lawful** observation approach for the Steam build that we have missed, one that circumvents no protection? Please do not propose unpacking, dumping, debugging around, or otherwise defeating SteamStub or Denuvo.
-2. **Protocol.** Do you see correctness problems in the reconnect and grace-slot design (`docs/protocol.md`, "Liveness, latency, recovery") or in the reconciliation logic?
-3. **Replication model.** For an eventual puppet-based co-op (host-authoritative, results-only), is a snapshot-plus-redundant-input design adequate as a base? Or should Phase 2A switch to a reliable-ordered channel (ENet or GameNetworkingSockets) now, for event messages such as combat results and Nemesis effects?
-4. **Testing.** Which test or tests would most increase confidence in the prototype's behaviour under real-time conditions, as opposed to the simulated clock?
-5. **Evidence.** Is any finding over-classified? Check especially the CONFIRMED rows that are statements about sources (see [RESEARCH_FINDINGS.md](RESEARCH_FINDINGS.md)).
+1. **Timeout notice.** Is `Disconnect{Timeout}` to grace-slot endpoints safe enough for a LAN prototype? It is unauthenticated, but it only reaches the endpoint the slot last used. Should it carry anything to stop a spoofed notice from forcing a reconnect? (Today a spoofed notice only triggers a reconnect, which the token then restores.)
+2. **Gates.** Are the soak gates meaningful? Is there anything you would add before trusting them, for example a correction-size gate or a bandwidth ceiling?
+3. **RTT allowance.** The 60 ms scheduling allowance now looks generous: the measured overhead after the timer fix is about 4 ms on lan. Should it be tightened now (we'd record that as a gate change, not a tuning), or kept until a LAN run exists?
+4. **Next step.** For FB-1-04, would you start with ENet or GameNetworkingSockets behind the interface, or a minimal in-house reliable channel (acks plus resend for event messages only) to keep zero dependencies?

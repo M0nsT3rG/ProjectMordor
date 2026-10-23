@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 71,
+  "count": 72,
   "records": [
     {
       "id": "EXP-001",
@@ -100,6 +100,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Verify and address ChatGPT review #1 findings FB-1-01 (host backlog timestep), FB-1-02 (state-aware liveness) and FB-1-07 (reconnect edge cases) with regression tests."
+    },
+    {
+      "id": "EXP-010",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-010.json",
+      "date": "2026-10-23",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Real-time soak of host + 2 clients under three impairment profiles with a mid-run client stall (review FB-1-03 P1)."
     },
     {
       "id": "F-COMM-001",

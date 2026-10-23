@@ -6,6 +6,12 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review request #2 (real-time soak)
+
+_Status: **awaiting feedback**._ Use the same template as #1 below (IDs `FB-2-NN`). Claude Code will add a triage table here.
+
+---
+
 ## Feedback on review request #1
 
 - **Status:** received and triaged (2026-10-23).

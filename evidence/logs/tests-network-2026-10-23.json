@@ -9,5 +9,5 @@
   {"name":"reconnect_gives_up_after_window","result":"PASSED","ms":1,"error":""},
   {"name":"silent_host_loss_ends_in_failed_state","result":"PASSED","ms":0,"error":""},
   {"name":"expired_grace_period_removes_entity","result":"PASSED","ms":1,"error":""},
-  {"name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","ms":6,"error":""}
+  {"name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","ms":4,"error":""}
 ]

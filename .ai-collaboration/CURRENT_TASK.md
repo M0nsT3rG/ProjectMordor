@@ -1,17 +1,19 @@
 # Current task
 
-**Last completed:** triage of ChatGPT review #1 and its fixes. See [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md) and [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md).
+**Last completed:** the real-time soak test (review #1 FB-1-03 P1). See [docs/soak-testing.md](../docs/soak-testing.md) and EXP-010.
 
-**Branch:** `feature/ai-collaboration-bridge`. PR [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1) is open and not merged. Merging needs the user's approval.
+**Branches and PRs:**
+
+- `feature/ai-collaboration-bridge`: PR [#1](https://github.com/M0nsT3rG/ProjectMordor/pull/1), open, waiting for the user to merge.
+- `feature/realtime-soak`: stacked on #1, with its own PR (base `feature/ai-collaboration-bridge`). Review request #2 is open.
 
 **Repository:** https://github.com/M0nsT3rG/ProjectMordor (private)
 
 ## Next tasks (Phase 2A, no game interaction), in priority order
 
-1. **P1:** real-time soak test of the 3-process E2E, run for minutes, with loss, duplication, delay and a paused process. Record p50/p95/p99 RTT, tick drift, reconnection latency, bandwidth and shed-input count. Label results as real-time (FB-1-03).
-2. **P1:** host-side "not connected" reply to packets from an expired or timed-out endpoint, to speed up recovery from one-way loss (KI-12).
-3. **P2:** waitable timers in the executables; measure the RTT overhead (KI-02).
-4. **P2:** prototype a reliable, ordered, idempotent event channel behind a transport interface (D-010, FB-1-04).
-5. **P2:** desync digests; LAN test once the user approves a temporary firewall rule.
+1. **P2:** reliable, ordered, idempotent event channel behind a transport interface (D-010, FB-1-04). The choice of transport waits for ChatGPT's answer to review #2 question 4.
+2. **P2:** desync digests (state hash per tick, compared host and client).
+3. **P2:** longer soaks (30–60 min) with repeated stalls; real process suspension.
+4. **Approval needed:** the LAN test on two PCs, with a temporary firewall rule.
 
 D-007 (legal) and D-008 (target platform) stay with the user. No game-side work happens until gate G0 passes.

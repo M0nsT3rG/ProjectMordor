@@ -490,3 +490,43 @@ TEST(client_survives_host_restart_with_new_session) {
     CHECK(c.session_id() != old_session);
     CHECK(h2.stats().joins == 1);
 }
+
+// KI-12 (found by the real-time soak, EXP-010): after a one-way outage the client may still believe it is
+// connected (buffered snapshots refreshed its liveness) while the host has timed it out. The host now tells
+// a timed-out endpoint so, and the client reconnects immediately with its token instead of waiting 3 s.
+TEST(timed_out_client_is_told_and_reconnects_fast) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    const auto player = c.player_id();
+    ImpairmentConfig uplink_cut;
+    uplink_cut.loss = 1.0;
+    c.set_impairment(uplink_cut);
+    CHECK(s.pump_until([&] { return s.host.connected_count() == 0; }, 5 * kSec));  // host timed it out
+    CHECK(c.state() == ClientState::Connected);  // the client has not noticed yet
+    c.set_impairment({});
+    const auto restored = s.clk.now;
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == 1; }, 3 * kSec));
+    CHECK(s.clk.now - restored < kSec / 2);  // previously ~3 s (client-side timeout)
+    CHECK(c.player_id() == player);         // same identity via the token
+    CHECK(s.host.stats().timeout_notices >= 1);
+}
+
+// The timeout notice is rate-limited and only goes to endpoints of slots in their grace period.
+TEST(timeout_notice_is_rate_limited_and_scoped) {
+    test::Session s;
+    FakeClient fc(s.host.port());
+    fc.join(s, 11);
+    s.clk.now += 4 * kSec;  // silence: the slot times out at the next update
+    s.host.update(s.clk.now);
+    CHECK(s.host.connected_count() == 0);
+    for (int i = 0; i < 10; ++i) fc.send(Heartbeat{1});  // 10 packets within one update
+    s.host.update(s.clk.now);
+    CHECK(s.host.stats().timeout_notices == 1);
+    FakeClient stranger(s.host.port());
+    stranger.h.session = fc.h.session;
+    stranger.send(Heartbeat{1});  // right session, unknown endpoint: no reply
+    s.clk.now += kSec;
+    s.host.update(s.clk.now);
+    CHECK(s.host.stats().timeout_notices == 1);
+}

@@ -38,7 +38,9 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 20, network 11)
+./scripts/test.ps1 -Repeat 3   # ctest (unit 15, integration 22, network 11)
+./scripts/soak.ps1 -Profile moderate -DurationS 120   # real-time soak: lan | moderate | harsh; gates in tools/soak/analyze.py
+python -I tools/soak/test_analyze.py
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
 python -I tools/evidence/evidence.py validate | index
 python -I tools/collab/report.py   # refresh the .ai-collaboration status, test results and findings
@@ -72,7 +74,8 @@ python -I tools/collab/test_report.py
 - PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM, which breaks the JSON readers. Write evidence files from Python.
 - On PowerShell 5.1, `2>$null` on a native exe under `ErrorActionPreference=Stop` throws. Use `--log FILE` instead.
 - The Bash tool can fail on heredocs that contain apostrophes. Write the file with the Write tool instead.
-- The 1 ms `Sleep` main loop adds about 30–40 ms to real-time RTT (R-13).
+- The executables' main loops use `PreciseSleeper` (high-resolution waitable timer). Plain `sleep_for(1ms)` sleeps about 15.6 ms on Windows and added about 50 ms of RTT (KI-02, fixed).
+- Soak gates are fixed in `tools/soak/analyze.py`. Never tune them to results. A gate change needs a decision entry and a reason.
 - Codex review fails here with `CryptUnprotectData failed: 2148073483` (EXP-008). Use an independent reviewer agent until that is fixed.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.
 

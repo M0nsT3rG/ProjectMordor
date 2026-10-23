@@ -80,6 +80,10 @@ A 200,000-case fuzz test checks that the decoder never crashes and that every ac
 
 - **Heartbeat and RTT.** The client sends a Heartbeat every 250 ms. RTT is an EWMA (α = 1/8) of `now − echo_time_us`.
 - **Timeout.** Either side declares a timeout after 3 s with no valid packet from the peer. Only messages valid for that direction refresh liveness: Heartbeat, Input and Disconnect at the host; Snapshot, HeartbeatAck and Disconnect at the client. Wrong-direction messages are counted as invalid (review FB-1-02).
+- **Timeout notice (KI-12).** A peer can believe it is still connected after the host has timed it out, for example because buffered snapshots refreshed its liveness after a stall. So when a packet carrying the current session arrives from the endpoint of a slot in its grace period, the host replies `Disconnect{Timeout}`.
+  - At most once every 250 ms per slot.
+  - Never to endpoints without a grace slot, so the host does not reflect traffic to arbitrary sources.
+  - The client treats `Disconnect{Timeout}` as "reconnect now with your token", not as a final disconnect.
 - **Capacity trade-off (review FB-1-07).** The host's 30 s grace period is longer than the client's 15 s reconnect window. A client that gives up therefore leaves its slot reserved for up to about 15 s more. A new join is rejected with `ServerFull` in the meantime.
   - The host keeps a timed-out player's slot and entity for a 30 s grace period. During it, that player still counts toward the 2-player capacity.
   - The client enters `Reconnecting` and sends `ConnectRequest` with its reconnect token every 500 ms for up to 15 s. Then it goes to `Failed`.

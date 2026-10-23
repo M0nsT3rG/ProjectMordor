@@ -14,6 +14,7 @@ constexpr std::size_t kMaxPendingInputs = 64;
 constexpr int kMaxPacketsPerUpdate = 512;
 constexpr float kCorrectionEpsilon = 0.01f;
 constexpr int kDisconnectRepeats = 3;
+constexpr std::size_t kMaxRttSamples = 1'000'000;  // ~70 h at 4 heartbeats/s; bounds memory
 
 template <class... Ts>
 struct overloaded : Ts... {
@@ -116,10 +117,7 @@ void Client::update(std::uint64_t now_us) {
         case ClientState::Connected: {
             if (now_us - last_recv_us_ > cfg_.timeout_us) {
                 log_.warn("connection_lost", {kv("silence_ms", (now_us - last_recv_us_) / 1000)});
-                phase_started_us_ = now_us;
-                attempted_ = false;
-                do nonce_ = rng_(); while (nonce_ == 0);  // new attempt: accepts for the old nonce are now stale
-                set_state(ClientState::Reconnecting, "timeout");
+                begin_reconnect(now_us, "timeout");
                 break;
             }
             const std::uint64_t tick_us = 1'000'000 / tick_rate_hz_;
@@ -158,6 +156,7 @@ void Client::receive(std::uint64_t now_us) {
             ++stats_.invalid_packets;
             continue;
         }
+        stats_.bytes_in += r.size;
         const auto d = decode({buf.data(), r.size});
         if (d.error != DecodeError::None) {
             ++stats_.invalid_packets;
@@ -194,7 +193,11 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         authoritative_.reset();
         remotes_.clear();
         if (!same_session) latest_tick_.reset();
-        if (reconnect) ++stats_.reconnects;
+        if (reconnect) {
+            ++stats_.reconnects;
+            stats_.last_reconnect_ms = (now_us - reconnect_started_us_) / 1000;
+            stats_.max_reconnect_ms = std::max(stats_.max_reconnect_ms, stats_.last_reconnect_ms);
+        }
         log_.info(reconnect ? "reconnected" : "connected",
                   {kv("player", player_id_), kv("entity", entity_id_), kv("session", session_), kv("same_session", same_session)});
         set_state(ClientState::Connected, "connect_accept");
@@ -219,13 +222,25 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
             if (a.echo_time_us > now_us) return;
             const double sample = static_cast<double>(now_us - a.echo_time_us);
             rtt_us_ = rtt_us_ ? *rtt_us_ * 0.875 + sample * 0.125 : sample;
+            if (rtt_samples_ms_.size() < kMaxRttSamples) rtt_samples_ms_.push_back(static_cast<float>(sample / 1000.0));
         },
         [&](const Disconnect& d) {
+            if (d.reason == DisconnectReason::Timeout) {  // host timed us out but keeps our slot: reclaim it now (KI-12)
+                begin_reconnect(now_us, "host_timeout_notice");
+                return;
+            }
             disconnect_reason_ = d.reason;
             set_state(ClientState::Disconnected, "host_disconnect");
         },
         [&](const auto&) {},  // unreachable: filtered by client_bound above
     }, p.message);
+}
+
+void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
+    phase_started_us_ = reconnect_started_us_ = now_us;
+    attempted_ = false;
+    do nonce_ = rng_(); while (nonce_ == 0);  // new attempt: accepts for the old nonce are now stale
+    set_state(ClientState::Reconnecting, why);
 }
 
 void Client::on_snapshot(const Snapshot& s, std::uint64_t now_us) {
@@ -289,6 +304,7 @@ void Client::send(const Message& m, std::uint64_t now_us) {
         return;
     }
     ++stats_.packets_out;
+    stats_.bytes_out += bytes.size();  // offered load, before simulated loss
     sender_.send(cfg_.host, std::move(bytes), now_us);
 }
 

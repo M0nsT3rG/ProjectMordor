@@ -8,7 +8,7 @@
   {"name":"decode_rejects_invalid_sizes_and_payloads","result":"PASSED","ms":0,"error":""},
   {"name":"decode_rejects_semantically_invalid_values","result":"PASSED","ms":0,"error":""},
   {"name":"encode_refuses_messages_over_limits","result":"PASSED","ms":0,"error":""},
-  {"name":"decode_fuzz_never_crashes_and_accepted_packets_reencode","result":"PASSED","ms":62,"error":""},
+  {"name":"decode_fuzz_never_crashes_and_accepted_packets_reencode","result":"PASSED","ms":45,"error":""},
   {"name":"apply_input_normalizes_and_clamps","result":"PASSED","ms":0,"error":""},
   {"name":"simulation_replay_is_deterministic","result":"PASSED","ms":0,"error":""},
   {"name":"world_assigns_unique_entity_ids","result":"PASSED","ms":0,"error":""},

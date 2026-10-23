@@ -2,6 +2,24 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-23: Real-time soak test (`feature/realtime-soak`, stacked on PR #1)
+
+- **Changes:**
+  - Host and client telemetry.
+  - `--stall-at-s` / `--stall-s` client options.
+  - `scripts/soak.ps1` with 3 profiles.
+  - `tools/soak/analyze.py`, gates fixed before the first run, with 3 self-checks.
+  - `docs/soak-testing.md`.
+  - **KI-12 fix:** the host timeout notice, and the client reconnecting on it.
+  - **KI-02 fix:** a high-resolution waitable timer in both executables.
+  - TEST_RESULTS gains a real-time soak section.
+- **Tests:**
+  - 2 new integration tests: `timed_out_client_is_told_and_reconnects_fast` and `timeout_notice_is_rate_limited_and_scoped`.
+  - 48/48 simulated-clock tests on 3 or more runs; E2E passed.
+  - Soak: lan, moderate and harsh at 120 s each, all gates passed (EXP-010).
+- **Problems encountered:** the first soak smoke run **failed** its recovery gate at 3085 ms against a 3000 ms limit (KI-12). It also showed about 50 ms of RTT overhead from sleep granularity (KI-02). Both were fixed and the failing run is preserved. The KI-12 tests were not written test-first (see review request #2 §5).
+- **Remaining:** reliable event channel; desync digests; long soaks; the LAN test (needs approval).
+
 ## 2026-10-23: ChatGPT review #1 triage and fixes (`feature/ai-collaboration-bridge`)
 
 - **Input:** [PR #1 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/1#issuecomment-6371152419), findings FB-1-01 through FB-1-07. The triage is in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).

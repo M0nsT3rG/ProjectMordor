@@ -14,6 +14,7 @@
 #include <windows.h>
 
 #include "common/cli.hpp"
+#include "common/precise_sleep.hpp"
 #include "host/host.hpp"
 
 namespace {
@@ -47,6 +48,8 @@ int main(int argc, char** argv) {
             return 2;
         }
         Logger log("host", sink);
+        PreciseSleeper sleeper;
+        log.info("loop_timer", {kv("high_resolution", sleeper.high_resolution())});
         host::HostConfig cfg;
         auto bind = net::Endpoint::parse(args.str("bind", "127.0.0.1"), args.num<std::uint16_t>("port", 47800));
         if (!bind) throw std::invalid_argument("invalid --bind address");
@@ -67,7 +70,7 @@ int main(int argc, char** argv) {
             const auto t = now_us();
             if (duration_s > 0 && (t - start) / 1e6 >= duration_s) break;
             h.update(t);
-            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            sleeper.sleep_us(1000);
         }
         h.shutdown();
         if (sink != stderr) std::fclose(sink);

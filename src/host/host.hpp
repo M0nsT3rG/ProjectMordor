@@ -28,6 +28,7 @@ struct HostConfig {
 struct HostStats {
     std::uint64_t packets_in = 0, packets_out = 0, invalid_packets = 0, rejected_version = 0, rejected_full = 0,
                   unknown_peer = 0, stale_inputs = 0, shed_inputs = 0, joins = 0, reconnects = 0, timeouts = 0;
+    std::uint64_t bytes_in = 0, bytes_out = 0, skipped_ticks = 0, timeout_notices = 0;
 };
 
 class Host {
@@ -57,6 +58,7 @@ private:
         std::uint64_t nonce = 0;
         std::uint64_t last_recv_us = 0;
         std::uint64_t disconnected_at_us = 0;
+        std::uint64_t last_notice_us = 0;  // rate limit for "you timed out" notices
         std::uint32_t last_received_input = 0;
         std::uint32_t last_processed_input = 0;
         std::uint32_t send_seq = 0;
@@ -75,6 +77,7 @@ private:
     void accept(Slot& s, std::uint64_t now_us);
     void remove_slot(std::uint16_t player_id);
     Slot* find_by_endpoint(const net::Endpoint& e);
+    void notify_timed_out(const net::Endpoint& from, std::uint64_t now_us);
     std::uint64_t random_nonzero();
 
     HostConfig cfg_;
@@ -90,6 +93,7 @@ private:
     bool running_ = false;
     bool clock_started_ = false;
     std::uint64_t next_tick_us_ = 0;
+    std::uint64_t first_update_us_ = 0, last_update_us_ = 0;
 };
 
 }  // namespace mordor::host

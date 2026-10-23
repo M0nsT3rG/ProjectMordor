@@ -15,7 +15,7 @@ if(MSVC)
   add_compile_definitions(WIN32_LEAN_AND_MEAN NOMINMAX _WIN32_WINNT=0x0A00)
 endif()
 
-add_library(mordor_common STATIC src/common/log.cpp)
+add_library(mordor_common STATIC src/common/log.cpp src/common/precise_sleep.cpp)
 target_include_directories(mordor_common PUBLIC src)
 
 add_library(mordor_network STATIC src/network/protocol.cpp src/network/udp_socket.cpp src/network/impairment.cpp)

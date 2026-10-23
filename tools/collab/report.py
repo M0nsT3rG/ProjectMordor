@@ -131,8 +131,23 @@ def build(repo: Path) -> dict[str, str]:
             tr.append(f"| {s} | {CLOCK[s]} | - | - | log unreadable | `{t['file']}` |")
         else:
             tr.append(f"| {s} | {CLOCK[s]} | {t['passed']} | {t['total']} | {md_cell(', '.join(t['failed']) or 'none')} | `evidence/logs/{t['file']}` |")
-    tr += ["", "**Real-time** results (wall clock, separate processes) come only from end-to-end experiments, listed below; "
+    tr += ["", "**Real-time** results (wall clock, separate processes) come only from end-to-end and soak runs, listed below; "
            "LAN results only from two-PC experiments. Simulated-clock passes do not imply real-time behaviour."]
+    tr += ["", "## Real-time soak runs (wall clock, separate processes)", "",
+           "| Run | Gates | client1 RTT p50/p99 ms | Recovery after stall ms | Shed inputs | Summary |", "|---|---|---|---|---|---|"]
+    soaks = sorted(p for p in (ev / "logs").glob("soak-*") if p.is_dir())
+    for d in soaks:
+        try:
+            s = json.loads((d / "summary.json").read_text(encoding="utf-8"))
+            c1, c2 = s["clients"].get("client1", {}), s["clients"].get("client2", {})
+            failed = [g["gate"] for g in s["gates"] if not g["passed"]]
+            tr.append(f"| {d.name} | {'passed' if s['passed'] else 'FAILED: ' + ', '.join(failed)} | "
+                      f"{c1.get('rtt_p50_ms')} / {c1.get('rtt_p99_ms')} | {c2.get('recovery_after_stall_ms')} | "
+                      f"{s['host'].get('shed_inputs')} | `evidence/logs/{d.name}/summary.json` |")
+        except (OSError, KeyError, json.JSONDecodeError):
+            tr.append(f"| {d.name} | **no readable summary.json** | - | - | - | - |")
+    if not soaks:
+        tr.append("| none | - | - | - | - | - |")
     tr += ["", "## Experiments", "", "| ID | Result | Objective |", "|---|---|---|"]
     tr += [f"| {e.get('id')} | {e.get('result')} | {md_cell(e.get('objective', ''))} |" for e in exps]
     tr += ["", f"End-to-end log directories: {', '.join(f'`evidence/logs/{d}/`' for d in e2e) if e2e else 'none'}", ""]

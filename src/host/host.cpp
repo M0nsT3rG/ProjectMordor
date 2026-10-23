@@ -65,12 +65,16 @@ void Host::update(std::uint64_t now_us) {
     if (!running_) return;
     const std::uint64_t tick_us = 1'000'000 / cfg_.tick_rate_hz;
     if (!clock_started_) {
-        next_tick_us_ = now_us;
+        next_tick_us_ = first_update_us_ = now_us;
         clock_started_ = true;
     }
+    last_update_us_ = now_us;
     receive(now_us);
     // shortcut: after a stall longer than 5 ticks we skip ahead instead of catching up; revisit for real gameplay.
-    if (now_us > next_tick_us_ + 5 * tick_us) next_tick_us_ = now_us;
+    if (now_us > next_tick_us_ + 5 * tick_us) {
+        stats_.skipped_ticks += (now_us - next_tick_us_) / tick_us;
+        next_tick_us_ = now_us;
+    }
     while (now_us >= next_tick_us_) {
         step();
         broadcast(now_us);
@@ -96,6 +100,7 @@ void Host::receive(std::uint64_t now_us) {
             log_.debug("invalid_packet", {kv("reason", "oversized_datagram")});
             continue;
         }
+        stats_.bytes_in += r.size;
         const auto d = decode({buf.data(), r.size});
         if (d.error == DecodeError::VersionMismatch) {
             ++stats_.rejected_version;
@@ -119,8 +124,9 @@ void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
         return;
     }
     Slot* s = find_by_endpoint(from);
-    if (!s || !s->connected || p.header.session != session_) {
+    if (!s || p.header.session != session_) {
         ++stats_.unknown_peer;
+        if (p.header.session == session_) notify_timed_out(from, now_us);
         return;
     }
     // Only host-bound message types prove the peer is alive (review FB-1-02).
@@ -151,6 +157,21 @@ void Host::handle(const Endpoint& from, const Packet& p, std::uint64_t now_us) {
         },
         [&](const auto&) {},  // unreachable: filtered by host_bound above
     }, p.message);
+}
+
+// A peer whose slot is in its grace period may not know it timed out (KI-12: e.g. buffered snapshots refreshed
+// its liveness after a stall). Tell it, so it reconnects with its token now instead of after its own timeout.
+// Only endpoints of grace slots get a reply (no reflection to arbitrary sources), at most every 250 ms.
+void Host::notify_timed_out(const Endpoint& from, std::uint64_t now_us) {
+    constexpr std::uint64_t kNoticeIntervalUs = 250'000;
+    for (auto& s : slots_) {
+        if (s.connected || s.endpoint != from) continue;
+        if (s.last_notice_us != 0 && now_us - s.last_notice_us < kNoticeIntervalUs) return;
+        s.last_notice_us = now_us;
+        ++stats_.timeout_notices;
+        send(s, Disconnect{DisconnectReason::Timeout}, now_us);
+        return;
+    }
 }
 
 void Host::on_connect(const Endpoint& from, const ConnectRequest& req, std::uint64_t now_us) {
@@ -289,6 +310,7 @@ void Host::send(Slot& s, const Message& m, std::uint64_t now_us) {
         return;
     }
     ++stats_.packets_out;
+    stats_.bytes_out += bytes.size();  // offered load, before simulated loss
     sender_.send(s.endpoint, std::move(bytes), now_us);
 }
 
@@ -296,6 +318,7 @@ void Host::send_unconnected(const Endpoint& to, const Message& m, std::uint64_t 
     auto bytes = encode(Header{}, m);
     if (bytes.empty()) return;
     ++stats_.packets_out;
+    stats_.bytes_out += bytes.size();
     sender_.send(to, std::move(bytes), now_us);
 }
 
@@ -307,8 +330,15 @@ void Host::shutdown() {
     sender_.flush_all();
     socket_.close();
     running_ = false;
+    // Telemetry for soak analysis (tools/soak/analyze.py): tick drift = world ticks vs wall-clock uptime.
     log_.info("host_stopped", {kv("packets_in", stats_.packets_in), kv("packets_out", stats_.packets_out),
-                               kv("invalid", stats_.invalid_packets)});
+                               kv("invalid", stats_.invalid_packets), kv("bytes_in", stats_.bytes_in),
+                               kv("bytes_out", stats_.bytes_out), kv("world_tick", world_.tick()),
+                               kv("uptime_us", last_update_us_ - first_update_us_), kv("tick_rate_hz", cfg_.tick_rate_hz),
+                               kv("skipped_ticks", stats_.skipped_ticks), kv("shed_inputs", stats_.shed_inputs),
+                               kv("stale_inputs", stats_.stale_inputs), kv("joins", stats_.joins),
+                               kv("reconnects", stats_.reconnects), kv("timeouts", stats_.timeouts),
+                               kv("unknown_peer", stats_.unknown_peer)});
 }
 
 }  // namespace mordor::host
