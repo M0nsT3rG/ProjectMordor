@@ -76,9 +76,9 @@ if(MORDOR_WITH_GNS)
   target_link_libraries(mordor_dtls_tests PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
   add_test(NAME dtls COMMAND mordor_dtls_tests --json ${CMAKE_BINARY_DIR}/test-results/dtls.json)
   set_tests_properties(dtls PROPERTIES TIMEOUT 300)
-  # KI-27 minimal reproducer (GNS public API only), for the upstream report (review #7 FB-7-03).
-  add_executable(mordor_ki27_repro tools/ki27-repro/repro.cpp)
-  target_link_libraries(mordor_ki27_repro PRIVATE GameNetworkingSockets::shared)
+  # KI-27 standalone reproducer (GNS public API only; tools/ki27-repro also builds on its own for the upstream report).
+  add_executable(gns_listen_close_repro tools/ki27-repro/main.cpp)
+  target_link_libraries(gns_listen_close_repro PRIVATE GameNetworkingSockets::shared)
   # The same host/client suites, run on the GNS adapter (results recorded per transport).
   foreach(suite integration network)
     add_test(NAME ${suite}-gns COMMAND mordor_${suite}_tests --json ${CMAKE_BINARY_DIR}/test-results/${suite}-gns.json)

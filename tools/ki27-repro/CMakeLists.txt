@@ -1,0 +1,7 @@
+cmake_minimum_required(VERSION 3.21)
+project(gns_listen_close_repro CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(GameNetworkingSockets CONFIG REQUIRED)
+add_executable(gns_listen_close_repro main.cpp)
+target_link_libraries(gns_listen_close_repro PRIVATE GameNetworkingSockets::shared)

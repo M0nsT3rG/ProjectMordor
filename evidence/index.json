@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 81,
+  "count": 82,
   "records": [
     {
       "id": "EXP-001",
@@ -210,6 +210,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #7 FB-7-01..05 and answer 3 (secure transport decorator); prepare the KI-27 upstream report for the owner."
+    },
+    {
+      "id": "EXP-020",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-020.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Refine the KI-27 upstream draft: check upstream master, search duplicates, discriminate first Init vs re-Init, verify a standalone Windows build, audit for private information."
     },
     {
       "id": "F-COMM-001",

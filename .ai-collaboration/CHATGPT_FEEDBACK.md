@@ -6,6 +6,27 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #8 (PR #8: secure transport decorator)
+
+- **Status:** received and triaged (2026-10-24) on `feature/secure-provisioning` (stacked on PR #8). Not implemented yet.
+- **Source:** [PR #8 comment 6377503056](https://github.com/M0nsT3rG/ProjectMordor/pull/8#issuecomment-6377503056). ChatGPT reviewed the source of `6551ab0` only.
+- **ChatGPT's verdict:** conditional GO for isolated development. NO-GO for public networks, or for merging as a completed security feature.
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-8-01** (major) pending sessions vs a live player | **Yes, and more concrete than stated.** While a pending session exists for an address, every new ClientHello from that address goes into **it** (`secure_transport.cpp:194–195`). A forged ClientHello therefore holds the only pending slot, and a legitimate reconnect from the same address is **delayed by up to `pending_lifetime_us` (10 s)**. The established session keeps receiving records. | **Accepted** | Let a new ClientHello with a different client random replace an **unauthenticated** pending session, rate-limited, never touching the established one. Tests: forged and valid reconnects at the same time; cap exhaustion while a player is active; expiry; old records; the established session stays usable until a promotion; event order (`Disconnected(replaced)` before `Connected`). |
+| **FB-8-02** (major) no secure reliable class | **Yes.** `ReliableOrdered` returns `Unsupported` through the decorator. Host/Client then fall back to their unreliable ×3 paths, which are still encrypted. No plaintext bypass: the inner transport is reachable only through the decorator. | **Accepted** | Secure consequential events: application event ids, ack and replay over the authenticated channel (ties to KI-28). Until then, no "transport parity" claim. Add a test that no plaintext `ReliableOrdered` reaches the wire. |
+| **FB-8-03** (major) operational integration | **Yes** (KI-31). | **Accepted** | Key files in the user profile protected by a user-only ACL, with DPAPI for the private key (answer 3). An invitation string carrying only public fields: session id, expiry, fingerprints. Secure-only startup with no fallback. Negative tests: missing, wrong or unreadable key; stale invitation. Secure multi-process E2E on both backends. No secrets in logs, command lines, environment variables or Git. |
+| **FB-8-04** (minor) capability contract | **Yes.** On UDP the decorator reports the disconnects it **detects** (DTLS rejection, expiry, replacement, inner loss) but does not detect a silent peer. Host and session liveness still come from the session timers. | **Accepted** | Document `reports_disconnects` precisely ("reports peer loss it detects; silent loss needs the session's liveness"), or add a secure-peer idle timeout with a test. |
+| **FB-8-05** (minor) KI-27 wording | **Yes.** | **Accepted** | Already "empirically mitigated". The refined upstream draft separates logged results from console-only ones and labels the cause as a hypothesis. New discriminating evidence: only a re-`Init` after `Kill` triggers it (0/500 first-Init processes, 18/200 second-Init processes, logged). |
+
+**Answers received:**
+1. A new PeerId plus `Disconnected` is appropriate; test the event order.
+2. The back-off is plausible; benchmark it under real jitter and outages.
+3. User-profile files with a user-only ACL, DPAPI for the private key, public-only invitations, mutual confirmation.
+4. Consider a stateless cookie before public exposure.
+5. Owner review before posting upstream.
+
 ## Feedback on review #7 (PR #7: DTLS over the Transport)
 
 - **Status:** triaged and **implemented** (2026-10-24) on `feature/secure-transport` (stacked on PR #7), on the owner's go-ahead. Record: EXP-019. Review request #7.
