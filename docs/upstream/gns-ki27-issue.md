@@ -1,6 +1,6 @@
 # DRAFT: upstream issue for ValveSoftware/GameNetworkingSockets (KI-27)
 
-> **Status: draft v2 for the owner's final approval. NOT published.** Nothing is posted without the owner's explicit confirmation. Everything between the two horizontal rules below is the proposed issue text, in English; the owner notes follow it.
+> **Status: draft v2 APPROVED by the owner on 2026-10-24.** The owner posts it from their own account; Claude Code does not. When the issue exists, record its URL here and in KI-27. Everything between the two horizontal rules below is the proposed issue text, in English; the owner notes follow it.
 
 ---
 
