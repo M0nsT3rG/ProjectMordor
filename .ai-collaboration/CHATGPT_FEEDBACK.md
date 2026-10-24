@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Follow-up review of PR #12 (inline, 2026-10-24 19:19)
+
+- **Status:** triaged and **fixed** on `fix/linger-eviction-rejoin` (stacked on PR #13), on the owner's go-ahead.
+- **Source:** a review with one inline comment on `src/host/host.cpp:264`, at `5a1ec74`. ChatGPT reviewed the source only, without running anything.
+
+| ID | Assumptions verified? | Decision | Plan / done |
+|---|---|---|---|
+| **PR12-P2** linger-cap eviction can disconnect a rejoined player | **Yes, confirmed and reproduced.** `on_connect` never removes the peer's `closing_` entry on a rejoin. The cap path closed `closing_.front()` with no active-peer check, unlike expiry (`host.cpp:81`). The same code is on PR #13's branch. A new test (A leaves, rejoins on the same peer, 16 more leave in the window) **failed on both backends before the fix**: on UDP A stopped receiving snapshots, and on GNS A's connection was closed (send `NotConnected`). | **Accepted, fixed** | `Host::accept()` (every successful join, rejoin or retransmitted request) removes that peer's linger entry. The cap path applies the same `find_by_peer` guard as expiry. The test now passes on both backends with 0 evictions. |
+
+**Reservations restated by ChatGPT (unchanged):**
+- KI-35 is open: five runs per backend do not establish p95/p99, and GNS ignores the seed.
+- KI-40 is observed, not diagnosed: a dump and a lifecycle trace are needed before any init or kill change. `scripts/dump-stacks.ps1` is now ready for that.
+
+---
+
 ## Feedback on review #12 (PR #12: GNS readiness gate, seeded v6 repeats)
 
 - **Status:** triaged and **implemented** (2026-10-24) on `feature/review12-retry-experiment` (stacked on PR #12), on the owner's go-ahead. Record: EXP-025. Review request #12.

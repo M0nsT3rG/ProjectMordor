@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Fix for the PR #12 follow-up review (`fix/linger-eviction-rejoin`, stacked on #13)
+
+- **Input:** ChatGPT's inline P2 on PR #12. Linger-cap eviction could close a player who had rejoined on the same peer.
+- **Change:** `Host::accept()` clears the peer's linger entry; the cap path keeps the active-peer guard. New test `rejoined_player_survives_linger_cap_pressure`, which failed before the fix on both backends.
+- **Tests:**
+  - pass 1: all passed;
+  - pass 2: all passed except `heavy_loss_and_duplication_never_crash` on GNS (KI-41; 5/5 on repeat);
+  - E2E passed;
+  - secure E2E: GNS passed; UDP failed once (late client launch, KI-41 note), then 2/2 on repeat.
+- **Remaining:** KI-35, KI-40, KI-41.
+
 ## 2026-10-24: Review #12 follow-up (`feature/review12-retry-experiment`, stacked on #12)
 
 - **Input:** [PR #12 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/12), FB-12-01 to FB-12-05; the owner asked for all of it. Record: EXP-025.

@@ -88,7 +88,7 @@ The host also refuses (`event_ack_invalid`) any `EventAck` above the highest eve
 - **Host.** On `Disconnect` it sends `DisconnectAck` (twice unreliably, plus reliably where offered) and flushes, **before** it releases the slot and closes the transport peer.
   - A repeated `Disconnect` for the current session from a peer without a slot (our first ack was lost) is acknowledged again (`leave_acks_repeated`). This is a reply to that peer only.
   - On GNS the connection is closed with linger, so the reliable ack is flushed. A repeat cannot arrive after that, and the client learns of the close from the transport.
-  - The host keeps the transport peer open for 1.5 s after the leave (KI-37), and closes it earlier if the client's transport goes first. At most 16 peers linger; the oldest is closed early beyond that.
+  - The host keeps the transport peer open for 1.5 s after the leave (KI-37), and closes it earlier if the client's transport goes first. At most 16 peers linger; the oldest is closed early beyond that, unless a player is using that peer again. A successful (re)join removes the peer from the linger list.
   - A host `Disconnect` (e.g. shutdown) received while the client is leaving ends the leave at once, unconfirmed. A `DisconnectAck` for another session is ignored.
 
 ## Sessions, identities, sequencing
