@@ -1,6 +1,6 @@
 # DRAFT: upstream issue for ValveSoftware/GameNetworkingSockets (KI-27)
 
-> **Status: draft v2 APPROVED by the owner on 2026-10-24.** The owner posts it from their own account; Claude Code does not. When the issue exists, record its URL here and in KI-27. Everything between the two horizontal rules below is the proposed issue text, in English; the owner notes follow it.
+> **Status: POSTED 2026-10-24** as https://github.com/ValveSoftware/GameNetworkingSockets/issues/458. Draft v2 was approved by the owner and posted by Claude Code from the owner's account at the owner's explicit request. The posted text is the content between the two horizontal rules below, without the **Title:** line, which became the issue title. Everything between the two horizontal rules below is the proposed issue text, in English; the owner notes follow it.
 
 ---
 
