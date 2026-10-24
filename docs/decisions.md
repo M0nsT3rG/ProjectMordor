@@ -119,6 +119,7 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - A new UDP association per reconnect: possible, but it needs client-side socket churn. Kept as an option.
 - **Revisit** before any untrusted network: a stateless cookie gate, key/invitation provisioning for the executables, and an independent review.
 - **Amended after review #10 (answer 5, 2026-10-24).** The cookie gate is now stateless: one `DTLSv1_listen` listener, with no per-peer state before a valid cookie. Cookie-proven ClientHellos are exempt from the 64/s budget (EXP-023). Still to do before an untrusted network: an independent review.
+- **Amended after review #11 (FB-11-01, 2026-10-24).** Over a connection-oriented inner transport (GNS), the client's DTLS handshake starts only when the inner transport reports `Connected`. An inner failure before that is reported to the caller as `inner_connect_failed`. GNS peers still pass the same cookie admission: that a GNS connection proves return routability is not verified from source.
 
 ## D-014: On connection-oriented transports, the transport owns connection establishment (2026-10-23)
 

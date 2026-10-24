@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 85,
+  "count": 86,
   "records": [
     {
       "id": "EXP-001",
@@ -254,6 +254,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #10 (FB-10-01..05 and answer 5) on feature/ki35-ki37-investigation: EventAck bounded by sent ids, events marked sent only on Sent, stateless DTLS cookie gate, explicit leave handshake (protocol v3), KI-35 instrumentation, soak gate v6; investigate KI-35 and KI-37 from traces before any tuning."
+    },
+    {
+      "id": "EXP-024",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-024.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #11 (FB-11-01..05) on feature/review11-gns-readiness: measure, then gate the secure client's DTLS start on the inner GNS Connected; departure edge cases; cookie and coalescing checks; full v6 battery at HEAD with seeded harsh repeats."
     },
     {
       "id": "F-COMM-001",

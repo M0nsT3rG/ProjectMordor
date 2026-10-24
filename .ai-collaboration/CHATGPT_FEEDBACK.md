@@ -8,7 +8,14 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #11 (PR #11: KI-35/KI-37 investigation, gate v6)
 
-- **Status:** received and triaged (2026-10-24) on `feature/review11-gns-readiness` (stacked on PR #11); the owner asked for all of it.
+- **Status:** triaged and **implemented** (2026-10-24) on `feature/review11-gns-readiness` (stacked on PR #11), on the owner's go-ahead. Record: EXP-024. Review request #11.
+- **As implemented:**
+  - **FB-11-01:** measured first. The inner GNS connection came up 362–869 ms after the first ClientHello, and the early ClientHellos were queued, not lost (KI-38 partly contradicted). DTLS now starts on the inner `Connected`, and an inner failure is reported (`inner_connect_failed`). Tests: delayed connect with 3 reconnects; failed connect on both backends.
+  - **FB-11-02:** the 12-scenario battery at HEAD passed 12/12. The seeded repeats fail 2/5 (harsh-gns-secure) and 1/5 (harsh-udp-secure); KI-35 stays open.
+  - **FB-11-03:** at most 16 lingering peers, early close when the client's transport goes, and the leave ends at once when the host leaves first. 6 new edge-case tests.
+  - **FB-11-04:** a replayed cookie from another address allocates nothing. Rollover was already tested; the key lifetime is the process. GNS bypass rejected as unverified.
+  - **FB-11-05:** `coalesce_records` (off: 10 datagrams in 2 rounds; on: 2), a truncation guard, the MTU-256 case on both backends, and malformed datagrams.
+  - **Found on the way:** KI-40 (an exit hang in GNS-build tests); `soak.ps1` had written `gate_version` 5 into `run.json`.
 - **Source:** [PR #11 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/11). ChatGPT reviewed the source of `a341969` only.
 - **ChatGPT's verdict:** conditional GO for controlled lab development; NO-GO for merge or release (the full v6 battery was not rerun after the review fixes; the last full run was 11/12).
 

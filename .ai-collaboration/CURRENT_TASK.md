@@ -1,6 +1,10 @@
 # Current task
 
-**Last completed:** review #10 follow-up (FB-10-01 to FB-10-05, answer 5) on `feature/ki35-ki37-investigation`. Record: EXP-023.
+**Last completed:** review #11 follow-up (FB-11-01 to FB-11-05) on `feature/review11-gns-readiness`. Record: EXP-024.
+- DTLS waits for the inner GNS connection; departure edge cases hardened.
+- v6 battery at HEAD 12/12, but the seeded harsh repeats still fail (KI-35); KI-40 found.
+
+**Before that:** review #10 follow-up (FB-10-01 to FB-10-05, answer 5) on `feature/ki35-ki37-investigation`. Record: EXP-023.
 - KI-37 and KI-30 resolved; protocol v3 (explicit leave); soak gate v6.
 - KI-35 mechanisms shown and partly fixed; harsh-gns-secure still fails recovery (KI-35, KI-38). v6 soaks: 11/12.
 
@@ -27,7 +31,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#8](https://github.com/M0nsT3rG/ProjectMordor/pull/8) | `feature/secure-transport` | #7 | Review #7: secure transport decorator, bounded pending state, timer policy, KI-27 reproducer |
 | [#9](https://github.com/M0nsT3rG/ProjectMordor/pull/9) | `feature/secure-provisioning` | #8 | Review #8: secure executables, secure reliable channel, cookie-aware pending, idle timeout, KI-27 upstream |
 | [#10](https://github.com/M0nsT3rG/ProjectMordor/pull/10) | `feature/secure-liveness` | #9 | Review #9: authenticated liveness, protocol v2 application events, soak gate v5, key-file hardening |
-| #11 | `feature/ki35-ki37-investigation` | #10 | Review #10: event-ack bounds, stateless cookie gate, protocol v3 leave handshake, KI-35 traces and fixes, soak gate v6 |
+| [#11](https://github.com/M0nsT3rG/ProjectMordor/pull/11) | `feature/ki35-ki37-investigation` | #10 | Review #10: event-ack bounds, stateless cookie gate, protocol v3 leave handshake, KI-35 traces and fixes, soak gate v6 |
+| #12 | `feature/review11-gns-readiness` | #11 | Review #11: DTLS on inner Connected, departure edge cases, coalescing option, full battery with seeded repeats |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 

@@ -2,6 +2,27 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #11 follow-up (`feature/review11-gns-readiness`, stacked on #11)
+
+- **Input:** [PR #11 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/11), FB-11-01 to FB-11-05; the owner asked for all of it. Record: EXP-024.
+- **Changes:**
+  - **Client DTLS starts on the inner `Connected`** (after measuring it). An inner connect failure is reported as `inner_connect_failed`.
+  - The leave linger is bounded (16) and closed early on a client disconnect. A host `Disconnect` ends a leave.
+  - `coalesce_records` option and truncation guard.
+  - `soak.ps1 -SeedBase`; `run.json` `gate_version` 6.
+  - Timeline: inner-connect timing.
+- **Tests:**
+  - dtls {'PASSED': 56}; integration {'PASSED': 50}; integration-gns {'PASSED': 35, 'SKIPPED': 15}; network {'PASSED': 17}; network-gns {'SKIPPED': 5, 'PASSED': 12}; transport {'PASSED': 18}; transport-both {'PASSED': 20}; unit {'PASSED': 17}; gns {'PASSED': 7}.
+  - ×2, plus E2E; asymmetric 4/4; secure E2E 4/4.
+- **Soaks:**
+  - v6 battery at HEAD: **12/12**.
+  - Repeats: harsh-gns-secure 3/5, harsh-udp-secure 4/5.
+- **Problems encountered:**
+  - KI-40 (exit hang, twice; it stopped one battery run, which was restarted);
+  - one soak aborted after its warm-up (kept);
+  - the runner died when `test.ps1` threw (fixed with `try`).
+- **Remaining:** KI-35 (GNS connect under loss, DTLS back-off, 500 ms retry), KI-40, KI-28b, LAN test, external review.
+
 ## 2026-10-24: Review #10 follow-up (`feature/ki35-ki37-investigation`, stacked on #10)
 
 - **Input:** [PR #10 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/10#issuecomment-6380695083), FB-10-01 to FB-10-05 and answer 5; the owner asked for all of it on this branch. Record: EXP-023.

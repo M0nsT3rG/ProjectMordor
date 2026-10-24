@@ -232,6 +232,49 @@ Fixed before its first run. v1–v5 thresholds are unchanged except where named 
 
 Directories are named `-g6`. Secure runs also log `dtls_trace` records (record types, epochs, handshake message types and milestones, never key material) for the KI-35 timeline (`tools/soak/timeline.py`).
 
+## Gate v6 at the review #11 HEAD (2026-10-24, EXP-024)
+
+The full 12-scenario battery, then 4 more seeded repeats of each harsh secure profile (FB-11-02). The gates are unchanged. UDP impairment seeds come from `-SeedBase` (host seed shown; the clients use +1 and +2). GNS fake loss is not seedable.
+
+| Run (120 s, HEAD `4cf1935`) | Gates | RTT p50 / p99 (client1) | Recovery | Host seed |
+|---|---|---|---|---|
+| 172140-lan-udp | 59/59 | 10.4 / 13.3 ms | 18 ms | 101 |
+| 172348-moderate-udp | 59/59 | 103.7 / 121.8 ms | 144 ms | 101 |
+| 172557-harsh-udp | 59/59 | 203.9 / 239.0 ms | 770 ms | 101 |
+| 172805-lan-gns | 59/59 | 9.0 / 11.5 ms | 34 ms | 101 |
+| 173014-moderate-gns | 59/59 | 95.2 / 116.6 ms | 1149 ms | 101 |
+| 173222-harsh-gns | 59/59 | 186.5 / 225.6 ms | 798 ms | 101 |
+| 173431-lan-udp-sec | 59/59 | 10.5 / 13.7 ms | 56 ms | 101 |
+| 173640-moderate-udp-sec | 59/59 | 104.7 / 122.7 ms | 974 ms | 101 |
+| 173848-harsh-udp-sec | 59/59 | 202.2 / 238.5 ms | 2720 ms | 101 |
+| 174057-lan-gns-sec | 59/59 | 9.0 / 12.6 ms | 66 ms | 101 |
+| 174306-moderate-gns-sec | 59/59 | 95.5 / 113.9 ms | 1412 ms | 101 |
+| 174514-harsh-gns-sec | 59/59 | 188.2 / 226.1 ms | 1572 ms | 101 |
+| *repeats* | | | | |
+| 174723-harsh-gns-sec | 58/59 **FAILED: client2_recovery_time** | 189.1 / 231.6 ms | 3056 ms | 111 |
+| 174932-harsh-udp-sec | 59/59 | 201.1 / 240.8 ms | 2339 ms | 111 |
+| 175141-harsh-gns-sec | 59/59 | 187.4 / 229.6 ms | 2900 ms | 121 |
+| 175350-harsh-udp-sec | 59/59 | 204.1 / 240.8 ms | 2094 ms | 121 |
+| 175559-harsh-gns-sec | 59/59 | 191.3 / 223.9 ms | 1808 ms | 131 |
+| 175807-harsh-udp-sec | 59/59 | 204.3 / 238.9 ms | 1942 ms | 131 |
+| 180016-harsh-gns-sec | **aborted by the harness**, no summary (kept) | | | 141 |
+| 180018-harsh-udp-sec | 58/59 **FAILED: client2_recovery_time** | 204.4 / 239.1 ms | 3274 ms | 141 |
+| 180329-harsh-gns-sec | 58/59 **FAILED: client2_recovery_time** | 188.6 / 222.8 ms | 5217 ms | 151 |
+
+- **The 12-scenario battery: 12/12.** That includes harsh-gns-secure, which failed in the previous battery.
+- **Repeats are not equivalent to that one pass:**
+  - harsh-gns-secure fails **2 of 5** (1572, 3056, 2900, 1808, 5217 ms);
+  - harsh-udp-secure fails **1 of 5** (2720, 2339, 2094, 1942, 3274 ms).
+
+  KI-35 is open.
+- **Where the time goes** (`tools/soak/timeline.py`):
+  - On GNS, the host's timeout notice takes 174–467 ms. GNS then **establishes its own connection in 392–2072 ms** under the harsh profile. Only then does DTLS start (FB-11-01): 0 ClientHellos were sent early in every run.
+  - Cookie exchange and handshake: 0.6–2.3 s with 0–4 DTLS timers.
+  - ConnectRequest/Accept: 0.2–1.7 s, in multiples of the 500 ms reconnect retry.
+  - The host never dropped a ClientHello because of a budget (`hello_rate_limited` 0 in every run). The admission changes are not the cause.
+- **The earlier harsh-udp-secure runs** (1397 and 1467 ms) both had 0 DTLS timers. These runs have up to 3, so the spread is the loss realisation, not a code path that changed. That is a reading of the traces, not a proof.
+- `180016-harsh-gns-sec-g6` stopped after the warm-up, before the host started; only warm-up logs remain. It is kept. The repeat was run again as `180329`.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
