@@ -1,6 +1,7 @@
 [
   {"name":"transform_snapshot_roundtrip","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"all_message_types_roundtrip","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"event_messages_roundtrip_and_respect_limits","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"header_layout_is_22_bytes_little_endian","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"sequence_newer_handles_wraparound","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"version_mismatch_is_reported","result":"PASSED","transport":"udp","ms":0,"error":""},

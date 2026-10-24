@@ -43,7 +43,9 @@ struct DtlsConfig {
     // Handshake retransmission back-off, applied through OpenSSL's own DTLS_set_timer_cb (review #7 FB-7-02).
     // OpenSSL's default (1 s doubling to 60 s) allowed only ~4 attempts in a 15 s budget: too few for 25% loss.
     std::uint32_t retransmit_initial_us = 250'000;
-    std::uint32_t retransmit_max_us = 2'000'000;
+    // 1 s, not 2 s: a reconnect under the harsh profile hit 2 s waits after a few lost flights, and the secure
+    // stall recovery exceeded the soak's 3 s gate in half of the 30 s runs (EXP-022).
+    std::uint32_t retransmit_max_us = 1'000'000;
     bool send_binding = true;                  // test hook only: false simulates a peer that never confirms
     bool corrupt_confirmation = false;         // test hook only: flips one bit of the confirmation we send
 };

@@ -2,6 +2,7 @@
 // pinned keys and the invitation binding, on every backend, plus the bounded pre-authentication lifecycle.
 #include <openssl/evp.h>
 
+#include <atomic>
 #include <chrono>
 #include <cstring>
 #include <ctime>
@@ -759,4 +760,83 @@ TEST(secure_client_hello_flood_is_rate_limited_and_player_stays_responsive) {
     CHECK(hs->hello_rate_limited >= 200);  // 300 attempts, 16 per second admitted to the cap check
     CHECK(hs->pending_opened <= 1 + 4);       // the player + at most max_pending_total strangers
     CHECK(got == 20);
+}
+
+// Review #9 FB-9-02: application-level events over the secure transport keep exactly-once order across a
+// re-authentication (outage -> new DTLS handshake -> game reconnect with the token -> host replay).
+TEST(secure_events_keep_exactly_once_order_across_re_authentication) {
+    for (auto k : backends()) {
+        World w(k);
+        auto& c = w.add(&w.k1, {w.host_key.spki()});
+        CHECK(w.run_until([&] { return c.state() == ClientState::Connected; }, 10 * kSec));
+        const auto player = c.player_id();
+        std::vector<std::uint8_t> applied;
+        auto drain = [&](std::uint32_t apply_up_to) {
+            for (const auto& e : c.take_events()) applied.push_back(e.payload[0]);
+            if (apply_up_to) c.ack_events_applied(apply_up_to, w.clk.now);
+        };
+        for (std::uint8_t i = 1; i <= 10; ++i) CHECK(w.host->send_event(player, 1, std::vector<std::uint8_t>{i}, w.clk.now));
+        CHECK(w.run_until([&] { drain(0); return applied.size() == 10; }, 5 * kSec));
+        c.ack_events_applied(6, w.clk.now);  // 7..10 delivered but not applied yet
+        ImpairmentConfig cut;
+        cut.loss = 1.0;
+        CHECK(c.set_impairment(cut));
+        CHECK(w.host->set_impairment(cut));
+        CHECK(w.run_until([&] { return w.host->connected_count() == 0; }, 8 * kSec));
+        for (std::uint8_t i = 11; i <= 15; ++i) CHECK(w.host->send_event(player, 1, std::vector<std::uint8_t>{i}, w.clk.now));
+        CHECK(c.set_impairment({}));
+        CHECK(w.host->set_impairment({}));
+        CHECK(w.run_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects >= 1; }, 15 * kSec));
+        CHECK(c.player_id() == player);
+        CHECK(w.run_until([&] { drain(0); return applied.size() == 15; }, 5 * kSec));
+        c.ack_events_applied(15, w.clk.now);
+        CHECK(w.run_until([&] { return w.host->unapplied_events(player) == 0; }, 5 * kSec));
+        for (std::size_t i = 0; i < applied.size(); ++i) CHECK(applied[i] == i + 1);
+        const auto* hs = secure_stats(*w.host->transport_for_test());
+        std::printf("       %s: 15 events exactly once in order across a re-authentication (DTLS sessions %llu, replayed %llu)\n",
+                    to_string(k), static_cast<unsigned long long>(hs->authenticated),
+                    static_cast<unsigned long long>(w.host->stats().events_replayed));
+        CHECK(hs->authenticated >= 2);
+    }
+}
+
+// EXP-022: a clean leave after a re-authentication must reach the host as a clean leave (no timeout).
+TEST(secure_clean_leave_after_reconnect_is_not_a_timeout) {
+    for (auto k : backends()) {
+        for (bool with_reconnect : {false, true}) {
+            World w(k);
+            auto& c = w.add(&w.k1, {w.host_key.spki()});
+            CHECK(w.run_until([&] { return c.state() == ClientState::Connected; }, 10 * kSec));
+            if (with_reconnect) {
+                ImpairmentConfig cut;
+                cut.loss = 1.0;
+                CHECK(c.set_impairment(cut));
+                CHECK(w.host->set_impairment(cut));
+                CHECK(w.run_until([&] { return w.host->connected_count() == 0; }, 8 * kSec));
+                CHECK(c.set_impairment({}));
+                CHECK(w.host->set_impairment({}));
+                CHECK(w.run_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects >= 1; }, 15 * kSec));
+                w.run_until([] { return false; }, kSec);
+            }
+            const auto timeouts_before = w.host->stats().timeouts;
+            c.disconnect();
+            // The client process exits: close() drains for a bounded time while the host keeps running in its own
+            // process. One thread here, so pump the host from a helper thread during the drain.
+            std::atomic<bool> stop{false};
+            std::thread hostloop([&] {
+                while (!stop) {
+                    w.host->update(w.clk.now += 5'000);
+                    std::this_thread::sleep_for(std::chrono::milliseconds(1));
+                }
+            });
+            c.close();
+            stop = true;
+            hostloop.join();
+            CHECK(w.run_until([&] { return w.host->slot_count() == 0; }, 2 * kSec));
+            std::printf("       %s, %s: host slots after leave %zu, extra timeouts %llu\n", to_string(k),
+                        with_reconnect ? "after reconnect" : "no reconnect", w.host->slot_count(),
+                        static_cast<unsigned long long>(w.host->stats().timeouts - timeouts_before));
+            CHECK(w.host->stats().timeouts == timeouts_before);
+        }
+    }
 }

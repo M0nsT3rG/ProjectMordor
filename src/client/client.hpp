@@ -54,6 +54,15 @@ struct ClientStats {
     std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected host loss
     std::uint64_t last_reconnect_ms = 0, max_reconnect_ms = 0;  // timeout detection -> accepted again
     float max_correction = 0;
+    // Application-level reliable events (FB-9-02, KI-28).
+    std::uint64_t events_received = 0, events_duplicate = 0, events_out_of_order = 0, events_discarded_new_session = 0;
+};
+
+// A consequential event from the host, delivered in order exactly once (FB-9-02).
+struct ReceivedEvent {
+    std::uint32_t id = 0;
+    std::uint16_t kind = 0;
+    std::vector<std::uint8_t> payload;
 };
 
 class Client {
@@ -73,6 +82,12 @@ public:
     std::optional<net::DisconnectReason> disconnect_reason() const { return disconnect_reason_; }
     std::uint16_t player_id() const { return player_id_; }
     const ClientConfig& config() const { return cfg_; }
+    const net::SecureStats* transport_stats_secure() const { return transport_ ? net::secure_stats(*transport_) : nullptr; }
+    // Events received since the last call, in order, each exactly once (FB-9-02). The host keeps resending them
+    // until the application reports them applied with ack_events_applied(); call it only after applying.
+    std::vector<ReceivedEvent> take_events();
+    void ack_events_applied(std::uint32_t through_id, std::uint64_t now_us);
+    std::uint32_t events_applied_through() const { return applied_through_; }
     std::uint16_t entity_id() const { return entity_id_; }
     std::uint32_t session_id() const { return session_; }
     std::optional<std::uint32_t> latest_server_tick() const { return latest_tick_; }
@@ -100,6 +115,7 @@ private:
     void send(const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void set_state(ClientState s, std::string_view why);
     void begin_reconnect(std::uint64_t now_us, std::string_view why);
+    net::Delivery ack_delivery() const;
 
     ClientConfig cfg_;
     Logger& log_;
@@ -125,6 +141,8 @@ private:
     std::optional<double> rtt_us_;
     std::vector<float> rtt_samples_ms_, correction_samples_;
     std::uint64_t reconnect_started_us_ = 0;
+    std::uint32_t event_session_ = 0, next_event_ = 1, applied_through_ = 0;  // per host session
+    std::vector<ReceivedEvent> event_inbox_;
 
     float move_x_ = 0, move_z_ = 0;
     std::uint32_t input_seq_ = 0;

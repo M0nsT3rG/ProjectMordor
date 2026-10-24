@@ -158,6 +158,44 @@ Secure runs use `soak.ps1 -Secure`: all three processes run over DTLS with keys 
 
 **Close to its limit:** secure harsh on UDP recovered from the stall in 2797 ms, against the 3000 ms gate.
 
+## Gate version 5 (review #9 FB-9-03, 2026-10-24)
+
+Fixed before its first run. v1–v4 thresholds are unchanged. New gates:
+
+- **Realized impairment.** v4 passed with UDP latency and jitter silently disabled (KI-34), so v5 checks that the configured impairment really happened:
+  - `<client>_realized_rtt_floor`: min RTT ≥ 2 × latency − 2 ms;
+  - `<client>_realized_handshake_delay`: first `connected` ≥ 1 RTT (plaintext) or 3 RTT (secure);
+  - `realized_upstream_loss`: host `packets_in` / clients' `packets_out` within [1 − 2·loss − 0.02, 1 − loss/2 + dup].
+- **Application-level events (FB-9-02)**, when `run.json` declares `event_interval_ms`:
+  - `events_generated`;
+  - `events_applied_all_but_in_flight` (≤ 4 per client at the end);
+  - `events_dropped_only_at_end`;
+  - `<client>_events_in_order`;
+  - `<client>_events_applied`.
+
+`soak.ps1` sends an event to every player every 500 ms by default. Directories are named `-g5`.
+
+| Run (120 s) | Gates | RTT p50 / p99 | Recovery | Upstream ratio |
+|---|---|---|---|---|
+| 064505-lan-udp | 55/55 | 10.5 / 12.1 ms | 18 ms | 0.9903 |
+| 064718-moderate-udp | 55/55 | 103.9 / 122.1 ms | 157 ms | 0.9699 |
+| 064926-harsh-udp | 55/55 | 204.7 / 237.8 ms | 314 ms | 0.8928 |
+| 065134-lan-gns | 55/55 | 9.0 / 12.1 ms | 34 ms | 0.9921 |
+| 065342-moderate-gns | 55/55 | 96.0 / 115.5 ms | 389 ms | 0.9479 |
+| 065551-harsh-gns | 53/55 **FAILED: host_timeouts_match_stalls, events_applied_all_but_in_flight** | 189.0 / 230.0 ms | 877 ms | 0.8573 |
+| 065759-lan-udp-sec | 55/55 | 10.5 / 12.1 ms | 519 ms | 0.9902 |
+| 070007-moderate-udp-sec | 55/55 | 103.6 / 120.5 ms | 671 ms | 0.9477 |
+| 070215-harsh-udp-sec | 55/55 | 201.5 / 239.2 ms | 1810 ms | 0.8469 |
+| 070424-lan-gns-sec | 55/55 | 9.1 / 12.1 ms | 519 ms | 0.9906 |
+| 070632-moderate-gns-sec | 55/55 | 96.1 / 114.6 ms | 1703 ms | 0.9489 |
+| 070840-harsh-gns-sec | 54/55 **FAILED: client2_recovery_time** | 191.5 / 234.3 ms | 3358 ms | 0.8477 |
+
+**Failures, preserved:**
+- **harsh, gns, plaintext.** The client that had reconnected after its stall lost its final clean leave, and the host timed it out (KI-37). The events gate failed as a consequence: the host kept queuing events for that player during its 6 s tail.
+- **harsh, gns, secure.** Stall recovery 3358 ms, over the 3000 ms gate: the secure reconnect needs a new DTLS handshake (KI-35).
+
+Quick 30 s runs used to validate v5 and to diagnose KI-35 are also kept (`soak-*-g5` with `duration_s` 30). Some of them fail `rtt_sample_count`, which is tighter in short runs.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

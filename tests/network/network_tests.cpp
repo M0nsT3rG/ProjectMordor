@@ -362,3 +362,31 @@ TEST(timeout_notice_recovery_under_jitter_reconnects_once) {
     CHECK(c.player_id() == player);
     CHECK(s.host.connected_count() == 1);
 }
+
+// Review #9 FB-9-02: events stay exactly-once and in order under loss, duplication and jitter (unreliable path:
+// host resend + client dedup; reliable backends: transport retransmission + replay).
+TEST(events_are_exactly_once_and_in_order_under_impairment) {
+    host::HostConfig hc;
+    hc.impairment = impair(0.2, 20, 30, 81, 0.1);
+    test::Session s(hc);
+    client::ClientConfig cc;
+    cc.impairment = impair(0.2, 20, 30, 82, 0.1);
+    auto& c = s.add_client(cc);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 10 * kSec));
+    for (std::uint32_t i = 1; i <= 40; ++i) {
+        std::vector<std::uint8_t> p{static_cast<std::uint8_t>(i)};
+        CHECK(s.host.send_event(c.player_id(), 3, p, s.clk.now));
+    }
+    std::vector<std::uint8_t> applied;
+    CHECK(s.pump_until([&] {
+        for (const auto& e : c.take_events()) {
+            applied.push_back(e.payload[0]);
+            c.ack_events_applied(e.id, s.clk.now);
+        }
+        return applied.size() == 40 && s.host.unapplied_events(c.player_id()) == 0;
+    }, 20 * kSec));
+    for (std::size_t i = 0; i < applied.size(); ++i) CHECK(applied[i] == i + 1);
+    std::printf("       %s: 40/40 events applied in order; host retransmits %llu, client duplicates dropped %llu\n",
+                to_string(test::test_transport()), static_cast<unsigned long long>(s.host.stats().events_retransmitted),
+                static_cast<unsigned long long>(c.stats().events_duplicate));
+}

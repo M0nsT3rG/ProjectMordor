@@ -28,6 +28,8 @@ struct HostConfig {
     // When set, ALL traffic goes through the secure transport decorator (DTLS + pinned keys + invitation binding).
     // If this build or config cannot provide it, start() FAILS: there is no plaintext fallback (review #7 answer 3).
     std::shared_ptr<const net::SecureTransportConfig> secure;
+    std::size_t max_unacked_events = 64;           // per player; send_event() returns false beyond (backpressure)
+    std::uint64_t event_resend_us = 250'000;       // resend unapplied events this often (reliable transports: x4, >= 1 s)
 };
 
 struct HostStats {
@@ -35,6 +37,9 @@ struct HostStats {
                   unknown_peer = 0, stale_inputs = 0, shed_inputs = 0, joins = 0, reconnects = 0, timeouts = 0;
     std::uint64_t bytes_in = 0, bytes_out = 0, skipped_ticks = 0, timeout_notices = 0;
     std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected peer loss
+    // Application-level reliable events (FB-9-02, KI-28).
+    std::uint64_t events_queued = 0, events_transmitted = 0, events_retransmitted = 0, events_replayed = 0,
+                  events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0;
 };
 
 class Host {
@@ -53,6 +58,12 @@ public:
     const HostStats& stats() const { return stats_; }
     std::optional<net::Transform> player_transform(std::uint16_t player_id) const;
     const net::Transport* transport_for_test() const { return transport_.get(); }
+    // Queues a consequential event for a player (FB-9-02). It is delivered in order exactly once and kept until that
+    // player's APPLICATION acknowledges it, across packet loss and reconnects within the grace period. False: no
+    // such player, payload too large, or max_unacked_events reached (backpressure). Not durable across host restart.
+    bool send_event(std::uint16_t player_id, std::uint16_t kind, std::span<const std::uint8_t> payload, std::uint64_t now_us);
+    std::size_t unapplied_events(std::uint16_t player_id) const;
+    std::vector<std::uint16_t> player_ids() const;  // every slot, including players in their grace period
     bool set_impairment(const net::ImpairmentConfig& c) {  // false: refused by the transport (FB-5-03)
         if (transport_ && !transport_->set_impairment(c)) return false;
         cfg_.impairment = c;
@@ -75,6 +86,12 @@ private:
         std::uint32_t send_seq = 0;
         std::uint32_t peer_seq = 0;
         std::deque<net::InputCmd> pending;
+        struct OutEvent {
+            net::GameEvent event;
+            std::uint64_t last_sent_us = 0;  // 0: not sent on the current connection (new, or replay after reconnect)
+        };
+        std::deque<OutEvent> events;  // unapplied, oldest first
+        std::uint32_t next_event_id = 1;
     };
 
     void receive(std::uint64_t now_us);
@@ -85,6 +102,7 @@ private:
     void step();
     void broadcast(std::uint64_t now_us);
     void check_timeouts(std::uint64_t now_us);
+    void service_events(std::uint64_t now_us);
     void send(Slot& s, const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void send_unconnected(net::PeerId to, const net::Message& m, std::uint64_t now_us);
     void transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, net::Delivery delivery);

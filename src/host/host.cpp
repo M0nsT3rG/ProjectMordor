@@ -87,7 +87,56 @@ void Host::update(std::uint64_t now_us) {
         next_tick_us_ += tick_us;
     }
     check_timeouts(now_us);
+    service_events(now_us);
     transport_->flush(now_us);  // send what is due; receiving happens only at the start of update()
+}
+
+bool Host::send_event(std::uint16_t player_id, std::uint16_t kind, std::span<const std::uint8_t> payload, std::uint64_t now_us) {
+    if (!running_ || payload.size() > kMaxEventPayload) return false;
+    for (auto& s : slots_) {
+        if (s.player_id != player_id) continue;
+        if (s.events.size() >= cfg_.max_unacked_events) {
+            ++stats_.events_backpressure;
+            return false;
+        }
+        s.events.push_back({GameEvent{s.next_event_id++, kind, {payload.begin(), payload.end()}}, 0});
+        ++stats_.events_queued;
+        service_events(now_us);  // send now if the player is connected
+        return true;
+    }
+    return false;
+}
+
+std::vector<std::uint16_t> Host::player_ids() const {
+    std::vector<std::uint16_t> ids;
+    for (const auto& s : slots_) ids.push_back(s.player_id);
+    return ids;
+}
+
+std::size_t Host::unapplied_events(std::uint16_t player_id) const {
+    for (const auto& s : slots_)
+        if (s.player_id == player_id) return s.events.size();
+    return 0;
+}
+
+// Sends events not yet sent on the current connection and resends every unapplied one periodically, on ANY
+// transport: application-level reliability must not depend on transport reliability. A reliable transport may
+// deliver an event that the client application then could not accept (e.g. it overtook the ConnectAccept), and
+// without a resend the stream stalled behind that gap forever (EXP-022). A reconnect also replays at once.
+void Host::service_events(std::uint64_t now_us) {
+    const bool reliable = transport_->capabilities().reliable_ordered;
+    const auto delivery = reliable ? Delivery::ReliableOrdered : Delivery::Unreliable;
+    const auto resend_us = reliable ? std::max<std::uint64_t>(4 * cfg_.event_resend_us, 1'000'000) : cfg_.event_resend_us;
+    for (auto& s : slots_) {
+        if (!s.connected) continue;  // kept for the grace period, replayed on reconnect
+        for (auto& e : s.events) {
+            const bool first = e.last_sent_us == 0;
+            if (!first && now_us - e.last_sent_us < resend_us) continue;
+            send(s, e.event, now_us, delivery);
+            e.last_sent_us = now_us ? now_us : 1;
+            ++(first ? stats_.events_transmitted : stats_.events_retransmitted);
+        }
+    }
 }
 
 void Host::receive(std::uint64_t now_us) {
@@ -154,7 +203,7 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
     }
     // Only host-bound message types prove the peer is alive (review FB-1-02).
     const bool host_bound = std::holds_alternative<Heartbeat>(p.message) || std::holds_alternative<InputBatch>(p.message) ||
-                            std::holds_alternative<Disconnect>(p.message);
+                            std::holds_alternative<Disconnect>(p.message) || std::holds_alternative<EventAck>(p.message);
     if (!host_bound) {
         ++stats_.invalid_packets;
         return;
@@ -177,6 +226,12 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
         [&](const Disconnect& d) {
             log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
             remove_slot(s->player_id);
+        },
+        [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
+            while (!s->events.empty() && s->events.front().event.event_id <= a.applied_through) {
+                s->events.pop_front();
+                ++stats_.events_applied;
+            }
         },
         [&](const auto&) {},  // unreachable: filtered by host_bound above
     }, p.message);
@@ -214,6 +269,12 @@ void Host::on_connect(PeerId from, const ConnectRequest& req, std::uint64_t now_
             if (!was_connected) {
                 ++stats_.reconnects;
                 log_.info("player_reconnected", {kv("player", slot->player_id), kv("entity", slot->entity_id)});
+            }
+            // New connection: every unapplied event goes out again on it, in order (FB-9-02). The client drops what
+            // it already holds; its application acks only what it applied.
+            for (auto& e : slot->events) {
+                if (e.last_sent_us != 0) ++stats_.events_replayed;
+                e.last_sent_us = 0;
             }
             accept(*slot, now_us);
             return;
@@ -258,6 +319,11 @@ void Host::accept(Slot& s, std::uint64_t now_us) {
 }
 
 void Host::remove_slot(std::uint16_t player_id, bool close_transport_peer) {
+    for (const auto& s : slots_)
+        if (s.player_id == player_id && !s.events.empty()) {
+            stats_.events_dropped_with_slot += s.events.size();  // the player is gone for good: counted, never silent
+            log_.warn("events_dropped_with_player", {kv("player", player_id), kv("events", s.events.size())});
+        }
     auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
     if (it == slots_.end()) return;
     if (close_transport_peer && it->peer.valid()) transport_->close_peer(it->peer);
@@ -379,12 +445,19 @@ void Host::shutdown() {
                                kv("transport_accepted_then_failed", ts.accepted_then_failed),
                                kv("transport_discarded_on_close", ts.discarded_on_close),
                                kv("transport_closed_with_unacked_reliable", ts.closed_with_unacked_reliable),
-                               kv("transport_impairment_refused", ts.impairment_refused)});
+                               kv("transport_impairment_refused", ts.impairment_refused),
+                               kv("events_queued", stats_.events_queued), kv("events_applied", stats_.events_applied),
+                               kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
+                               kv("events_dropped_with_slot", stats_.events_dropped_with_slot)});
     if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets
         log_.info("secure_stats", {kv("authenticated", ss->authenticated), kv("pending_opened", ss->pending_opened),
                                    kv("pending_failed", ss->pending_failed), kv("pending_refused_cap", ss->pending_refused_cap),
                                    kv("dropped_not_dtls", ss->dropped_not_dtls), kv("idle_timeouts", ss->idle_timeouts),
-                                   kv("reliable_retransmits", ss->reliable_retransmits)});
+                                   kv("reliable_retransmits", ss->reliable_retransmits),
+                                   kv("pending_replaced", ss->pending_replaced), kv("hello_ignored", ss->hello_ignored),
+                                   kv("hello_rate_limited", ss->hello_rate_limited), kv("promotions_replacing", ss->promotions_replacing),
+                                   kv("rejected_established", ss->rejected_established), kv("handshakes_done", ss->handshakes_done),
+                                   kv("handshake_retransmits", ss->handshake_retransmits), kv("handshake_ms_max", ss->handshake_ms_max)});
 }
 
 }  // namespace mordor::host

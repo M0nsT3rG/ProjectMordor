@@ -72,6 +72,18 @@ Each entry gives the context, the decision, the alternatives considered and how 
 - **Over a real transport (2026-10-24, review #6).** `DtlsSession` runs over `Transport::Unreliable` on both backends, with OpenSSL retransmission, cookies and the fail-closed invitation binding: 9 transport tests × 2 backends (EXP-018). GNS reliable delivery is not used for DTLS (decided: datagram protocol, one path for both backends). **Still open:** carrying game messages, a cookie before per-peer state, and an independent review.
 - **Executables (2026-10-24, review #8).** Game traffic of the real executables runs over DTLS with provisioned keys (D-016) and a secure reliable channel (EXP-021). **Still open:** a stateless cookie (KI-30), an independent review, and a LAN test. Untrusted networks remain off limits.
 
+## D-017: Application-level reliable events (2026-10-24, review #9 FB-9-02, KI-28)
+
+- **Context.** A transport acknowledgement is not proof that the game applied an event. Nothing replayed events after a reconnect.
+- **Decision.** Protocol v2 adds `Event` and `EventAck` (see protocol.md). Ids are per player and session. The client application acks after applying. The host keeps, resends and replays until it is acked.
+  - Application-level reliability never depends on transport reliability: the host resends on reliable transports too.
+  - Without that, an event that overtook the `ConnectAccept` and was discarded stalled the stream for a whole soak run (EXP-022).
+  - `EventAck` is unreliable (cumulative, idempotent, resent with each heartbeat), so it never blocks other reliable data.
+- **Limits.**
+  - Not durable across a host or client process restart; a new session resets the stream.
+  - Window of 64 unapplied events per player.
+- **Revisit** if events must survive a host restart (persistence) or exceed the window.
+
 ## D-016: Identity provisioning for the executables (2026-10-24, review #8 FB-8-03 / answer 3)
 
 - **Decision.**

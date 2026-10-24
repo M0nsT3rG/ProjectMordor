@@ -8,7 +8,18 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #9 (PR #9: secure provisioning, secure reliable channel)
 
-- **Status:** received and triaged (2026-10-24) on `feature/secure-liveness` (stacked on PR #9). Not implemented yet.
+- **Status:** triaged and **implemented** (2026-10-24) on `feature/secure-liveness` (stacked on PR #9), on the owner's go-ahead ("faz tudo, incluindo o FB-9-02"). Record: EXP-022. Review request #9.
+- **As implemented:**
+  - **FB-9-01:** liveness only from authenticated records; regression test plus mutation check.
+  - **FB-9-02:** protocol v2 application events (D-017), with in-process tests on both backends, plaintext and secure, and executables plus soak v5 gates.
+  - **FB-9-03:** soak gate v5, realized impairment.
+  - **FB-9-04:** handle-based load, reparse refusal, temp-then-move write; the symlink case was not run here (KI-36).
+  - **FB-9-05:** misuse tests, plus ClientHello rate limit and accounting.
+  - **Found on the way, fixed:**
+    - the rate limit starved a known player's reconnect;
+    - head-of-line blocking of `Disconnect` behind reliable `EventAck`s;
+    - an event overtaking the `ConnectAccept` stalled the stream on reliable transports.
+  - **Open:** KI-35 (secure UDP harsh recovery tail, root cause not established).
 - **Source:** [PR #9 comment 6379227966](https://github.com/M0nsT3rG/ProjectMordor/pull/9#issuecomment-6379227966). ChatGPT reviewed the source of `a98b62e` only.
 - **ChatGPT's verdict:** conditional GO for lab development only. No merge, no untrusted networks.
 

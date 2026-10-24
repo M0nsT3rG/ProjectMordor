@@ -1,13 +1,13 @@
 # Current task
 
-**Last completed:** review #8 follow-up (FB-8-01 to FB-8-05):
-- secure executables (keys, invitations, fail-closed CLI);
-- a secure reliable channel;
-- cookie-aware pending sessions;
-- idle timeout with keepalives;
-- the KI-27 upstream report (ValveSoftware/GameNetworkingSockets#458).
+**Last completed:** review #9 follow-up (FB-9-01 to FB-9-05):
+- protocol v2 application-level reliable events (KI-28 resolved, with limits);
+- soak gate v5 (realized impairment);
+- authenticated-only liveness;
+- key-file hardening;
+- handshake rate limiting.
 
-See EXP-021, [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md) and `docs/d013-evaluation.md`.
+v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).
 
 **Branches and PRs** (all open, none merged; merging needs the user):
 
@@ -21,7 +21,8 @@ See EXP-021, [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md) and `docs/d013-evaluatio
 | [#6](https://github.com/M0nsT3rG/ProjectMordor/pull/6) | `feature/gns-hardening` | #5 | Review #5: counters, deadlines, impairment guard, GNS substitute tests, DTLS proof |
 | [#7](https://github.com/M0nsT3rG/ProjectMordor/pull/7) | `feature/dtls-transport` | #6 | Review #6: DTLS over the Transport + binding, KI-27, asymmetric processes |
 | [#8](https://github.com/M0nsT3rG/ProjectMordor/pull/8) | `feature/secure-transport` | #7 | Review #7: secure transport decorator, bounded pending state, timer policy, KI-27 reproducer |
-| #9 | `feature/secure-provisioning` | #8 | Review #8: secure executables, secure reliable channel, cookie-aware pending, idle timeout, KI-27 upstream |
+| [#9](https://github.com/M0nsT3rG/ProjectMordor/pull/9) | `feature/secure-provisioning` | #8 | Review #8: secure executables, secure reliable channel, cookie-aware pending, idle timeout, KI-27 upstream |
+| #10 | `feature/secure-liveness` | #9 | Review #9: authenticated liveness, protocol v2 application events, soak gate v5, key-file hardening |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 
@@ -38,7 +39,7 @@ Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed)
 
 ## Next tasks (no user input needed)
 
-1. Reliable game events on `ReliableOrdered` (GNS), with application ids, acks and replay (KI-28).
+1. Root-cause **KI-37** (lost final leave after a GNS reconnect) and **KI-35** (secure reconnect tail).
 2. A cookie before any per-peer DTLS state (KI-29).
 3. **KI-27:** follow ValveSoftware/GameNetworkingSockets#458.
 4. **FB-2-05:** wider stall coverage; repeated soak runs to characterise recovery variance (KI-18).

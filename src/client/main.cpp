@@ -83,6 +83,8 @@ int main(int argc, char** argv) {
         const double outage_at_s = args.num<double>("outage-at-s", -1.0);
         const double outage_s = args.num<double>("outage-s", 5.0);
         enum class Outage { Before, During, After } outage = Outage::Before;
+        std::uint32_t last_event_id = 0;
+        std::uint64_t events_applied = 0, event_order_errors = 0;
 
         client::Client c(cfg, log);
         std::string err;
@@ -121,6 +123,13 @@ int main(int argc, char** argv) {
             else if (pattern == "line") c.set_move(std::fmod(el, 4.0) < 2.0 ? 1.0f : -1.0f, 0.0f);
             else c.set_move(0, 0);
             c.update(t);
+            // Application side of FB-9-02: apply each event (here: check the stream is contiguous) and only then ack.
+            for (const auto& e : c.take_events()) {
+                if (e.id != last_event_id + 1) ++event_order_errors;  // a gap or repeat visible to the application
+                last_event_id = e.id;
+                ++events_applied;
+                c.ack_events_applied(e.id, t);
+            }
             const auto st = c.state();
             if (st == client::ClientState::Rejected || st == client::ClientState::Failed ||
                 st == client::ClientState::Disconnected)
@@ -155,6 +164,9 @@ int main(int argc, char** argv) {
             log.info("summary", {kv("final_state", client::to_string(final_state)), kv("player", c.player_id()),
                                  kv("rtt_samples", rtt.size()), kv("rtt_p50_ms", pct(50)), kv("rtt_p95_ms", pct(95)),
                                  kv("rtt_p99_ms", pct(99)), kv("rtt_max_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.back())),
+                                 kv("rtt_min_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.front())),
+                                 kv("events_applied", events_applied), kv("event_order_errors", event_order_errors),
+                                 kv("events_duplicate", s.events_duplicate), kv("events_out_of_order", s.events_out_of_order),
                                  kv("snapshots", s.snapshots_applied), kv("stale", s.stale_snapshots),
                                  kv("corrections", s.corrections), kv("max_correction", s.max_correction),
                                  kv("correction_p50", pct_of(corr, 50, 0.0)), kv("correction_p99", pct_of(corr, 99, 0.0)),
@@ -164,6 +176,11 @@ int main(int argc, char** argv) {
                                  kv("packets_in", s.packets_in), kv("packets_out", s.packets_out),
                                  kv("elapsed_ms", (now_us() - start) / 1000)});
         }
+        if (const auto* ss = c.transport_stats_secure())  // secure mode diagnostics (no secrets)
+            log.info("secure_stats", {kv("handshakes_done", ss->handshakes_done), kv("handshake_retransmits", ss->handshake_retransmits),
+                                      kv("handshake_ms_max", ss->handshake_ms_max), kv("handshake_ms_total", ss->handshake_ms_total),
+                                      kv("pending_failed", ss->pending_failed), kv("reliable_retransmits", ss->reliable_retransmits),
+                                      kv("idle_timeouts", ss->idle_timeouts)});
         c.disconnect();
         c.close();
         if (sink != stderr) std::fclose(sink);

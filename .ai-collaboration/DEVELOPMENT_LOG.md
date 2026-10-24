@@ -2,6 +2,28 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #9 follow-up (`feature/secure-liveness`, stacked on #9)
+
+- **Input:** [PR #9 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/9#issuecomment-6379227966), FB-9-01 to FB-9-05; the owner asked for everything, including FB-9-02.
+- **Changes:**
+  - Authenticated-only liveness.
+  - Handle-based key loading; temp-then-move write.
+  - Misuse tests; ClientHello rate limit.
+  - **Protocol v2** application events (D-017) in Host/Client and the executables.
+  - Soak gate v5 (realized impairment and events).
+  - DTLS retransmit cap 1 s.
+  - Diagnostics: handshake time and retransmits in `secure_stats`.
+- **Tests:**
+  - unit {'PASSED': 17}; integration {'PASSED': 40}; network {'PASSED': 17}; transport {'PASSED': 18}; transport-both {'PASSED': 20}; integration-gns {'PASSED': 26, 'SKIPPED': 14}; network-gns {'SKIPPED': 5, 'PASSED': 12}; gns {'PASSED': 7}; dtls {'PASSED': 48};
+  - ×2, plus E2E;
+  - asymmetric 4/4; secure E2E 2/2;
+  - **v5 soaks 10/12**.
+- **Problems encountered:**
+  - three defects found and fixed (rate-limit starvation, head-of-line `Disconnect`, events stalled behind a discarded first event);
+  - KI-35 and KI-37 open;
+  - symlink check not run.
+- **Remaining:** KI-35, KI-37, KI-30, LAN test, independent review.
+
 ## 2026-10-24: Review #8 follow-up (`feature/secure-provisioning`, stacked on #8)
 
 - **Input:** [PR #8 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/8#issuecomment-6377503056), FB-8-01 to FB-8-05, on the owner's go-ahead ("faz tudo"). Also: the KI-27 upstream draft was refined, approved and posted as ValveSoftware/GameNetworkingSockets#458 (EXP-020).

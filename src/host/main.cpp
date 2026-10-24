@@ -40,6 +40,8 @@ int main(int argc, char** argv) {
                          "  --port N          UDP port (default 47800)\n"
                          "  --tick-rate N     simulation ticks per second (default 30)\n"
                          "  --duration-s N    stop after N seconds (default: run until Ctrl+C)\n"
+                         "  --event-interval-ms N  send every player a reliable game event this often (0 = off); players in\n"
+                         "                    their grace period get them queued and replayed on reconnect (FB-9-02)\n"
                       << cli::kImpairmentHelp << cli::kSecureHelp;
             return 0;
         }
@@ -63,6 +65,8 @@ int main(int argc, char** argv) {
         log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
                               kv("invitation", secure.invitation_id)});
         const double duration_s = args.num<double>("duration-s", 0.0);
+        const auto event_interval_us = args.num<std::uint64_t>("event-interval-ms", 0) * 1000;
+        std::uint64_t next_event_us = 0, events_refused = 0;
 
         host::Host h(cfg, log);
         std::string err;
@@ -76,8 +80,18 @@ int main(int argc, char** argv) {
             const auto t = now_us();
             if (duration_s > 0 && (t - start) / 1e6 >= duration_s) break;
             h.update(t);
+            if (event_interval_us && t >= next_event_us) {
+                next_event_us = t + event_interval_us;
+                for (auto id : h.player_ids()) {
+                    const std::uint32_t n = static_cast<std::uint32_t>(h.stats().events_queued + 1);
+                    const std::uint8_t payload[4] = {static_cast<std::uint8_t>(n), static_cast<std::uint8_t>(n >> 8),
+                                                     static_cast<std::uint8_t>(n >> 16), static_cast<std::uint8_t>(n >> 24)};
+                    if (!h.send_event(id, 1, payload, t)) ++events_refused;
+                }
+            }
             sleeper.sleep_us(1000);
         }
+        if (event_interval_us) log.info("event_source", {kv("events_refused", events_refused)});
         h.shutdown();
         if (sink != stderr) std::fclose(sink);
         return 0;

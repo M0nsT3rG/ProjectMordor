@@ -150,6 +150,9 @@ void Client::update(std::uint64_t now_us) {
             if (now_us - last_heartbeat_us_ >= cfg_.heartbeat_interval_us) {
                 last_heartbeat_us_ = now_us;
                 send(Heartbeat{now_us}, now_us);
+                // Re-confirm what the application applied: covers a lost ack (unreliable transport) and tells a
+                // host that replayed after a reconnect what it can forget (FB-9-02).
+                if (applied_through_ > 0) send(EventAck{applied_through_}, now_us, ack_delivery());
             }
             break;
         }
@@ -241,6 +244,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         authoritative_.reset();
         remotes_.clear();
         if (!same_session) latest_tick_.reset();
+        if (event_session_ != session_) {  // a new host session (e.g. host restart): its event ids start again at 1
+            stats_.events_discarded_new_session += event_inbox_.size();
+            event_inbox_.clear();
+            event_session_ = session_;
+            next_event_ = 1;
+            applied_through_ = 0;
+        }
         if (reconnect) {
             ++stats_.reconnects;
             stats_.last_reconnect_ms = (now_us - reconnect_started_us_) / 1000;
@@ -257,7 +267,7 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
     }
     // Only client-bound message types prove the host is alive (review FB-1-02).
     const bool client_bound = std::holds_alternative<Snapshot>(p.message) || std::holds_alternative<HeartbeatAck>(p.message) ||
-                              std::holds_alternative<Disconnect>(p.message);
+                              std::holds_alternative<Disconnect>(p.message) || std::holds_alternative<GameEvent>(p.message);
     if (!client_bound) {
         ++stats_.invalid_packets;
         return;
@@ -287,9 +297,37 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
             disconnect_reason_ = d.reason;
             set_state(ClientState::Disconnected, "host_disconnect");
         },
+        [&](const GameEvent& ev) {
+            if (ev.event_id < next_event_) {  // already delivered (retransmit or replay): drop, re-confirm what is applied
+                ++stats_.events_duplicate;
+                if (applied_through_ > 0) send(EventAck{applied_through_}, now_us, ack_delivery());
+                return;
+            }
+            if (ev.event_id != next_event_) {  // a gap: the host resends in order, never deliver out of order
+                ++stats_.events_out_of_order;
+                return;
+            }
+            ++next_event_;
+            ++stats_.events_received;
+            event_inbox_.push_back({ev.event_id, ev.kind, ev.payload});
+        },
         [&](const auto&) {},  // unreachable: filtered by client_bound above
     }, p.message);
 }
+
+std::vector<ReceivedEvent> Client::take_events() { return std::exchange(event_inbox_, {}); }
+
+void Client::ack_events_applied(std::uint32_t through_id, std::uint64_t now_us) {
+    // Only what has been delivered can have been applied; acks never move backwards.
+    if (through_id >= next_event_ || through_id <= applied_through_) return;
+    applied_through_ = through_id;
+    if (state_ == ClientState::Connected) send(EventAck{applied_through_}, now_us, ack_delivery());
+}
+
+// EventAck is cumulative and idempotent, and re-sent with every heartbeat: Unreliable. Sending it ReliableOrdered
+// put a stream of acks in front of the final Disconnect, which then waited behind a lost ack until the client's close
+// drain ended (head-of-line blocking; the secure moderate GNS soak timed the player out, EXP-022).
+Delivery Client::ack_delivery() const { return Delivery::Unreliable; }
 
 void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
     // Connection-oriented transport: a reconnect always uses a NEW transport connection (review #3 answer 2).
@@ -379,9 +417,10 @@ void Client::disconnect() {
     // Reliable transport: send the notice once, reliably. Unreliable transport: a few times; the host ignores
     // repeats. Timeout remains the fallback either way.
     if (state_ == ClientState::Connected && transport_) {
+        // Best effort on both paths: reliably where offered (survives loss while the connection lingers) AND a few
+        // unreliable copies (not stuck behind earlier reliable data). The host ignores repeats (EXP-022).
         if (transport_->capabilities().reliable_ordered) send(Disconnect{DisconnectReason::ClientQuit}, 0, Delivery::ReliableOrdered);
-        else
-            for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
+        for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
     }
     if (transport_) transport_->flush_all();
     disconnect_reason_ = DisconnectReason::ClientQuit;

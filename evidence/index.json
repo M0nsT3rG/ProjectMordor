@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 83,
+  "count": 84,
   "records": [
     {
       "id": "EXP-001",
@@ -232,6 +232,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #8 FB-8-01..05: cookie-aware pending replacement, secure reliable channel, key/invitation provisioning with secure executables and E2E/soak, idle timeout, KI-27 wording."
+    },
+    {
+      "id": "EXP-022",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-022.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #9 FB-9-01..05 including application-level reliable events (protocol v2) and soak gate v5 (realized impairment)."
     },
     {
       "id": "F-COMM-001",

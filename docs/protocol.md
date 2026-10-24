@@ -1,4 +1,4 @@
-# Prototype wire protocol (version 1)
+# Prototype wire protocol (version 2)
 
 Source: [`src/network/protocol.hpp`](../src/network/protocol.hpp). This protocol is **independent of Shadow of War's internal representation**. It moves abstract entities with transforms and has never been connected to the game.
 
@@ -8,7 +8,7 @@ Source: [`src/network/protocol.hpp`](../src/network/protocol.hpp). This protocol
 - Every packet is unreliable. Robustness comes from repetition:
   - inputs are sent redundantly;
   - snapshots supersede each other;
-  - Disconnect is sent 3 times on unreliable-only backends (UDP), and once as `ReliableOrdered` where the backend offers it (GNS, EXP-016). In both cases this is best effort, not a delivery guarantee: the peer's timeout remains the backstop;
+  - Disconnect is sent 3 times unreliably, plus once as `ReliableOrdered` where the backend offers it. It is best effort on both paths, not a delivery guarantee, and the peer's timeout remains the backstop. The unreliable copies were added because the reliable copy alone could wait behind earlier reliable data (EXP-022);
   - connect requests are retried.
 
 ## Header (22 bytes, little-endian, frozen across versions)
@@ -51,6 +51,26 @@ The decoder rejects:
 - NaN or infinite floats, out-of-range axes, zero ids, and counts above the limits.
 
 A 200,000-case fuzz test checks that the decoder never crashes and that every accepted packet re-encodes byte-identically.
+
+### Version 2 (2026-10-24): application-level reliable events (review #9 FB-9-02, KI-28, D-017)
+
+| Type | Direction | Payload |
+|---|---|---|
+| 9 Event | H→C | `u32 event_id` (≥1, contiguous per player and session), `u16 kind`, `u16 len` (≤256), then `len` bytes |
+| 10 EventAck | C→H | `u32 applied_through`: the client **application** has applied every event up to this id |
+
+**Semantics:**
+- **Host:**
+  - keeps each player's unapplied events, at most 64, beyond which `send_event()` returns false;
+  - sends them at once, then resends every unapplied event every 250 ms (unreliable transports) or 1 s (reliable transports), until `EventAck` covers it;
+  - replays all unapplied events on a reconnect within the grace period;
+  - counts what it drops when a player is removed.
+- **Client:**
+  - delivers events to the application in id order, each exactly once (later copies are dropped, gaps wait for the resend);
+  - acks only after `ack_events_applied()`;
+  - resends its latest `EventAck` with every heartbeat;
+  - a new host session resets the stream.
+- **Not durable:** events do not survive a host restart or a client process restart.
 
 ## Sessions, identities, sequencing
 

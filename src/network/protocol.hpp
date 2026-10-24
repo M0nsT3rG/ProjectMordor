@@ -13,7 +13,8 @@
 namespace mordor::net {
 
 inline constexpr std::array<std::uint8_t, 4> kMagic{'M', 'R', 'D', 'R'};
-inline constexpr std::uint16_t kProtocolVersion = 1;
+// v2 (2026-10-24): GameEvent / EventAck, application-level reliable events (review #9 FB-9-02, KI-28).
+inline constexpr std::uint16_t kProtocolVersion = 2;
 inline constexpr std::size_t kHeaderSize = 22;
 inline constexpr std::size_t kMaxPacketSize = 1200;  // stays under common internet MTU
 inline constexpr std::size_t kMaxPayloadSize = kMaxPacketSize - kHeaderSize;
@@ -21,6 +22,7 @@ inline constexpr std::uint8_t kMaxPlayers = 2;
 inline constexpr std::size_t kMaxInputsPerPacket = 8;
 inline constexpr std::size_t kMaxEntitiesPerSnapshot = 16;
 inline constexpr float kMaxCoordinate = 1.0e6f;
+inline constexpr std::size_t kMaxEventPayload = 256;
 
 enum class MsgType : std::uint8_t {
     ConnectRequest = 1,
@@ -31,6 +33,8 @@ enum class MsgType : std::uint8_t {
     HeartbeatAck = 6,
     Input = 7,
     Snapshot = 8,
+    Event = 9,     // host -> client: a consequential game event (v2)
+    EventAck = 10, // client -> host: every event up to this id has been APPLIED by the client application (v2)
 };
 
 enum class RejectReason : std::uint8_t { VersionMismatch = 1, ServerFull = 2, Malformed = 3 };
@@ -105,8 +109,21 @@ struct Snapshot {
     bool operator==(const Snapshot&) const = default;
 };
 
+// Application-level reliable event (review #9 FB-9-02). Ids start at 1 per player and session and are
+// contiguous; the client delivers them in order exactly once and acknowledges only what its application applied.
+struct GameEvent {
+    std::uint32_t event_id = 0;
+    std::uint16_t kind = 0;
+    std::vector<std::uint8_t> payload;  // at most kMaxEventPayload bytes
+    bool operator==(const GameEvent&) const = default;
+};
+struct EventAck {
+    std::uint32_t applied_through = 0;
+    bool operator==(const EventAck&) const = default;
+};
+
 using Message = std::variant<ConnectRequest, ConnectAccept, ConnectReject, Disconnect, Heartbeat, HeartbeatAck,
-                             InputBatch, Snapshot>;
+                             InputBatch, Snapshot, GameEvent, EventAck>;
 
 struct Packet {
     Header header;

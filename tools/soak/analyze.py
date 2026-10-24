@@ -28,7 +28,13 @@ import re
 import sys
 from pathlib import Path
 
-GATE_VERSION = 4
+GATE_VERSION = 5
+# v5 (review #9 FB-9-03, fixed 2026-10-24 before its first run; v1-v4 thresholds unchanged): the configured
+# impairment must be REALIZED, not only configured (KI-34 passed v4 with impairment silently off), and the
+# application-level reliable events (FB-9-02) are gated when run.json declares event_interval_ms.
+REALIZED_RTT_SLACK_MS = 2.0          # min RTT >= 2 * latency - slack
+HANDSHAKE_RTTS_SECURE = 3            # DTLS cookie + handshake + binding before the session handshake
+EVENTS_IN_FLIGHT_PER_CLIENT = 4      # events still unapplied when the run ends
 TRANSPORTS = {"udp", "gns"}
 
 # Known soak scenarios. run.json names one; its declared participants must match exactly (v3).
@@ -197,7 +203,8 @@ def analyze(run_dir: Path) -> dict:
                                                       "rtt_p99_ms", "rtt_max_ms", "snapshots", "stale", "corrections",
                                                       "max_correction", "correction_p50", "correction_p99",
                                                       "reconnects", "max_reconnect_ms", "stale_notices", "invalid",
-                                                      "bytes_in", "bytes_out", "elapsed_ms")},
+                                                      "bytes_in", "bytes_out", "elapsed_ms", "rtt_min_ms", "packets_out",
+                                                      "events_applied", "event_order_errors", "events_duplicate")},
                             "stalled": is_stalled, "recovery_after_stall_ms": rec, "kbit_s_in": kin, "kbit_s_out": kout,
                             "high_resolution_timer": (last(ev, "loop_timer") or {}).get("high_resolution"),
                             "window_rates_kbit_s": window_rates(ev)}
@@ -233,6 +240,43 @@ def analyze(run_dir: Path) -> dict:
         gate("host_reconnects_match_stalls", hs.get("reconnects") == len(stalled), f"reconnects={hs.get('reconnects')}")
     gate("host_joins_match_manifest", hs.get("joins") == len(expected), f"joins={hs.get('joins')}, expected={len(expected)}")
 
+    # ---- v5: realized impairment (FB-9-03) ----
+    lat, loss, dup = imp.get("latency_ms", 0), imp.get("loss", 0.0), imp.get("duplicate", 0.0)
+    secure = bool(run.get("secure"))
+    rtt_floor = max(0.0, 2 * lat - REALIZED_RTT_SLACK_MS)
+    hs_floor = max(0.0, (HANDSHAKE_RTTS_SECURE if secure else 1) * 2 * lat - REALIZED_RTT_SLACK_MS)
+    out_total = 0
+    for name in expected:
+        ev = found.get(name, [])
+        s = last(ev, "summary") or {}
+        rmin = s.get("rtt_min_ms")
+        gate(f"{name}_realized_rtt_floor", rmin is not None and rmin >= rtt_floor,
+             f"rtt_min={rmin} ms, floor={rtt_floor} ms (2 x latency {lat} - {REALIZED_RTT_SLACK_MS})")
+        conn = next((e.get("t_ms") for e in ev if e.get("evt") == "connected"), None)
+        gate(f"{name}_realized_handshake_delay", conn is not None and conn >= hs_floor,
+             f"first connected at {conn} ms, floor={hs_floor} ms ({'secure' if secure else 'plaintext'} handshake)")
+        out_total += s.get("packets_out") or 0
+    ratio = (hs.get("packets_in") or 0) / out_total if out_total else 0.0
+    hi = 1 - loss / 2 + dup + (0.01 if loss == 0 else 0)
+    lo = max(0.0, 1 - 2 * loss - 0.02)
+    gate("realized_upstream_loss", lo <= ratio <= hi,
+         f"host packets_in / clients packets_out = {ratio:.4f}, expected within [{lo:.4f}, {hi:.4f}] (loss {loss}, dup {dup})")
+    # ---- v5: application-level reliable events (FB-9-02) ----
+    interval = run.get("event_interval_ms", 0)
+    if interval:
+        per_client_min = 0.5 * duration_s * 1000 / interval
+        q, applied = hs.get("events_queued") or 0, hs.get("events_applied") or 0
+        gate("events_generated", q >= per_client_min * len(expected), f"queued={q}, min={per_client_min * len(expected):.0f}")
+        slack = EVENTS_IN_FLIGHT_PER_CLIENT * len(expected)
+        gate("events_applied_all_but_in_flight", applied >= q - slack, f"applied={applied}, queued={q}, in-flight allowance={slack}")
+        gate("events_dropped_only_at_end", (hs.get("events_dropped_with_slot") or 0) <= slack,
+             f"dropped_with_slot={hs.get('events_dropped_with_slot')}, allowance={slack}")
+        for name in expected:
+            s = last(found.get(name, []), "summary") or {}
+            gate(f"{name}_events_in_order", s.get("event_order_errors") == 0, f"event_order_errors={s.get('event_order_errors')}")
+            gate(f"{name}_events_applied", (s.get("events_applied") or 0) >= per_client_min,
+                 f"applied={s.get('events_applied')}, min={per_client_min:.0f}")
+
     return {
         "gate_version": GATE_VERSION,
         "transport": run.get("transport"),
@@ -242,7 +286,9 @@ def analyze(run_dir: Path) -> dict:
                     "max_correction": round(corr_budget, 3)},
         "host": {k: hs.get(k) for k in ("world_tick", "uptime_us", "skipped_ticks", "shed_inputs", "stale_inputs", "joins",
                                         "reconnects", "timeouts", "timeout_notices", "invalid", "unknown_peer",
-                                        "bytes_in", "bytes_out")},
+                                        "bytes_in", "bytes_out", "packets_in", "events_queued", "events_applied",
+                                        "events_retransmitted", "events_replayed", "events_dropped_with_slot")},
+        "realized_upstream_ratio": round(ratio, 4),
         "host_tick_drift": round(drift, 6),
         "clients": per_client,
         "gates": gates,

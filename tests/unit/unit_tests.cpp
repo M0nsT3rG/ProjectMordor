@@ -63,6 +63,18 @@ TEST(all_message_types_roundtrip) {
     CHECK(roundtrip(b) == b);
 }
 
+// Review #9 FB-9-02 (protocol v2): event messages round-trip; limits are enforced on both sides.
+TEST(event_messages_roundtrip_and_respect_limits) {
+    GameEvent e{7, 42, {1, 2, 3}};
+    CHECK(roundtrip(e) == e);
+    CHECK(roundtrip(EventAck{123}) == (EventAck{123}));
+    CHECK(encode(hdr(1), GameEvent{0, 1, {}}).empty());                                       // id 0 is invalid
+    CHECK(encode(hdr(1), GameEvent{1, 1, std::vector<std::uint8_t>(kMaxEventPayload + 1)}).empty());  // too large
+    auto bytes = encode(hdr(1), GameEvent{1, 1, {9}});
+    bytes[kHeaderSize + 6] = 200;  // claimed payload length beyond the packet
+    CHECK(!decode(bytes).packet);
+}
+
 TEST(header_layout_is_22_bytes_little_endian) {
     const auto bytes = encode(hdr(0x01020304), Heartbeat{0});
     CHECK(bytes.size() == kHeaderSize + 8);

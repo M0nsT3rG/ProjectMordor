@@ -95,6 +95,7 @@ public:
         s.remote = remote;
         s.secure = PeerId{next_id_++, 0};
         s.pending = std::make_unique<DtlsSession>(*inner_, *inner_peer, remote, session_cfg(false));
+        s.pending_since_us = 0;  // set on the first poll: connect() has no clock (a 0 start time made 88 h "handshakes")
         ++sstats_.pending_opened;
         by_secure_[s.secure.id] = key(*inner_peer);
         return s.secure;
@@ -167,6 +168,7 @@ public:
         }
         for (auto it = slots_.begin(); it != slots_.end();) {
             auto& s = it->second;
+            if (s.pending && s.pending_since_us == 0) s.pending_since_us = now_us;
             if (s.established) s.established->service(now_us, unix_s);
             if (s.pending) {
                 s.pending->service(now_us, unix_s);
@@ -231,6 +233,7 @@ private:
         std::uint64_t last_rx_us = 0;  // last AUTHENTICATED record from this peer (idle timeout, FB-8-04/FB-9-01)
         std::uint64_t last_tx_us = 0;  // last frame we sent (keepalive)
         std::uint64_t last_hello_us = 0;  // last new handshake attempt opened for this address (rate limit)
+        std::uint64_t pending_since_us = 0;  // when the current pending session was opened (diagnostics)
         // Secure reliable channel state, per established session (FB-8-02).
         struct OutMsg {
             std::uint32_t seq;
@@ -352,6 +355,7 @@ private:
                 if (replacing) ++sstats_.pending_replaced;
                 s->last_hello_us = now_us;
                 s->pending = std::make_unique<DtlsSession>(*inner_, e.peer, e.remote, session_cfg(true));
+                s->pending_since_us = now_us;
                 s->pending_random = ch->random;
                 ++sstats_.pending_opened;
             }
@@ -426,7 +430,16 @@ private:
         }
     }
 
+    void account_handshake(const Slot& s) {
+        ++sstats_.handshakes_done;
+        sstats_.handshake_retransmits += s.pending->stats().timeouts_handled;
+        const auto ms = (now_us_ - s.pending_since_us) / 1000;
+        sstats_.handshake_ms_total += ms;
+        sstats_.handshake_ms_max = std::max(sstats_.handshake_ms_max, ms);
+    }
+
     void promote(Slot& s, std::vector<TransportEvent>& out) {
+        account_handshake(s);
         if (s.established) {  // retire the old association: its peer is gone or reconnected
             out.push_back(disconnected(s, "replaced_by_new_session"));
             lose_unacked(s);

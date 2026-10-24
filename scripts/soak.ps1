@@ -14,7 +14,8 @@ param(
     [string]$Config = 'Release',
     [string]$BuildDir = '',
     [ValidateSet('udp', 'gns')][string]$Transport = 'udp',
-    [switch]$Secure  # review #8 FB-8-03: all three processes over DTLS (keys under %TEMP%, deleted afterwards)
+    [switch]$Secure,  # review #8 FB-8-03: all three processes over DTLS (keys under %TEMP%, deleted afterwards)
+    [int]$EventIntervalMs = 500  # review #9 FB-9-02: reliable game events host -> players (0 = off)
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -31,7 +32,7 @@ try {
     $bin = Join-Path $BuildDir $Config
     # Every run gets a fresh directory; existing runs are evidence and are never deleted or reused (FB-2-01).
     $mode = if ($Secure) { "$Transport-sec" } else { $Transport }
-    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g4" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $mode)
+    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g5" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $mode)
     if (Test-Path $out) { throw "Run directory $out already exists; refusing to overwrite evidence." }
     New-Item -ItemType Directory $out | Out-Null
     $stallAt = [math]::Round($DurationS * 0.4)
@@ -58,7 +59,7 @@ try {
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
 
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed 101 $secHost --log $out/host.log"
+        -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed 101 --event-interval-ms $EventIntervalMs $secHost --log $out/host.log"
     $null = $h.Handle
     $deadline = (Get-Date).AddSeconds(30)
     while (-not ((Test-Path "$out/host.log") -and (Select-String -Path "$out/host.log" -Pattern 'host_started' -Quiet -ErrorAction SilentlyContinue))) {
@@ -83,7 +84,8 @@ try {
         scenario         = 'two-clients-one-stall'  # must match tools/soak/analyze.py SCENARIOS
         expected_clients = @('client1', 'client2')
         stalled_clients  = @('client2')
-        gate_version     = 4
+        gate_version     = 5
+        event_interval_ms = $EventIntervalMs
         transport        = $Transport
         secure           = [bool]$Secure
         stall_at_s       = $stallAt

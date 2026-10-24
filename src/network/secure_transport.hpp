@@ -65,6 +65,9 @@ struct SecureStats {
     std::uint64_t dropped_not_dtls = 0;      // plaintext / non-ClientHello from a peer without a session
     std::uint64_t dropped_unknown_peer = 0;  // client side: datagram from a peer we never connected to
     std::uint64_t reliable_retransmits = 0, reliable_duplicates = 0;
+    // DTLS handshakes that completed (promoted) or failed: how long they took and how many retransmission
+    // timeouts they needed (diagnostics for reconnect latency, EXP-022).
+    std::uint64_t handshakes_done = 0, handshake_retransmits = 0, handshake_ms_total = 0, handshake_ms_max = 0;
 };
 
 // Wraps `inner` (already constructed, not yet opened). Returns nullptr with *error when this build has no DTLS

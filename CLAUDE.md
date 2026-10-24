@@ -38,13 +38,13 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 16, integration 34, network 16, transport 18 contract tests)
-./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (20), gns spike, dtls (42)
+./scripts/test.ps1 -Repeat 3   # ctest (unit 17, integration 40, network 17, transport 18 contract tests)
+./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (20), gns spike, dtls (48)
 ./scripts/asymmetric.ps1 -Scenario uplink-outage -Transport gns   # separate-process asymmetric impairment
 ./scripts/secure-e2e.ps1 -Transport gns                           # secure host + 2 clients + negative cases (keys in %TEMP%, deleted)
 ./scripts/soak.ps1 -Profile moderate -Transport gns -Secure       # soak over DTLS (GNS build for both transports)
 build-gns/Release/mordor-keygen.exe --new FILE | --show FILE | --invite --key FILE --id ID --ttl-s N
-./scripts/soak.ps1 -Profile moderate -DurationS 120 -Transport udp   # lan | moderate | harsh; udp | gns; gates in tools/soak/analyze.py
+./scripts/soak.ps1 -Profile moderate -DurationS 120 -Transport udp   # lan | moderate | harsh; udp | gns; gate v5 in tools/soak/analyze.py
 python -I tools/soak/test_analyze.py
 ./scripts/test.ps1 -E2E        # + real host and two clients on loopback with impairment
 python -I tools/evidence/evidence.py validate | index
@@ -89,7 +89,9 @@ python -I tools/collab/test_report.py
 - `src/network/dtls_session.*` (GNS build only): DTLS 1.2 + RFC 7250 over `Transport::Unreliable` on both backends, with fail-closed invitation binding. Never carry DTLS over GNS reliable delivery.
 - `src/network/secure_transport.*` (D-015): a decorator that gates all Host/Client traffic through DTLS (`HostConfig::secure` / `ClientConfig::secure`). Never add a plaintext fallback: when security is configured but unavailable, `start()` must fail. The cookie is stateful (KI-30).
 - Secure-mode keys (D-016): never put key files, invitations from real sessions, or private-key material in the repository, logs, command lines or environment variables. Test scripts generate keys under `%TEMP%` and delete them.
-- `ReliableOrdered` over the secure transport is the decorator's own channel (cumulative acks; KI-32). The GNS adapter delivers messages that arrived before a peer close before it reports `Disconnected`.
+- `ReliableOrdered` over the secure transport is the decorator's own channel (cumulative acks; KI-32).
+- **Protocol v2** (D-017): `Host::send_event()` and `Client::take_events()` / `ack_events_applied()`. The application acks after applying. Application reliability must never rely on transport reliability (the host resends on reliable transports too). Idempotent state messages (`EventAck`) go `Unreliable`, so they never block reliable data.
+- **Soak gate v5:** realized impairment (RTT floor, handshake delay, upstream delivery ratio) plus events. `soak.ps1 -EventIntervalMs 500` is the default. KI-35: the secure UDP harsh recovery tail is open. The GNS adapter delivers messages that arrived before a peer close before it reports `Disconnected`.
 - The GNS runtime is initialised once per process and never killed (KI-27). `gns_internal_assertions()` counts GNS asserts; the transport suite requires 0.
 - `./scripts/asymmetric.ps1 -Scenario uplink-outage|host-jitter-client-outage -Transport gns|udp` runs asymmetric impairment in separate processes (gates in `tools/e2e/check_asymmetric.py`). GNS jitter does not reorder (KI-25). GNS rejects listen port 0.
 - On GNS the transport owns connection establishment and every reconnect is a new connection (D-014). Under GNS, tests must couple the sim clock to real time (`test::step_wait`).

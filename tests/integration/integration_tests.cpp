@@ -1007,3 +1007,160 @@ TEST(stale_replayed_and_foreign_session_notices_are_ignored_over_transport) {
     CHECK(f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout})));  // a new one still works
     CHECK(f.c.state() == ClientState::Reconnecting);
 }
+
+// ---------------------------------------------------------------------------------------------
+// Review #9 FB-9-02 / KI-28: application-level reliable events (protocol v2), on every backend.
+namespace {
+std::vector<std::uint8_t> ev_payload(std::uint32_t n) { return {static_cast<std::uint8_t>(n), static_cast<std::uint8_t>(n >> 8)}; }
+std::uint32_t ev_value(const client::ReceivedEvent& e) { return e.payload[0] | (std::uint32_t{e.payload[1]} << 8); }
+}  // namespace
+
+TEST(events_are_applied_once_in_order_and_forgotten_after_the_application_ack) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    const auto player = c.player_id();
+    for (std::uint32_t i = 1; i <= 30; ++i) CHECK(s.host.send_event(player, 5, ev_payload(i), s.clk.now));
+    std::vector<std::uint32_t> applied;
+    CHECK(s.pump_until([&] {
+        for (const auto& e : c.take_events()) {
+            applied.push_back(ev_value(e));
+            c.ack_events_applied(e.id, s.clk.now);  // the application applied it
+        }
+        return applied.size() == 30 && s.host.unapplied_events(player) == 0;
+    }, 5 * kSec));
+    for (std::uint32_t i = 0; i < applied.size(); ++i) CHECK(applied[i] == i + 1);
+    CHECK(s.host.stats().events_applied == 30);
+}
+
+TEST(host_keeps_sending_until_the_application_ack_not_the_transport_ack) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    CHECK(s.host.send_event(c.player_id(), 1, ev_payload(1), s.clk.now));
+    std::vector<client::ReceivedEvent> got;
+    CHECK(s.pump_until([&] {
+        for (auto& e : c.take_events()) got.push_back(e);
+        return !got.empty();
+    }, 3 * kSec));
+    s.run(kSec);  // delivered (and transport-acked where reliable), but NOT applied by the application yet
+    CHECK(s.host.unapplied_events(c.player_id()) == 1);
+    c.ack_events_applied(got[0].id, s.clk.now);
+    CHECK(s.pump_until([&] { return s.host.unapplied_events(c.player_id()) == 0; }, 2 * kSec));
+}
+
+// Delivered-but-unapplied events, and events queued while the player was away, all arrive exactly once and in
+// order after a reconnect (the host replays everything unapplied on the new connection).
+TEST(unapplied_and_queued_events_survive_an_outage_and_reconnect) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    const auto player = c.player_id();
+    for (std::uint32_t i = 1; i <= 5; ++i) CHECK(s.host.send_event(player, 1, ev_payload(i), s.clk.now));
+    std::vector<std::uint32_t> held;  // delivered to the application, which applies 1..3 now and 4..5 later
+    CHECK(s.pump_until([&] {
+        for (const auto& e : c.take_events()) held.push_back(ev_value(e));
+        return held.size() == 5;
+    }, 3 * kSec));
+    c.ack_events_applied(3, s.clk.now);
+    CHECK(s.pump_until([&] { return s.host.unapplied_events(player) == 2; }, 2 * kSec));
+    ImpairmentConfig cut;
+    cut.loss = 1.0;
+    CHECK(c.set_impairment(cut));
+    CHECK(s.host.set_impairment(cut));
+    CHECK(s.pump_until([&] { return s.host.connected_count() == 0; }, 8 * kSec));
+    for (std::uint32_t i = 6; i <= 8; ++i) CHECK(s.host.send_event(player, 1, ev_payload(i), s.clk.now));  // while away
+    CHECK(c.set_impairment({}));
+    CHECK(s.host.set_impairment({}));
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects >= 1; }, 15 * kSec));
+    CHECK(c.player_id() == player);
+    std::vector<std::uint32_t> later;
+    CHECK(s.pump_until([&] {
+        for (const auto& e : c.take_events()) later.push_back(ev_value(e));
+        return later.size() >= 3;
+    }, 5 * kSec));
+    s.run(kSec / 2);
+    for (const auto& e : c.take_events()) later.push_back(ev_value(e));
+    CHECK((later == std::vector<std::uint32_t>{6, 7, 8}));  // 4 and 5 were replayed too, but dropped as duplicates
+    CHECK(c.stats().events_duplicate >= 2);
+    CHECK(s.host.stats().events_replayed >= 2);
+    c.ack_events_applied(8, s.clk.now);  // the application applies 4..8
+    CHECK(s.pump_until([&] { return s.host.unapplied_events(player) == 0; }, 3 * kSec));
+    std::printf("       %s: events replayed %llu, duplicates dropped %llu, applied 1..8 exactly once\n",
+                to_string(test::test_transport()), static_cast<unsigned long long>(s.host.stats().events_replayed),
+                static_cast<unsigned long long>(c.stats().events_duplicate));
+}
+
+TEST(events_beyond_the_window_are_refused_explicitly) {
+    host::HostConfig hc;
+    hc.max_unacked_events = 8;
+    test::Session s(hc);
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    for (std::uint32_t i = 1; i <= 8; ++i) CHECK(s.host.send_event(c.player_id(), 1, ev_payload(i), s.clk.now));
+    CHECK(!s.host.send_event(c.player_id(), 1, ev_payload(9), s.clk.now));  // backpressure, not a silent drop
+    CHECK(s.host.stats().events_backpressure == 1);
+    CHECK(!s.host.send_event(999, 1, ev_payload(1), s.clk.now));  // unknown player
+    CHECK(!s.host.send_event(c.player_id(), 1, std::vector<std::uint8_t>(kMaxEventPayload + 1), s.clk.now));
+}
+
+// A restarted host is a new session: its event ids start again at 1 and must not be mistaken for duplicates.
+// Events of the old session are not durable (documented); the client starts a fresh stream.
+TEST(a_host_restart_starts_a_new_event_stream) {
+    test::SimClock clk;
+    Logger& hl = test::test_logger("host");
+    auto h1 = std::make_unique<host::Host>(test::Session::with_transport({}), hl);
+    CHECK(h1->start());
+    const auto port = h1->port();
+    client::ClientConfig cc;
+    cc.host = Endpoint::loopback(port);
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    CHECK(test::pump(clk, h1.get(), {&c}, [&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    for (std::uint32_t i = 1; i <= 3; ++i) CHECK(h1->send_event(c.player_id(), 1, ev_payload(100 + i), clk.now));
+    std::size_t old_events = 0;
+    CHECK(test::pump(clk, h1.get(), {&c}, [&] {
+        old_events += c.take_events().size();
+        return old_events == 3;
+    }, 2 * kSec));
+    c.ack_events_applied(3, clk.now);
+    ImpairmentConfig blackout;
+    blackout.loss = 1.0;
+    h1->set_impairment(blackout);
+    h1->shutdown();
+    h1.reset();
+    CHECK(test::pump(clk, nullptr, {&c}, [&] { return c.state() == ClientState::Reconnecting; }, 5 * kSec));
+    host::HostConfig hc2;
+    hc2.bind = Endpoint::loopback(port);
+    host::Host h2(test::Session::with_transport(hc2), hl);
+    CHECK(h2.start());
+    CHECK(test::pump(clk, &h2, {&c}, [&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    CHECK(h2.send_event(c.player_id(), 2, ev_payload(1), clk.now));
+    std::vector<client::ReceivedEvent> fresh;
+    CHECK(test::pump(clk, &h2, {&c}, [&] {
+        for (auto& e : c.take_events()) fresh.push_back(e);
+        return !fresh.empty();
+    }, 2 * kSec));
+    CHECK(fresh.size() == 1 && fresh[0].id == 1 && ev_value(fresh[0]) == 1);  // id 1 again: accepted, not a duplicate
+    CHECK(c.events_applied_through() == 0);  // the new session starts with nothing applied
+}
+
+// EXP-022 regression: the host resends an unapplied event on EVERY transport, including reliable ones. (The soak
+// found a client that discarded an event which overtook its ConnectAccept; on a reliable transport the host had
+// never resent it, so the stream stalled behind that gap for the whole run.)
+TEST(unapplied_events_are_resent_even_on_reliable_transports) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    CHECK(s.host.send_event(c.player_id(), 1, ev_payload(1), s.clk.now));
+    s.run(3 * kSec);  // delivered, never applied: the application never acks
+    const auto delivered = c.take_events();
+    CHECK(delivered.size() == 1);  // exactly once to the application, despite the resends
+    std::printf("       %s: unapplied event resent %llu times in 3 s; client dropped %llu duplicates\n",
+                to_string(test::test_transport()), static_cast<unsigned long long>(s.host.stats().events_retransmitted),
+                static_cast<unsigned long long>(c.stats().events_duplicate));
+    CHECK(s.host.stats().events_retransmitted >= 1);
+    CHECK(c.stats().events_duplicate >= 1);
+}

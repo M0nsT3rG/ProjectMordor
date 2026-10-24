@@ -1,0 +1,12 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"host","evt":"security","mode":"dtls","own_fingerprint":"488eece8be11972ff070e40a94665f7f3a79ae7645486732384c27cf3ac92254","invitation":"soak-moderate"}
+{"t_ms":57,"lvl":"info","comp":"host","evt":"host_started","port":47813,"loopback_only":true,"session":1659931859,"secure":true,"tick_rate_hz":30,"protocol_version":2,"transport":"gns"}
+{"t_ms":733,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":737,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":15234,"lvl":"info","comp":"host","evt":"player_timeout","player":1,"grace_ms":30000}
+{"t_ms":18085,"lvl":"info","comp":"host","evt":"player_reconnected","player":1,"entity":1}
+{"t_ms":30235,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":33223,"lvl":"info","comp":"host","evt":"player_timeout","player":1,"grace_ms":30000}
+{"t_ms":36058,"lvl":"info","comp":"host","evt":"event_source","events_refused":0}
+{"t_ms":36560,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":2041,"packets_out":2103,"invalid":0,"bytes_in":148548,"bytes_out":162276,"world_tick":1080,"uptime_us":35999612,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":6627,"joins":2,"reconnects":1,"timeouts":2,"timeout_notices":2,"unknown_peer":20,"send_errors":0,"transport":"gns","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":1,"transport_impairment_refused":0,"events_queued":129,"events_applied":117,"events_retransmitted":0,"events_replayed":6,"events_dropped_with_slot":0}
+{"t_ms":36560,"lvl":"info","comp":"host","evt":"secure_stats","authenticated":3,"pending_opened":3,"pending_failed":0,"pending_refused_cap":0,"dropped_not_dtls":0,"idle_timeouts":0,"reliable_retransmits":82}

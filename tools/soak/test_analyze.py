@@ -9,30 +9,35 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import analyze  # noqa: E402
 
 
-def summary(p99=110.0, reconnects=0, kin=20.0, kout=25.0, max_corr=0.3, samples=400, elapsed_ms=120_000):
+def summary(p99=110.0, reconnects=0, kin=20.0, kout=25.0, max_corr=0.3, samples=400, elapsed_ms=120_000,
+            rtt_min=82.0, packets_out=4000, events_applied=200, order_errors=0):
     # kbit/s = bytes * 8 / elapsed_ms  =>  bytes = kbit/s * elapsed_ms / 8
     return {"t_ms": 119_000, "evt": "summary", "final_state": "connected", "rtt_p99_ms": p99, "reconnects": reconnects,
             "invalid": 0, "bytes_in": int(kin * elapsed_ms / 8), "bytes_out": int(kout * elapsed_ms / 8),
-            "elapsed_ms": elapsed_ms, "rtt_samples": samples, "max_correction": max_corr}
+            "elapsed_ms": elapsed_ms, "rtt_samples": samples, "max_correction": max_corr, "rtt_min_ms": rtt_min,
+            "packets_out": packets_out, "events_applied": events_applied, "event_order_errors": order_errors}
 
 
 def write_run(d: Path, *, host_invalid=0, c2_reconnects=1, c2_recovery_ms=800, c1=None, exit_c1=0, drift_ticks=0,
               expected=("client1", "client2"), logs=("client1", "client2"), manifest=True,
-              scenario="two-clients-one-stall", stalled=("client2",), statuses=None, transport="udp", host_transport="udp"):
+              scenario="two-clients-one-stall", stalled=("client2",), statuses=None, transport="udp", host_transport="udp",
+              host_packets_in=7600, secure=False, connect_ms=500, events_queued=480, events_applied_host=478, c2=None):
     run = {"profile": "test", "duration_s": 120, "impairment": {"latency_ms": 40, "jitter_ms": 20, "loss": 0.05, "duplicate": 0.0},
            "stall_s": 5, "host_timeout_ms": 3000, "stalled_clients": list(stalled), "scenario": scenario, "transport": transport,
-           "exit_codes": {"host": 0, "client1": exit_c1, "client2": 0}}
+           "exit_codes": {"host": 0, "client1": exit_c1, "client2": 0}, "secure": secure, "event_interval_ms": 500}
     if manifest:
         run["expected_clients"] = list(expected)
     (d / "run.json").write_text(json.dumps(run))
     host = [{"t_ms": 0, "evt": "host_started"},
             {"t_ms": 126_000, "evt": "host_stopped", "invalid": host_invalid, "uptime_us": 126_000_000, "tick_rate_hz": 30,
-             "world_tick": 3780 + drift_ticks, "skipped_ticks": 0, "shed_inputs": 3, "joins": 2, "reconnects": 1, "timeouts": 1, "transport": host_transport}]
+             "world_tick": 3780 + drift_ticks, "skipped_ticks": 0, "shed_inputs": 3, "joins": 2, "reconnects": 1, "timeouts": 1, "transport": host_transport,
+             "packets_in": host_packets_in, "events_queued": events_queued, "events_applied": events_applied_host,
+             "events_dropped_with_slot": 2}]
     (d / "host.log").write_text("\n".join(map(json.dumps, host)))
     contents = {
-        "client1": list(statuses or []) + [c1 or summary()],
-        "client2": [{"t_ms": 48_000, "evt": "stall_begin"}, {"t_ms": 53_000, "evt": "stall_end"},
-                    {"t_ms": 53_000 + c2_recovery_ms, "evt": "reconnected"}, summary(reconnects=c2_reconnects)],
+        "client1": [{"t_ms": connect_ms, "evt": "connected"}] + list(statuses or []) + [c1 or summary()],
+        "client2": [{"t_ms": connect_ms, "evt": "connected"}, {"t_ms": 48_000, "evt": "stall_begin"}, {"t_ms": 53_000, "evt": "stall_end"},
+                    {"t_ms": 53_000 + c2_recovery_ms, "evt": "reconnected"}, c2 or summary(reconnects=c2_reconnects)],
     }
     for name in logs:
         (d / f"{name}.log").write_text("\n".join(map(json.dumps, contents.get(name, contents["client1"]))))
@@ -51,8 +56,21 @@ class AnalyzeTests(unittest.TestCase):
     def test_healthy_run_passes(self):
         r = self.run_case()
         self.assertTrue(r["passed"], failed(r))
-        self.assertEqual(r["gate_version"], 4)
+        self.assertEqual(r["gate_version"], 5)
         self.assertEqual(r["clients"]["client2"]["recovery_after_stall_ms"], 800)
+
+    def test_each_v5_gate_can_fail(self):
+        # Realized impairment (FB-9-03): configured 40 ms latency, 5% loss, 0 dup.
+        self.assertIn("client1_realized_rtt_floor", failed(self.run_case(c1=summary(rtt_min=3.0))))  # impairment off
+        self.assertIn("client1_realized_handshake_delay", failed(self.run_case(connect_ms=10)))
+        self.assertIn("client1_realized_handshake_delay", failed(self.run_case(secure=True, connect_ms=150)))  # < 3 RTT
+        self.assertNotIn("client1_realized_handshake_delay", failed(self.run_case(secure=True, connect_ms=300)))
+        self.assertIn("realized_upstream_loss", failed(self.run_case(host_packets_in=8000)))  # no loss happened
+        self.assertIn("realized_upstream_loss", failed(self.run_case(host_packets_in=6000)))  # far too much loss
+        # Application-level events (FB-9-02).
+        self.assertIn("events_applied_all_but_in_flight", failed(self.run_case(events_applied_host=400)))
+        self.assertIn("client1_events_in_order", failed(self.run_case(c1=summary(order_errors=1))))
+        self.assertIn("events_generated", failed(self.run_case(events_queued=10, events_applied_host=10)))
 
     def test_each_v1_gate_can_fail(self):
         self.assertIn("host_invalid_packets_zero", failed(self.run_case(host_invalid=1)))

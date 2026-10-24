@@ -67,6 +67,13 @@ bool write_payload(Writer& w, const Message& m) {
             }
             return true;
         },
+        [&](const GameEvent& v) {
+            if (v.event_id == 0 || v.payload.size() > kMaxEventPayload) return false;
+            w.u32(v.event_id); w.u16(v.kind); w.u16(static_cast<std::uint16_t>(v.payload.size()));
+            for (auto b : v.payload) w.u8(b);
+            return true;
+        },
+        [&](const EventAck& v) { w.u32(v.applied_through); return true; },
     }, m);
 }
 
@@ -119,6 +126,14 @@ std::optional<Message> read_payload(MsgType t, Reader& r) {
             }
             return v;
         }
+        case MsgType::Event: {
+            GameEvent v; v.event_id = r.u32(); v.kind = r.u16();
+            const auto n = r.u16();
+            if (v.event_id == 0 || n > kMaxEventPayload) return std::nullopt;
+            for (int i = 0; i < n && r.ok; ++i) v.payload.push_back(r.u8());
+            return v;
+        }
+        case MsgType::EventAck: return EventAck{r.u32()};
     }
     return std::nullopt;
 }
@@ -171,7 +186,7 @@ DecodeResult decode(std::span<const std::uint8_t> bytes) {
     res.peer_type = type;
     const bool frozen = type == static_cast<std::uint8_t>(MsgType::ConnectReject);
     if (h.version != kProtocolVersion && !frozen) { res.error = DecodeError::VersionMismatch; return res; }
-    if (type < 1 || type > 8) { res.error = DecodeError::UnknownType; return res; }
+    if (type < 1 || type > 10) { res.error = DecodeError::UnknownType; return res; }
     h.type = static_cast<MsgType>(type);
     if (h.payload_len != bytes.size() - kHeaderSize) { res.error = DecodeError::LengthMismatch; return res; }
     Reader pr{bytes.subspan(kHeaderSize)};
