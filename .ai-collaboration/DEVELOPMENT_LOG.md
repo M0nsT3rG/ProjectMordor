@@ -2,6 +2,26 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #8 follow-up (`feature/secure-provisioning`, stacked on #8)
+
+- **Input:** [PR #8 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/8#issuecomment-6377503056), FB-8-01 to FB-8-05, on the owner's go-ahead ("faz tudo"). Also: the KI-27 upstream draft was refined, approved and posted as ValveSoftware/GameNetworkingSockets#458 (EXP-020).
+- **Changes:**
+  - Cookie-aware pending replacement and a reserved reconnect slot.
+  - Secure reliable channel (in-flight cap 32).
+  - Idle timeout with keepalives.
+  - `mordor-keygen`, DPAPI key files with a user-only ACL, public invitations, fail-closed `--secure-*`.
+  - `scripts/secure-e2e.ps1`; `soak.ps1 -Secure`.
+  - Fixes: GNS pre-close message delivery, GNS callback drain, decorator delivery before disconnect, DTLS time propagation.
+- **Tests:**
+  - unit {'PASSED': 16}; integration {'PASSED': 34}; network {'PASSED': 16}; transport {'PASSED': 18}; transport-both {'PASSED': 20}; integration-gns {'PASSED': 20, 'SKIPPED': 14}; network-gns {'SKIPPED': 5, 'PASSED': 11}; gns {'PASSED': 7}; dtls {'PASSED': 42};
+  - soak v4 43/43 × 12 (6 plaintext, 6 secure);
+  - secure E2E 2/2; asymmetric 4/4;
+  - KI-27 stress 0.
+- **Problems encountered:**
+  - five defects (EXP-021);
+  - three secure UDP soaks invalid for latency (kept).
+- **Remaining:** KI-30, KI-28, KI-32, LAN test, independent review.
+
 ## 2026-10-24: Review #7 follow-up (`feature/secure-transport`, stacked on #7)
 
 - **Input:** [PR #7 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/7#issuecomment-6376769358), FB-7-01 to FB-7-05, on the owner's go-ahead; also prepare the KI-27 upstream draft.

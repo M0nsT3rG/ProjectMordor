@@ -1,0 +1,18 @@
+{
+    "scenario":  "uplink-outage",
+    "transport":  "udp",
+    "clock":  "real-time",
+    "duration_s":  24,
+    "outage_at_s":  7,
+    "outage_s":  5,
+    "host_impairment":  {
+                            "latency_ms":  0,
+                            "jitter_ms":  0
+                        },
+    "impairment_scope":  "per process: host only (host-jitter scenario); client2 uplink cut during the outage",
+    "exit_codes":  {
+                       "host":  0,
+                       "client1":  0,
+                       "client2":  0
+                   }
+}

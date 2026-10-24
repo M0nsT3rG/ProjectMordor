@@ -72,7 +72,9 @@ public:
     // now_unix_s is wall-clock seconds, used only for the invitation expiry check.
     void on_datagram(std::span<const std::uint8_t> bytes, std::uint64_t now_us, std::uint64_t now_unix_s);
     void service(std::uint64_t now_us, std::uint64_t now_unix_s);  // timers, retransmits, binding resends
-    bool send(std::span<const std::uint8_t> bytes);                // false unless Authenticated
+    // false unless Authenticated. now_us (0 = the last time seen) reaches the transport: a backend that simulates
+    // latency in our code (UDP ImpairedSender) schedules by it (EXP-021: passing 0 disabled latency and jitter).
+    bool send(std::span<const std::uint8_t> bytes, std::uint64_t now_us = 0);
     std::vector<std::vector<std::uint8_t>> take_received();
 
     DtlsState state() const { return state_; }
@@ -109,6 +111,7 @@ private:
     std::string reason_;
     DtlsStats stats_;
     std::uint64_t started_us_ = 0, binding_started_us_ = 0, last_binding_us_ = 0;
+    std::uint64_t now_us_ = 0;  // latest time passed in; every datagram is sent with it
     bool started_ = false, peer_bound_ = false;
     std::vector<std::uint8_t> confirmation_;
     std::vector<std::vector<std::uint8_t>> received_;

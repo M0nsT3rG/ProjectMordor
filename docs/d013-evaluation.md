@@ -148,10 +148,30 @@ The HelloVerifyRequest cookie is **stateful**: a session exists before it. It is
 | 50% duplication, 20% loss, 60 ms jitter | authenticated; bindings sent ≤ 5 per side; replies rate-limited |
 | Invitation expiring during a long handshake | refused (`invitation_expired`) |
 
-**Status:** the evidence supports Option A as the working choice for the next step (integration behind the Transport). D-013 is **not** closed. Still required:
-- **Executables:** Host/Client game traffic can now run over DTLS (in-process tests), but `mordor-host` / `mordor-client` have no key or invitation loading yet, so the executables still run in plaintext;
-- **Cookies:** a stateless cookie before allocating any per-peer state;
-- **Review:** an independent review.
+**Status:** the evidence supports Option A as the working choice for the next step (integration behind the Transport). > **Correction (EXP-021, KI-34).** Until EXP-021 every DTLS datagram was sent with `now=0`, so on **UDP** the simulated latency and jitter were not applied to DTLS traffic; loss and duplication were. The UDP rows above that mention latency or jitter (EXP-018/019) therefore really covered loss and duplication only. GNS rows are unaffected. After the fix, all DTLS tests were rerun with real latency and jitter on UDP and pass (EXP-021).
+
+## Review #8 follow-up (2026-10-24, EXP-021)
+
+- **Executables in secure mode (FB-8-03, D-016).**
+  - `mordor-keygen` creates DPAPI-protected, user-only key files and public-only invitations.
+  - `mordor-host` / `mordor-client` take `--secure-key`, `--invitation` and `--allow-peer`, and fail closed.
+  - `scripts/secure-e2e.ps1` runs host plus 2 clients over DTLS, then 5 negative cases (plaintext, stranger key, wrong invitation, expired invitation, missing key) on UDP and GNS.
+  - `soak.ps1 -Secure` runs the soak over DTLS.
+- **Secure reliable channel (FB-8-02).**
+  - `ReliableOrdered` inside DTLS: exact and in order under 15% loss plus duplication in both directions;
+  - `Backpressure` at 256 messages; accepted-then-lost messages counted exactly;
+  - bounded close drain;
+  - only DTLS records on the wire (content types 20–23 checked).
+- **Pending-session robustness (FB-8-01).**
+  - A forged ClientHello can displace only a pending session without a verified cookie.
+  - Established players reconnect in a reserved slot outside the cap.
+  - Under continuous forgeries from the player's own address, the reconnect took about 50 ms (bounded by the 10 s lifetime before).
+- **Idle timeout with keepalives (FB-8-04).**
+
+D-013 is **not** closed. Still required:
+- **Cookies:** a stateless cookie before allocating any per-peer state (KI-30);
+- **Review:** an independent review;
+- **Tests:** a real LAN test.
 
 Until then the prototype stays on loopback or trusted lab networks.
 

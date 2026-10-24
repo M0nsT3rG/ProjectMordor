@@ -1,0 +1,32 @@
+{
+    "profile":  "moderate",
+    "clock":  "real-time",
+    "started_utc":  "2026-10-24T01:37:15.4059872Z",
+    "duration_s":  120,
+    "impairment":  {
+                       "latency_ms":  40,
+                       "loss":  0.05,
+                       "jitter_ms":  20,
+                       "duplicate":  0.02
+                   },
+    "impairment_scope":  "every sender (host and both clients), independent seeds",
+    "scenario":  "two-clients-one-stall",
+    "expected_clients":  [
+                             "client1",
+                             "client2"
+                         ],
+    "stalled_clients":  [
+                            "client2"
+                        ],
+    "gate_version":  4,
+    "transport":  "gns",
+    "secure":  false,
+    "stall_at_s":  48,
+    "stall_s":  5,
+    "host_timeout_ms":  3000,
+    "exit_codes":  {
+                       "host":  0,
+                       "client1":  0,
+                       "client2":  0
+                   }
+}

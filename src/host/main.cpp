@@ -1,4 +1,5 @@
 // mordor-host: runs the authoritative placeholder world until Ctrl+C or --duration-s elapses.
+#include <ctime>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -39,7 +40,7 @@ int main(int argc, char** argv) {
                          "  --port N          UDP port (default 47800)\n"
                          "  --tick-rate N     simulation ticks per second (default 30)\n"
                          "  --duration-s N    stop after N seconds (default: run until Ctrl+C)\n"
-                      << cli::kImpairmentHelp;
+                      << cli::kImpairmentHelp << cli::kSecureHelp;
             return 0;
         }
         std::FILE* sink = stderr;
@@ -56,6 +57,11 @@ int main(int argc, char** argv) {
         cfg.bind = *bind;
         cfg.tick_rate_hz = args.num<std::uint16_t>("tick-rate", 30);
         cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
+        // Secure mode: kept alive for the whole run (it owns the identity key). Never logs key material.
+        const auto secure = cli::secure_from(args, true, static_cast<std::uint64_t>(std::time(nullptr)));
+        cfg.secure = secure.cfg;
+        log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
+                              kv("invitation", secure.invitation_id)});
         const double duration_s = args.num<double>("duration-s", 0.0);
 
         host::Host h(cfg, log);

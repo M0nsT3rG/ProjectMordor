@@ -380,6 +380,11 @@ void Host::shutdown() {
                                kv("transport_discarded_on_close", ts.discarded_on_close),
                                kv("transport_closed_with_unacked_reliable", ts.closed_with_unacked_reliable),
                                kv("transport_impairment_refused", ts.impairment_refused)});
+    if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets
+        log_.info("secure_stats", {kv("authenticated", ss->authenticated), kv("pending_opened", ss->pending_opened),
+                                   kv("pending_failed", ss->pending_failed), kv("pending_refused_cap", ss->pending_refused_cap),
+                                   kv("dropped_not_dtls", ss->dropped_not_dtls), kv("idle_timeouts", ss->idle_timeouts),
+                                   kv("reliable_retransmits", ss->reliable_retransmits)});
 }
 
 }  // namespace mordor::host

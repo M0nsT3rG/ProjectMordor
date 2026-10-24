@@ -135,6 +135,29 @@ Bandwidth is the session-layer payload rate, not GNS wire bytes (GNS adds its ow
 - `soak-2026-10-23-225258-lan-gns-g4`: `host_timeouts_match_stalls` failed (3 timeouts, 1 expected). Clean leaves became timeouts: the unreliable `Disconnect` was lost when GNS closed. Fixed: `Disconnect` is sent reliably where supported, and `close()` drains reliable data.
 - `soak-2026-10-23-230405-harsh-gns-g4`: `client1_rtt_p99` 313 > 300 ms. The first mapping gave the full jitter budget to both lag jitter and the reorder stage, exceeding the profile's worst-case delay. Fixed by splitting the budget; the gate was not changed.
 
+## Gate v4 runs after review #8: plaintext and secure (2026-10-24, EXP-021)
+
+Secure runs use `soak.ps1 -Secure`: all three processes run over DTLS with keys generated under `%TEMP%` and deleted afterwards. Gates are unchanged.
+
+| Run | Gates | RTT p50 / p99 | Recovery |
+|---|---|---|---|
+| 042612-lan-udp | 43/43 | 10.1 / 12.1 ms | 20 ms |
+| 042820-moderate-udp | 43/43 | 103.2 / 122.1 ms | 178 ms |
+| 043028-harsh-udp | 43/43 | 205.5 / 239.1 ms | 813 ms |
+| 043237-lan-gns | 43/43 | 9.1 / 12.1 ms | 32 ms |
+| 043454-moderate-gns | 43/43 | 95.6 / 116.6 ms | 697 ms |
+| 043703-harsh-gns | 43/43 | 189.4 / 234.8 ms | 773 ms |
+| 043911-lan-udp-sec | 43/43 | 10.5 / 12.1 ms | 520 ms |
+| 044120-moderate-udp-sec | 43/43 | 103.8 / 121.5 ms | 666 ms |
+| 044328-harsh-udp-sec | 43/43 | 201.3 / 238.3 ms | 2797 ms |
+| 044536-lan-gns-sec | 43/43 | 9.0 / 12.1 ms | 520 ms |
+| 044744-moderate-gns-sec | 43/43 | 96.5 / 121.7 ms | 2195 ms |
+| 044953-harsh-gns-sec | 43/43 | 188.5 / 230.4 ms | 1688 ms |
+
+**Invalid for latency, preserved:** `soak-2026-10-24-034129/034337/034546-*-udp-sec-g4`. Their RTT p50 is 3 ms in moderate and harsh, because DTLS datagrams were sent with `now=0` and UDP's simulated latency and jitter therefore never applied (KI-34). The gates passed because they are upper bounds only.
+
+**Close to its limit:** secure harsh on UDP recovered from the stall in 2797 ms, against the 3000 ms gate.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

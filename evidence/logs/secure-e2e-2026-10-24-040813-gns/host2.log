@@ -1,0 +1,5 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"host","evt":"security","mode":"dtls","own_fingerprint":"ed39a1265b27489e902acfe4439632f39508084ac5a506742133ba4559cebbc6","invitation":"e2e-gns"}
+{"t_ms":57,"lvl":"info","comp":"host","evt":"host_started","port":47845,"loopback_only":true,"session":3118859173,"secure":true,"tick_rate_hz":30,"protocol_version":1,"transport":"gns"}
+{"t_ms":14058,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":0,"packets_out":0,"invalid":0,"bytes_in":0,"bytes_out":0,"world_tick":420,"uptime_us":13999134,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":0,"joins":0,"reconnects":0,"timeouts":0,"timeout_notices":0,"unknown_peer":0,"send_errors":0,"transport":"gns","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0}
+{"t_ms":14058,"lvl":"info","comp":"host","evt":"secure_stats","authenticated":0,"pending_opened":2,"pending_failed":1,"pending_refused_cap":0,"dropped_not_dtls":16,"idle_timeouts":0,"reliable_retransmits":0}

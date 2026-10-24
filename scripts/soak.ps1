@@ -13,7 +13,8 @@ param(
     [int]$Port = 47813,
     [string]$Config = 'Release',
     [string]$BuildDir = '',
-    [ValidateSet('udp', 'gns')][string]$Transport = 'udp'
+    [ValidateSet('udp', 'gns')][string]$Transport = 'udp',
+    [switch]$Secure  # review #8 FB-8-03: all three processes over DTLS (keys under %TEMP%, deleted afterwards)
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -25,14 +26,31 @@ try {
         harsh    = @{ latency_ms = 80; jitter_ms = 40; loss = 0.15; duplicate = 0.05 }
     }
     $p = $profiles[$Profile]
-    if (-not $BuildDir) { $BuildDir = if ($Transport -eq 'gns') { 'build-gns' } else { 'build' } }
+    if (-not $BuildDir) { $BuildDir = if ($Transport -eq 'gns' -or $Secure) { 'build-gns' } else { 'build' } }
     $imp = "--transport $Transport --latency-ms $($p.latency_ms) --jitter-ms $($p.jitter_ms) --loss $($p.loss) --duplicate $($p.duplicate)"
     $bin = Join-Path $BuildDir $Config
     # Every run gets a fresh directory; existing runs are evidence and are never deleted or reused (FB-2-01).
-    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g4" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $Transport)
+    $mode = if ($Secure) { "$Transport-sec" } else { $Transport }
+    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g4" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $mode)
     if (Test-Path $out) { throw "Run directory $out already exists; refusing to overwrite evidence." }
     New-Item -ItemType Directory $out | Out-Null
     $stallAt = [math]::Round($DurationS * 0.4)
+    $secHost = ''; $secC1 = ''; $secC2 = ''
+    if ($Secure) {
+        $keys = Join-Path $env:TEMP ("mordor-secure-soak-" + [guid]::NewGuid().ToString('N'))
+        New-Item -ItemType Directory $keys | Out-Null
+        $kg = Join-Path $bin 'mordor-keygen.exe'
+        $pub = @{}
+        foreach ($n in 'host', 'client1', 'client2') {
+            $lines = & $kg --new (Join-Path $keys "$n.key")
+            if ($LASTEXITCODE -ne 0) { throw "keygen failed for $n" }
+            $pub[$n] = (($lines | Select-String '^public: ').Line -replace '^public: ', '')
+        }
+        $inv = (& $kg --invite --key (Join-Path $keys 'host.key') --id "soak-$Profile" --ttl-s 3600)
+        $secHost = "--secure-key $(Join-Path $keys 'host.key') --invitation $inv --allow-peer $($pub['client1']),$($pub['client2'])"
+        $secC1 = "--secure-key $(Join-Path $keys 'client1.key') --invitation $inv"
+        $secC2 = "--secure-key $(Join-Path $keys 'client2.key') --invitation $inv"
+    }
 
     # Warm-up (EXP-006 workaround, cause unknown).
     & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-host.log"
@@ -40,7 +58,7 @@ try {
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
 
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed 101 --log $out/host.log"
+        -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed 101 $secHost --log $out/host.log"
     $null = $h.Handle
     $deadline = (Get-Date).AddSeconds(30)
     while (-not ((Test-Path "$out/host.log") -and (Select-String -Path "$out/host.log" -Pattern 'host_started' -Quiet -ErrorAction SilentlyContinue))) {
@@ -49,9 +67,9 @@ try {
     }
     $started = (Get-Date).ToUniversalTime().ToString('o')
     $c1 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $DurationS --pattern circle $imp --seed 102 --log $out/client1.log"
+        -ArgumentList "--port $Port --duration-s $DurationS --pattern circle $imp --seed 102 $secC1 --log $out/client1.log"
     $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $DurationS --pattern line $imp --seed 103 --stall-at-s $stallAt --stall-s $StallS --log $out/client2.log"
+        -ArgumentList "--port $Port --duration-s $DurationS --pattern line $imp --seed 103 --stall-at-s $stallAt --stall-s $StallS $secC2 --log $out/client2.log"
     $null = $c1.Handle; $null = $c2.Handle
     $c1.WaitForExit(); $c2.WaitForExit(); $h.WaitForExit()
 
@@ -67,6 +85,7 @@ try {
         stalled_clients  = @('client2')
         gate_version     = 4
         transport        = $Transport
+        secure           = [bool]$Secure
         stall_at_s       = $stallAt
         stall_s          = $StallS
         host_timeout_ms  = 3000
@@ -77,5 +96,6 @@ try {
     python -I tools/soak/analyze.py $out
     if ($LASTEXITCODE -ne 0) { Write-Error "Soak '$Profile' failed its gates (see $out/summary.json)." }
 } finally {
+    if ($Secure -and $keys -and (Test-Path $keys)) { Remove-Item -Recurse -Force $keys }  # this run's test keys only
     Pop-Location
 }

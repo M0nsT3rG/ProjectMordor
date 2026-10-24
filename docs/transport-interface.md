@@ -7,8 +7,8 @@
 `make_secure_transport(inner, cfg)` returns a `Transport` that carries everything as DTLS 1.2 records over the inner backend's `Unreliable` class.
 
 **Capabilities:**
-- `reliable_ordered=false`;
-- `reports_disconnects=true`;
+- `reliable_ordered=true`: since EXP-021 this is the decorator's own channel inside DTLS (sequence numbers, cumulative acks, retransmission, dedup, a 256-message window with `Backpressure`), never the inner backend's reliable class;
+- `reports_disconnects=true`: DTLS rejection, inner loss, replacement, and `idle_timeout_us` of silence (keepalives keep a quiet peer alive);
 - `max_payload` = inner minus 64 bytes;
 - `exact_loss_accounting=false`.
 

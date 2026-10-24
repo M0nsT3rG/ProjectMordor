@@ -255,7 +255,7 @@ void DtlsSession::flush_out() {
     std::array<std::uint8_t, 4096> buf{};
     for (int n = BIO_read(out_, buf.data(), static_cast<int>(buf.size())); n > 0;
          n = BIO_read(out_, buf.data(), static_cast<int>(buf.size()))) {
-        const auto r = transport_.send(peer_, {buf.data(), static_cast<std::size_t>(n)}, Delivery::Unreliable, 0);
+        const auto r = transport_.send(peer_, {buf.data(), static_cast<std::size_t>(n)}, Delivery::Unreliable, now_us_);
         stats_.max_datagram_out = std::max(stats_.max_datagram_out, static_cast<std::size_t>(n));
         if (r == SendResult::Sent) ++stats_.datagrams_out;
         else ++stats_.send_failures;  // lost like any datagram: DTLS retransmits handshake flights itself
@@ -263,6 +263,7 @@ void DtlsSession::flush_out() {
 }
 
 void DtlsSession::on_datagram(std::span<const std::uint8_t> bytes, std::uint64_t now_us, std::uint64_t now_unix_s) {
+    now_us_ = now_us;
     if (state_ == DtlsState::Rejected || !in_) return;
     ++stats_.datagrams_in;
     BIO_write(in_, bytes.data(), static_cast<int>(bytes.size()));
@@ -270,6 +271,7 @@ void DtlsSession::on_datagram(std::span<const std::uint8_t> bytes, std::uint64_t
 }
 
 void DtlsSession::service(std::uint64_t now_us, std::uint64_t now_unix_s) {
+    now_us_ = now_us;
     if (state_ == DtlsState::Rejected || !ssl_) return;
     if (!started_) {
         started_ = true;
@@ -378,7 +380,8 @@ void DtlsSession::send_binding(std::uint64_t now_us) {
     flush_out();
 }
 
-bool DtlsSession::send(std::span<const std::uint8_t> bytes) {
+bool DtlsSession::send(std::span<const std::uint8_t> bytes, std::uint64_t now_us) {
+    if (now_us != 0) now_us_ = now_us;
     if (state_ != DtlsState::Authenticated) return false;
     std::vector<std::uint8_t> m{kTypeApp};
     m.insert(m.end(), bytes.begin(), bytes.end());

@@ -25,6 +25,10 @@ constexpr std::size_t kSecureOverhead = 64;
 constexpr std::uint8_t kFrameUnreliable = 0x01, kFrameReliable = 0x02, kFrameAck = 0x03;
 constexpr std::uint8_t kFrameKeepalive = 0x04;  // sent after idle_timeout_us / 3 without traffic (FB-8-04)
 constexpr std::size_t kMaxUnacked = 256;           // send window: beyond this send() returns Backpressure
+// At most this many messages are on the wire (transmitted, unacked) at once; the rest of the window waits. DTLS
+// drops records that arrive more than 64 records late (OpenSSL's anti-replay window), so a whole-window burst
+// under jitter livelocked: 12041 retransmits and nothing delivered (EXP-021, once simulated latency was real).
+constexpr std::size_t kMaxInFlight = 32;
 constexpr std::uint32_t kReorderWindow = 1024;     // accepted out-of-order distance
 constexpr std::uint64_t kRtoInitialUs = 200'000, kRtoMaxUs = 1'000'000, kAckIntervalUs = 5'000;
 constexpr int kCloseDrainMs = 500;                 // bounded wait for unacknowledged reliable data in close()
@@ -96,7 +100,8 @@ public:
         return s.secure;
     }
 
-    SendResult send(PeerId peer, std::span<const std::uint8_t> bytes, Delivery d, std::uint64_t) override {
+    SendResult send(PeerId peer, std::span<const std::uint8_t> bytes, Delivery d, std::uint64_t now_us) override {
+        if (now_us != 0) now_us_ = now_us;  // forwarded to the inner backend (simulated latency schedules by it)
         if (!inner_->is_open()) return SendResult::Closed;
         auto* s = established(peer);
         if (!s) {
@@ -115,16 +120,22 @@ public:
             }
             frame.push_back(kFrameReliable);
             put_u32(frame, s->next_seq);
+            frame.insert(frame.end(), bytes.begin(), bytes.end());
+            if (s->unacked.size() >= kMaxInFlight) {  // accepted, queued: transmitted when the window moves
+                s->unacked.push_back({s->next_seq++, std::move(frame), 0, kRtoInitialUs, false});
+                ++stats_.sent;
+                return SendResult::Sent;
+            }
         } else {
             frame.push_back(kFrameUnreliable);
+            frame.insert(frame.end(), bytes.begin(), bytes.end());
         }
-        frame.insert(frame.end(), bytes.begin(), bytes.end());
-        if (!s->established->send(frame)) {
+        if (!s->established->send(frame, now_us_)) {
             ++stats_.send_failed;
             return SendResult::Failed;
         }
         s->last_tx_us = now_us_;
-        if (d == Delivery::ReliableOrdered) s->unacked.push_back({s->next_seq++, std::move(frame), now_us_, kRtoInitialUs});
+        if (d == Delivery::ReliableOrdered) s->unacked.push_back({s->next_seq++, std::move(frame), now_us_, kRtoInitialUs, true});
         ++stats_.sent;
         return SendResult::Sent;
     }
@@ -224,6 +235,7 @@ private:
             std::uint32_t seq;
             std::vector<std::uint8_t> frame;
             std::uint64_t sent_us, rto_us;
+            bool transmitted;  // false: accepted and queued behind kMaxInFlight
         };
         std::deque<OutMsg> unacked;
         std::uint32_t next_seq = 1, next_expected = 1;
@@ -340,7 +352,7 @@ private:
         s.reset_channel();
     }
     void send_frame(Slot& s, const std::vector<std::uint8_t>& frame) {
-        if (!s.established->send(frame)) ++stats_.send_failed;
+        if (!s.established->send(frame, now_us_)) ++stats_.send_failed;
         s.last_tx_us = now_us_;
     }
     void on_frame(Slot& s, const std::vector<std::uint8_t>& f, std::vector<TransportEvent>& out) {
@@ -367,13 +379,20 @@ private:
         }
     }
     void service_reliable(Slot& s, std::uint64_t now_us) {
-        for (auto& m : s.unacked)
-            if (now_us - m.sent_us >= m.rto_us) {
+        std::size_t i = 0;
+        for (auto& m : s.unacked) {
+            if (i++ >= kMaxInFlight) break;  // only the first kMaxInFlight are ever on the wire
+            if (!m.transmitted) {
+                send_frame(s, m.frame);
+                m.transmitted = true;
+                m.sent_us = now_us;
+            } else if (now_us - m.sent_us >= m.rto_us) {
                 send_frame(s, m.frame);
                 m.sent_us = now_us;
                 m.rto_us = std::min(m.rto_us * 2, kRtoMaxUs);
                 ++sstats_.reliable_retransmits;
             }
+        }
         // A live but quiet peer must not be mistaken for a vanished one: keep the association warm.
         if (cfg_.idle_timeout_us && now_us - s.last_tx_us >= cfg_.idle_timeout_us / 3) send_frame(s, {kFrameKeepalive});
         if (s.ack_due && (now_us - s.last_ack_us >= kAckIntervalUs || !s.out_of_order.empty())) {

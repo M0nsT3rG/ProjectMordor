@@ -8,7 +8,26 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #8 (PR #8: secure transport decorator)
 
-- **Status:** received and triaged (2026-10-24) on `feature/secure-provisioning` (stacked on PR #8). Not implemented yet.
+- **Status:** triaged and **implemented** (2026-10-24) on `feature/secure-provisioning` (stacked on PR #8), on the owner's go-ahead ("faz tudo"). Record: EXP-021. Review request #8.
+- **As implemented:**
+  - **FB-8-01:** cookie-aware replacement of pending sessions and a reserved reconnect slot for established players. Test with forged ClientHellos from the player's own address; mutation check.
+  - **FB-8-02:** secure `ReliableOrdered` channel inside DTLS (seq, ack, retransmit, dedup, window, exact loss counts), a bounded close drain, and a wire check that only DTLS records leave a secure client.
+  - **FB-8-03:**
+    - `mordor-keygen` and DPAPI key files with a user-only DACL;
+    - public-only invitations;
+    - `--secure-key` / `--invitation` / `--allow-peer` with fail-closed validation;
+    - negative tests;
+    - multi-process secure E2E and secure soak on both backends.
+  - **FB-8-04:** idle timeout with keepalives; documented semantics.
+  - **FB-8-05:** KI-27 wording stays empirical; reported upstream as GNS#458.
+  - **Found on the way:**
+    - **GNS adapter:** messages received before a peer close were dropped;
+    - **GNS adapter:** status callbacks piled up while the runtime outlived its instances;
+    - **decorator:** messages that arrived in the same poll as a disconnect were dropped;
+    - **DTLS** sent with `now=0`, so UDP-simulated latency and jitter were never applied to DTLS traffic (KI-34). This means earlier UDP DTLS latency claims (EXP-018/019) and the first secure UDP soaks are invalid for latency; the claims are corrected;
+    - once latency was real, **whole-window reliable bursts livelocked** against DTLS's 64-record replay window, so in-flight is now capped at 32 (KI-32).
+
+    All five are fixed and tested.
 - **Source:** [PR #8 comment 6377503056](https://github.com/M0nsT3rG/ProjectMordor/pull/8#issuecomment-6377503056). ChatGPT reviewed the source of `6551ab0` only.
 - **ChatGPT's verdict:** conditional GO for isolated development. NO-GO for public networks, or for merging as a completed security feature.
 

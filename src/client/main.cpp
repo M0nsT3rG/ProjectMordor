@@ -1,5 +1,6 @@
 // mordor-client: connects to a host and drives its entity with a scripted bot pattern,
 // logging a status line every second (state, RTT, positions, correction stats).
+#include <ctime>
 #include <algorithm>
 #include <atomic>
 #include <chrono>
@@ -48,7 +49,7 @@ int main(int argc, char** argv) {
                          "  --outage-at-s N   cut this process's outgoing traffic at N seconds (100% send loss)\n"
                          "  --outage-s N      outage length in seconds (default 5); with GNS only this process is cut\n"
                          "  --connect-deadline-s N  overall connect deadline, 1..120 s (default 20)\n"
-                      << cli::kImpairmentHelp;
+                      << cli::kImpairmentHelp << cli::kSecureHelp;
             return 0;
         }
         std::FILE* sink = stderr;
@@ -65,6 +66,11 @@ int main(int argc, char** argv) {
         cfg.host = *host;
         cfg.prediction = !args.has("no-prediction");
         cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
+        // Secure mode: kept alive for the whole run (it owns the identity key). Never logs key material.
+        const auto secure = cli::secure_from(args, false, static_cast<std::uint64_t>(std::time(nullptr)));
+        cfg.secure = secure.cfg;
+        log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
+                              kv("invitation", secure.invitation_id)});
         cfg.connect_deadline_us = cli::connect_deadline_us_from(args, client::kMinConnectDeadlineUs, client::kMaxConnectDeadlineUs,
                                                                 cfg.connect_deadline_us);
         const std::string pattern = args.str("pattern", "circle");

@@ -1,5 +1,5 @@
 [
-  {"name":"impairment_loss_is_deterministic_and_close_to_configured_rate","result":"PASSED","transport":"udp","ms":19,"error":""},
+  {"name":"impairment_loss_is_deterministic_and_close_to_configured_rate","result":"PASSED","transport":"udp","ms":20,"error":""},
   {"name":"impairment_delays_until_due","result":"PASSED","transport":"udp","ms":1,"error":""},
   {"name":"latency_is_measured","result":"PASSED","transport":"udp","ms":3,"error":""},
   {"name":"delayed_and_reordered_packets_converge","result":"PASSED","transport":"udp","ms":6,"error":""},

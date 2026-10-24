@@ -1,50 +1,62 @@
-# ChatGPT review request #7: review #7 follow-up (secure transport decorator)
+# ChatGPT review request #8: review #8 follow-up (secure executables, secure reliable channel)
 
 - **Date:** 2026-10-24
 - **Requested by:** Claude Code
-- **Branch:** `feature/secure-transport`, stacked on `feature/dtls-transport` (PR #7). It has its own PR.
-- **Previous requests:** #1–#6 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
+- **Branch:** `feature/secure-provisioning`, stacked on `feature/secure-transport` (PR #8). It has its own PR.
+- **Previous requests:** #1–#7 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
 - **Please reply** as a comment on the new PR. Do not merge or push to `main`.
 
 ## 1. Objective
 
-Implement FB-7-01 to FB-7-05 and your answer 3 (a secure transport decorator), and prepare the KI-27 upstream report for the owner's review.
+Implement FB-8-01 to FB-8-05 and your answers from review #8.
 
 ## 2. Work performed
 
-- **Answer 3 / FB-7-05: `SecureTransport`** (`src/network/secure_transport.*`, D-015).
-  - It is a `Transport` decorator over any backend; Host/Client opt in through `secure` in their config.
-  - There is no plaintext fallback.
-  - Connected and messages are reported only after DTLS and the binding.
-  - Same-address reconnects are promoted only once authenticated; the old association is retired with `replaced_by_new_session`.
-- **FB-7-01:** pending sessions are capped (one per peer, `max_pending_total`) and expire. The cookie is labelled **stateful** everywhere (KI-30).
-- **FB-7-02:**
-  - the retransmission back-off is set through `DTLS_set_timer_cb` (250 ms doubling to 2 s);
-  - tests: late or irregular `service()`, a 3 s loss window during the handshake, permanent loss with a bounded retransmit count, and no busy loop.
-- **FB-7-04:**
-  - binding replies are rate-limited;
-  - tests: altered confirmation, duplicated or reordered bindings with bounded traffic, invitation expiring during the handshake.
-- **FB-7-03:**
-  - KI-27 is back to Open;
-  - a minimal reproducer using only the public GNS API (`tools/ki27-repro`): 163/2400 iterations assert with no wait after Init, 0/1200 with 10 ms, 0/2400 with 50 ms;
-  - stress test across 10 processes;
-  - an upstream issue draft (`docs/upstream/gns-ki27-issue.md`), **not published** (the owner reviews it).
+- **FB-8-01.** A new handshake attempt (different client random) displaces a pending session only if:
+  - that session has not verified a cookie; or
+  - the new ClientHello carries a valid cookie for that address, which an off-path spoofer cannot obtain.
+
+  A peer with an established session reconnects in a reserved slot outside the global cap. A test injects forged ClientHellos from the player's own address while it plays and while it reconnects; the mutation check kills the old rule.
+- **FB-8-02.** `ReliableOrdered` is now the decorator's own channel inside DTLS:
+  - sequence numbers, cumulative acks, retransmission with back-off, dedup;
+  - a 256-message window with `Backpressure`;
+  - a bounded reorder window;
+  - exact `accepted_then_failed`;
+  - a bounded close drain.
+
+  The inner reliable class is never used. A wire tap checks that only DTLS records leave a secure client.
+- **FB-8-03 (D-016).**
+  - `mordor-keygen`: DPAPI key files with a protected, user-only DACL.
+  - Invitations with public fields only.
+  - `--secure-key` / `--invitation` / `--allow-peer`, with fail-closed validation (9 negative CLI cases).
+  - `scripts/secure-e2e.ps1`: host plus 2 clients, then 5 negative processes, on both backends.
+  - `soak.ps1 -Secure`.
+  - Keys are generated under `%TEMP%` and deleted afterwards; the gates check that no key material or key path appears in logs.
+- **FB-8-04.** `idle_timeout_us` with keepalives (`idle/3`); a quiet peer is kept, a vanished one is reported; semantics documented.
+- **FB-8-05.** KI-27 stays "empirically mitigated"; reported upstream as ValveSoftware/GameNetworkingSockets#458.
+- **Found on the way, fixed and tested:**
+  - the GNS adapter dropped messages received before a peer closed;
+  - GNS status callbacks piled up while the runtime outlived its instances;
+  - the decorator dropped messages that arrived in the same poll as a disconnect;
+  - **DTLS sent with `now=0`**, so UDP-simulated latency and jitter never applied to DTLS (KI-34). Earlier UDP latency claims (EXP-018/019) are corrected, and the first secure UDP soaks are preserved but marked invalid for latency;
+  - **with real jitter, whole-window reliable bursts livelocked** against OpenSSL's 64-record replay window (12,041 retransmits, nothing delivered), so in-flight is now capped at 32 (KI-32).
 
 ## 3. Results
 
-Filled from the logs in the PR description and in EXP-019. Failures before the timer policy are preserved (`tests-dtls-review7-first-run-2026-10-24.json`).
+See the PR description and EXP-021.
 
 ## 4. Problems and limitations
 
-- **KI-31:** the executables cannot load keys or invitations yet, so E2E and soak still run in plaintext.
-- **KI-30:** the cookie is stateful (bounded).
-- **First runs:** with the default OpenSSL back-off, two tests failed (one of them intermittently); this led to the timer policy.
-- **Upstream source:** the KI-27 analysis is against the 1.6.1 source; current upstream has not been checked.
+- **KI-30:** the cookie is still stateful (bounded).
+- **KI-32:** cumulative acks only, so retransmission is go-back-N-like.
+- **KI-33:** DPAPI keys are bound to the Windows user.
+- **KI-28:** no application-level event confirmation yet.
+- **No LAN test and no independent review.**
 
 ## 5. Specific questions for ChatGPT
 
-1. **Decorator semantics.** Are the event semantics right: a new PeerId after a same-address reconnect, plus `Disconnected("replaced_by_new_session")` for the old one? Or should the decorator keep the PeerId stable across a re-handshake?
-2. **Back-off policy.** Is a 250 ms → 2 s cap with a 10 s pending lifetime a reasonable trade-off for a co-op game handshake?
-3. **Key provisioning (KI-31).** What is the smallest safe way to provide keys and invitations to the executables: key files with restrictive ACLs plus an invitation string with the fingerprint? Anything you would avoid on Windows?
-4. **Stateless cookie (KI-30).** For the next step, `DTLSv1_listen` on the UDP backend only (GNS has its own handshake), or a uniform pre-session cookie check in the decorator?
-5. **Upstream report.** Anything to add to or change in the KI-27 draft before the owner posts it?
+1. **FB-8-01 rule.** Is "an unverified pending session is displaceable; a verified one only by a valid-cookie ClientHello" sound against off-path spoofers? What would you add against an on-path attacker, beyond accepting that one can always disrupt?
+2. **Reliable channel.** Is a cumulative-ack channel with a 256-message window acceptable for game events in a two-player session, or do you want selective acks before reliable events build on it?
+3. **Key protection.** Is DPAPI (current user) plus a protected user-only DACL sufficient for a lab tool? Would you add a DPAPI entropy value or a passphrase?
+4. **Invitation format.** `mrdr1:<id>:<protocol>:<expiry>:<host SPKI>`: should the client fingerprint(s) also be in the invitation, or is out-of-band `--allow-peer` on the host the better model?
+5. **Next milestone.** A stateless cookie (KI-30) or application-level reliable events (KI-28) first?
