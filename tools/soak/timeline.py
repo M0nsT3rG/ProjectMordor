@@ -50,9 +50,13 @@ def reconnects(client: list[dict], host: list[dict]) -> list[dict]:
         inner = next((x for x in trace if x["ev"] == "inner_connected"), None)  # connection-oriented inner only
         inner_ms = mono_ms(inner, base) if inner else None
         is_ch = lambda x: x["ev"] == "tx" and x["detail"].split(",")[0] == "22/0/1"
+        # FB-12-04: the cookie exchange, first ClientHello -> HelloVerifyRequest received -> ClientHello with cookie.
+        hvr = next((x for x in trace if x["ev"] == "rx" and x["detail"].split(",")[0] == "22/0/3"), None)
+        ch2 = next((x for x in trace if hvr and is_ch(x) and mono_ms(x, base) >= mono_ms(hvr, base)), None)
         out.append({
             "inner_connected_after_first_hello": None if inner_ms is None else inner_ms - ch,
             "hellos_before_inner_connected": None if inner_ms is None else sum(is_ch(x) and mono_ms(x, base) < inner_ms for x in trace),
+            "cookie_ms": None if not ch2 else mono_ms(ch2, base) - ch,
             "session_requests": len(reqs),
             "session_requests_after_auth": sum(mono_ms(x, base) >= a - 2 for x in reqs),  # log t_ms is 1 ms resolution
             "detect": ch - t0, "dtls": d - ch, "binding": a - d, "session": r - a, "total": r - t0,
@@ -78,7 +82,7 @@ def main(argv: list[str]) -> int:
                 if r.get("incomplete"):
                     print(f"{d.name} {c.stem}: incomplete reconnect trace")
                     continue
-                print(f"{d.name} {c.stem}: total {r['total']:.0f} ms = detect {r['detect']:.0f} + dtls {r['dtls']:.0f} "
+                print(f"{d.name} {c.stem}: cookie {r['cookie_ms'] if r['cookie_ms'] is None else round(r['cookie_ms'])} ms | total {r['total']:.0f} ms = detect {r['detect']:.0f} + dtls {r['dtls']:.0f} "
                       f"+ binding {r['binding']:.0f} + session {r['session']:.0f} | client timers {r['client_timers']}, "
                       f"hellos {r['client_hellos']}, bindings sent {r['client_bindings_sent']} | host timers "
                       f"{r['host_timers']}, binding replies {r['host_binding_replies']} "
