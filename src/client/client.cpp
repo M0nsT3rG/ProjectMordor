@@ -72,6 +72,7 @@ void Client::connect(std::uint64_t now_us) {
     token_ = 0;
     session_ = 0;
     attempted_ = false;
+    connect_attempts_ = 0;
     phase_started_us_ = connect_started_us_ = now_us;
     reject_reason_.reset();
     disconnect_reason_.reset();
@@ -132,7 +133,10 @@ void Client::update(std::uint64_t now_us) {
             if (!attempted_ || now_us - last_attempt_us_ >= retry) {
                 attempted_ = true;
                 last_attempt_us_ = now_us;
-                send(ConnectRequest{nonce_, token_}, now_us);
+                const bool sent = send(ConnectRequest{nonce_, token_}, now_us);
+                // FB-12-01: each attempt, so a retry policy can be judged from the logs (not every heartbeat-rate event).
+                log_.info("connect_request", {kv("attempt", ++connect_attempts_), kv("since_phase_ms", (now_us - phase_started_us_) / 1000),
+                                              kv("reconnecting", reconnecting), kv("transport_up", transport_up_), kv("sent", sent)});
             }
             break;
         }
@@ -263,6 +267,8 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         if (state_ != ClientState::Connecting && state_ != ClientState::Reconnecting) return;  // duplicate accept
         if (acc->client_nonce != nonce_) return;  // answer to an earlier attempt
         const bool reconnect = state_ == ClientState::Reconnecting;
+        log_.info("connect_accept_received", {kv("attempts", connect_attempts_), kv("since_phase_ms", (now_us - phase_started_us_) / 1000)});
+        connect_attempts_ = 0;
         const bool same_session = reconnect && p.header.session == session_;
         session_ = p.header.session;
         player_id_ = acc->player_id;
@@ -387,6 +393,7 @@ void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
         transport_up_ = false;
     }
     phase_started_us_ = reconnect_started_us_ = now_us;
+    connect_attempts_ = 0;
     attempted_ = false;
     do nonce_ = rng_(); while (nonce_ == 0);  // new attempt: accepts for the old nonce are now stale
     set_state(ClientState::Reconnecting, why);

@@ -46,12 +46,15 @@ def reconnects(client: list[dict], host: list[dict]) -> list[dict]:
         ch, d, a, r = (mono_ms(x, base) for x in (first_ch, done, auth, rec))
         between = [x for x in trace if ch <= mono_ms(x, base) <= a]
         host_win = [x for x in host if x.get("evt") == "dtls_trace" and ch <= x["mono_us"] / 1000 <= r]
+        reqs = [x for x in rest if x.get("evt") == "connect_request" and mono_ms(x, base) <= mono_ms(rec, base)]
         inner = next((x for x in trace if x["ev"] == "inner_connected"), None)  # connection-oriented inner only
         inner_ms = mono_ms(inner, base) if inner else None
         is_ch = lambda x: x["ev"] == "tx" and x["detail"].split(",")[0] == "22/0/1"
         out.append({
             "inner_connected_after_first_hello": None if inner_ms is None else inner_ms - ch,
             "hellos_before_inner_connected": None if inner_ms is None else sum(is_ch(x) and mono_ms(x, base) < inner_ms for x in trace),
+            "session_requests": len(reqs),
+            "session_requests_after_auth": sum(mono_ms(x, base) >= a - 2 for x in reqs),  # log t_ms is 1 ms resolution
             "detect": ch - t0, "dtls": d - ch, "binding": a - d, "session": r - a, "total": r - t0,
             "reconnect_ms": rec.get("reconnect_ms"),
             "client_timers": sum(x["ev"] == "timer" for x in between),
@@ -81,7 +84,8 @@ def main(argv: list[str]) -> int:
                       f"{r['host_timers']}, binding replies {r['host_binding_replies']} "
                       f"(suppressed {r['host_binding_suppressed']}) | reconnect_ms {r['reconnect_ms']} | inner connected "
                       f"{r['inner_connected_after_first_hello']} ms after the first hello, hellos before it "
-                      f"{r['hellos_before_inner_connected']}")
+                      f"{r['hellos_before_inner_connected']} | ConnectRequests {r['session_requests']} "
+                      f"({r['session_requests_after_auth']} after authentication)")
     return 0
 
 

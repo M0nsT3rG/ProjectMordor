@@ -76,6 +76,13 @@ int main(int argc, char** argv) {
         cfg.secure = secure.cfg;
         log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
                               kv("invitation", secure.invitation_id)});
+        // FB-12-01 experiment variable: the session-level reconnect retry interval (default 500 ms), bounded.
+        if (args.has("reconnect-retry-ms")) {
+            const auto ms = args.num<std::uint64_t>("reconnect-retry-ms", 500);
+            if (ms < 50 || ms > 5000) throw std::invalid_argument("--reconnect-retry-ms must be within [50, 5000]");
+            cfg.reconnect_retry_us = ms * 1000;
+        }
+        log.info("retry_policy", {kv("reconnect_retry_ms", cfg.reconnect_retry_us / 1000), kv("connect_retry_ms", cfg.connect_retry_us / 1000)});
         cfg.connect_deadline_us = cli::connect_deadline_us_from(args, client::kMinConnectDeadlineUs, client::kMaxConnectDeadlineUs,
                                                                 cfg.connect_deadline_us);
         const std::string pattern = args.str("pattern", "circle");

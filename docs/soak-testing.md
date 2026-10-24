@@ -275,6 +275,33 @@ The full 12-scenario battery, then 4 more seeded repeats of each harsh secure pr
 - **The earlier harsh-udp-secure runs** (1397 and 1467 ms) both had 0 DTLS timers. These runs have up to 3, so the spread is the loss realisation, not a code path that changed. That is a reading of the traces, not a proof.
 - `180016-harsh-gns-sec-g6` stopped after the warm-up, before the host started; only warm-up logs remain. It is kept. The repeat was run again as `180329`.
 
+## Predeclared experiment FB-12-01: session reconnect retry (2026-10-24, EXP-025)
+
+Written and committed **before** its first run.
+
+- **Question.** Does a shorter session-level reconnect retry reduce the harsh secure recovery tail? KI-35: the ConnectRequest/Accept phase took 0.2–1.7 s, in multiples of the 500 ms retry.
+- **One variable:** the client's `reconnect_retry_us`.
+  - A = 500 ms (the current default);
+  - B = 250 ms (the same as the initial connect retry).
+
+  Set with `soak.ps1 -ReconnectRetryMs`. Everything else is identical: same build, same gate v6, 120 s runs.
+- **Runs:**
+  - harsh-gns-secure and harsh-udp-secure;
+  - UDP seeds `-SeedBase` 200, 210, 220, 230, 240, each run once with A and once with B;
+  - A and B interleaved per seed, so drift affects both;
+  - 20 runs. GNS fake loss is not seedable: its runs are paired by order only.
+- **Measures, per arm and profile:**
+  - client2 recovery: median, p95 (here the maximum of 5) and the count over 3000 ms;
+  - session phase and ConnectRequests per reconnect (`timeline.py`);
+  - realized delivery ratio and RTT p5/p50 as conditions;
+  - any other gate failure.
+- **Decision rule, fixed now.** B becomes the default only if, on **both** profiles:
+  1. B has no more recovery failures than A;
+  2. B's median recovery is at least 10% lower than A's;
+  3. B introduces no gate failure other than `client2_recovery_time` that A does not have. Duplicate joins would show as `host_joins_match_manifest` and `host_reconnects_match_stalls`.
+
+  Otherwise A stays the default and the result is reported as is. The 3000 ms gate is not changed either way.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

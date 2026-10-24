@@ -135,6 +135,10 @@ Endpoint to_endpoint(const SteamNetworkingIPAddr& a) { return {a.GetIPv4(), a.m_
 }  // namespace
 
 std::uint64_t gns_internal_assertions() { return g_internal_assertions.load(); }
+GnsLifecycle gns_lifecycle() {
+    const auto& r = rt();
+    return {r.initialized, r.refs, r.conn_owner.size(), r.listen_owner.size()};
+}
 
 GnsTransport::GnsTransport(const ImpairmentConfig& impairment) : impairment_(impairment) {}
 

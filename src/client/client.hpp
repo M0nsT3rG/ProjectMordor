@@ -155,6 +155,7 @@ private:
     std::uint32_t event_session_ = 0, next_event_ = 1, applied_through_ = 0;  // per host session
     std::uint64_t leave_started_us_ = 0, last_leave_send_us_ = 0;
     bool awaiting_first_snapshot_ = false;
+    std::uint32_t connect_attempts_ = 0;  // ConnectRequests in the current connect/reconnect phase (FB-12-01)
     std::vector<ReceivedEvent> event_inbox_;
 
     float move_x_ = 0, move_z_ = 0;

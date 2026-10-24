@@ -72,6 +72,7 @@ public:
         cfg_.impairment = c;
         return true;
     }
+    std::size_t lingering_count() const { return closing_.size(); }  // left players whose peer is still open (FB-11-03)
 
 private:
     struct Slot {

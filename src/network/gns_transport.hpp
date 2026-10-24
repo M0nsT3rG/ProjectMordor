@@ -20,6 +20,13 @@ namespace mordor::net {
 
 // Number of "Assertion Failed" messages GNS reported through its debug output in this process (KI-27).
 std::uint64_t gns_internal_assertions();
+// KI-40 lifecycle diagnostics: what this process still holds in the GNS runtime (0/0/0 once every transport closed).
+struct GnsLifecycle {
+    bool initialized = false;
+    int refs = 0;
+    std::size_t connections = 0, listen_sockets = 0;
+};
+GnsLifecycle gns_lifecycle();
 
 class GnsTransport final : public Transport {
 public:
