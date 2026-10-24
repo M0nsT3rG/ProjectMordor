@@ -8,7 +8,18 @@
 
 #include "test_support.hpp"
 
+#ifdef _WIN32
+// The suites step with sleep_for(1 ms). Without a 1 ms timer resolution that sleep takes ~15.6 ms, and timing tests
+// then pass or fail depending on whether some other program happens to hold 1 ms (EXP-023). Request it for this
+// process only; Windows releases it when the process exits. (Declared here to keep <windows.h> out of the suites.)
+extern "C" __declspec(dllimport) unsigned int __stdcall timeBeginPeriod(unsigned int);
+#pragma comment(lib, "winmm.lib")
+#endif
+
 int main(int argc, char** argv) {
+#ifdef _WIN32
+    timeBeginPeriod(1);
+#endif
     std::string filter, json_path;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];

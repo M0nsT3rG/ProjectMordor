@@ -32,9 +32,9 @@ struct ClientConfig {
     std::uint64_t connect_retry_us = 250'000;
     std::uint64_t connect_timeout_us = 5'000'000;
     std::uint64_t reconnect_retry_us = 500'000;
-    std::uint64_t reconnect_window_us = 15'000'000;
+    std::uint64_t reconnect_window_us = 15'000'000;  // hard bound per reconnect: never reset by transport retries
     std::uint64_t leave_timeout_us = 1'000'000;      // how long leave() waits for the host's DisconnectAck
-    std::uint64_t leave_resend_us = 100'000;  // hard bound per reconnect: never reset by transport retries
+    std::uint64_t leave_resend_us = 100'000;
     // Hard upper bound for one connect() call, whatever the transport does: transport establishment (GNS
     // TimeoutInitial 10 s, D-014) + session handshake (connect_timeout_us). Review #5 FB-5-02.
     std::uint64_t connect_deadline_us = 20'000'000;

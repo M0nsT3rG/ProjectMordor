@@ -102,7 +102,7 @@ public:
     bool cookie_verify(const unsigned char* cookie, unsigned int len);
     bool cookie_matches(std::span<const std::uint8_t> cookie) const;  // same check, without counting
     // Listener only: would `cookie` verify for a ClientHello from (peer, remote)? Rebinds the listener to them.
-    bool cookie_valid_for(PeerId peer, Endpoint remote, std::span<const std::uint8_t> cookie);
+    bool cookie_valid_for(PeerId peer, Endpoint remote, std::span<const std::uint8_t> cookie, std::uint64_t now_us);
     unsigned int next_retransmit_us(unsigned int previous_us) const;
 
 private:
@@ -112,7 +112,7 @@ private:
     void send_binding(std::uint64_t now_us);
     void flush_out();
     void reject(std::string why);
-    bool make_cookie(unsigned char* out, unsigned int* len) const;
+    bool make_cookie(unsigned char* out, unsigned int* len, unsigned slots_back = 0) const;
 
     Transport& transport_;
     PeerId peer_;

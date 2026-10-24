@@ -363,6 +363,25 @@ TEST(dtls_timer_fires_with_late_irregular_service) {
     }
 }
 
+// Independent review of #10: a cookie is bound to the peer, its address and a 30 s slot; it verifies for 30-60 s.
+TEST(dtls_cookies_are_bound_to_peer_and_expire) {
+    Link l(TransportKind::Udp);
+    const PeerId peer{7, 1}, other{8, 1};
+    const auto ep = Endpoint::loopback(1234);
+    DtlsSession srv(*l.host_t, peer, ep, l.host_cfg);
+    const std::uint64_t t0 = 90'000'000;
+    CHECK(!srv.cookie_valid_for(peer, ep, {}, t0));
+    unsigned char ck[64];
+    unsigned int len = 0;
+    CHECK(srv.cookie_generate(ck, &len));  // at t0 (set by the call above)
+    const std::span<const std::uint8_t> cookie(ck, len);
+    CHECK(srv.cookie_valid_for(peer, ep, cookie, t0 + 20'000'000));
+    CHECK(srv.cookie_valid_for(peer, ep, cookie, t0 + 45'000'000));   // previous slot still accepted
+    CHECK(!srv.cookie_valid_for(peer, ep, cookie, t0 + 65'000'000));  // expired
+    CHECK(!srv.cookie_valid_for(other, ep, cookie, t0));
+    CHECK(!srv.cookie_valid_for(peer, Endpoint::loopback(1235), cookie, t0));
+}
+
 // KI-35: a retransmitted flight must leave as ONE datagram (as its first transmission does), not one per record.
 TEST(dtls_retransmitted_flight_is_one_datagram) {
     // UDP only: the window needs per-instance latency; GNS impairment is process-global (KI-24) and the cut did

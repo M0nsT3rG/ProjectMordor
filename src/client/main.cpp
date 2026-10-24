@@ -193,8 +193,9 @@ int main(int argc, char** argv) {
         // Explicit leave (FB-10-04, KI-37): wait, bounded by leave_timeout_us, for the host's DisconnectAck.
         if (final_state == client::ClientState::Connected) {
             const auto send_errors_before = c.stats().send_errors;
+            const auto leave_deadline = now_us() + 3'000'000;  // never trust update() alone to end it
             c.leave(now_us());
-            while (c.leaving()) {
+            while (c.leaving() && now_us() < leave_deadline) {
                 c.update(now_us());
                 sleeper.sleep_us(1000);
             }

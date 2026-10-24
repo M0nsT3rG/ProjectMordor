@@ -22,7 +22,16 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - the FB-8-01 test caught forged ClientHellos starving a real reconnect through the global rate limit (fixed);
   - one soak was aborted when the battery was restarted outside the tool time limit (kept);
   - the GNS case of the flight-coalescing test cannot be reproduced with process-global impairment (NOT RUN).
-- **Remaining:** KI-35 on GNS (KI-38 hypothesis), KI-28b, LAN test, independent review.
+- **Independent review** (an agent; Codex fails here, EXP-008). Fixed, with tests:
+  - cookie expiry and separate budgets;
+  - events no longer overtake a refused or backing-off one (41 gaps to 0);
+  - repeated leave acks only to peers in their leave window, rate-limited;
+  - the client's leave loop bounded.
+- **After the fixes:**
+  - the soak battery above ran on `04d153a`, before them;
+  - they were verified by the suites, secure E2E and two secure soaks (EXP-023).
+- **KI-39:** test timing depended on the system timer resolution. The runner now requests 1 ms itself. GNS-backed timing checks still fail in this machine state, on unchanged GNS code.
+- **Remaining:** KI-35 on GNS (KI-38 hypothesis), KI-39, KI-28b, LAN test, external review.
 
 ## 2026-10-24: Review #9 follow-up (`feature/secure-liveness`, stacked on #9)
 

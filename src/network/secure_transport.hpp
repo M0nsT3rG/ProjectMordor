@@ -52,7 +52,8 @@ struct SecureTransportConfig {
     std::uint64_t idle_timeout_us = 10'000'000;
     // Review #9 answer 1 / #10 answer 5: new ClientHellos are rate-limited (whole transport) BEFORE any work; the
     // stateless cookie gate then answers unverified ones without allocating per-peer state (KI-30).
-    std::uint32_t max_new_handshakes_per_s = 64;
+    std::uint32_t max_new_handshakes_per_s = 64;   // strangers (shared), and cookie-proven (shared, separate)
+    std::uint32_t max_reconnect_hellos_per_s = 20; // per address with an established session (reserved)
     std::function<std::uint64_t()> unix_clock;               // wall-clock seconds; default std::time
     // KI-35 diagnostics: handed to every DTLS session (see DtlsConfig::trace). No secrets.
     std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;

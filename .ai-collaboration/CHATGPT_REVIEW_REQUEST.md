@@ -46,13 +46,26 @@ Implement FB-10-01 to FB-10-05 and answer 5 on the owner's instruction. Investig
 
 No timer, retry interval or gate threshold was tuned.
 
+### Independent review (an agent; Codex fails here, EXP-008), after the battery
+
+Fixed, with regression tests:
+1. Cookies never expired and bypassed every budget. They now carry a 30 s time slot (valid for 30–60 s), and there are three budgets per second: strangers 64; each address with an established session 20 (reserved, as in answer 5); cookie-proven 64.
+2. A spoofed flood could deny every first ClientHello. The reserved per-address budget fixes that for known players. **New players can still be denied by a flood above 64/s:** that is the remaining DoS exposure (lab scope, KI-29).
+3. An event that was refused, or still backing off, let later events overtake it, so the client saw gaps. The FB-10-02 test now also checks `events_out_of_order`: 41 before the fix, 0 after.
+4. Repeated `DisconnectAck`s answered any source with the session id, with no rate limit. They now go only to peers in their leave window, at most once per 100 ms.
+5. The client executable's leave loop is bounded at 3 s of wall clock.
+
 ## 4. Results
 
-- All suites passed ×2 on both builds:
+- **On `04d153a` (before the independent review), all suites passed ×2 on both builds:**
   - dtls 50, integration 44, integration-gns 30 + 14 SKIPPED, network 17, network-gns 12 + 5 SKIPPED, transport 18, transport-both 20, unit 17, gns 7.
 - E2E passed. Asymmetric 4/4 and secure E2E 4/4.
 - KI-27 reproducer: 0 assertions with the 50 ms settle (10/10 runs), and 16–63 per run without it.
-- **v6 soaks: 11/12.** The table is in `docs/soak-testing.md`.
+- **After the review fixes:**
+  - the UDP build passed ×2;
+  - the GNS build passed except for GNS-backed timing checks: 3 transport-contract tests on unchanged GNS code, and the GNS case of one DTLS no-busy-loop check (DTLS 50/51). That is **KI-39**: in this machine state each GNS loop iteration takes ~19 ms, and the cause is unknown.
+  - The test runner now requests 1 ms timer resolution itself; it had depended on another program holding it.
+- **v6 soaks (on `04d153a`): 11/12.** The table is in `docs/soak-testing.md`.
   - harsh-gns plaintext, which failed in v5 (KI-37), passed, with every leave confirmed.
   - harsh-udp-secure recovery: 1397 ms (v5: 1810).
   - **harsh-gns-secure failed `client2_recovery_time` at 4168 ms** (v5: 3358). One run each, so no improvement on GNS is claimed.

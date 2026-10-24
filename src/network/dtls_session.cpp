@@ -22,6 +22,8 @@ constexpr std::uint8_t kTypeBinding = 0xB1, kTypeApp = 0xA1;
 constexpr std::size_t kConfirmationSize = 32;
 
 // Per-process random key for stateless-style cookies: HMAC(key, peer id/generation + remote endpoint).
+constexpr std::uint64_t kCookieSlotUs = 30'000'000;
+
 const std::array<unsigned char, 32>& cookie_key() {
     static const auto k = [] {
         std::array<unsigned char, 32> key{};
@@ -216,13 +218,16 @@ DtlsSession::~DtlsSession() {
     SSL_CTX_free(ctx_);
 }
 
-bool DtlsSession::make_cookie(unsigned char* out, unsigned int* len) const {
+bool DtlsSession::make_cookie(unsigned char* out, unsigned int* len, unsigned slots_back) const {
+    // Bound to the peer, its address and a 30 s time slot, so a cookie cannot be replayed forever (independent
+    // review of #10): the current and the previous slot verify, i.e. a cookie lives 30-60 s.
+    const auto slot = static_cast<std::uint16_t>(now_us_ / kCookieSlotUs - slots_back);
     unsigned char msg[16];
     std::memcpy(msg, &peer_.id, 4);
     std::memcpy(msg + 4, &peer_.generation, 4);
     std::memcpy(msg + 8, &remote_.ip, 4);
     std::memcpy(msg + 12, &remote_.port, 2);
-    std::memset(msg + 14, 0, 2);
+    std::memcpy(msg + 14, &slot, 2);
     std::size_t n = 0;
     unsigned char md[EVP_MAX_MD_SIZE];
     if (!EVP_Q_mac(nullptr, "HMAC", nullptr, "SHA256", nullptr, cookie_key().data(), cookie_key().size(), msg, sizeof msg,
@@ -245,21 +250,23 @@ bool DtlsSession::cookie_generate(unsigned char* out, unsigned int* len) {
 }
 
 bool DtlsSession::cookie_matches(std::span<const std::uint8_t> cookie) const {
-    unsigned char expect[EVP_MAX_MD_SIZE];
-    unsigned int n = 0;
-    return make_cookie(expect, &n) && n == cookie.size() && CRYPTO_memcmp(expect, cookie.data(), n) == 0;
+    for (unsigned back = 0; back < 2; ++back) {
+        unsigned char expect[EVP_MAX_MD_SIZE];
+        unsigned int n = 0;
+        if (make_cookie(expect, &n, back) && n == cookie.size() && CRYPTO_memcmp(expect, cookie.data(), n) == 0) return true;
+    }
+    return false;
 }
 
-bool DtlsSession::cookie_valid_for(PeerId peer, Endpoint remote, std::span<const std::uint8_t> cookie) {
+bool DtlsSession::cookie_valid_for(PeerId peer, Endpoint remote, std::span<const std::uint8_t> cookie, std::uint64_t now_us) {
     peer_ = peer;
     remote_ = remote;
+    now_us_ = now_us;
     return cookie_matches(cookie);
 }
 
 bool DtlsSession::cookie_verify(const unsigned char* cookie, unsigned int len) {
-    unsigned char expect[EVP_MAX_MD_SIZE];
-    unsigned int n = 0;
-    if (!make_cookie(expect, &n) || n != len || CRYPTO_memcmp(expect, cookie, n) != 0) return false;
+    if (!cookie_matches({cookie, len})) return false;
     ++stats_.cookies_verified;
     return true;
 }
@@ -315,8 +322,7 @@ bool DtlsSession::listen_offer(std::span<const std::uint8_t> datagram, PeerId pe
         return false;
     }
     flush_out();  // the HelloVerifyRequest, if one was produced
-    if (r == 0) return false;
-    ++stats_.cookies_verified;
+    if (r == 0) return false;  // (cookies_verified was counted by the verify callback)
     started_ = true;
     started_us_ = now_us;
     return true;

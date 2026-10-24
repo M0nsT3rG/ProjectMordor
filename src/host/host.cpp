@@ -77,8 +77,8 @@ void Host::update(std::uint64_t now_us) {
     last_update_us_ = now_us;
     receive(now_us);
     for (auto it = closing_.begin(); it != closing_.end();) {
-        if (now_us < it->second) { ++it; continue; }
-        if (!find_by_peer(it->first)) transport_->close_peer(it->first);  // unless a new join reused the peer
+        if (now_us < it->close_at_us) { ++it; continue; }
+        if (!find_by_peer(it->peer)) transport_->close_peer(it->peer);  // unless a new join reused the peer
         it = closing_.erase(it);
     }
     // shortcut: after a stall longer than 5 ticks we skip ahead instead of catching up; revisit for real gameplay.
@@ -137,12 +137,12 @@ void Host::service_events(std::uint64_t now_us) {
         for (auto& e : s.events) {
             const bool first = e.last_sent_us == 0;
             if (!first && now_us - e.last_sent_us < resend_us) continue;
-            if (e.retry_at_us && now_us < e.retry_at_us) continue;  // backing off after a refused send
+            if (e.retry_at_us && now_us < e.retry_at_us) break;  // backing off: later events must wait behind it
             // Review #10 FB-10-02: only a send the transport ACCEPTED counts; otherwise retry with bounded back-off.
             if (send(s, e.event, now_us, delivery) != SendResult::Sent) {
                 ++stats_.events_send_refused;
                 e.retry_at_us = now_us + std::min<std::uint64_t>(10'000ull << std::min(e.refusals++, 6u), 500'000);
-                continue;
+                break;  // never send a later event before this one: the client would drop it as a gap
             }
             e.refusals = 0;
             e.retry_at_us = 0;
@@ -214,8 +214,13 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
         // A repeated Disconnect after we already released the slot (our first DisconnectAck was lost): confirm again.
         // Only for this session and only as a reply to that peer, so it cannot be used for reflection.
         if (!s && p.header.session == session_ && std::holds_alternative<Disconnect>(p.message)) {
-            ack_leave(from, now_us);
-            ++stats_.leave_acks_repeated;
+            // Only a peer still in its leave window, at most once per 100 ms: no amplification for spoofed sources.
+            for (auto& c : closing_)
+                if (c.peer == from && now_us - c.last_ack_us >= 100'000) {
+                    c.last_ack_us = now_us;
+                    ack_leave(from, now_us);
+                    ++stats_.leave_acks_repeated;
+                }
             return;
         }
         ++stats_.unknown_peer;
@@ -253,7 +258,7 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             // notice overtake our (delayed, unreliable) DisconnectAcks, so the client never saw them (KI-37), and
             // its repeated Disconnects could not reach us. It is closed later, or by the client first.
             remove_slot(s->player_id, false);
-            closing_.push_back({from, now_us + kLeaveLingerUs});
+            closing_.push_back({from, now_us + kLeaveLingerUs, now_us});
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
             // Review #10 FB-10-01: an ack can only cover events this host actually sent in this session. Anything

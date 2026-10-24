@@ -1231,10 +1231,25 @@ TEST(host_repeats_disconnect_ack_for_a_released_slot) {
     CHECK(s.host.slot_count() == 0 && s.host.stats().clean_leaves == 1);
     // The first DisconnectAck was lost: the client repeats its Disconnect and is confirmed again. The host keeps
     // the transport peer open during the leave window on every backend (on GNS closing it at once let the close
-    // notice overtake the acks, KI-37).
+    // notice overtake the acks, KI-37). Repeats are answered at most once per 100 ms.
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    CHECK(acks() == 0);  // same instant as the first ack: rate-limited
+    s.clk.now += 150'000;
     fc.send(Disconnect{DisconnectReason::ClientQuit});
     CHECK(acks() >= 1);
     CHECK(s.host.stats().leave_acks_repeated == 1 && s.host.stats().clean_leaves == 1);
+    // A stranger (not in a leave window) sending a Disconnect with the session id gets nothing: no reflection.
+    TransportFakeClient stranger(s.host.port());
+    stranger.h.session = fc.h.session;
+    stranger.send(Disconnect{DisconnectReason::ClientQuit});
+    for (int i = 0; i < 10; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+        settle();
+        for (auto& [from, p] : drain(*stranger.t)) CHECK(!std::holds_alternative<DisconnectAck>(p.message));
+    }
+    CHECK(s.host.stats().leave_acks_repeated == 1);
+    s.clk.now += 150'000;
     fc.h.session ^= 1;  // a Disconnect for another session is not acknowledged
     fc.send(Disconnect{DisconnectReason::ClientQuit});
     CHECK(acks() == 0 && s.host.stats().leave_acks_repeated == 1);

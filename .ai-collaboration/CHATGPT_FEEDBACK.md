@@ -15,7 +15,14 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
   - **FB-10-03 (KI-35):** per-attempt traces in both processes, and the timeline tool. Mechanisms shown, then fixed: per-record flight retransmission (coalesced now), and the ConnectRequest waiting for the retry interval. The remaining tail on GNS is decomposed in KI-35 and KI-38. No timer or gate was tuned.
   - **FB-10-04 (KI-37):** protocol v3 leave handshake. It exposed the mechanism: the GNS close overtook the acks, so the host now lingers 1.5 s. On the extra counter: the host releases the slot on the first `Disconnect` it receives, so a host timeout after a leave means no `Disconnect` arrived at all. That cannot be told from a real timeout at the host. The client's `leave_confirmed` (gated in v6) gives that classification instead.
   - **FB-10-05:** gate v6, fixed before its runs.
-  - **Answer 5:** stateless cookie gate. ClientHellos with a valid cookie are exempt from the budget; nothing else is. No per-address reserved budget was added: an unproven ClientHello now costs one stateless HelloVerifyRequest, and the cookie-proven one cannot be starved (test: 243 ms under a 1000/s flood).
+  - **Answer 5:** stateless cookie gate, with three budgets per second: strangers 64 (shared); each address with an established session 20 (reserved, as answer 5 suggested); cookie-proven ClientHellos 64 (shared). Cookies expire after 30–60 s.
+  - **Independent review** (an agent, because Codex fails here, EXP-008) found 4 real defects, now fixed with tests:
+    - cookies never expired and bypassed every budget;
+    - spoofed floods could deny every first ClientHello;
+    - an event that was refused or backing off let later ones overtake it (the client saw 41 gaps in the FB-10-02 test, now 0);
+    - repeated `DisconnectAck`s answered any source, with no rate limit.
+  - It also found an unbounded leave loop in the client executable (now bounded at 3 s) and minor accounting issues.
+  - One item is documented, not changed, because gate v6 already ran: the per-client delivery gate misattributes a client that rejoined under a new player id.
 - **Source:** [PR #10 comment 6380695083](https://github.com/M0nsT3rG/ProjectMordor/pull/10#issuecomment-6380695083). ChatGPT reviewed the source of `f283a07` only.
 - **ChatGPT's verdict:** conditional GO for continued investigation. NO-GO for merge or release (10/12 soaks, KI-35 and KI-37 open).
 

@@ -236,6 +236,8 @@ private:
         std::uint64_t last_rx_us = 0;  // last AUTHENTICATED record from this peer (idle timeout, FB-8-04/FB-9-01)
         std::uint64_t last_tx_us = 0;  // last frame we sent (keepalive)
         std::uint64_t pending_since_us = 0;  // when the current pending session was opened (diagnostics)
+        std::uint64_t hello_window_start_us = 0;  // reserved ClientHello budget of an established peer (answer 5)
+        std::uint32_t hello_window_attempts = 0;
         // Secure reliable channel state, per established session (FB-8-02).
         struct OutMsg {
             std::uint32_t seq;
@@ -309,13 +311,29 @@ private:
                 // A ClientHello with a VALID cookie already proved return routability: it never spends the budget,
                 // so forgeries cannot starve a real player's second ClientHello (found by the FB-8-01 test). The
                 // check is one HMAC; everything else is rate-limited before any OpenSSL work.
-                const bool proven = !ch->cookie.empty() && listener_->cookie_valid_for(e.peer, e.remote, ch->cookie);
+                const bool proven = !ch->cookie.empty() && listener_->cookie_valid_for(e.peer, e.remote, ch->cookie, now_us);
                 if (now_us - window_start_us_ >= 1'000'000) {
                     window_start_us_ = now_us;
-                    window_attempts_ = 0;
+                    window_attempts_ = window_proven_ = 0;
                 }
-                if (!proven && ++window_attempts_ > cfg_.max_new_handshakes_per_s) {
-                    ++sstats_.hello_rate_limited;  // bounds the CPU spent on HelloVerifyRequests
+                // Three budgets per second (answer 5, independent review): unproven ClientHellos from strangers
+                // share one; an address with an established session has its own reserved one, so spoofed floods
+                // cannot keep a known player from getting a cookie; cookie-proven ones (each starts a full server
+                // flight) have a separate global one, and their cookies expire (30-60 s).
+                bool over = false;
+                if (proven) {
+                    over = ++window_proven_ > cfg_.max_new_handshakes_per_s;
+                } else if (s && s->established) {
+                    if (now_us - s->hello_window_start_us >= 1'000'000) {
+                        s->hello_window_start_us = now_us;
+                        s->hello_window_attempts = 0;
+                    }
+                    over = ++s->hello_window_attempts > cfg_.max_reconnect_hellos_per_s;
+                } else {
+                    over = ++window_attempts_ > cfg_.max_new_handshakes_per_s;
+                }
+                if (over) {
+                    ++sstats_.hello_rate_limited;  // bounds the CPU spent on HelloVerifyRequests and flights
                     return;
                 }
                 if (!listener_->listen_offer(e.bytes, e.peer, e.remote, now_us)) {
@@ -453,7 +471,7 @@ private:
     bool listen_ = false;
     std::uint64_t now_us_ = 0;  // time of the current poll()
     std::uint64_t window_start_us_ = 0;  // 1 s window of new handshake attempts (rate limit)
-    std::uint32_t window_attempts_ = 0;
+    std::uint32_t window_attempts_ = 0, window_proven_ = 0;
     std::unique_ptr<DtlsSession> listener_;  // stateless cookie gate (KI-30)
     std::map<Key, Slot> slots_;            // by inner PeerId
     std::map<std::uint32_t, Key> by_secure_;  // secure PeerId.id -> slot

@@ -881,4 +881,8 @@ TEST(secure_refused_event_sends_are_retried_not_counted_as_sent) {
                 queued, static_cast<unsigned long long>(refused));
     CHECK(refused >= 1);
     for (std::size_t i = 0; i < applied.size(); ++i) CHECK(applied[i] == i + 1);
+    // Independent review: a refused event must stop the slot's sends, or later ones overtake it (client gaps).
+    std::printf("       udp: client saw %llu events out of order, %llu duplicates\n",
+                static_cast<unsigned long long>(c.stats().events_out_of_order), static_cast<unsigned long long>(c.stats().events_duplicate));
+    CHECK(c.stats().events_out_of_order == 0);
 }

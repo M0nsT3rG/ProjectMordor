@@ -51,7 +51,7 @@ def reconnects(client: list[dict], host: list[dict]) -> list[dict]:
             "reconnect_ms": rec.get("reconnect_ms"),
             "client_timers": sum(x["ev"] == "timer" for x in between),
             "client_hellos": sum(x["ev"] == "tx" and x["detail"].split(",")[0] == "22/0/1" for x in between),
-            "client_bindings_sent": sum(x["ev"] == "tx" and x["detail"] == "23/1" for x in between),
+            "client_bindings_sent": sum(x["ev"] == "tx" and "23/1" in x["detail"].split(",") for x in between),
             "host_timers": sum(x["ev"] == "timer" for x in host_win),
             "host_binding_replies": sum(x["ev"] == "binding_reply" for x in host_win),
             "host_binding_suppressed": sum(x["ev"] == "binding_reply_suppressed" for x in host_win),

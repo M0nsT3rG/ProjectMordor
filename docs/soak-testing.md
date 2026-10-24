@@ -224,6 +224,10 @@ Fixed before its first run. v1–v5 thresholds are unchanged except where named 
 
 - **harsh, gns, secure: failure preserved.** KI-35 on GNS. The trace: about 1 s waiting for the host's timeout notice, 2.5 s of cookie exchange and handshake (the first two ClientHellos never reached the host, KI-38), then 0.7 s of ConnectRequest retry.
 - **harsh, gns, plaintext,** which failed in v5 (KI-37), passed, with every leave confirmed.
+- **Known v6 limit (independent review), not changed because v6 has run:**
+  - `realized_delivery` pairs a client's whole-run `packets_out` with the host's last `player_stats` for the player id the client ends with. A client that rejoined under a new id fails it, which is safe but misattributed.
+  - The host also counts the client's leave `Disconnect`s, which are sent after the summary: a slight upward bias.
+  - A v7 would fix both.
 - Quick 30 s runs (`-g6`, `duration_s` 30) were used for the KI-35 traces. They fail `realized_rtt_floor` by design (fewer than 100 samples). `094607-lan-udp-g6` was aborted and has no summary; it is kept.
 
 Directories are named `-g6`. Secure runs also log `dtls_trace` records (record types, epochs, handshake message types and milestones, never key material) for the KI-35 timeline (`tools/soak/timeline.py`).
