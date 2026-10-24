@@ -76,6 +76,11 @@ void Host::update(std::uint64_t now_us) {
     }
     last_update_us_ = now_us;
     receive(now_us);
+    for (auto it = closing_.begin(); it != closing_.end();) {
+        if (now_us < it->second) { ++it; continue; }
+        if (!find_by_peer(it->first)) transport_->close_peer(it->first);  // unless a new join reused the peer
+        it = closing_.erase(it);
+    }
     // shortcut: after a stall longer than 5 ticks we skip ahead instead of catching up; revisit for real gameplay.
     if (now_us > next_tick_us_ + 5 * tick_us) {
         stats_.skipped_ticks += (now_us - next_tick_us_) / tick_us;
@@ -242,9 +247,13 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
         },
         [&](const Disconnect& d) {
             log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
-            ack_leave(from, now_us);  // FB-10-04: confirm before the slot (and its transport peer) goes away
+            ack_leave(from, now_us);  // FB-10-04: confirm before the slot goes away
             ++stats_.clean_leaves;
-            remove_slot(s->player_id);
+            // Keep the transport peer open for the client's leave window: closing it at once let the GNS close
+            // notice overtake our (delayed, unreliable) DisconnectAcks, so the client never saw them (KI-37), and
+            // its repeated Disconnects could not reach us. It is closed later, or by the client first.
+            remove_slot(s->player_id, false);
+            closing_.push_back({from, now_us + kLeaveLingerUs});
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
             // Review #10 FB-10-01: an ack can only cover events this host actually sent in this session. Anything

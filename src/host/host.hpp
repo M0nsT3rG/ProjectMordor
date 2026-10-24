@@ -127,6 +127,9 @@ private:
     std::mt19937_64 rng_;
     sim::World world_;
     std::vector<Slot> slots_;
+    // Transport peers of players that left cleanly, closed after the client's leave window (KI-37).
+    static constexpr std::uint64_t kLeaveLingerUs = 1'500'000;
+    std::vector<std::pair<net::PeerId, std::uint64_t>> closing_;
     HostStats stats_;
     std::uint32_t session_ = 0;
     std::uint16_t next_player_id_ = 1;

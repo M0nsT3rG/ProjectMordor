@@ -1229,15 +1229,26 @@ TEST(host_repeats_disconnect_ack_for_a_released_slot) {
     fc.send(Disconnect{DisconnectReason::ClientQuit});
     CHECK(acks() >= 1);
     CHECK(s.host.slot_count() == 0 && s.host.stats().clean_leaves == 1);
-    // The first DisconnectAck was lost: the client repeats its Disconnect and is confirmed again. On a
-    // connection-oriented backend the host closed the connection, so the client learns it from the transport.
-    if (!fc.t->capabilities().reports_disconnects) {
-        fc.send(Disconnect{DisconnectReason::ClientQuit});
-        CHECK(acks() >= 1);
-        CHECK(s.host.stats().leave_acks_repeated == 1 && s.host.stats().clean_leaves == 1);
-        fc.h.session ^= 1;  // a Disconnect for another session is not acknowledged
-        fc.send(Disconnect{DisconnectReason::ClientQuit});
-        CHECK(acks() == 0 && s.host.stats().leave_acks_repeated == 1);
+    // The first DisconnectAck was lost: the client repeats its Disconnect and is confirmed again. The host keeps
+    // the transport peer open during the leave window on every backend (on GNS closing it at once let the close
+    // notice overtake the acks, KI-37).
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    CHECK(acks() >= 1);
+    CHECK(s.host.stats().leave_acks_repeated == 1 && s.host.stats().clean_leaves == 1);
+    fc.h.session ^= 1;  // a Disconnect for another session is not acknowledged
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    CHECK(acks() == 0 && s.host.stats().leave_acks_repeated == 1);
+    if (fc.t->capabilities().reports_disconnects) {  // ...and closes it after the window
+        bool closed = false;
+        for (int i = 0; i < 400 && !closed; ++i) {
+            s.clk.now += 10'000;
+            s.host.update(s.clk.now);
+            settle();
+            std::vector<TransportEvent> ev;
+            fc.t->poll(0, ev);
+            for (const auto& e : ev) closed |= e.kind == TransportEvent::Kind::Disconnected;
+        }
+        CHECK(closed);
     }
 }
 
