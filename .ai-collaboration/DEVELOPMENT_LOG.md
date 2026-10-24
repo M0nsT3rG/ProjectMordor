@@ -2,6 +2,27 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Reviews #13/#14 follow-up (`feature/review13-14-followup`, stacked on #14)
+
+- **Input:** ChatGPT's comments on PRs #12, #13 and #14 (FB-13-01..03, FB-14-01..03); the owner asked for all of it. Record: EXP-026.
+- **Changes:**
+  - ctest transport pinning and a results check;
+  - aborted runs counted apart;
+  - `timeline.py --summary`;
+  - `scripts/hang-watch.ps1`;
+  - the smoke-test contract;
+  - the secure E2E barrier and `--stop-file`;
+  - predeclared EXP-026.
+- **Tests:**
+  - pass 1: all passed except `contract_endpoint_reuse_gets_new_peer_generation` on GNS (KI-42); pass 2: all passed;
+  - E2E; asymmetric 4/4; secure E2E 4/4 plus 2 barrier checks and 1 deliberate negative.
+- **Soaks:**
+  - EXP-026: 16/16 passed, B not adopted;
+  - GNS distribution: 6/8;
+  - battery: 12/12 plus repeats 4/8 (GNS 1/4, UDP 3/4 passed).
+  - Pooled at the head: GNS 5/13, UDP 1/13 failures.
+- **Remaining:** KI-35 (GNS), KI-40 (not reproduced), KI-41/42 (rare flakes), KI-28b, LAN test, external review.
+
 ## 2026-10-24: Fix for the PR #12 follow-up review (`fix/linger-eviction-rejoin`, stacked on #13)
 
 - **Input:** ChatGPT's inline P2 on PR #12. Linger-cap eviction could close a player who had rejoined on the same peer.

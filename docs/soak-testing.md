@@ -379,6 +379,61 @@ Written and committed **before** its first run.
 - **GNS, alongside:** 8 more default harsh-gns-secure runs (no arm). Their phase distribution goes through `timeline.py --summary`, which measures where the GNS tail lives (GNS establishment, DTLS, session) before any GNS-side change is proposed.
 - **The 3000 ms gate does not change either way.**
 
+**EXP-026 result (`compare_arms.py`): the rule keeps A. B is not adopted.**
+
+| Arm | n | Recovery median / max | Over 3000 ms |
+|---|---|---|---|
+| A 500 ms | 8 | 1632 / 2579 ms | 0 |
+| B 250 ms | 8 | 1918 / 2383 ms | 0 |
+
+- The EXP-025 UDP gain (median 2330 → 1163 ms on 5 runs) **did not replicate** on 8 fresh seeds. It was most probably small-sample chance. 500 ms stays the default on both transports.
+- No arm was aborted, and realized delivery and RTT were comparable.
+
+## Gate v6 at the final head of the stack (2026-10-25, EXP-026)
+
+On `8d553a3`, after reviews #13 and #14. The gates are unchanged.
+
+| Run (120 s, `8d553a3`) | Gates | RTT p50 / p99 (client1) | Recovery | client2 delivery | Host seed |
+|---|---|---|---|---|---|
+| 003832-lan-udp | 59/59 | 10.1 / 12.2 ms | 19 ms | 0.9804 | 101 |
+| 004041-moderate-udp | 59/59 | 103.5 / 119.9 ms | 172 ms | 0.959 | 101 |
+| 004249-harsh-udp | 59/59 | 203.8 / 237.8 ms | 797 ms | 0.8834 | 101 |
+| 004457-lan-gns | 59/59 | 9.1 / 12.1 ms | 33 ms | 0.989 | 101 |
+| 004706-moderate-gns | 59/59 | 95.7 / 116.6 ms | 391 ms | 0.9466 | 101 |
+| 004914-harsh-gns | 59/59 | 191.9 / 231.9 ms | 747 ms | 0.8535 | 101 |
+| 005123-lan-udp-sec | 59/59 | 10.5 / 12.2 ms | 49 ms | 0.9868 | 101 |
+| 005331-moderate-udp-sec | 59/59 | 105.3 / 121.7 ms | 1423 ms | 0.9438 | 101 |
+| 005539-harsh-udp-sec | 59/59 | 204.4 / 235.5 ms | 1157 ms | 0.8365 | 101 |
+| 005748-lan-gns-sec | 59/59 | 9.1 / 12.2 ms | 66 ms | 0.9885 | 101 |
+| 005956-moderate-gns-sec | 59/59 | 96.5 / 116.1 ms | 911 ms | 0.9426 | 101 |
+| 010205-harsh-gns-sec | 59/59 | 189.2 / 231.0 ms | 1625 ms | 0.8523 | 101 |
+| *repeats* | | | | | |
+| 010413-harsh-gns-sec | 58/59 **FAILED: client2_recovery_time** | 188.3 / 235.9 ms | 4448 ms | 0.8436 | 511 |
+| 010622-harsh-udp-sec | 58/59 **FAILED: client2_recovery_time** | 203.1 / 238.4 ms | 3158 ms | 0.8421 | 511 |
+| 010830-harsh-gns-sec | 59/59 | 187.8 / 229.0 ms | 2324 ms | 0.8371 | 521 |
+| 011039-harsh-udp-sec | 59/59 | 203.5 / 235.9 ms | 871 ms | 0.8475 | 521 |
+| 011247-harsh-gns-sec | 58/59 **FAILED: client2_recovery_time** | 187.6 / 232.8 ms | 3837 ms | 0.8383 | 531 |
+| 011456-harsh-udp-sec | 59/59 | 202.7 / 237.8 ms | 1200 ms | 0.8554 | 531 |
+| 011704-harsh-gns-sec | 58/59 **FAILED: client2_recovery_time** | 187.3 / 226.8 ms | 3124 ms | 0.8506 | 541 |
+| 011912-harsh-udp-sec | 59/59 | 202.6 / 238.0 ms | 2154 ms | 0.8387 | 541 |
+
+- **12 scenarios: 12/12. Seeded repeats: harsh-gns-secure 3 of 4 failed, harsh-udp-secure 1 of 4 failed.** All failures are `client2_recovery_time` only.
+- **Pooled at this head, default policy only** (EXP-026 arm A, the 8 GNS distribution runs, the battery and its repeats):
+  - harsh-gns-secure: **5 of 13** over 3000 ms;
+  - harsh-udp-secure: **1 of 13**.
+- **GNS phase distribution** (`timeline.py --summary`, 13 reconnects):
+
+  | Phase | p50 | p90 | max |
+  |---|---|---|---|
+  | notice | 195 ms | 453 ms | 455 ms |
+  | establish | 886 ms | 1580 ms | 1749 ms |
+  | DTLS authentication | 819 ms | 1529 ms | 1778 ms |
+  | session | 690 ms | 1670 ms | 1681 ms |
+  | total | 2588 ms | 3837 ms | 4448 ms |
+
+  No single phase dominates: each of the three adds a second or so under loss.
+- The hang watcher (`scripts/hang-watch.ps1`) recorded **no** stuck process during the whole run.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

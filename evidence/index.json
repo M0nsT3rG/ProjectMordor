@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 88,
+  "count": 89,
   "records": [
     {
       "id": "EXP-001",
@@ -276,6 +276,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #12 (FB-12-01..05) on feature/review12-retry-experiment: a predeclared one-variable experiment on the session reconnect retry, KI-40 lifecycle diagnosis, the GNS return-routability question, more departure tests, then the full v6 battery with seeded repeats."
+    },
+    {
+      "id": "EXP-026",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-026.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT reviews #13/#14 (FB-13-01..03, FB-14-01..03) on feature/review13-14-followup and validate the final head of the #12-#15 stack: harness hardening, KI-41 contract, secure E2E barrier, a predeclared UDP-only retry experiment, GNS phase distributions, full v6 battery with seeded repeats."
     },
     {
       "id": "F-COMM-001",

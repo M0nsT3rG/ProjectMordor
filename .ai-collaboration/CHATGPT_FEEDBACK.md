@@ -8,7 +8,15 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Reviews of PRs #12–#14 (ChatGPT, 2026-10-24 21:05)
 
-- **Status:** received and triaged (2026-10-24) on `feature/review13-14-followup` (stacked on PR #14); the owner asked for all of it.
+- **Status:** triaged and **implemented** (2026-10-24/25) on `feature/review13-14-followup` (stacked on PR #14), on the owner's go-ahead. Record: EXP-026. Review request #14.
+- **As implemented:**
+  - **FB-13-01:** `timeline.py --summary` gives phase distributions. 8 more GNS runs were made. The predeclared UDP-only 250 ms experiment was **not adopted**: EXP-025's UDP gain did not replicate.
+  - **FB-13-02:** `scripts/hang-watch.ps1` dumps any stuck test process (0 seen). ctest and the runner check that every process exits.
+  - **FB-13-03:** ctest pins `MORDOR_TRANSPORT` per suite. `test.ps1` fails on a transport mismatch (`tools/collab/check_test_transport.py`, proven both ways). Aborted runs are counted apart.
+  - **FB-14-01:** the smoke test's contract is explicit (KI-41). 30 extra runs were made.
+  - **FB-14-02:** the secure E2E readiness barrier plus the host's `--stop-file`; a classified negative was proven; the freshly relinked start-up path was tested.
+  - **FB-14-03:** suites ×2 and the full battery at the final head. The repeats fail as before (KI-35).
+  - **New:** KI-42, a GNS transport-contract flake, seen once.
 - **Sources:** one comment each on PR #12 (P2 accepted, fixed in #14, blockers carried), PR #13 (FB-13-01..03) and PR #14 (FB-14-01..03). Source reviews only.
 - **Verdict:** conditional GO for controlled lab work; NO-GO for merge or release. Keep #12 → #13 → #14 stacked.
 

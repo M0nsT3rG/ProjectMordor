@@ -1,6 +1,11 @@
 # Current task
 
-**Last completed:** review #12 follow-up (FB-12-01 to FB-12-05) on `feature/review12-retry-experiment`. Record: EXP-025.
+**Last completed:** reviews #13/#14 follow-up on `feature/review13-14-followup`. Record: EXP-026.
+- Harness hardened (transport pinning, barrier, hang watcher); KI-41 contract explicit.
+- The UDP retry gain did not replicate (500 ms kept).
+- At the head, harsh-gns-secure still fails 5/13 (KI-35).
+
+**Before that:** review #12 follow-up (FB-12-01 to FB-12-05) on `feature/review12-retry-experiment`. Record: EXP-025.
 - The predeclared retry experiment kept 500 ms.
 - The full battery passed 20/20, but the pooled harsh secure failure rate is about 29% (GNS) and 13% (UDP): KI-35 open.
 - KI-40 not reproduced.
@@ -38,7 +43,9 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#10](https://github.com/M0nsT3rG/ProjectMordor/pull/10) | `feature/secure-liveness` | #9 | Review #9: authenticated liveness, protocol v2 application events, soak gate v5, key-file hardening |
 | [#11](https://github.com/M0nsT3rG/ProjectMordor/pull/11) | `feature/ki35-ki37-investigation` | #10 | Review #10: event-ack bounds, stateless cookie gate, protocol v3 leave handshake, KI-35 traces and fixes, soak gate v6 |
 | [#12](https://github.com/M0nsT3rG/ProjectMordor/pull/12) | `feature/review11-gns-readiness` | #11 | Review #11: DTLS on inner Connected, departure edge cases, coalescing option, full battery with seeded repeats |
-| #13 | `feature/review12-retry-experiment` | #12 | Review #12: predeclared retry experiment (500 ms kept), KI-40 lifecycle trace and repro, GNS challenge finding, departure tests, battery 20/20 |
+| [#13](https://github.com/M0nsT3rG/ProjectMordor/pull/13) | `feature/review12-retry-experiment` | #12 | Review #12: predeclared retry experiment (500 ms kept), KI-40 lifecycle trace and repro, GNS challenge finding, departure tests, battery 20/20 |
+| [#14](https://github.com/M0nsT3rG/ProjectMordor/pull/14) | `fix/linger-eviction-rejoin` | #13 | PR #12 review P2: linger eviction must not close a rejoined player |
+| #15 | `feature/review13-14-followup` | #14 | Reviews #13/#14: harness hardening, KI-41 contract, E2E barrier, EXP-026, battery at the final head |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 

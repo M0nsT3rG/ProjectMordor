@@ -97,6 +97,10 @@ python -I tools/collab/test_report.py
 - Over GNS the secure client starts DTLS only on the inner `Connected` (FB-11-01, KI-38); an inner failure first is reported as `inner_connect_failed`. Test capabilities of the inner transport, not the decorator: the decorator always reports disconnects.
 - The host keeps at most 16 lingering left peers (oldest cut first, `leave_lingers_cut`) and drops one early when its transport disconnects.
 - `soak.ps1 -SeedBase N` varies the per-process UDP impairment seeds (recorded in `run.json`); GNS fake loss is not seedable. `-ReconnectRetryMs N` sets the clients' session reconnect retry (EXP-025 kept the 500 ms default). Compare experiment arms only with `tools/soak/compare_arms.py`, whose decision rule is fixed before the runs.
+- ctest pins `MORDOR_TRANSPORT` per suite, and `test.ps1` fails if a recorded suite ran on another transport (`tools/collab/check_test_transport.py`).
+- `scripts/hang-watch.ps1 -UntilFile F -Log L` runs alongside long batteries: a stuck test process is dumped (`dump-stacks.ps1`) before it is killed.
+- `secure-e2e.ps1` waits for both clients to be connected (`-BarrierS`, gate `participants_ready`) and stops the host with `--stop-file` when they are done: no fixed host lifetime.
+- `timeline.py --summary <runs>` prints per-transport phase distributions (notice, establish, dtls_auth, session).
 - Run every step of a long battery in its own PowerShell process: an environment variable left by one step (`MORDOR_TRANSPORT`) silently changes what later ctest suites run (EXP-025).
 - `MORDOR_LIFECYCLE_LOG=<file>` makes the test runner log its exit phases with GNS runtime state (KI-40).
 - If a `mordor*` process hangs (KI-40), run `./scripts/dump-stacks.ps1 -ProcessId N` **before** killing it. It writes a minidump and the symbolized stacks of all threads to `%TEMP%\mordor-dumps`. They are local only and never committed or uploaded. WinDbg (`cdb.exe`) was installed with the owner's approval on 2026-10-24 (winget `Microsoft.WinDbg`). Release builds have no PDBs for our own executables, so only Windows and GNS frames are named.
