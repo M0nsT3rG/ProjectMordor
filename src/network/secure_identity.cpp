@@ -10,6 +10,7 @@
 #include <sddl.h>
 
 #include <openssl/crypto.h>
+#include <openssl/rand.h>
 #include <openssl/evp.h>
 #include <openssl/x509.h>
 
@@ -59,16 +60,8 @@ bool fail(std::string* error, std::string what) {
     return false;
 }
 
-}  // namespace
-
-void PKeyDeleter::operator()(EVP_PKEY* k) const { EVP_PKEY_free(k); }
-
-bool identity_file_is_user_only(const std::string& path, std::string* error) {
-    PACL dacl = nullptr;
-    PSECURITY_DESCRIPTOR sd = nullptr;
-    if (GetNamedSecurityInfoW(widen(path).c_str(), SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, &dacl, nullptr,
-                              &sd) != ERROR_SUCCESS)
-        return fail(error, "cannot read the key file permissions");
+// True if the DACL grants access only to the current user (deny entries are fine; anything unusual is refused).
+bool dacl_is_user_only(PACL dacl) {
     const auto me = current_user_sid();
     bool ok = dacl != nullptr && !me.empty();  // a NULL DACL means "everyone": never acceptable
     for (DWORD i = 0; ok && i < dacl->AceCount; ++i) {
@@ -80,12 +73,53 @@ bool identity_file_is_user_only(const std::string& path, std::string* error) {
                 auto* a = static_cast<ACCESS_ALLOWED_ACE*>(ace);
                 ok = EqualSid(reinterpret_cast<PSID>(&a->SidStart), const_cast<std::uint8_t*>(me.data())) != FALSE;
             } else if (h->AceType != ACCESS_DENIED_ACE_TYPE) {
-                ok = false;  // anything unusual: refuse rather than guess
+                ok = false;
             }
         }
     }
-    LocalFree(sd);
-    return ok ? true : fail(error, "key file permissions grant access to someone other than the current user");
+    return ok;
+}
+
+// Opens the key file itself (never a reparse point) and checks the DACL on THAT handle, so the checked object is
+// the one that is read: no check-then-open race (review #9 FB-9-04). Returns INVALID_HANDLE_VALUE on refusal.
+HANDLE open_checked(const std::string& path, std::string* error) {
+    HANDLE h = CreateFileW(widen(path).c_str(), GENERIC_READ | READ_CONTROL, FILE_SHARE_READ, nullptr, OPEN_EXISTING,
+                           FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OPEN_REPARSE_POINT, nullptr);
+    if (h == INVALID_HANDLE_VALUE) {
+        const DWORD e = GetLastError();
+        fail(error, e == ERROR_FILE_NOT_FOUND || e == ERROR_PATH_NOT_FOUND ? "key file not found"
+                                                                            : "cannot open key file (" + std::to_string(e) + ")");
+        return INVALID_HANDLE_VALUE;
+    }
+    BY_HANDLE_FILE_INFORMATION info{};
+    if (!GetFileInformationByHandle(h, &info) || (info.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT)) {
+        CloseHandle(h);
+        fail(error, "key file is a symbolic link or other reparse point (refused)");
+        return INVALID_HANDLE_VALUE;
+    }
+    PACL dacl = nullptr;
+    PSECURITY_DESCRIPTOR sd = nullptr;
+    const bool got = GetSecurityInfo(h, SE_FILE_OBJECT, DACL_SECURITY_INFORMATION, nullptr, nullptr, &dacl, nullptr, &sd) == ERROR_SUCCESS;
+    const bool ok = got && dacl_is_user_only(dacl);
+    if (sd) LocalFree(sd);
+    if (!ok) {
+        CloseHandle(h);
+        fail(error, got ? "key file permissions grant access to someone other than the current user"
+                        : "cannot read the key file permissions");
+        return INVALID_HANDLE_VALUE;
+    }
+    return h;
+}
+
+}  // namespace
+
+void PKeyDeleter::operator()(EVP_PKEY* k) const { EVP_PKEY_free(k); }
+
+bool identity_file_is_user_only(const std::string& path, std::string* error) {
+    HANDLE h = open_checked(path, error);
+    if (h == INVALID_HANDLE_VALUE) return false;
+    CloseHandle(h);
+    return true;
 }
 
 bool create_identity_file(const std::string& path, std::vector<std::uint8_t>* spki, std::string* error) {
@@ -116,37 +150,49 @@ bool create_identity_file(const std::string& path, std::vector<std::uint8_t>* sp
                        InitializeSecurityDescriptor(&sd, SECURITY_DESCRIPTOR_REVISION) &&
                        SetSecurityDescriptorDacl(&sd, TRUE, acl, FALSE) &&
                        SetSecurityDescriptorControl(&sd, SE_DACL_PROTECTED, SE_DACL_PROTECTED);
-    HANDLE f = sd_ok ? CreateFileW(widen(path).c_str(), GENERIC_WRITE, 0, &sa, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr)
-                     : INVALID_HANDLE_VALUE;
+    // Write a temporary sibling, flush it, then move it into place WITHOUT replacing: an interrupted write never
+    // leaves a half key under the final name, and an existing key is never overwritten (review #9 FB-9-04).
+    const bool exists = GetFileAttributesW(widen(path).c_str()) != INVALID_FILE_ATTRIBUTES;
+    unsigned char rnd[8];
+    RAND_bytes(rnd, sizeof rnd);
+    char suffix[24];
+    std::snprintf(suffix, sizeof suffix, ".tmp-%02x%02x%02x%02x%02x%02x%02x%02x", rnd[0], rnd[1], rnd[2], rnd[3], rnd[4], rnd[5], rnd[6], rnd[7]);
+    const std::wstring tmp = widen(path + suffix);
+    HANDLE f = sd_ok && !exists ? CreateFileW(tmp.c_str(), GENERIC_WRITE, 0, &sa, CREATE_NEW, FILE_ATTRIBUTE_NORMAL, nullptr)
+                                : INVALID_HANDLE_VALUE;
     const DWORD create_err = GetLastError();
     bool ok = f != INVALID_HANDLE_VALUE;
     if (ok) {
         DWORD w1 = 0, w2 = 0;
         ok = WriteFile(f, kKeyMagic, static_cast<DWORD>(kKeyMagicLen), &w1, nullptr) && WriteFile(f, out.pbData, out.cbData, &w2, nullptr) &&
-             w1 == kKeyMagicLen && w2 == out.cbData;
+             w1 == kKeyMagicLen && w2 == out.cbData && FlushFileBuffers(f);
         CloseHandle(f);
-        if (!ok) DeleteFileW(widen(path).c_str());  // our own half-written file
+        ok = ok && MoveFileExW(tmp.c_str(), widen(path).c_str(), MOVEFILE_WRITE_THROUGH);  // fails if the target exists
+        if (!ok) DeleteFileW(tmp.c_str());  // our own temporary file
     }
     LocalFree(out.pbData);
     if (acl) LocalFree(acl);
     if (!sd_ok) return fail(error, "cannot build a user-only security descriptor");
-    if (f == INVALID_HANDLE_VALUE)
-        return fail(error, create_err == ERROR_FILE_EXISTS ? "key file already exists (refusing to overwrite)"
-                                                           : "cannot create key file (" + std::to_string(create_err) + ")");
-    if (!ok) return fail(error, "cannot write key file");
+    if (exists) return fail(error, "key file already exists (refusing to overwrite)");
+    if (f == INVALID_HANDLE_VALUE) return fail(error, "cannot create key file (" + std::to_string(create_err) + ")");
+    if (!ok) return fail(error, "cannot write key file (or it appeared meanwhile: refusing to overwrite)");
     if (spki) *spki = spki_der(key);
     return true;
 }
 
 PKeyPtr load_identity_file(const std::string& path, std::string* error) {
-    if (GetFileAttributesW(widen(path).c_str()) == INVALID_FILE_ATTRIBUTES) {
-        fail(error, "key file not found");
-        return nullptr;
+    HANDLE h = open_checked(path, error);  // the same handle is checked and read
+    if (h == INVALID_HANDLE_VALUE) return nullptr;
+    std::vector<std::uint8_t> raw;
+    LARGE_INTEGER size{};
+    bool read_ok = GetFileSizeEx(h, &size) && size.QuadPart > 0 && size.QuadPart < (1 << 20);
+    if (read_ok) {
+        raw.resize(static_cast<std::size_t>(size.QuadPart));
+        DWORD got = 0;
+        read_ok = ReadFile(h, raw.data(), static_cast<DWORD>(raw.size()), &got, nullptr) && got == raw.size();
     }
-    if (!identity_file_is_user_only(path, error)) return nullptr;
-    std::ifstream in(widen(path), std::ios::binary);
-    std::vector<std::uint8_t> raw((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
-    if (!in.good() && !in.eof()) {
+    CloseHandle(h);
+    if (!read_ok) {
         fail(error, "key file unreadable");
         return nullptr;
     }

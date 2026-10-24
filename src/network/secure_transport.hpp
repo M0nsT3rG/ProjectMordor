@@ -49,6 +49,10 @@ struct SecureTransportConfig {
     // reports_disconnects holds even over raw UDP. Longer than the session layer's 3 s liveness, which normally
     // acts first; this bounds how long a vanished peer's DTLS state can linger. 0 disables.
     std::uint64_t idle_timeout_us = 10'000'000;
+    // Review #9 answer 1: unauthenticated ClientHellos are rate-limited and counted. A ClientHello carrying a valid
+    // cookie (it proved return routability) is never rate-limited.
+    std::uint32_t max_new_handshakes_per_s = 64;    // whole transport
+    std::uint64_t min_hello_interval_us = 20'000;   // per peer address
     std::function<std::uint64_t()> unix_clock;               // wall-clock seconds; default std::time
 };
 
@@ -56,6 +60,7 @@ struct SecureStats {
     std::uint64_t pending_opened = 0, pending_refused_cap = 0, pending_failed = 0;
     std::uint64_t pending_replaced = 0;   // an unverified (or cookie-bearing) new handshake displaced a pending one
     std::uint64_t hello_ignored = 0;      // new ClientHello without a valid cookie vs a cookie-verified pending
+    std::uint64_t hello_rate_limited = 0; // new ClientHello dropped by max_new_handshakes_per_s / min_hello_interval_us
     std::uint64_t authenticated = 0, promotions_replacing = 0, rejected_established = 0, idle_timeouts = 0;
     std::uint64_t dropped_not_dtls = 0;      // plaintext / non-ClientHello from a peer without a session
     std::uint64_t dropped_unknown_peer = 0;  // client side: datagram from a peer we never connected to

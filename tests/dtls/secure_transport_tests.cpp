@@ -333,6 +333,8 @@ struct Tap final : Transport {
     }
     SendResult send(PeerId p, std::span<const std::uint8_t> b, Delivery d, std::uint64_t n) override {
         sent_first_bytes.push_back(b.empty() ? 0 : b[0]);
+        sent_tail.emplace_back(b.begin(), b.end());
+        if (sent_tail.size() > 16) sent_tail.erase(sent_tail.begin());
         return t->send(p, b, d, n);
     }
     void poll(std::uint64_t n, std::vector<TransportEvent>& out) override { t->poll(n, out); }
@@ -343,6 +345,7 @@ struct Tap final : Transport {
     TransportKind kind() const override { return t->kind(); }
     const TransportStats& stats() const override { return t->stats(); }
     std::vector<std::uint8_t> sent_first_bytes;  // what the decorator put on the wire (record content types)
+    std::vector<std::vector<std::uint8_t>> sent_tail;  // the last datagrams sent (for replay tests)
 };
 // Records what a DTLS client would send, without a network: a source of realistic forged ClientHellos.
 struct Capture final : Transport {
@@ -649,4 +652,111 @@ TEST(secure_quiet_peer_is_kept_alive) {
         CHECK(count(ev, TransportEvent::Kind::Disconnected) == 0);
         CHECK(l.client->send(l.to_host, tagged(8, 1), Delivery::ReliableOrdered, 0) == SendResult::Sent);
     }
+}
+
+// Review #9 FB-9-01: datagrams that are not authenticated records must not keep a vanished peer alive.
+TEST(secure_spoofed_or_replayed_datagrams_do_not_keep_a_vanished_peer_alive) {
+    Key host_key, player;
+    auto hcfg = *secure(host_key, {player.spki()}, invite());
+    hcfg.idle_timeout_us = 1'000'000;
+    auto host = open_secure(TransportKind::Udp, hcfg, true);
+    std::string err;
+    std::shared_ptr<Transport> shared = make_transport(TransportKind::Udp, {}, &err);
+    auto tap_owned = std::make_unique<Tap>(shared);
+    Tap* tap = tap_owned.get();
+    auto ccfg = *secure(player, {host_key.spki()}, hcfg.invitation);
+    ccfg.idle_timeout_us = 1'000'000;
+    auto c = make_secure_transport(std::move(tap_owned), ccfg, &err);
+    CHECK(c && c->open(Endpoint::loopback(0), false, &err));
+    c->connect(Endpoint::loopback(host->local_endpoint().port));
+    run({host.get(), c.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
+    run({host.get(), c.get()}, host.get(), [](const auto&) { return false; }, 200);  // a few real records flow
+    const auto replay = tap->sent_tail;  // genuine, already-delivered DTLS records of this association
+    CHECK(!replay.empty());
+    // The real client vanishes (never polled again). From its address: garbage, replays, a forged ClientHello-like blob.
+    const auto t0 = std::chrono::steady_clock::now();
+    std::vector<TransportEvent> hev;
+    for (int i = 0; i < 300 && count(hev, TransportEvent::Kind::Disconnected) == 0; ++i) {
+        std::vector<std::uint8_t> junk(40, static_cast<std::uint8_t>(i));
+        junk[0] = 23;  // looks like DTLS application data
+        shared->send(tap->last_peer, junk, Delivery::Unreliable, 0);
+        shared->send(tap->last_peer, replay[static_cast<std::size_t>(i) % replay.size()], Delivery::Unreliable, 0);
+        auto ev = run({host.get()}, host.get(), [](const auto&) { return true; }, 1);
+        hev.insert(hev.end(), ev.begin(), ev.end());
+        std::this_thread::sleep_for(std::chrono::milliseconds(9));
+    }
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+    const auto it = std::find_if(hev.begin(), hev.end(), [](const auto& x) { return x.kind == TransportEvent::Kind::Disconnected; });
+    std::printf("       udp: vanished peer reported after %lld ms despite injected traffic (%s)\n", static_cast<long long>(ms),
+                it == hev.end() ? "never" : std::string(it->reason).c_str());
+    CHECK(it != hev.end() && it->reason == "idle_timeout" && ms < 2500);
+}
+
+// Review #9 FB-9-05: an invitation grants nothing by itself; misused invitations never authenticate.
+TEST(secure_invitation_misuse_is_refused) {
+    for (auto k : backends()) {
+        Key host_key, player, stranger, fake_host;
+        const auto inv = invite("session-1");
+        auto hcfg = *secure(host_key, {player.spki()}, inv);
+        auto host = open_secure(k, hcfg, true);
+        const Endpoint ep = Endpoint::loopback(host->local_endpoint().port);
+        struct Case {
+            const char* name;
+            SecureTransportConfig cfg;
+        };
+        auto c_inv_other = *secure(player, {host_key.spki()}, invite("session-2"));        // conflicting invitation
+        auto c_stranger = *secure(stranger, {host_key.spki()}, inv);                         // valid invitation, not allowed
+        auto c_spoofed = *secure(player, {fake_host.spki()}, inv);                           // invitation naming another host key
+        auto c_swapped = *secure(stranger, {host_key.spki()}, inv);                          // presents the player's invitation
+        c_swapped.pinned_peers = {host_key.spki()};
+        auto c_stale = *secure(player, {host_key.spki()}, inv);                              // its clock says: expired
+        c_stale.unix_clock = [] { return static_cast<std::uint64_t>(std::time(nullptr)) + 7200; };
+        std::vector<Case> cases{{"conflicting invitation", c_inv_other}, {"invitation alone (not allowed)", c_stranger},
+                                {"spoofed host key", c_spoofed}, {"swapped identity", c_swapped}, {"stale invitation", c_stale}};
+        for (auto& cs : cases) {
+            auto c = open_secure(k, cs.cfg, false);
+            c->connect(ep);
+            const auto ev = run({host.get(), c.get()}, c.get(), [](const auto& e) {
+                return std::any_of(e.begin(), e.end(), [](const auto& x) { return x.kind != TransportEvent::Kind::Message; });
+            }, 15000);
+            const bool connected = count(ev, TransportEvent::Kind::Connected) > 0;
+            std::printf("       %s: %s -> %s\n", to_string(k), cs.name, connected ? "CONNECTED" : "refused");
+            CHECK(!connected);
+        }
+        CHECK(secure_stats(*host)->authenticated == 0);
+    }
+}
+
+// Review #9 answer 1: a flood of unauthenticated ClientHellos is rate-limited and counted, and the established
+// player stays responsive.
+TEST(secure_client_hello_flood_is_rate_limited_and_player_stays_responsive) {
+    Key host_key, player, stranger;
+    auto hcfg = *secure(host_key, {player.spki()}, invite());
+    hcfg.max_new_handshakes_per_s = 16;
+    auto host = open_secure(TransportKind::Udp, hcfg, true);
+    auto c = open_secure(TransportKind::Udp, *secure(player, {host_key.spki()}, hcfg.invitation), false);
+    const Endpoint ep = Endpoint::loopback(host->local_endpoint().port);
+    const auto to_host = c->connect(ep).value();
+    run({host.get(), c.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
+    std::string err;
+    std::vector<std::unique_ptr<Transport>> flood;
+    for (int i = 0; i < 60; ++i) {
+        flood.push_back(make_transport(TransportKind::Udp, {}, &err));
+        CHECK(flood.back()->open(Endpoint::loopback(0), false, &err));
+        const auto p = flood.back()->connect(ep).value();
+        for (int j = 0; j < 5; ++j) flood.back()->send(p, forged_client_hello(stranger, host_key.spki(), hcfg.invitation), Delivery::Unreliable, 0);
+    }
+    std::uint32_t got = 0;
+    for (std::uint32_t i = 1; i <= 20; ++i) CHECK(c->send(to_host, tagged(9, i), Delivery::ReliableOrdered, 0) == SendResult::Sent);
+    run({host.get(), c.get()}, host.get(), [&](const auto& e) {
+        got = static_cast<std::uint32_t>(count(e, TransportEvent::Kind::Message));
+        return got == 20;
+    }, 5000);
+    const auto* hs = secure_stats(*host);
+    std::printf("       udp: 300 forged ClientHellos -> opened %llu, rate-limited %llu, refused by cap %llu; player delivered %u/20\n",
+                static_cast<unsigned long long>(hs->pending_opened), static_cast<unsigned long long>(hs->hello_rate_limited),
+                static_cast<unsigned long long>(hs->pending_refused_cap), got);
+    CHECK(hs->hello_rate_limited >= 200);  // 300 attempts, 16 per second admitted to the cap check
+    CHECK(hs->pending_opened <= 1 + 4);       // the player + at most max_pending_total strangers
+    CHECK(got == 20);
 }

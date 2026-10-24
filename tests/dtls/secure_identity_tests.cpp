@@ -178,3 +178,33 @@ TEST(secure_cli_fails_closed_on_every_bad_setup) {
         std::printf("       refused (%s): %s\n", name, what.c_str());
     }
 }
+
+// Review #9 FB-9-04: the loaded object is the checked object; links are refused; writes are atomic.
+TEST(identity_file_links_and_interrupted_writes_are_handled) {
+    TempDir d;
+    std::string err;
+    std::vector<std::uint8_t> spki;
+    CHECK(create_identity_file(d.file("real.key"), &spki, &err));
+    // A symbolic link to a valid key is refused (needs Developer Mode or the symlink privilege to create).
+    const auto link = fs::path(d.file("link.key")).wstring(), target = fs::path(d.file("real.key")).wstring();
+    if (CreateSymbolicLinkW(link.c_str(), target.c_str(), SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE)) {
+        CHECK(!load_identity_file(d.file("link.key"), &err) && err.find("reparse point") != std::string::npos);
+        std::printf("       symbolic link to a valid key: refused (%s)\n", err.c_str());
+    } else {
+        std::printf("       symbolic link check NOT RUN: cannot create symlinks here (error %lu; needs Developer Mode)\n", GetLastError());
+    }
+    // An interrupted earlier write leaves only a temporary sibling: it neither blocks nor replaces the real key.
+    write_all(d.file("new.key") + ".tmp-deadbeefdeadbeef", std::vector<std::uint8_t>{'M', 'R', 'D'});
+    CHECK(create_identity_file(d.file("new.key"), nullptr, &err));
+    CHECK(load_identity_file(d.file("new.key"), &err) != nullptr);
+    // A truncated key under the final name (e.g. copied badly) is refused, and is never silently replaced.
+    auto raw = read_all(d.file("new.key"));
+    raw.resize(raw.size() / 2);
+    write_all(d.file("new.key"), raw);
+    CHECK(!load_identity_file(d.file("new.key"), &err));
+    CHECK(!create_identity_file(d.file("new.key"), nullptr, &err) && err.find("refusing to overwrite") != std::string::npos);
+    // No temporary file of our own survives a successful creation.
+    std::size_t tmp = 0;
+    for (const auto& e : fs::directory_iterator(d.p)) tmp += e.path().filename().string().find(".tmp-") != std::string::npos;
+    CHECK(tmp == 1);  // only the one this test planted
+}

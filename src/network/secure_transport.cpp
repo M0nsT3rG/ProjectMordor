@@ -228,8 +228,9 @@ private:
         Endpoint remote;
         std::unique_ptr<DtlsSession> established, pending;
         std::array<std::uint8_t, 32> pending_random{};
-        std::uint64_t last_rx_us = 0;  // last datagram from this peer (idle timeout, FB-8-04)
+        std::uint64_t last_rx_us = 0;  // last AUTHENTICATED record from this peer (idle timeout, FB-8-04/FB-9-01)
         std::uint64_t last_tx_us = 0;  // last frame we sent (keepalive)
+        std::uint64_t last_hello_us = 0;  // last new handshake attempt opened for this address (rate limit)
         // Secure reliable channel state, per established session (FB-8-02).
         struct OutMsg {
             std::uint32_t seq;
@@ -316,6 +317,25 @@ private:
                 }
             }
             if (open_new) {
+                // Rate limits (review #9 answer 1), before any state is allocated. Exempt: a ClientHello with a valid
+                // cookie (an off-path spoofer cannot produce it), and any attempt at the address of an ESTABLISHED
+                // player: rate-limiting there let forgeries from that address starve the player's own reconnect
+                // (found by secure_forged_client_hellos_cannot_starve_a_players_reconnect, EXP-022); that slot is
+                // governed by the FB-8-01 cookie rules and is reserved outside the cap.
+                const bool proven = ch && !ch->cookie.empty() && s && s->pending && s->pending->cookie_matches(ch->cookie);
+                const bool known_player = s && s->established;
+                if (!proven && !known_player) {
+                    if (now_us - window_start_us_ >= 1'000'000) {
+                        window_start_us_ = now_us;
+                        window_attempts_ = 0;
+                    }
+                    ++window_attempts_;  // every unproven attempt counts, opened or not
+                    if (window_attempts_ > cfg_.max_new_handshakes_per_s ||
+                        (s && s->last_hello_us && now_us - s->last_hello_us < cfg_.min_hello_interval_us)) {
+                        ++sstats_.hello_rate_limited;
+                        return;
+                    }
+                }
                 // A known player (established session) reconnects in its own reserved slot: strangers filling the
                 // global cap cannot block it (FB-8-01). Replacing does not add a pending session.
                 const bool reserved = s && s->established;
@@ -330,13 +350,14 @@ private:
                     s = &it->second;
                 }
                 if (replacing) ++sstats_.pending_replaced;
+                s->last_hello_us = now_us;
                 s->pending = std::make_unique<DtlsSession>(*inner_, e.peer, e.remote, session_cfg(true));
                 s->pending_random = ch->random;
                 ++sstats_.pending_opened;
             }
         }
         auto& s = it->second;
-        s.last_rx_us = now_us;
+        // No liveness here: this datagram is not authenticated yet (review #9 FB-9-01). on_frame() refreshes it.
         // Each session silently drops records it cannot decrypt, so both may see every datagram.
         if (s.established) s.established->on_datagram(e.bytes, now_us, unix_s);
         if (s.pending) s.pending->on_datagram(e.bytes, now_us, unix_s);
@@ -356,6 +377,7 @@ private:
         s.last_tx_us = now_us_;
     }
     void on_frame(Slot& s, const std::vector<std::uint8_t>& f, std::vector<TransportEvent>& out) {
+        s.last_rx_us = now_us_;  // an authenticated, decrypted record of the established session: the peer is alive
         if (f.empty()) return;
         const std::span<const std::uint8_t> body(f.data() + 1, f.size() - 1);
         if (f[0] == kFrameUnreliable) {
@@ -426,6 +448,8 @@ private:
     SecureTransportConfig cfg_;
     bool listen_ = false;
     std::uint64_t now_us_ = 0;  // time of the current poll()
+    std::uint64_t window_start_us_ = 0;  // 1 s window of new handshake attempts (rate limit)
+    std::uint32_t window_attempts_ = 0;
     std::map<Key, Slot> slots_;            // by inner PeerId
     std::map<std::uint32_t, Key> by_secure_;  // secure PeerId.id -> slot
     std::uint32_t next_id_ = 1;
