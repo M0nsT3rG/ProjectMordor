@@ -261,7 +261,8 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             // its repeated Disconnects could not reach us. It is closed later, or by the client first.
             remove_slot(s->player_id, false);
             if (closing_.size() >= kMaxLingering) {  // bounded (FB-11-03): the oldest linger ends early, counted
-                transport_->close_peer(closing_.front().peer);
+                // Same guard as normal expiry: never close a peer a player is using (PR #12 review, P2).
+                if (!find_by_peer(closing_.front().peer)) transport_->close_peer(closing_.front().peer);
                 closing_.erase(closing_.begin());
                 ++stats_.leave_lingers_cut;
             }
@@ -364,6 +365,8 @@ void Host::on_connect(PeerId from, const ConnectRequest& req, std::uint64_t now_
 }
 
 void Host::accept(Slot& s, std::uint64_t now_us) {
+    // The peer is a player again: it no longer lingers (a stale entry could reach the cap path and close it).
+    std::erase_if(closing_, [&](const Closing& c) { return c.peer == s.peer; });
     send(s, ConnectAccept{s.nonce, s.player_id, s.entity_id, s.token, cfg_.tick_rate_hz, world_.tick()}, now_us);
 }
 

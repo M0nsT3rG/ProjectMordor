@@ -1382,6 +1382,49 @@ TEST(lingering_peers_are_bounded) {
     CHECK(s.host.stats().leave_lingers_cut == 1 && s.host.lingering_count() == 16);
 }
 
+// ChatGPT review on PR #12 (P2): a player who left and rejoined on the same transport peer must survive cap pressure.
+// Before the fix its stale linger entry stayed first in line and the cap path closed its live connection.
+TEST(rejoined_player_survives_linger_cap_pressure) {
+    test::Session s;
+    TransportFakeClient a(s.host.port());
+    a.join(s, 1001);
+    a.send(Disconnect{DisconnectReason::ClientQuit});
+    for (int i = 0; i < 10 && s.host.slot_count() != 0; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+    }
+    CHECK(s.host.slot_count() == 0 && s.host.lingering_count() == 1);
+    a.join(s, 1002);  // same peer, new client instance, inside the 1.5 s linger
+    CHECK(s.host.slot_count() == 1);
+    std::vector<std::unique_ptr<TransportFakeClient>> others;
+    for (int i = 0; i < 16; ++i) {  // 16 more clean leaves in the same window: the cap (16) is reached
+        others.push_back(std::make_unique<TransportFakeClient>(s.host.port()));
+        others.back()->join(s, 1100 + static_cast<std::uint64_t>(i));
+        others.back()->send(Disconnect{DisconnectReason::ClientQuit});
+        for (int j = 0; j < 10 && s.host.slot_count() != 1; ++j) {
+            settle();
+            s.host.update(s.clk.now);
+        }
+        CHECK(s.host.slot_count() == 1);  // only A
+    }
+    std::printf("       lingering %zu, lingers cut %llu\n", s.host.lingering_count(),
+                static_cast<unsigned long long>(s.host.stats().leave_lingers_cut));
+    std::vector<TransportEvent> a_events;
+    for (int i = 0; i < 50; ++i) {  // A keeps playing: still served, and its transport never reports a close
+        s.clk.now += 10'000;
+        s.host.update(s.clk.now);
+        settle();
+        if (i % 10 == 0) a.send(Heartbeat{s.clk.now});
+    }
+    std::optional<Snapshot> snap;
+    for (auto& [from, p] : drain(*a.t, &a_events))
+        if (const auto* sn = std::get_if<Snapshot>(&p.message)) snap = *sn;
+    CHECK(snap.has_value());
+    CHECK(std::none_of(a_events.begin(), a_events.end(), [](const auto& e) { return e.kind == TransportEvent::Kind::Disconnected; }));
+    CHECK(s.host.slot_count() == 1 && s.host.stats().timeouts == 0);
+    CHECK(s.host.lingering_count() == 16 && s.host.stats().leave_lingers_cut == 0);  // A's rejoin left no stale entry
+}
+
 TEST(disconnect_after_the_leave_window_is_not_answered) {
     UDP_ONLY("on a connection-oriented backend the host closed the connection when the window ended");
     test::Session s;
