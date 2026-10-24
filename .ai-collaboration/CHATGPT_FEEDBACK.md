@@ -6,6 +6,28 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #12 (PR #12: GNS readiness gate, seeded v6 repeats)
+
+- **Status:** received and triaged (2026-10-24) on `feature/review12-retry-experiment` (stacked on PR #12); the owner asked for all of it.
+- **Source:** [PR #12 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/12). ChatGPT reviewed the source of `5a1ec74` only.
+- **ChatGPT's verdict:** conditional GO for further controlled lab testing. NO-GO for declaring KI-35 resolved or for merging.
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-12-01** (major) session retry latency | **Yes.** The immediate ConnectRequest on transport `Connected` exists (`client.cpp:194`, review #10). Retries then wait for the fixed `reconnect_retry_us` (500 ms). The host answers duplicate reconnect requests idempotently: the reconnect is counted only if the slot was disconnected (`host.cpp:318`). A duplicate's only cost is re-sending unapplied events, which the client drops. | **Accepted** | Instrument each ConnectRequest attempt (number, time since reconnect start, send result, transport up or not), and when the accept arrives. Then run a **predeclared one-variable experiment**, documented before its runs: reconnect retry 500 ms (A, baseline) against 250 ms (B, the same as the initial connect retry), fixed seeds, both secure harsh profiles, same code. Compare p50, p95, max and failure proportion. Adopt B only if the predeclared criterion holds. No GNS timer or gate change. |
+| **FB-12-02** (major) KI-40 exit hang | **Partly.** No debugger or dump tool is installed (`procdump`, `cdb`, `windbg` absent). Installing one needs the owner's approval (rule 6). | **Accepted** | Without installing anything: a lifecycle trace at exit in the test runner (live GNS transports and connections, `main` return, `atexit`, timestamps). A repro loop of the GNS suites with a hang watcher that writes a minidump through Windows' own `MiniDumpWriteDump` (dbghelp), kept under %TEMP% and never committed or uploaded. Symbolized stacks then need a debugger: asked separately. Lifecycle tests: repeated instances, abrupt process exit, orderly close. **No `GameNetworkingSockets_Kill` added.** |
+| **FB-12-03** (major) completeness | **Yes.** | **Accepted** | After the changes: the full 12 × 120 s v6 suite with the gates unchanged, plus seeded repeats. Report the failure rate, with the realized conditions per run (delivery ratio, RTT p5/p50) because GNS loss is not seedable. |
+| **FB-12-04** (minor) cookie vs identity | **Yes.** The cookie proves return routability only; identity comes from pinned keys and the binding. | **Accepted** | Quantify the cookie's cost per reconnect from the traces (ClientHello → HelloVerifyRequest → second ClientHello). Read the GNS source for whether its connection handshake proves address ownership. GNS is a third-party repository, cloned read-only outside this repo. **No cookie removal in this round.** |
+| **FB-12-05** (minor) leave semantics | **Yes.** | **Accepted** | Tests, each also checking that no false `leave_confirmed` happens: repeated lost acks, process termination during the linger, simultaneous leave and rejoin of several peers, peers at the linger cap, cleanup once a lingering peer goes silent. |
+
+**Answers received:**
+1. Start with application-level resend scheduling, one variable at a time; do not change gate thresholds.
+2. Keep GNS's internal connection timers at their defaults without evidence of a defective setting.
+3. Diagnose KI-40 with a dump; no reflexive `Kill`.
+4. The leave model is enough for controlled lab use, not a guaranteed graceful exit.
+
+---
+
 ## Feedback on review #11 (PR #11: KI-35/KI-37 investigation, gate v6)
 
 - **Status:** triaged and **implemented** (2026-10-24) on `feature/review11-gns-readiness` (stacked on PR #11), on the owner's go-ahead. Record: EXP-024. Review request #11.
