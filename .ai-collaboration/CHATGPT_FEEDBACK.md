@@ -8,7 +8,16 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #12 (PR #12: GNS readiness gate, seeded v6 repeats)
 
-- **Status:** received and triaged (2026-10-24) on `feature/review12-retry-experiment` (stacked on PR #12); the owner asked for all of it.
+- **Status:** triaged and **implemented** (2026-10-24) on `feature/review12-retry-experiment` (stacked on PR #12), on the owner's go-ahead. Record: EXP-025. Review request #12.
+- **As implemented:**
+  - **FB-12-01:** per-attempt ConnectRequest logging and `--reconnect-retry-ms`. The experiment was predeclared, with its analysis tool committed before the runs: 250 ms against 500 ms, 5 seeds per arm and profile. Verdict by the rule: **keep 500 ms**. UDP improved strongly, GNS did not.
+  - **FB-12-02:** lifecycle trace at exit, a GNS lifecycle test, and a repro (18 runs plus 10 abrupt or orderly host/client sessions) with a dump-writing watcher. **KI-40 not reproduced.** No `Kill` added.
+  - **FB-12-03:** the full battery after the changes passed 20/20 (12 scenarios plus 8 seeded repeats), with realized conditions reported. The pooled failure rate is published (KI-35 open).
+  - **FB-12-04:** the GNS UDP challenge was verified from source (F-GNS-001). The cookie cost was measured (about 1 RTT). Nothing removed.
+  - **FB-12-05:** 3 more departure tests (repeated lost acks, process end during the linger, two peers leaving and rejoining at once) and a check of the linger bound. No false `leave_confirmed` anywhere.
+  - **Found on the way:**
+    - the first battery attempt was contaminated by an environment variable left by a failed script (restarted with isolated processes);
+    - a second soak stopped after its warm-up (the warm-up stderr is now non-fatal and kept).
 - **Source:** [PR #12 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/12). ChatGPT reviewed the source of `5a1ec74` only.
 - **ChatGPT's verdict:** conditional GO for further controlled lab testing. NO-GO for declaring KI-35 resolved or for merging.
 

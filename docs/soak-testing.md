@@ -302,6 +302,59 @@ Written and committed **before** its first run.
 
   Otherwise A stays the default and the result is reported as is. The 3000 ms gate is not changed either way.
 
+**Result (`tools/soak/compare_arms.py`, build `849a745`): the rule keeps A. B is not adopted.**
+
+| Profile | Arm | n | Recovery median / max | Over 3000 ms | Runs (ms) |
+|---|---|---|---|---|---|
+| harsh-gns-secure | A 500 ms | 4 (1 aborted) | 2726 / 3890 ms | 2 | 1822, 1843, 3609, 3890 |
+| harsh-gns-secure | B 250 ms | 5 | 3282 / 4752 ms | 3 | 1558, 2347, 3282, 3895, 4752 |
+| harsh-udp-secure | A 500 ms | 5 | 2330 / 3358 ms | 1 | 1648, 1923, 2330, 2676, 3358 |
+| harsh-udp-secure | B 250 ms | 5 | 1163 / 2447 ms | 0 | 945, 952, 1163, 1658, 2447 |
+
+- **UDP:** B met every condition. The median halved and there were no failures. The session phase (ConnectRequest/Accept after a loss) is a real lever there.
+- **GNS:** B did not. The difference is within the run-to-run spread; there the tail is dominated by GNS's own connection setup and DTLS losses, which the session retry cannot touch.
+- The rule needs both profiles, so A (500 ms) stays the default, as predeclared. A transport-specific retry would be a new experiment, declared before its runs.
+- The realized conditions were comparable across arms: client2 delivery 0.83–0.85, RTT p50 188–190 ms (GNS) and 202–206 ms (UDP).
+- No arm introduced another gate failure: no duplicate joins, and the reconnect counts matched.
+- `192116-harsh-gns-sec-g6` (arm A, seed 230) stopped after its warm-up, the second such case. It is kept. `soak.ps1` now runs warm-ups with stderr captured and non-fatal.
+
+## Gate v6 after review #12 (2026-10-24, EXP-025)
+
+The full battery plus 4 seeded repeats per harsh secure profile, on `2f2fe20`. Defaults are unchanged (reconnect retry 500 ms), and so are the gates.
+
+| Run (120 s) | Gates | RTT p50 / p99 (client1) | Recovery | client2 delivery | Host seed |
+|---|---|---|---|---|---|
+| 200036-lan-udp | 59/59 | 10.1 / 12.6 ms | 20 ms | 0.9821 | 101 |
+| 200244-moderate-udp | 59/59 | 103.5 / 120.3 ms | 146 ms | 0.9603 | 101 |
+| 200452-harsh-udp | 59/59 | 202.8 / 240.0 ms | 787 ms | 0.8823 | 101 |
+| 200701-lan-gns | 59/59 | 9.1 / 12.2 ms | 31 ms | 0.9860 | 101 |
+| 200909-moderate-gns | 59/59 | 96.1 / 115.6 ms | 397 ms | 0.9425 | 101 |
+| 201117-harsh-gns | 59/59 | 188.3 / 223.2 ms | 2279 ms | 0.8495 | 101 |
+| 201326-lan-udp-sec | 59/59 | 10.5 / 12.6 ms | 50 ms | 0.9866 | 101 |
+| 201534-moderate-udp-sec | 59/59 | 104.3 / 121.2 ms | 945 ms | 0.9454 | 101 |
+| 201743-harsh-udp-sec | 59/59 | 203.0 / 237.0 ms | 1673 ms | 0.8395 | 101 |
+| 201951-lan-gns-sec | 59/59 | 9.1 / 12.2 ms | 66 ms | 0.9855 | 101 |
+| 202159-moderate-gns-sec | 59/59 | 95.1 / 114.9 ms | 685 ms | 0.9425 | 101 |
+| 202408-harsh-gns-sec | 59/59 | 190.5 / 230.6 ms | 2560 ms | 0.8433 | 101 |
+| *repeats* | | | | | |
+| 202616-harsh-gns-sec | 59/59 | 187.9 / 227.4 ms | 2820 ms | 0.8370 | 111 |
+| 202825-harsh-udp-sec | 59/59 | 205.0 / 240.9 ms | 2906 ms | 0.8356 | 111 |
+| 203033-harsh-gns-sec | 59/59 | 189.9 / 226.6 ms | 2082 ms | 0.8437 | 121 |
+| 203242-harsh-udp-sec | 59/59 | 204.9 / 239.0 ms | 2387 ms | 0.8363 | 121 |
+| 203450-harsh-gns-sec | 59/59 | 189.1 / 231.7 ms | 1380 ms | 0.8482 | 131 |
+| 203659-harsh-udp-sec | 59/59 | 203.5 / 237.0 ms | 1847 ms | 0.8499 | 131 |
+| 203907-harsh-gns-sec | 59/59 | 189.9 / 235.2 ms | 2276 ms | 0.8477 | 141 |
+| 204115-harsh-udp-sec | 59/59 | 203.4 / 239.0 ms | 1921 ms | 0.8422 | 141 |
+
+- **20/20 passed.** This is **not** evidence of a fix: the session and transport behaviour is the same as at `4cf1935`; only instrumentation and harness changed.
+- **The failure rate**, pooled over every 120 s run with the default policy since `4cf1935`:
+  - review #11 battery and repeats, the arm A of EXP-025, and this battery;
+  - harsh-gns-secure: **4 of 14** over 3000 ms (about 29%);
+  - harsh-udp-secure: **2 of 15** (about 13%).
+
+  KI-35 stays open.
+- The realized conditions match the profile: client2 delivery 0.84–0.85 against 15% loss and 5% duplication, and RTT p50 about 190 ms (GNS) and 203 ms (UDP), for 80 ms ± 40 ms each way.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

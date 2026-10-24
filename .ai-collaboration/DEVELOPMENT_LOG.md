@@ -2,6 +2,28 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #12 follow-up (`feature/review12-retry-experiment`, stacked on #12)
+
+- **Input:** [PR #12 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/12), FB-12-01 to FB-12-05; the owner asked for all of it. Record: EXP-025.
+- **Changes:**
+  - ConnectRequest attempt logging; `--reconnect-retry-ms`; `soak.ps1 -ReconnectRetryMs`.
+  - Predeclared retry experiment and `tools/soak/compare_arms.py`.
+  - Lifecycle trace and GNS lifecycle test.
+  - Departure tests.
+  - F-GNS-001; cookie cost in the timeline.
+  - The soak warm-up no longer aborts on stderr.
+- **Tests:**
+  - dtls {'PASSED': 56}; integration {'PASSED': 53}; integration-gns {'PASSED': 38, 'SKIPPED': 15}; network {'PASSED': 17}; network-gns {'SKIPPED': 5, 'PASSED': 12}; transport {'PASSED': 18}; transport-both {'PASSED': 21}; unit {'PASSED': 17}; gns {'PASSED': 7}.
+  - ×2, plus E2E; asymmetric 4/4; secure E2E 4/4.
+- **Soaks:**
+  - experiment 19 runs (1 aborted): B not adopted;
+  - final battery **20/20**.
+- **Problems encountered:**
+  - the first battery attempt was contaminated (environment variable leak) and restarted;
+  - one soak stopped after its warm-up;
+  - KI-40 not reproduced.
+- **Remaining:** KI-35 (about 29% / 13% failure on the harsh secure profiles), KI-40, KI-28b, LAN test, external review, debugger approval for KI-40 dumps.
+
 ## 2026-10-24: Review #11 follow-up (`feature/review11-gns-readiness`, stacked on #11)
 
 - **Input:** [PR #11 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/11), FB-11-01 to FB-11-05; the owner asked for all of it. Record: EXP-024.

@@ -1,0 +1,6 @@
+{"t_ms":0,"lvl":"info","comp":"client","evt":"clock","mono_us":134421594794}
+{"t_ms":0,"lvl":"info","comp":"client","evt":"loop_timer","high_resolution":true}
+{"t_ms":1,"lvl":"info","comp":"client","evt":"security","mode":"plaintext","own_fingerprint":"","invitation":""}
+{"t_ms":1,"lvl":"info","comp":"client","evt":"retry_policy","reconnect_retry_ms":500,"connect_retry_ms":250}
+{"t_ms":67,"lvl":"info","comp":"client","evt":"state_change","from":"idle","to":"connecting","why":"connect_called"}
+{"t_ms":67,"lvl":"info","comp":"client","evt":"connect_request","attempt":1,"since_phase_ms":7,"reconnecting":false,"transport_up":false,"sent":true}

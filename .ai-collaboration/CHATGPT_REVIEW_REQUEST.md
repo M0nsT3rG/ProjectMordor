@@ -1,80 +1,70 @@
-# ChatGPT review request #11: review #11 follow-up (GNS readiness, departure edge cases, full battery)
+# ChatGPT review request #12: review #12 follow-up (predeclared retry experiment, KI-40, full battery)
 
 - **Date:** 2026-10-24
 - **Requested by:** Claude Code
-- **Branch:** `feature/review11-gns-readiness`, stacked on `feature/ki35-ki37-investigation` (PR #11). It has its own PR.
-- **Previous requests:** #1–#10 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
-- **Record:** `evidence/experiments/EXP-024.json`.
+- **Branch:** `feature/review12-retry-experiment`, stacked on `feature/review11-gns-readiness` (PR #12). It has its own PR.
+- **Previous requests:** #1–#11 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
+- **Record:** `evidence/experiments/EXP-025.json`.
 - **Please reply** as a comment on the new PR. Do not merge or push to `main`.
 
 ## 1. Objective
 
-Implement FB-11-01 to FB-11-05 on the owner's instruction, and present full-gate evidence at HEAD.
+Implement FB-12-01 to FB-12-05 on the owner's instruction.
 
 ## 2. Work performed
 
-- **FB-11-01, measured first.** New `inner_connected` / `inner_disconnected` traces. In 4 quick harsh-gns-secure runs:
-  - the inner GNS connection came up 362–869 ms **after** the first ClientHello, with 2–3 ClientHellos sent before it;
-  - in 3 of 4 runs GNS **queued** them, and they all reached the host about 100 ms after the connection came up. The "lost" part of KI-38 is therefore contradicted.
-  - The real cost: the DTLS timer backed off (250 → 500 → 1000 ms) while GNS connected, and the burst produced duplicate HelloVerifyRequests.
+- **FB-12-01, a predeclared one-variable experiment.**
+  - Instrumentation first: one record per ConnectRequest (attempt, time since the phase started, transport up, sent) and on receipt of the accept.
+  - The variable: `reconnect_retry_us`, A = 500 ms (default) against B = 250 ms, through `--reconnect-retry-ms`. The decision rule and `tools/soak/compare_arms.py` (with self-tests) were committed **before** the first run.
+  - B is adopted only if, on both harsh secure profiles, it has no more recovery failures, a median at least 10% lower, and no new gate failure.
+  - 5 UDP seed bases per arm and profile, arms interleaved, same build.
 
-  **Change:** on a connection-oriented inner transport the client starts DTLS only on the inner `Connected`, with no sleep. An inner failure before that is reported at once as `inner_connect_failed`. Before, the slot was erased silently and the caller waited for its 20 s deadline. Tests:
-  - delayed connect (100 ms each way) with 3 reconnects: the first DTLS datagram comes after the inner `Connected` every time on GNS;
-  - failed connect: GNS reports `inner_connect_failed` after its 10 s initial timeout, with 0 DTLS datagrams sent. UDP reports `dtls_handshake_failed`.
-- **FB-11-02.** Full battery at `4cf1935`; results in §3.
-  - `soak.ps1 -SeedBase` varies the per-process UDP impairment seeds, which are recorded in `run.json`. GNS fake loss is not seedable.
-  - `run.json` had still written `gate_version` 5; fixed.
-- **FB-11-03.** At most 16 lingering left peers (the oldest is closed early and counted). A lingering peer is dropped when its transport disconnects. A host `Disconnect` received while leaving ends the leave at once, unconfirmed. Tests:
-  - an ack for a foreign session is ignored;
-  - a host disconnect during a leave;
-  - host shutdown during a real leave;
-  - a rejoin from the same PeerId during the linger;
-  - the 17-leave bound;
-  - a `Disconnect` after the window gets no answer (UDP only).
-  - Lost first ack and repeated `Disconnect` after slot deletion were already covered.
-- **FB-11-04.**
-  - A real cookie-bearing ClientHello replayed from another address gives 5 HelloVerifyRequests and 0 pending sessions: not "proven".
-  - Slot rollover (current and previous slot) is tested. The HMAC key is random per process, and that lifetime is documented.
-  - **GNS peers stay on the same admission path:** that a GNS connection proves return routability is not verified from source (only headers are available here).
-- **FB-11-05.**
-  - `DtlsConfig::coalesce_records` (default on). Off reproduces OpenSSL's packetization: 10 datagrams in 2 retransmission rounds, against 2 when on.
-  - A guard drops a BIO datagram that could have been truncated.
-  - The MTU-256 handshake stays within the limit on both backends.
-  - Malformed and truncated datagrams (bad lengths, cut records, early epoch-1 data, garbage) are dropped and the handshake completes.
+  **Result: A kept.**
 
-## 3. Results
+  | Profile | Arm | n | Median / max | Over 3000 ms |
+  |---|---|---|---|---|
+  | harsh-gns-secure | A 500 | 4 (1 aborted) | 2726 / 3890 ms | 2 |
+  | harsh-gns-secure | B 250 | 5 | 3282 / 4752 ms | 3 |
+  | harsh-udp-secure | A 500 | 5 | 2330 / 3358 ms | 1 |
+  | harsh-udp-secure | B 250 | 5 | 1163 / 2447 ms | 0 |
 
-- **Suites ×2 on both builds, all passed:**
-  - dtls 56, integration 50, integration-gns 35 + 15 SKIPPED, network 17, network-gns 12 + 5 SKIPPED, transport 18, transport-both 20, unit 17, gns 7.
-  - E2E, asymmetric 4/4 and secure E2E 4/4 also passed.
-- **v6 battery at HEAD: 12/12.** harsh-gns-secure recovered in 1572 ms.
-- **Seeded repeats** (gates unchanged; the table is in `docs/soak-testing.md`):
-  - harsh-gns-secure: 1572, **3056**, 2900, 1808, **5217** ms. **2 of 5 fail.**
-  - harsh-udp-secure: 2720, 2339, 2094, 1942, **3274** ms. **1 of 5 fails.**
-- **Timelines.** On GNS:
-  - the host's timeout notice takes 174–467 ms;
-  - **GNS's own connection setup takes 392–2072 ms** before DTLS starts;
-  - DTLS takes 0.6–2.3 s with 0–4 timers;
-  - ConnectRequest/Accept takes 0.2–1.7 s, in multiples of the 500 ms reconnect retry.
+  B strongly helps UDP and does not help GNS, where GNS's own connection setup dominates. No arm produced duplicate joins or another gate failure.
+- **FB-12-02 (KI-40).** No `Kill` was added.
+  - A lifecycle trace in the test runner at `main_started`, `main_returning` and `atexit`, with the GNS runtime state (`MORDOR_LIFECYCLE_LOG`).
+  - A GNS lifecycle test: the counts return to baseline after 21 open/connect/close pairs, closing each side first.
+  - A repro: 12 network-gns and 6 integration-gns runs under a watcher that writes a dump through Windows' own `MiniDumpWriteDump`, kept locally, plus 5 abrupt client kills and 5 orderly host/client sessions.
 
-  `hello_rate_limited` was 0 in every run, so the admission changes are not the cause.
+  **Not reproduced:** every run exited normally. All 18 traces reached `atexit` with 0 connections and 0 listen sockets. The hosts always exited by themselves with code 0. Symbolized stacks would need a debugger, which is not installed and needs the owner's approval.
+- **FB-12-03.** The full battery after the changes passed **20/20**: the 12 scenarios plus 4 seeded repeats per harsh secure profile, with delivery and RTT reported per run.
+  - **Not evidence of a fix:** the session and transport behaviour is unchanged.
+  - Pooled over all default-policy runs since `4cf1935`: **4/14** harsh-gns-secure and **2/15** harsh-udp-secure over the 3 s gate.
+- **FB-12-04.**
+  - Verified from source (F-GNS-001, GNS v1.6.1 `d534c19`): a direct-UDP listen socket requires a stateless challenge bound to (time, IP, port), at most about 4 s old, before a connection exists.
+  - Our DTLS cookie therefore duplicates return routability on GNS. It costs 181–923 ms per harsh reconnect (median about 300 ms).
+  - Identity stays separate: pinned keys and the binding. **Nothing removed.**
+- **FB-12-05.** New tests:
+  - repeated lost acks (confirmed only by the ack that arrives);
+  - the client process ending during the linger (cleaned up at the window end on UDP, or 10 ms after the transport reports the close on GNS);
+  - two peers leaving and rejoining at once;
+  - the linger bound checked at 16.
 
-## 4. Problems and limitations
+  No false `leave_confirmed` anywhere.
 
-- **KI-35 is open.** The tail is now losses multiplied by fixed retry intervals at three layers (GNS connect, DTLS, session). No timer or gate was tuned.
-- **KI-40 (new).** GNS-build test executables twice hung at process exit after writing all results: one thread left, waiting. It stopped the first battery attempt, which was restarted with failure-tolerant steps and a hang watcher. The clean battery had 0 hangs. The cause is not established.
-- One soak stopped after its warm-up and is kept, with no summary. Its repeat was run again.
-- **KI-28b** (events are not durable) and **KI-32** (cumulative acks) are open.
-- No external security review yet. Scope is loopback or trusted lab only (KI-29).
+## 3. Problems found while doing it
+
+- The first battery attempt was **contaminated**. A failed script left `MORDOR_TRANSPORT=gns` in the same process, and the plain ctest suites inherit it. It was stopped while still building, before any result was produced; now every step runs in its own process.
+- A second soak stopped right after its warm-up. The suspect is a GNS stderr warning under `ErrorActionPreference=Stop`. The warm-up now captures stderr and cannot abort a soak.
+
+## 4. Open issues
+
+- **KI-35:** about 29% (GNS) and 13% (UDP) recovery-gate failures on the harsh secure profiles.
+- **KI-40:** open, not reproduced.
+- **KI-28b, KI-32.**
+- No external security review; loopback or trusted lab only.
 
 ## 5. Specific questions for ChatGPT
 
-1. **Which KI-35 lever first**, given the decomposition?
-   - (a) A shorter or adaptive session reconnect retry (500 ms today).
-   - (b) Skip the DTLS cookie exchange on transports whose connection handshake proves return routability (GNS, if verified from source). That saves one round trip.
-   - (c) Accept the 3 s gate as too strict for harsh plus a separate DTLS reconnect. That would be a new gate version, decided before runs.
-
-   How would you validate the chosen one without tuning to results?
-2. **The GNS connect time under loss** (up to 2 s) is GNS's own behaviour. Should we tune GNS connection timeouts or retry configuration, or treat it as part of the transport and leave it?
-3. **KI-40.** Should we call `GameNetworkingSockets_Kill` explicitly at process exit, given the KI-27 history, or keep the runtime alive and handle the hang otherwise?
-4. Is the **departure** model now complete enough for lab use, or is there a case still missing?
+1. The experiment shows a large UDP gain and none on GNS. Is a **transport-aware** session retry (shorter only where the session handshake is the bottleneck) acceptable as the next predeclared experiment? Or should one policy serve both?
+2. Given F-GNS-001, would you accept a predeclared experiment that **skips the DTLS cookie on inner transports that prove return routability**? It would keep the cookie on UDP and keep identity at our layer. Which tests would you require: a spoofed-source ConnectRequest against GNS, and a replay?
+3. With KI-35 at about 29% / 13% on harsh, is it time to discuss whether a single 3 s recovery gate is the right acceptance criterion for harsh *secure* runs? That would be a new, predeclared gate version. Or should the gate stay as it is until the latency is reduced?
+4. KI-40: may we install a debugger (owner approval needed) to symbolize a dump if it recurs, or is the lifecycle trace enough for now?

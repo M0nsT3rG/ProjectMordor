@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 86,
+  "count": 88,
   "records": [
     {
       "id": "EXP-001",
@@ -265,6 +265,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #11 (FB-11-01..05) on feature/review11-gns-readiness: measure, then gate the secure client's DTLS start on the inner GNS Connected; departure edge cases; cookie and coalescing checks; full v6 battery at HEAD with seeded harsh repeats."
+    },
+    {
+      "id": "EXP-025",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-025.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #12 (FB-12-01..05) on feature/review12-retry-experiment: a predeclared one-variable experiment on the session reconnect retry, KI-40 lifecycle diagnosis, the GNS return-routability question, more departure tests, then the full v6 battery with seeded repeats."
     },
     {
       "id": "F-COMM-001",
@@ -749,6 +760,17 @@
       "scope": "locally_measured",
       "confidence": "low",
       "summary": "A per-user directory '%LOCALAPPDATA%/WB Games/Shadow of War' exists. Its contents were deliberately not inspected in Phase 1."
+    },
+    {
+      "id": "F-GNS-001",
+      "type": "finding",
+      "path": "evidence/findings/F-GNS-001.json",
+      "date": "2026-10-24",
+      "subsystem": "networking",
+      "status": "CONFIRMED",
+      "scope": "source_verified",
+      "confidence": "high",
+      "summary": "In GameNetworkingSockets v1.6.1 a direct-UDP listen socket accepts a ConnectRequest only if it echoes a stateless challenge, a SipHash of (time slot, sender IP, sender port) under a per-socket secret, at most about 4 s old. A GNS connection therefore proves return routability for its address before it is created."
     },
     {
       "id": "F-SOWM-001",

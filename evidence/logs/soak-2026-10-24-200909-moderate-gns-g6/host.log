@@ -1,0 +1,14 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"clock","mono_us":137295589518}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"security","mode":"plaintext","own_fingerprint":"","invitation":""}
+{"t_ms":56,"lvl":"info","comp":"host","evt":"host_started","port":47813,"loopback_only":true,"session":1323580013,"secure":false,"tick_rate_hz":30,"protocol_version":3,"transport":"gns"}
+{"t_ms":422,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":459,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":51208,"lvl":"info","comp":"host","evt":"player_timeout","player":1,"grace_ms":30000}
+{"t_ms":53522,"lvl":"info","comp":"host","evt":"player_reconnected","player":1,"entity":1}
+{"t_ms":120225,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":120225,"lvl":"info","comp":"host","evt":"player_stats","player":1,"packets_in":4340}
+{"t_ms":120225,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":120225,"lvl":"info","comp":"host","evt":"player_stats","player":2,"packets_in":4550}
+{"t_ms":126057,"lvl":"info","comp":"host","evt":"event_source","events_refused":0}
+{"t_ms":126057,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":8918,"packets_out":8513,"invalid":0,"bytes_in":642321,"bytes_out":663110,"world_tick":3780,"uptime_us":125998503,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":9,"stale_inputs":28538,"joins":2,"reconnects":1,"timeouts":1,"timeout_notices":1,"unknown_peer":22,"send_errors":0,"transport":"gns","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":2,"transport_impairment_refused":0,"transport_simulated_drops":0,"transport_sent":8513,"transport_received":8918,"events_queued":478,"events_applied":478,"events_retransmitted":9,"events_replayed":7,"events_dropped_with_slot":0,"events_send_refused":0,"event_acks_invalid":0,"clean_leaves":2,"leave_acks_repeated":0,"leave_lingers_cut":0}

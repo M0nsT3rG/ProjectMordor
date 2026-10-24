@@ -1,9 +1,9 @@
 [
-  {"name":"gns_concurrent_bidirectional_reliable_ordered","result":"PASSED","transport":"udp","ms":143,"error":""},
+  {"name":"gns_concurrent_bidirectional_reliable_ordered","result":"PASSED","transport":"udp","ms":133,"error":""},
   {"name":"gns_two_simultaneous_clients","result":"PASSED","transport":"udp","ms":101,"error":""},
-  {"name":"gns_interleaved_reliable_and_unreliable_under_loss","result":"PASSED","transport":"udp","ms":356,"error":""},
-  {"name":"gns_send_queue_pressure","result":"PASSED","transport":"udp","ms":2925,"error":""},
+  {"name":"gns_interleaved_reliable_and_unreliable_under_loss","result":"PASSED","transport":"udp","ms":378,"error":""},
+  {"name":"gns_send_queue_pressure","result":"PASSED","transport":"udp","ms":2891,"error":""},
   {"name":"gns_default_connection_security_flags","result":"PASSED","transport":"udp","ms":25,"error":""},
   {"name":"gns_opensource_build_accepts_unauthenticated_peers_by_default","result":"PASSED","transport":"udp","ms":0,"error":""},
-  {"name":"gns_reliable_exact_under_simulated_loss_and_lag","result":"PASSED","transport":"udp","ms":1058,"error":""}
+  {"name":"gns_reliable_exact_under_simulated_loss_and_lag","result":"PASSED","transport":"udp","ms":838,"error":""}
 ]
