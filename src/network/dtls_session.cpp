@@ -262,6 +262,28 @@ void DtlsSession::flush_out() {
     }
 }
 
+bool DtlsSession::listen_offer(std::span<const std::uint8_t> datagram, PeerId peer, Endpoint remote, std::uint64_t now_us) {
+    if (!ssl_ || !in_ || !cfg_.server || state_ != DtlsState::Handshaking) return false;
+    peer_ = peer;      // the cookie is bound to this peer and address; the HelloVerifyRequest goes back to it
+    remote_ = remote;
+    now_us_ = now_us;
+    ERR_clear_error();
+    BIO_write(in_, datagram.data(), static_cast<int>(datagram.size()));
+    BIO_ADDR* addr = BIO_ADDR_new();
+    const int r = DTLSv1_listen(ssl_, addr);
+    BIO_ADDR_free(addr);
+    if (r < 0) {
+        ERR_clear_error();  // a malformed datagram: drop it, the listener stays usable
+        return false;
+    }
+    flush_out();  // the HelloVerifyRequest, if one was produced
+    if (r == 0) return false;
+    ++stats_.cookies_verified;
+    started_ = true;
+    started_us_ = now_us;
+    return true;
+}
+
 void DtlsSession::on_datagram(std::span<const std::uint8_t> bytes, std::uint64_t now_us, std::uint64_t now_unix_s) {
     now_us_ = now_us;
     if (state_ == DtlsState::Rejected || !in_) return;

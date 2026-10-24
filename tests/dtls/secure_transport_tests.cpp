@@ -69,8 +69,7 @@ struct World {
     test::SimClock clk;
     std::unique_ptr<host::Host> host;
     std::vector<std::unique_ptr<client::Client>> clients;
-    explicit World(TransportKind k, bool secure_host = true) : kind(k) {
-        host::HostConfig hc;
+    explicit World(TransportKind k, bool secure_host = true, host::HostConfig hc = {}) : kind(k) {
         hc.transport = k;
         if (secure_host) hc.secure = secure(host_key, {k1.spki(), k2.spki()}, inv);
         host = std::make_unique<host::Host>(hc, test::test_logger("host"));
@@ -203,6 +202,13 @@ std::vector<TransportEvent> run(std::vector<Transport*> all, Transport* watch, P
             std::vector<TransportEvent> ev;
             t->poll(real_us(), ev);
             if (t == watch) seen.insert(seen.end(), ev.begin(), ev.end());
+            // Raw transports drive DTLS sessions of their own (attackers): hand them their datagrams. extra[i] runs
+            // over all[i + 1] by construction in the tests that use it.
+            for (std::size_t j = 0; j < extra.size(); ++j)
+                if (j + 1 < all.size() && all[j + 1] == t)
+                    for (const auto& e : ev)
+                        if (e.kind == TransportEvent::Kind::Message)
+                            extra[j]->on_datagram(e.bytes, real_us(), static_cast<std::uint64_t>(std::time(nullptr)));
         }
         for (auto* s : extra) s->service(real_us(), static_cast<std::uint64_t>(std::time(nullptr)));
         if (done(seen)) return seen;
@@ -418,9 +424,11 @@ TEST(secure_forged_client_hellos_cannot_starve_a_players_reconnect) {
         spam();
         step(20, [](const auto&) { return false; });
     }
-    const auto replaced_before = hs->pending_replaced;
-    CHECK(hs->pending_refused_cap >= 1);  // the strangers hit the cap...
-    CHECK(c->send(peer, std::vector<std::uint8_t>{5}, Delivery::Unreliable, 0) == SendResult::Sent);  // ...the player still plays
+    // KI-30 stateless cookie gate (review #10 answer 5): forged ClientHellos never complete the cookie exchange, so
+    // they get a HelloVerifyRequest and allocate NOTHING (before: each one created or replaced a pending session).
+    const auto opened_before = hs->pending_opened;
+    CHECK(hs->hello_verify_sent >= 8 && hs->pending_refused_cap == 0);
+    CHECK(c->send(peer, std::vector<std::uint8_t>{5}, Delivery::Unreliable, 0) == SendResult::Sent);  // the player still plays
     step(2000, [](const auto& e) {
         return std::any_of(e.begin(), e.end(), [](const auto& x) { return x.kind == TransportEvent::Kind::Message; });
     });
@@ -435,13 +443,12 @@ TEST(secure_forged_client_hellos_cannot_starve_a_players_reconnect) {
         step(1, [&](const auto&) { return hs->authenticated >= 2; });
     }
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
-    std::printf("       udp: reconnect authenticated after %lld ms under forged ClientHellos (replaced %llu, ignored %llu, refused %llu)\n",
-                static_cast<long long>(ms), static_cast<unsigned long long>(hs->pending_replaced),
-                static_cast<unsigned long long>(hs->hello_ignored), static_cast<unsigned long long>(hs->pending_refused_cap));
+    std::printf("       udp: reconnect authenticated after %lld ms under forged ClientHellos (verify requests %llu, pending opened by forgeries %llu)\n",
+                static_cast<long long>(ms), static_cast<unsigned long long>(hs->hello_verify_sent),
+                static_cast<unsigned long long>(hs->pending_opened - opened_before - 1));
     CHECK(hs->authenticated == 2);
     CHECK(ms < 3000);  // was bounded only by the 10 s pending lifetime before FB-8-01
-    CHECK(hs->hello_ignored >= 1);  // once the player handshake proved its cookie, forgeries could not displace it
-    CHECK(replaced_before >= 4);     // before that, each forgery displaced the previous unverified one (1 pending)
+    CHECK(hs->pending_opened == opened_before + 1);  // only the player's own, cookie-proven attempt allocated state
     // Event order at the host: the old association is retired before the new one is reported.
     std::size_t disc = SIZE_MAX, conn = SIZE_MAX;
     for (std::size_t i = 0; i < hev.size(); ++i) {
@@ -839,4 +846,39 @@ TEST(secure_clean_leave_after_reconnect_is_not_a_timeout) {
             CHECK(w.host->stats().timeouts == timeouts_before);
         }
     }
+}
+
+// Review #10 FB-10-02: when the transport refuses an event (here the secure channel's window is full because the
+// client stopped acknowledging), the host does not count it as sent: it retries with back-off, and every event still
+// arrives exactly once and in order once the client is back.
+TEST(secure_refused_event_sends_are_retried_not_counted_as_sent) {
+    host::HostConfig hc;
+    hc.max_unacked_events = 400;  // more than the secure channel's 256-message window
+    World w(TransportKind::Udp, true, hc);
+    auto& c = w.add(&w.k1, {w.host_key.spki()});
+    CHECK(w.run_until([&] { return c.state() == ClientState::Connected; }, 10 * kSec));
+    const auto player = c.player_id();
+    std::uint32_t queued = 0;
+    for (std::uint32_t i = 1; i <= 300; ++i) {
+        const std::vector<std::uint8_t> p{static_cast<std::uint8_t>(i), static_cast<std::uint8_t>(i >> 8)};
+        queued += w.host->send_event(player, 1, p, w.clk.now) ? 1 : 0;
+    }
+    // Freeze the client (no polling: no DTLS acks) while the host keeps sending snapshots and resending events.
+    for (int i = 0; i < 400; ++i) {
+        w.host->update(w.clk.now += 5'000);
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    const auto refused = w.host->stats().events_send_refused;
+    std::vector<std::uint32_t> applied;
+    CHECK(w.run_until([&] {
+        for (const auto& e : c.take_events()) {
+            applied.push_back(e.payload[0] | (std::uint32_t{e.payload[1]} << 8));
+            c.ack_events_applied(e.id, w.clk.now);
+        }
+        return applied.size() == queued && w.host->unapplied_events(player) == 0;
+    }, 20 * kSec));
+    std::printf("       udp: %u events; host sends refused by the transport while the client was frozen: %llu; all applied once, in order\n",
+                queued, static_cast<unsigned long long>(refused));
+    CHECK(refused >= 1);
+    for (std::size_t i = 0; i < applied.size(); ++i) CHECK(applied[i] == i + 1);
 }

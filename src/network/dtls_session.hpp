@@ -67,6 +67,12 @@ struct DtlsStats {
 class DtlsSession {
 public:
     DtlsSession(Transport& transport, PeerId peer, Endpoint remote, DtlsConfig cfg);
+
+    // Stateless cookie gate (KI-30, review #10 answer 5). A SERVER session used as the decorator's single listener:
+    // listen_offer() feeds one datagram from (peer, remote) to DTLSv1_listen. Without a valid cookie it answers with
+    // a HelloVerifyRequest and keeps NO per-peer state; with one it returns true, and this object is then bound to
+    // that peer and continues the handshake as an ordinary pending session.
+    bool listen_offer(std::span<const std::uint8_t> datagram, PeerId peer, Endpoint remote, std::uint64_t now_us);
     ~DtlsSession();
     DtlsSession(const DtlsSession&) = delete;
     DtlsSession& operator=(const DtlsSession&) = delete;

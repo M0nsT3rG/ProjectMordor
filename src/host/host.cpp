@@ -132,8 +132,17 @@ void Host::service_events(std::uint64_t now_us) {
         for (auto& e : s.events) {
             const bool first = e.last_sent_us == 0;
             if (!first && now_us - e.last_sent_us < resend_us) continue;
-            send(s, e.event, now_us, delivery);
+            if (e.retry_at_us && now_us < e.retry_at_us) continue;  // backing off after a refused send
+            // Review #10 FB-10-02: only a send the transport ACCEPTED counts; otherwise retry with bounded back-off.
+            if (send(s, e.event, now_us, delivery) != SendResult::Sent) {
+                ++stats_.events_send_refused;
+                e.retry_at_us = now_us + std::min<std::uint64_t>(10'000ull << std::min(e.refusals++, 6u), 500'000);
+                continue;
+            }
+            e.refusals = 0;
+            e.retry_at_us = 0;
             e.last_sent_us = now_us ? now_us : 1;
+            s.highest_sent_event = std::max(s.highest_sent_event, e.event.event_id);
             ++(first ? stats_.events_transmitted : stats_.events_retransmitted);
         }
     }
@@ -228,6 +237,15 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             remove_slot(s->player_id);
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
+            // Review #10 FB-10-01: an ack can only cover events this host actually sent in this session. Anything
+            // beyond (a forged, corrupted or confused ack) is refused WHOLE, so it can never erase an event that
+            // was never delivered (e.g. one queued while the player was away).
+            if (a.applied_through > s->highest_sent_event) {
+                ++stats_.event_acks_invalid;
+                log_.warn("event_ack_invalid", {kv("player", s->player_id), kv("applied_through", a.applied_through),
+                                                kv("highest_sent", s->highest_sent_event)});
+                return;
+            }
             while (!s->events.empty() && s->events.front().event.event_id <= a.applied_through) {
                 s->events.pop_front();
                 ++stats_.events_applied;
@@ -390,16 +408,18 @@ void Host::check_timeouts(std::uint64_t now_us) {
     }
 }
 
-void Host::transmit(PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, Delivery delivery) {
+SendResult Host::transmit(PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, Delivery delivery) {
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
-    if (const auto r = transport_->send(to, bytes, delivery, now_us); r != SendResult::Sent) {
+    const auto r = transport_->send(to, bytes, delivery, now_us);
+    if (r != SendResult::Sent) {
         ++stats_.send_errors;  // surfaced, never silent (review FB-4-04)
         log_.debug("send_failed", {kv("result", to_string(r))});
     }
+    return r;
 }
 
-void Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery delivery) {
+SendResult Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery delivery) {
     Header h;
     h.session = session_;
     h.sequence = ++s.send_seq;
@@ -407,9 +427,9 @@ void Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery delive
     auto bytes = encode(h, m);
     if (bytes.empty()) {
         log_.error("encode_failed", {kv("type", static_cast<int>(type_of(m)))});
-        return;
+        return SendResult::Failed;
     }
-    transmit(s.peer, bytes, now_us, delivery);
+    return transmit(s.peer, bytes, now_us, delivery);
 }
 
 void Host::send_unconnected(PeerId to, const Message& m, std::uint64_t now_us) {
@@ -448,13 +468,14 @@ void Host::shutdown() {
                                kv("transport_impairment_refused", ts.impairment_refused),
                                kv("events_queued", stats_.events_queued), kv("events_applied", stats_.events_applied),
                                kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
-                               kv("events_dropped_with_slot", stats_.events_dropped_with_slot)});
+                               kv("events_dropped_with_slot", stats_.events_dropped_with_slot),
+                               kv("events_send_refused", stats_.events_send_refused), kv("event_acks_invalid", stats_.event_acks_invalid)});
     if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets
         log_.info("secure_stats", {kv("authenticated", ss->authenticated), kv("pending_opened", ss->pending_opened),
                                    kv("pending_failed", ss->pending_failed), kv("pending_refused_cap", ss->pending_refused_cap),
                                    kv("dropped_not_dtls", ss->dropped_not_dtls), kv("idle_timeouts", ss->idle_timeouts),
                                    kv("reliable_retransmits", ss->reliable_retransmits),
-                                   kv("pending_replaced", ss->pending_replaced), kv("hello_ignored", ss->hello_ignored),
+                                   kv("pending_replaced", ss->pending_replaced), kv("hello_verify_sent", ss->hello_verify_sent),
                                    kv("hello_rate_limited", ss->hello_rate_limited), kv("promotions_replacing", ss->promotions_replacing),
                                    kv("rejected_established", ss->rejected_established), kv("handshakes_done", ss->handshakes_done),
                                    kv("handshake_retransmits", ss->handshake_retransmits), kv("handshake_ms_max", ss->handshake_ms_max)});

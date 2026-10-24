@@ -232,7 +232,6 @@ private:
         std::array<std::uint8_t, 32> pending_random{};
         std::uint64_t last_rx_us = 0;  // last AUTHENTICATED record from this peer (idle timeout, FB-8-04/FB-9-01)
         std::uint64_t last_tx_us = 0;  // last frame we sent (keepalive)
-        std::uint64_t last_hello_us = 0;  // last new handshake attempt opened for this address (rate limit)
         std::uint64_t pending_since_us = 0;  // when the current pending session was opened (diagnostics)
         // Secure reliable channel state, per established session (FB-8-02).
         struct OutMsg {
@@ -297,53 +296,29 @@ private:
         } else {
             const auto ch = dtls_parse_client_hello(e.bytes);  // complete epoch-0 ClientHello, or nullopt
             Slot* s = it != slots_.end() ? &it->second : nullptr;
-            bool open_new = false, replacing = false;
-            if (!s || (!s->established && !s->pending)) {
-                if (!ch) {
-                    ++sstats_.dropped_not_dtls;  // no plaintext path, ever
+            // A ClientHello that is not a retransmission for an existing pending handshake goes through the
+            // STATELESS cookie gate first (KI-30, review #10 answer 5): no per-peer state until the sender proved it
+            // receives at its address. Forgeries from spoofed addresses therefore never allocate anything.
+            const bool retransmit_for_pending = ch && s && s->pending && s->pending_random == ch->random;
+            if (ch && !retransmit_for_pending) {
+                if (now_us - window_start_us_ >= 1'000'000) {
+                    window_start_us_ = now_us;
+                    window_attempts_ = 0;
+                }
+                if (++window_attempts_ > cfg_.max_new_handshakes_per_s) {
+                    ++sstats_.hello_rate_limited;  // bounds the CPU spent on HelloVerifyRequests
                     return;
                 }
-                open_new = true;
-            } else if (ch && !(s->pending && s->pending_random == ch->random)) {
-                // A ClientHello for a NEW handshake attempt (different client random). Review #8 FB-8-01: it may
-                // displace a pending session that has not proven return routability (no verified cookie); a
-                // cookie-verified one only by a ClientHello carrying a valid cookie for this address, which an
-                // off-path spoofer cannot obtain. The established session is never touched here.
-                if (!s->pending) {
-                    open_new = true;
-                } else if (s->pending->stats().cookies_verified == 0) {
-                    open_new = replacing = true;
-                } else if (!ch->cookie.empty() && s->pending->cookie_matches(ch->cookie)) {
-                    open_new = replacing = true;
-                } else {
-                    ++sstats_.hello_ignored;
+                if (!listener_) listener_ = std::make_unique<DtlsSession>(*inner_, PeerId{}, Endpoint{}, session_cfg(true));
+                if (!listener_->listen_offer(e.bytes, e.peer, e.remote, now_us)) {
+                    ++sstats_.hello_verify_sent;
+                    return;
                 }
-            }
-            if (open_new) {
-                // Rate limits (review #9 answer 1), before any state is allocated. Exempt: a ClientHello with a valid
-                // cookie (an off-path spoofer cannot produce it), and any attempt at the address of an ESTABLISHED
-                // player: rate-limiting there let forgeries from that address starve the player's own reconnect
-                // (found by secure_forged_client_hellos_cannot_starve_a_players_reconnect, EXP-022); that slot is
-                // governed by the FB-8-01 cookie rules and is reserved outside the cap.
-                const bool proven = ch && !ch->cookie.empty() && s && s->pending && s->pending->cookie_matches(ch->cookie);
-                const bool known_player = s && s->established;
-                if (!proven && !known_player) {
-                    if (now_us - window_start_us_ >= 1'000'000) {
-                        window_start_us_ = now_us;
-                        window_attempts_ = 0;
-                    }
-                    ++window_attempts_;  // every unproven attempt counts, opened or not
-                    if (window_attempts_ > cfg_.max_new_handshakes_per_s ||
-                        (s && s->last_hello_us && now_us - s->last_hello_us < cfg_.min_hello_interval_us)) {
-                        ++sstats_.hello_rate_limited;
-                        return;
-                    }
-                }
-                // A known player (established session) reconnects in its own reserved slot: strangers filling the
-                // global cap cannot block it (FB-8-01). Replacing does not add a pending session.
-                const bool reserved = s && s->established;
-                if (!replacing && !reserved && unreserved_pending() >= cfg_.max_pending_total) {
+                // Cookie verified: this ClientHello is from a return-routable sender.
+                const bool reserved = s && s->established;  // a known player reconnects outside the global cap
+                if (!(s && s->pending) && !reserved && unreserved_pending() >= cfg_.max_pending_total) {
                     ++sstats_.pending_refused_cap;  // bounded pre-authentication state (FB-7-01)
+                    listener_.reset();               // its state is bound to this refused peer: start a fresh one
                     return;
                 }
                 if (!s) {
@@ -352,12 +327,20 @@ private:
                     it->second.remote = e.remote;
                     s = &it->second;
                 }
-                if (replacing) ++sstats_.pending_replaced;
-                s->last_hello_us = now_us;
-                s->pending = std::make_unique<DtlsSession>(*inner_, e.peer, e.remote, session_cfg(true));
+                if (s->pending) ++sstats_.pending_replaced;  // a new, cookie-proven attempt supersedes an older one
+                s->pending = std::move(listener_);
                 s->pending_since_us = now_us;
                 s->pending_random = ch->random;
                 ++sstats_.pending_opened;
+                s->pending->service(now_us, unix_s);  // continue the handshake with the buffered ClientHello
+                return;
+            }
+            // Anything else continues an existing association only; there is no plaintext path, ever. (The earlier
+            // per-address replacement and known-player rate-limit exemption were removed: with the stateless gate
+            // above an unverified ClientHello can no longer allocate or displace anything, review #10 answer 5.)
+            if (!s || (!s->established && !s->pending)) {
+                ++sstats_.dropped_not_dtls;
+                return;
             }
         }
         auto& s = it->second;
@@ -463,6 +446,7 @@ private:
     std::uint64_t now_us_ = 0;  // time of the current poll()
     std::uint64_t window_start_us_ = 0;  // 1 s window of new handshake attempts (rate limit)
     std::uint32_t window_attempts_ = 0;
+    std::unique_ptr<DtlsSession> listener_;  // stateless cookie gate (KI-30)
     std::map<Key, Slot> slots_;            // by inner PeerId
     std::map<std::uint32_t, Key> by_secure_;  // secure PeerId.id -> slot
     std::uint32_t next_id_ = 1;

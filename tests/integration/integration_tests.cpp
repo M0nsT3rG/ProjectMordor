@@ -1164,3 +1164,34 @@ TEST(unapplied_events_are_resent_even_on_reliable_transports) {
     CHECK(s.host.stats().events_retransmitted >= 1);
     CHECK(c.stats().events_duplicate >= 1);
 }
+
+// Review #10 FB-10-01: an EventAck can only cover events the host actually sent; a future/forged ack is refused whole
+// and never erases undelivered events. A stale ack is harmless.
+TEST(event_acks_beyond_what_was_sent_are_refused) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 77);
+    const auto player = fc.accept.player_id;
+    for (std::uint32_t i = 1; i <= 3; ++i) CHECK(s.host.send_event(player, 1, ev_payload(i), s.clk.now));
+    settle();
+    s.host.update(s.clk.now);
+    fc.send(EventAck{100});  // claims far more than was ever sent
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.unapplied_events(player) == 3);
+    CHECK(s.host.stats().event_acks_invalid == 1);
+    fc.send(EventAck{2});  // valid
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.unapplied_events(player) == 1);
+    fc.send(EventAck{1});  // stale: nothing to do, not invalid
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.unapplied_events(player) == 1 && s.host.stats().event_acks_invalid == 1);
+    // Queued after the last transmission (the host has not sent it yet when the ack arrives): never erased.
+    CHECK(s.host.send_event(player, 1, ev_payload(4), s.clk.now));  // sent at once, highest_sent = 4
+    fc.send(EventAck{5});
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.unapplied_events(player) == 2 && s.host.stats().event_acks_invalid == 2);
+}

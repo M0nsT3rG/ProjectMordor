@@ -39,7 +39,8 @@ struct HostStats {
     std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected peer loss
     // Application-level reliable events (FB-9-02, KI-28).
     std::uint64_t events_queued = 0, events_transmitted = 0, events_retransmitted = 0, events_replayed = 0,
-                  events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0;
+                  events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0,
+                  events_send_refused = 0, event_acks_invalid = 0;
 };
 
 class Host {
@@ -89,9 +90,12 @@ private:
         struct OutEvent {
             net::GameEvent event;
             std::uint64_t last_sent_us = 0;  // 0: not sent on the current connection (new, or replay after reconnect)
+            std::uint64_t retry_at_us = 0;   // after a refused send (FB-10-02)
+            unsigned refusals = 0;
         };
         std::deque<OutEvent> events;  // unapplied, oldest first
         std::uint32_t next_event_id = 1;
+        std::uint32_t highest_sent_event = 0;  // highest id the transport accepted in this session (FB-10-01)
     };
 
     void receive(std::uint64_t now_us);
@@ -103,9 +107,9 @@ private:
     void broadcast(std::uint64_t now_us);
     void check_timeouts(std::uint64_t now_us);
     void service_events(std::uint64_t now_us);
-    void send(Slot& s, const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
+    net::SendResult send(Slot& s, const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void send_unconnected(net::PeerId to, const net::Message& m, std::uint64_t now_us);
-    void transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, net::Delivery delivery);
+    net::SendResult transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, net::Delivery delivery);
     void accept(Slot& s, std::uint64_t now_us);
     // close_transport_peer = false when the same transport peer is about to be reused (e.g. new client instance).
     void remove_slot(std::uint16_t player_id, bool close_transport_peer = true);

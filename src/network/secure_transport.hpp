@@ -9,11 +9,12 @@
 //    reliable messages lost with their session are counted (accepted_then_failed), never silent.
 //  - reports_disconnects == true means: DTLS rejection, inner-transport loss, replacement by a new session, and
 //    idle_timeout_us of silence are reported. Liveness finer than that remains the session layer's job (FB-8-04).
-//  - Pre-authentication state is BOUNDED (FB-7-01): one pending session per inner peer, max_pending_total
-//    overall (a peer with an established session has its own reserved reconnect slot, FB-8-01), each living at
-//    most pending_lifetime_us. A new handshake attempt displaces a pending one only if that one has no verified
-//    cookie, or if it carries a valid cookie itself (FB-8-01). The HelloVerifyRequest cookie is STATEFUL (a session is
-//    allocated before it): an integrity measure, not a DoS gate. Lab / loopback only (KI-29).
+//  - STATELESS cookie gate (KI-30, review #10 answer 5): a single listener answers every new ClientHello with a
+//    HelloVerifyRequest via DTLSv1_listen and keeps no per-peer state; only a ClientHello with a valid cookie (the
+//    sender receives at its address) creates a pending session. Pre-authentication state is then BOUNDED
+//    (FB-7-01): one pending session per inner peer, max_pending_total overall (a peer with an established session
+//    reconnects in a reserved slot, FB-8-01), each living at most pending_lifetime_us; a newer cookie-proven
+//    attempt replaces an older pending one. New ClientHellos are rate-limited before any work. Lab only (KI-29).
 //  - A ClientHello on an established association (UDP reconnect from the same address) opens a pending session
 //    next to it; only once that one authenticates is the old one retired (Disconnected "replaced") and the new
 //    one reported Connected under a NEW PeerId. Records of the retired session are dropped by the new one.
@@ -49,18 +50,17 @@ struct SecureTransportConfig {
     // reports_disconnects holds even over raw UDP. Longer than the session layer's 3 s liveness, which normally
     // acts first; this bounds how long a vanished peer's DTLS state can linger. 0 disables.
     std::uint64_t idle_timeout_us = 10'000'000;
-    // Review #9 answer 1: unauthenticated ClientHellos are rate-limited and counted. A ClientHello carrying a valid
-    // cookie (it proved return routability) is never rate-limited.
-    std::uint32_t max_new_handshakes_per_s = 64;    // whole transport
-    std::uint64_t min_hello_interval_us = 20'000;   // per peer address
+    // Review #9 answer 1 / #10 answer 5: new ClientHellos are rate-limited (whole transport) BEFORE any work; the
+    // stateless cookie gate then answers unverified ones without allocating per-peer state (KI-30).
+    std::uint32_t max_new_handshakes_per_s = 64;
     std::function<std::uint64_t()> unix_clock;               // wall-clock seconds; default std::time
 };
 
 struct SecureStats {
     std::uint64_t pending_opened = 0, pending_refused_cap = 0, pending_failed = 0;
     std::uint64_t pending_replaced = 0;   // an unverified (or cookie-bearing) new handshake displaced a pending one
-    std::uint64_t hello_ignored = 0;      // new ClientHello without a valid cookie vs a cookie-verified pending
-    std::uint64_t hello_rate_limited = 0; // new ClientHello dropped by max_new_handshakes_per_s / min_hello_interval_us
+    std::uint64_t hello_rate_limited = 0; // new ClientHello dropped by max_new_handshakes_per_s (before any work)
+    std::uint64_t hello_verify_sent = 0;  // stateless HelloVerifyRequests: ClientHellos without a valid cookie
     std::uint64_t authenticated = 0, promotions_replacing = 0, rejected_established = 0, idle_timeouts = 0;
     std::uint64_t dropped_not_dtls = 0;      // plaintext / non-ClientHello from a peer without a session
     std::uint64_t dropped_unknown_peer = 0;  // client side: datagram from a peer we never connected to
