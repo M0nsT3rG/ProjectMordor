@@ -2,6 +2,28 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #10 follow-up (`feature/ki35-ki37-investigation`, stacked on #10)
+
+- **Input:** [PR #10 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/10#issuecomment-6380695083), FB-10-01 to FB-10-05 and answer 5; the owner asked for all of it on this branch. Record: EXP-023.
+- **Changes:**
+  - FB-10-01: `EventAck` refused above the highest id the transport accepted (`event_acks_invalid`).
+  - FB-10-02: an event counts as sent only on `Sent`; refused sends are retried with back-off.
+  - Answer 5 / KI-30: stateless `DTLSv1_listen` cookie gate. Cookie-proven ClientHellos bypass the 64/s budget.
+  - **Protocol v3:** `DisconnectAck`, client `Leaving` state (FB-10-04). The host keeps the transport peer of a cleanly-left player open for 1.5 s.
+  - KI-35 instrumentation: `dtls_trace`, `clock` records, reconnect milestones, `player_stats`, transport stats; `tools/soak/timeline.py`.
+  - KI-35 fixes from the traces: DTLS flight retransmissions coalesced into one datagram; ConnectRequest sent as soon as the transport is up.
+  - Soak gate v6 (FB-10-05), fixed before its runs.
+- **Tests:**
+  - unit {'PASSED': 17}; integration {'PASSED': 44}; network {'PASSED': 17}; transport {'PASSED': 18}; transport-both {'PASSED': 20}; integration-gns {'PASSED': 30, 'SKIPPED': 14}; network-gns {'SKIPPED': 5, 'PASSED': 12}; gns {'PASSED': 7}; dtls {'PASSED': 50};
+  - ×2 on both builds, plus E2E;
+  - asymmetric 4/4; secure E2E 4/4; KI-27 reproducer 0 assertions with the 50 ms settle (10/10);
+  - **v6 soaks 11/12** (harsh-gns-secure failed recovery, 4168 ms).
+- **Problems encountered:**
+  - the FB-8-01 test caught forged ClientHellos starving a real reconnect through the global rate limit (fixed);
+  - one soak was aborted when the battery was restarted outside the tool time limit (kept);
+  - the GNS case of the flight-coalescing test cannot be reproduced with process-global impairment (NOT RUN).
+- **Remaining:** KI-35 on GNS (KI-38 hypothesis), KI-28b, LAN test, independent review.
+
 ## 2026-10-24: Review #9 follow-up (`feature/secure-liveness`, stacked on #9)
 
 - **Input:** [PR #9 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/9#issuecomment-6379227966), FB-9-01 to FB-9-05; the owner asked for everything, including FB-9-02.

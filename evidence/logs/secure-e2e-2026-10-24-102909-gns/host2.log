@@ -1,0 +1,22 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"clock","mono_us":102509933660}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"host","evt":"security","mode":"dtls","own_fingerprint":"e4d01c404a84abdfea78534c1717dda616130e9014aa3112d49521661c209bb5","invitation":"e2e-gns"}
+{"t_ms":58,"lvl":"info","comp":"host","evt":"host_started","port":47845,"loopback_only":true,"session":2284731557,"secure":true,"tick_rate_hz":30,"protocol_version":3,"transport":"gns"}
+{"t_ms":4258,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":102514191794,"peer":2,"detail":"22/0/1"}
+{"t_ms":4258,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":102514191794,"peer":2,"detail":"22/0/3"}
+{"t_ms":4261,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":102514195308,"peer":2,"detail":"22/0/1"}
+{"t_ms":4261,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":102514195308,"peer":2,"detail":"22/0/2,22/0/11,22/0/12,22/0/13,22/0/14"}
+{"t_ms":4264,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rx","mono_us":102514198320,"peer":2,"detail":"22/0/11,22/0/16,22/0/15,20/0,22/1"}
+{"t_ms":4264,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":102514198320,"peer":2,"detail":"21/0"}
+{"t_ms":4264,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rejected","mono_us":102514198320,"peer":2,"detail":"handshake_failed: no matching DANE TLSA records error:0A000086:SSL routines::certificate verify failed"}
+{"t_ms":4347,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":102514280726,"peer":3,"detail":"22/0/1"}
+{"t_ms":4347,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":102514280726,"peer":3,"detail":"22/0/3"}
+{"t_ms":4350,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":102514283773,"peer":3,"detail":"22/0/1"}
+{"t_ms":4350,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":102514283773,"peer":3,"detail":"22/0/2,22/0/11,22/0/12,22/0/13,22/0/14"}
+{"t_ms":4353,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rx","mono_us":102514286788,"peer":3,"detail":"22/0/11,22/0/16,22/0/15,20/0,22/1"}
+{"t_ms":4353,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"handshake_done","mono_us":102514286788,"peer":3,"detail":""}
+{"t_ms":4353,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":102514286788,"peer":3,"detail":"22/0/4,20/0,22/1,23/1"}
+{"t_ms":4354,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rx","mono_us":102514288301,"peer":3,"detail":"23/1"}
+{"t_ms":4354,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rejected","mono_us":102514288301,"peer":3,"detail":"binding_invitation_mismatch"}
+{"t_ms":14059,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":0,"packets_out":0,"invalid":0,"bytes_in":0,"bytes_out":0,"world_tick":420,"uptime_us":13999009,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":0,"joins":0,"reconnects":0,"timeouts":0,"timeout_notices":0,"unknown_peer":0,"send_errors":0,"transport":"gns","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0,"transport_simulated_drops":0,"transport_sent":0,"transport_received":0,"events_queued":0,"events_applied":0,"events_retransmitted":0,"events_replayed":0,"events_dropped_with_slot":0,"events_send_refused":0,"event_acks_invalid":0,"clean_leaves":0,"leave_acks_repeated":0}
+{"t_ms":14059,"lvl":"info","comp":"host","evt":"secure_stats","authenticated":0,"pending_opened":2,"pending_failed":1,"pending_refused_cap":0,"dropped_not_dtls":17,"idle_timeouts":0,"reliable_retransmits":0,"pending_replaced":0,"hello_verify_sent":2,"hello_rate_limited":0,"promotions_replacing":0,"rejected_established":0,"handshakes_done":0,"handshake_retransmits":0,"handshake_ms_max":0}

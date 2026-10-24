@@ -1,0 +1,16 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"clock","mono_us":100578795148}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"security","mode":"plaintext","own_fingerprint":"","invitation":""}
+{"t_ms":55,"lvl":"info","comp":"host","evt":"host_started","port":47813,"loopback_only":true,"session":1916702461,"secure":false,"tick_rate_hz":30,"protocol_version":3,"transport":"gns"}
+{"t_ms":634,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":687,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":51255,"lvl":"info","comp":"host","evt":"player_timeout","player":1,"grace_ms":30000}
+{"t_ms":55378,"lvl":"info","comp":"host","evt":"player_reconnected","player":1,"entity":1}
+{"t_ms":120276,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":120276,"lvl":"warn","comp":"host","evt":"events_dropped_with_player","player":1,"events":1}
+{"t_ms":120276,"lvl":"info","comp":"host","evt":"player_stats","player":1,"packets_in":3809}
+{"t_ms":120284,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":120284,"lvl":"warn","comp":"host","evt":"events_dropped_with_player","player":2,"events":1}
+{"t_ms":120284,"lvl":"info","comp":"host","evt":"player_stats","player":2,"packets_in":4079}
+{"t_ms":126056,"lvl":"info","comp":"host","evt":"event_source","events_refused":0}
+{"t_ms":126056,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":7923,"packets_out":8355,"invalid":0,"bytes_in":758097,"bytes_out":654658,"world_tick":3781,"uptime_us":125998844,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":64,"stale_inputs":40250,"joins":2,"reconnects":1,"timeouts":1,"timeout_notices":1,"unknown_peer":23,"send_errors":0,"transport":"gns","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":2,"transport_impairment_refused":0,"transport_simulated_drops":0,"transport_sent":8355,"transport_received":7923,"events_queued":478,"events_applied":476,"events_retransmitted":10,"events_replayed":7,"events_dropped_with_slot":2,"events_send_refused":0,"event_acks_invalid":0,"clean_leaves":2,"leave_acks_repeated":3}

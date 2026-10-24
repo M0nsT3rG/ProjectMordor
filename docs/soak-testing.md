@@ -207,6 +207,25 @@ Fixed before its first run. v1–v5 thresholds are unchanged except where named 
 - **`<client>_leave_confirmed`** (new): the client's `leave` record must show a leave the host confirmed (protocol v3 `DisconnectAck`, KI-37).
 - **Distributions** are reported in `summary.json` and not gated: per-client RTT p5/p50/p95/p99 and delivery ratios.
 
+| Run (120 s) | Gates | RTT p50 / p99 (client1) | Recovery | Delivery ratio client1 / client2 |
+|---|---|---|---|---|
+| 094629-lan-udp | 59/59 | 10.1 / 12.2 ms | 20 ms | 0.9892 / 0.9804 |
+| 094838-moderate-udp | 59/59 | 104.3 / 120.8 ms | 163 ms | 0.9681 / 0.9592 |
+| 095046-harsh-udp | 59/59 | 205.7 / 240.3 ms | 1081 ms | 0.8916 / 0.8798 |
+| 095254-lan-gns | 59/59 | 9.2 / 12.2 ms | 36 ms | 0.9900 / 0.9879 |
+| 095504-moderate-gns | 59/59 | 96.1 / 117.7 ms | 381 ms | 0.9450 / 0.9454 |
+| 095712-harsh-gns | 59/59 | 189.1 / 224.6 ms | 2280 ms | 0.8546 / 0.8410 |
+| 095921-lan-udp-sec | 59/59 | 10.6 / 12.3 ms | 49 ms | 0.9887 / 0.9868 |
+| 100129-moderate-udp-sec | 59/59 | 103.5 / 121.6 ms | 1247 ms | 0.9446 / 0.9415 |
+| 100337-harsh-udp-sec | 59/59 | 203.9 / 239.1 ms | 1397 ms | 0.8478 / 0.8356 |
+| 100546-lan-gns-sec | 59/59 | 9.1 / 12.3 ms | 64 ms | 0.9916 / 0.9864 |
+| 100754-moderate-gns-sec | 59/59 | 96.0 / 118.7 ms | 930 ms | 0.9474 / 0.9470 |
+| 101003-harsh-gns-sec | 58/59 **FAILED: client2_recovery_time** | 188.9 / 228.3 ms | 4168 ms | 0.8409 / 0.8369 |
+
+- **harsh, gns, secure: failure preserved.** KI-35 on GNS. The trace: about 1 s waiting for the host's timeout notice, 2.5 s of cookie exchange and handshake (the first two ClientHellos never reached the host, KI-38), then 0.7 s of ConnectRequest retry.
+- **harsh, gns, plaintext,** which failed in v5 (KI-37), passed, with every leave confirmed.
+- Quick 30 s runs (`-g6`, `duration_s` 30) were used for the KI-35 traces. They fail `realized_rtt_floor` by design (fewer than 100 samples). `094607-lan-udp-g6` was aborted and has no summary; it is kept.
+
 Directories are named `-g6`. Secure runs also log `dtls_trace` records (record types, epochs, handshake message types and milestones, never key material) for the KI-35 timeline (`tools/soak/timeline.py`).
 
 ## What the soak found, and what was fixed

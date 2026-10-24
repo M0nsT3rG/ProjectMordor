@@ -7,7 +7,7 @@
   {"name":"contract_endpoint_reuse_gets_new_peer_generation","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"contract_two_simultaneous_peers_are_routed_separately","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"contract_oversized_inbound_is_reported_not_delivered","result":"PASSED","transport":"udp","ms":0,"error":""},
-  {"name":"contract_simulated_loss_is_sent_and_counted","result":"PASSED","transport":"udp","ms":1585,"error":""},
+  {"name":"contract_simulated_loss_is_sent_and_counted","result":"PASSED","transport":"udp","ms":1574,"error":""},
   {"name":"contract_queued_data_discarded_on_close_is_counted","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"contract_reliable_ordered_exact_under_loss_both_directions","result":"PASSED","transport":"udp","ms":0,"error":""},
   {"name":"contract_interleaved_reliable_events_and_unreliable_snapshots","result":"PASSED","transport":"udp","ms":0,"error":""},

@@ -84,6 +84,12 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - Window of 64 unapplied events per player.
 - **Revisit** if events must survive a host restart (persistence) or exceed the window.
 
+- **Amended after review #10 (FB-10-01/02/04, 2026-10-24).**
+  - The host accepts an `EventAck` only up to the highest id the transport accepted.
+  - An event counts as sent only on `Sent`.
+  - **Protocol v3** adds an explicit leave handshake (`DisconnectAck`); the host keeps the transport peer open for 1.5 s (KI-37).
+  - Events are still not durable (KI-28b).
+
 ## D-016: Identity provisioning for the executables (2026-10-24, review #8 FB-8-03 / answer 3)
 
 - **Decision.**
@@ -112,6 +118,7 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - Calling `DtlsSession` from inside Host/Client: this mixes session logic with security and makes a plaintext path easy to keep by accident.
   - A new UDP association per reconnect: possible, but it needs client-side socket churn. Kept as an option.
 - **Revisit** before any untrusted network: a stateless cookie gate, key/invitation provisioning for the executables, and an independent review.
+- **Amended after review #10 (answer 5, 2026-10-24).** The cookie gate is now stateless: one `DTLSv1_listen` listener, with no per-peer state before a valid cookie. Cookie-proven ClientHellos are exempt from the 64/s budget (EXP-023). Still to do before an untrusted network: an independent review.
 
 ## D-014: On connection-oriented transports, the transport owns connection establishment (2026-10-23)
 

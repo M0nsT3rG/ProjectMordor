@@ -8,7 +8,14 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #10 (PR #10: protocol v2 events, soak gate v5)
 
-- **Status:** received and triaged (2026-10-24) on `feature/ki35-ki37-investigation` (stacked on PR #10). Not implemented yet.
+- **Status:** triaged and **implemented** (2026-10-24) on `feature/ki35-ki37-investigation` (stacked on PR #10), on the owner's go-ahead. Record: EXP-023. Review request #10.
+- **As implemented:**
+  - **FB-10-01:** `EventAck` bounded by the highest id the transport accepted for that player; larger ones refused whole and counted. Test on both backends.
+  - **FB-10-02:** `send`/`transmit` return `SendResult`; an event is marked sent only on `Sent`, otherwise retried with back-off (10 ms doubling to 500 ms) and counted. Test: 300 events through a refusing window, all applied in order.
+  - **FB-10-03 (KI-35):** per-attempt traces in both processes, and the timeline tool. Mechanisms shown, then fixed: per-record flight retransmission (coalesced now), and the ConnectRequest waiting for the retry interval. The remaining tail on GNS is decomposed in KI-35 and KI-38. No timer or gate was tuned.
+  - **FB-10-04 (KI-37):** protocol v3 leave handshake. It exposed the mechanism: the GNS close overtook the acks, so the host now lingers 1.5 s. On the extra counter: the host releases the slot on the first `Disconnect` it receives, so a host timeout after a leave means no `Disconnect` arrived at all. That cannot be told from a real timeout at the host. The client's `leave_confirmed` (gated in v6) gives that classification instead.
+  - **FB-10-05:** gate v6, fixed before its runs.
+  - **Answer 5:** stateless cookie gate. ClientHellos with a valid cookie are exempt from the budget; nothing else is. No per-address reserved budget was added: an unproven ClientHello now costs one stateless HelloVerifyRequest, and the cookie-proven one cannot be starved (test: 243 ms under a 1000/s flood).
 - **Source:** [PR #10 comment 6380695083](https://github.com/M0nsT3rG/ProjectMordor/pull/10#issuecomment-6380695083). ChatGPT reviewed the source of `f283a07` only.
 - **ChatGPT's verdict:** conditional GO for continued investigation. NO-GO for merge or release (10/12 soaks, KI-35 and KI-37 open).
 

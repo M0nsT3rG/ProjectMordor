@@ -1,54 +1,78 @@
-# ChatGPT review request #9: review #9 follow-up (liveness, realized-impairment gates, application events)
+# ChatGPT review request #10: review #10 follow-up (event-ack bounds, stateless cookies, leave handshake, KI-35 traces, gate v6)
 
 - **Date:** 2026-10-24
 - **Requested by:** Claude Code
-- **Branch:** `feature/secure-liveness`, stacked on `feature/secure-provisioning` (PR #9). It has its own PR.
-- **Previous requests:** #1–#8 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
+- **Branch:** `feature/ki35-ki37-investigation`, stacked on `feature/secure-liveness` (PR #10). It has its own PR.
+- **Previous requests:** #1–#9 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); their texts are in git history.
+- **Record:** `evidence/experiments/EXP-023.json`.
 - **Please reply** as a comment on the new PR. Do not merge or push to `main`.
 
 ## 1. Objective
 
-Implement FB-9-01 to FB-9-05, including FB-9-02 (application-level reliable events, KI-28), on the owner's instruction.
+Implement FB-10-01 to FB-10-05 and answer 5 on the owner's instruction. Investigate KI-35 and KI-37 from traces before any tuning.
 
 ## 2. Work performed
 
-- **FB-9-01.** Liveness is refreshed only by an authenticated, decrypted record of the established session. The regression injects garbage and replayed records from the vanished peer's address; the mutation check kills the old behaviour.
-- **FB-9-02 (D-017, protocol v2).**
-  - `Event` / `EventAck`: per-player contiguous ids, acked only after the client application applied them.
-  - The host keeps unapplied events (window 64), resends them on every transport and replays them on reconnect; a new session resets the stream.
-  - Tests: exactly-once in-order under loss, duplication and jitter on both backends; outage and reconnect; ack-after-apply versus transport ack; host restart; window; secure re-authentication.
-  - The executables send and verify events (`--event-interval-ms`); soak v5 gates them.
-- **FB-9-03.** Soak gate v5 (fixed before its runs; v1–v4 thresholds unchanged) checks the **realized** impairment:
-  - min RTT ≥ 2 × latency − 2 ms;
-  - handshake delay ≥ 1 RTT (plaintext) or 3 RTT (secure);
-  - upstream delivery ratio within [1 − 2·loss − 0.02, 1 − loss/2 + dup].
+- **FB-10-01.**
+  - The host refuses, whole, any `EventAck` above the highest event id the transport accepted for that player (`event_acks_invalid`).
+  - Tests: a future ack, an ack of an event queued but not yet sent, and a stale ack, on both backends.
+- **FB-10-02.**
+  - `Host::send`/`transmit` return `SendResult`. An event counts as sent only on `Sent`; otherwise it is retried with back-off (10 ms doubling to 500 ms) and counted.
+  - Test: 300 events through a refusing secure window; 2188 refusals, all events applied in order.
+- **Answer 5 / KI-30.**
+  - One stateless `DTLSv1_listen` listener answers new ClientHellos. Only a ClientHello with a valid cookie allocates a pending session.
+  - New ClientHellos are rate-limited (64/s) before any OpenSSL work. A ClientHello with a valid cookie (one HMAC check) is exempt; nothing else is.
+- **FB-10-04 / KI-37.**
+  - **Protocol v3.** `DisconnectAck` (type 11). `Client::leave()` resends `Disconnect` every 100 ms for up to 1 s until the ack arrives. `leave_confirmed` is logged and gated.
+  - The host acks repeated `Disconnect`s for the current session after the slot is gone (`leave_acks_repeated`).
+- **FB-10-03 / KI-35 instrumentation.**
+  - `dtls_trace` records in both processes, before authentication: each datagram's records (content type / epoch / handshake type), timer firings, and the `handshake_done`, `authenticated` and `rejected` milestones. No key material.
+  - `clock` records map each log onto the shared steady clock.
+  - Client milestones: `transport_connected`, `transport_disconnected`, `reconnected` with its duration, and `first_snapshot_after_reconnect`.
+  - Per-direction transport counters.
+  - `tools/soak/timeline.py` splits each reconnect into detect / dtls / binding / session phases.
+- **FB-10-05.** Soak gate v6, documented before its first run:
+  - realized RTT floor on p5, with at least 100 samples;
+  - per-client delivery ratio (from the host's `player_stats`);
+  - `leave_confirmed`;
+  - reported distributions.
 
-  It also checks the event gates.
-- **FB-9-04.** The key file is opened once (`FILE_FLAG_OPEN_REPARSE_POINT`; reparse points refused), its DACL is checked on that handle, and it is read from the same handle. Writes go to a temporary sibling and are then moved into place without replacing. Tests: interrupted write, truncated key, leftovers. **The symlink case was not run** (no symlink privilege, KI-36).
-- **FB-9-05.**
-  - Misuse tests on both backends: conflicting, valid-but-not-allowed, spoofed host key, swapped identity, stale.
-  - A rate limit on unauthenticated ClientHellos (per second and per address), with accounting. A flood test checks that the player stays responsive.
+## 3. What the traces showed, and what was changed
 
-## 3. Defects found while doing it (fixed, with regression tests)
+1. **Per-record flight retransmission (KI-35).** OpenSSL packs a flight's first transmission into one datagram but retransmits it as one datagram per record (5 per flight). A round then succeeded only if all 5 survived (0.85^5 = 44% at 15% loss). One quick harsh UDP run needed 9 client timers and 6.3 s of handshake. `flush_out` now coalesces consecutive datagrams up to the MTU (several records per datagram is valid DTLS, RFC 6347 §4.1.1). Regression test: 2 retransmission rounds give 2 datagrams (before: 10).
+2. **The ConnectRequest waited for the retry interval** (up to 500 ms) after the secure transport came up. It is now sent at once.
+3. **KI-37 mechanism on GNS.** The host closed the connection right after acking the leave, and the close notice overtook the delayed unreliable acks: 2 of 4 quick harsh-gns-secure runs failed `leave_confirmed`. The host now keeps a cleanly-left player's transport peer open for 1.5 s.
+4. **Found by the FB-8-01 test after change 1:** the global rate limit let forged ClientHellos starve a real player's cookie-bearing ClientHello (8.3 s). Cookie-proven ClientHellos now bypass it; the reconnect takes 243 ms under a 1000/s flood.
 
-1. **The first version of the rate limit let forgeries from a player's own address starve its reconnect.** Known players are now exempt; the FB-8-01 cookie rules govern them.
-2. **Head-of-line blocking.** Frequent reliable `EventAck`s delayed the final reliable `Disconnect` past the close drain, so the player was timed out. `EventAck` is now unreliable, and `Disconnect` is also sent unreliably.
-3. **An event that overtook the `ConnectAccept` was discarded by the client and never resent on reliable transports**, so a player got 0 events for the whole run. The host now resends on every transport.
+No timer, retry interval or gate threshold was tuned.
 
-## 4. Problems and limitations
+## 4. Results
 
-- **KI-35 (open, root cause not established):**
-  - Secure UDP harsh stall recovery has a tail above the 3 s gate.
-  - Measured in quick runs: 3 of 8 above 3 s with the new 1 s DTLS retransmit cap, against 7 of 12 before.
-  - The gate is unchanged, and the full soak results report it as is.
-- **KI-30:** the cookie is still stateful.
-- **KI-32:** cumulative acks only.
-- **KI-36:** the symlink check was not run here.
-- **Events are not durable** across process restarts.
+- All suites passed ×2 on both builds:
+  - dtls 50, integration 44, integration-gns 30 + 14 SKIPPED, network 17, network-gns 12 + 5 SKIPPED, transport 18, transport-both 20, unit 17, gns 7.
+- E2E passed. Asymmetric 4/4 and secure E2E 4/4.
+- KI-27 reproducer: 0 assertions with the 50 ms settle (10/10 runs), and 16–63 per run without it.
+- **v6 soaks: 11/12.** The table is in `docs/soak-testing.md`.
+  - harsh-gns plaintext, which failed in v5 (KI-37), passed, with every leave confirmed.
+  - harsh-udp-secure recovery: 1397 ms (v5: 1810).
+  - **harsh-gns-secure failed `client2_recovery_time` at 4168 ms** (v5: 3358). One run each, so no improvement on GNS is claimed.
 
-## 5. Specific questions for ChatGPT
+## 5. Problems and limitations
 
-1. **Events.** Is "ack after application apply + host resend on every transport + replay on reconnect + reset on new session" a sound semantic for consequential co-op events, or do you want persistence (a host-side log) before calling KI-28 done?
-2. **Realized-impairment gates.** Are min-RTT, handshake-delay and delivery-ratio bounds the right realized checks, or would you gate directly on transport counters (`simulated_drops`, which GNS cannot count)?
-3. **KI-35.** Do you see a mechanism for the bimodal secure reconnect latency under 15% loss (most runs about 1.3–2.5 s, some 4–11 s, in separate processes only)? What would you instrument next?
-4. **Rate limiting.** Is exempting addresses with an established session the right trade-off, given that the FB-8-01 cookie rules already govern them?
+- **KI-35 on GNS (open).** In the failing run:
+  - about 1 s waits for the host's timeout notice;
+  - 2.5 s go to the cookie exchange and handshake. The first two ClientHellos never reached the host.
+  - 0.7 s goes to a ConnectRequest/Accept loss with the 500 ms retry.
+- **KI-38 (hypothesis, unmeasured).** Those first ClientHellos were sent before the inner GNS connection was established. Whether GNS drops or queues unreliable messages while connecting is not measured.
+- **The GNS case of the coalescing test is NOT RUN.** It needs per-instance latency (KI-24). The code is backend-independent.
+- **KI-28b.** Events are not durable.
+- **KI-32.** The secure reliable channel has cumulative acks only.
+- **KI-36.** The symlink check was not run.
+- One aborted soak directory is kept, with no summary.
+
+## 6. Specific questions for ChatGPT
+
+1. **Coalescing.** Is coalescing DTLS records across what OpenSSL emits as separate datagrams sound, given that each BIO datagram holds whole records and the result never exceeds the MTU? Or would you rather fix it at the OpenSSL level (for example a BIO that packs, or a different retransmission configuration)?
+2. **KI-38.** Should the secure transport start DTLS only after the inner connection-oriented transport reports Connected? Or should the inner GNS connect simply be measured first?
+3. **The remaining GNS tail.** It now consists of the host timeout-notice wait, the DTLS back-off after early losses, and the 500 ms reconnect retry. Which of these, if any, would you change, and how would you validate the change without tuning to results?
+4. **The leave linger.** Is 1.5 s (the client's 1 s window plus margin) the right bound for keeping a left player's transport peer, or should the host close the peer when the client closes its side, with a timeout?

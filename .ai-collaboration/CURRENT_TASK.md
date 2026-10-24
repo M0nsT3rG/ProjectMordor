@@ -1,6 +1,10 @@
 # Current task
 
-**Last completed:** review #9 follow-up (FB-9-01 to FB-9-05):
+**Last completed:** review #10 follow-up (FB-10-01 to FB-10-05, answer 5) on `feature/ki35-ki37-investigation`. Record: EXP-023.
+- KI-37 and KI-30 resolved; protocol v3 (explicit leave); soak gate v6.
+- KI-35 mechanisms shown and partly fixed; harsh-gns-secure still fails recovery (KI-35, KI-38). v6 soaks: 11/12.
+
+**Previously:** review #9 follow-up (FB-9-01 to FB-9-05):
 - protocol v2 application-level reliable events (KI-28 resolved, with limits);
 - soak gate v5 (realized impairment);
 - authenticated-only liveness;
@@ -22,7 +26,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#7](https://github.com/M0nsT3rG/ProjectMordor/pull/7) | `feature/dtls-transport` | #6 | Review #6: DTLS over the Transport + binding, KI-27, asymmetric processes |
 | [#8](https://github.com/M0nsT3rG/ProjectMordor/pull/8) | `feature/secure-transport` | #7 | Review #7: secure transport decorator, bounded pending state, timer policy, KI-27 reproducer |
 | [#9](https://github.com/M0nsT3rG/ProjectMordor/pull/9) | `feature/secure-provisioning` | #8 | Review #8: secure executables, secure reliable channel, cookie-aware pending, idle timeout, KI-27 upstream |
-| #10 | `feature/secure-liveness` | #9 | Review #9: authenticated liveness, protocol v2 application events, soak gate v5, key-file hardening |
+| [#10](https://github.com/M0nsT3rG/ProjectMordor/pull/10) | `feature/secure-liveness` | #9 | Review #9: authenticated liveness, protocol v2 application events, soak gate v5, key-file hardening |
+| #11 | `feature/ki35-ki37-investigation` | #10 | Review #10: event-ack bounds, stateless cookie gate, protocol v3 leave handshake, KI-35 traces and fixes, soak gate v6 |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 

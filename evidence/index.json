@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 84,
+  "count": 85,
   "records": [
     {
       "id": "EXP-001",
@@ -243,6 +243,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #9 FB-9-01..05 including application-level reliable events (protocol v2) and soak gate v5 (realized impairment)."
+    },
+    {
+      "id": "EXP-023",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-023.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #10 (FB-10-01..05 and answer 5) on feature/ki35-ki37-investigation: EventAck bounded by sent ids, events marked sent only on Sent, stateless DTLS cookie gate, explicit leave handshake (protocol v3), KI-35 instrumentation, soak gate v6; investigate KI-35 and KI-37 from traces before any tuning."
     },
     {
       "id": "F-COMM-001",
