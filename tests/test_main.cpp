@@ -12,7 +12,9 @@
 #ifdef _WIN32
 // KI-40 (review #12 FB-12-02): with MORDOR_LIFECYCLE_LOG=<file>, each run appends JSON lines at its exit phases
 // (main returning, atexit) with what the GNS runtime still holds, so a hang at exit shows where it stopped.
-void lifecycle(const char* phase);
+// read_gns=false at atexit: the GNS runtime state is a function-local static created after our atexit registration,
+// so it is already destroyed when the handler runs; reading it there would be undefined behaviour.
+void lifecycle(const char* phase, bool read_gns = true);
 #endif
 #ifdef _WIN32
 // The suites step with sleep_for(1 ms). Without a 1 ms timer resolution that sleep takes ~15.6 ms, and timing tests
@@ -25,7 +27,7 @@ int main(int argc, char** argv) {
 #ifdef _WIN32
     request_1ms_timer_resolution();
     lifecycle("main_started");
-    std::atexit([] { lifecycle("atexit"); });
+    std::atexit([] { lifecycle("atexit", false); });
 #endif
     std::string filter, json_path;
     for (int i = 1; i < argc; ++i) {
@@ -97,7 +99,7 @@ void request_1ms_timer_resolution() {
 #ifdef MORDOR_HAVE_GNS
 #include "network/gns_transport.hpp"
 #endif
-void lifecycle(const char* phase) {
+void lifecycle(const char* phase, bool read_gns) {
     char* path = nullptr;
     std::size_t len = 0;
     if (_dupenv_s(&path, &len, "MORDOR_LIFECYCLE_LOG") != 0 || !path) return;
@@ -106,12 +108,17 @@ void lifecycle(const char* phase) {
     if (!f) return;
     const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 #ifdef MORDOR_HAVE_GNS
-    const auto l = mordor::net::gns_lifecycle();
-    std::fprintf(f, "{\"pid\":%lu,\"phase\":\"%s\",\"mono_ms\":%lld,\"gns_initialized\":%d,\"gns_refs\":%d,\"gns_connections\":%zu,\"gns_listen_sockets\":%zu}\n",
-                 GetCurrentProcessId(), phase, static_cast<long long>(ms), l.initialized ? 1 : 0, l.refs, l.connections, l.listen_sockets);
+    if (read_gns) {
+        const auto l = mordor::net::gns_lifecycle();
+        std::fprintf(f, "{\"pid\":%lu,\"phase\":\"%s\",\"mono_ms\":%lld,\"gns_initialized\":%d,\"gns_refs\":%d,\"gns_connections\":%zu,\"gns_listen_sockets\":%zu}\n",
+                     GetCurrentProcessId(), phase, static_cast<long long>(ms), l.initialized ? 1 : 0, l.refs, l.connections, l.listen_sockets);
+        std::fclose(f);
+        return;
+    }
 #else
-    std::fprintf(f, "{\"pid\":%lu,\"phase\":\"%s\",\"mono_ms\":%lld}\n", GetCurrentProcessId(), phase, static_cast<long long>(ms));
+    (void)read_gns;
 #endif
+    std::fprintf(f, "{\"pid\":%lu,\"phase\":\"%s\",\"mono_ms\":%lld}\n", GetCurrentProcessId(), phase, static_cast<long long>(ms));
     std::fclose(f);
 }
 #endif

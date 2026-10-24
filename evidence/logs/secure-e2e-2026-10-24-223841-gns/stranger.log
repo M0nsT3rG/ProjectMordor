@@ -1,0 +1,19 @@
+{"t_ms":0,"lvl":"info","comp":"client","evt":"clock","mono_us":146285541885}
+{"t_ms":0,"lvl":"info","comp":"client","evt":"loop_timer","high_resolution":true}
+{"t_ms":9,"lvl":"info","comp":"client","evt":"security","mode":"dtls","own_fingerprint":"31e4fc4a29b6c04cd0599c81edda63d3186c586884396477ec9fc429333a4b29","invitation":"e2e-gns"}
+{"t_ms":9,"lvl":"info","comp":"client","evt":"retry_policy","reconnect_retry_ms":500,"connect_retry_ms":250}
+{"t_ms":69,"lvl":"info","comp":"client","evt":"state_change","from":"idle","to":"connecting","why":"connect_called"}
+{"t_ms":69,"lvl":"info","comp":"client","evt":"connect_request","attempt":1,"since_phase_ms":4,"reconnecting":false,"transport_up":false,"sent":false}
+{"t_ms":86,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"inner_connected","mono_us":146285627927,"peer":1,"detail":""}
+{"t_ms":86,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"tx","mono_us":146285627927,"peer":1,"detail":"22/0/1"}
+{"t_ms":89,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"rx","mono_us":146285630933,"peer":1,"detail":"22/0/3"}
+{"t_ms":89,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"tx","mono_us":146285630933,"peer":1,"detail":"22/0/1"}
+{"t_ms":92,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"rx","mono_us":146285633938,"peer":1,"detail":"22/0/2,22/0/11,22/0/12,22/0/13,22/0/14"}
+{"t_ms":92,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"tx","mono_us":146285633938,"peer":1,"detail":"22/0/11,22/0/16,22/0/15,20/0,22/1"}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"rx","mono_us":146285636072,"peer":1,"detail":"21/0"}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"dtls_trace","ev":"rejected","mono_us":146285636072,"peer":1,"detail":"handshake_failed:  error:0A000412:SSL routines::ssl/tls alert bad certificate"}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"state_change","from":"connecting","to":"failed","why":"transport_handshake_failed"}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"summary","final_state":"failed","player":0,"rtt_samples":0,"rtt_p5_ms":-1.000000,"rtt_p50_ms":-1.000000,"rtt_p95_ms":-1.000000,"rtt_p99_ms":-1.000000,"rtt_max_ms":-1.000000,"rtt_min_ms":-1.000000,"events_applied":0,"event_order_errors":0,"events_duplicate":0,"events_out_of_order":0,"snapshots":0,"stale":0,"corrections":0,"max_correction":0.000000,"correction_p50":0.000000,"correction_p99":0.000000,"stale_notices":0,"reconnects":0,"max_reconnect_ms":0,"invalid":0,"bytes_in":0,"bytes_out":38,"packets_in":0,"packets_out":1,"elapsed_ms":29}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"transport_stats","sent":0,"received":0,"simulated_drops":0,"send_failed":0,"not_connected":1,"backpressure":0}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"secure_stats","handshakes_done":0,"handshake_retransmits":0,"handshake_ms_max":0,"handshake_ms_total":0,"pending_failed":1,"reliable_retransmits":0,"idle_timeouts":0}
+{"t_ms":94,"lvl":"info","comp":"client","evt":"state_change","from":"failed","to":"disconnected","why":"local_disconnect"}

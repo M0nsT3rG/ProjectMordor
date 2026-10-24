@@ -1,4 +1,5 @@
 """Self-checks for compare_arms.py's decision rule: python -I tools/soak/test_compare_arms.py"""
+import math
 import sys
 import unittest
 from pathlib import Path
@@ -30,6 +31,25 @@ class DecisionRule(unittest.TestCase):
     def test_every_profile_must_pass(self):
         g = {"p": {500: [run(2000)], 250: [run(1000)]}, "q": {500: [run(2000)], 250: [run(1950)]}}
         self.assertFalse(c.verdict(g)[0])
+
+    def test_never_recovered_run_counts_as_worst(self):
+        # A stalled client that never reconnects has no recovery value (None in summary.json): load() makes it inf.
+        g = {"p": {500: [run(2000), run(2100), run(2200)],
+                   250: [run(1000), run(1000), run(math.inf, ["client2_recovery_time"])]}}
+        self.assertFalse(c.verdict(g)[0])  # one more failure than A: never adopted, and no crash
+        self.assertEqual(c.ms(math.inf), "none")
+        self.assertEqual(c.ms(None), "none")
+
+    def test_load_turns_missing_recovery_into_inf(self):
+        import json, tempfile
+        s = {"run": {"profile": "harsh", "transport": "gns", "secure": True, "reconnect_retry_ms": 250},
+             "gates": [{"gate": "client2_recovery_time", "passed": False}],
+             "clients": {"client2": {"recovery_after_stall_ms": None, "rtt_p50_ms": None}},
+             "distributions": {"delivery_ratio": {"client2": None}}}
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "summary.json").write_text(json.dumps(s), encoding="utf-8")
+            r = c.load(Path(d))
+        self.assertEqual((r["recovery"], r["retry"], r["key"]), (math.inf, 250, "harsh-gns-sec"))
 
     def test_missing_arm_rejects_b(self):
         self.assertFalse(c.verdict({"p": {500: [run(2000)]}})[0])

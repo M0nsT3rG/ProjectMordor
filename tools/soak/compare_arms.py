@@ -9,12 +9,17 @@ Usage: python -I tools/soak/compare_arms.py <run_dir> [<run_dir> ...]
 from __future__ import annotations
 
 import json
+import math
 import statistics
 import sys
 from collections import defaultdict
 from pathlib import Path
 
 A_MS, B_MS = 500, 250
+
+
+def ms(x) -> str:
+    return "none" if x is None or x == math.inf else str(round(x))
 
 
 def load(d: Path) -> dict | None:
@@ -26,8 +31,9 @@ def load(d: Path) -> dict | None:
     retry = A_MS if retry == "default" else int(retry)
     failed = {g["gate"] for g in s["gates"] if not g["passed"]}
     c2 = s["clients"]["client2"]
+    rec = c2.get("recovery_after_stall_ms")  # None: the stalled client never reconnected, the worst outcome
     return {"dir": d.name, "key": f"{run['profile']}-{run['transport']}{'-sec' if run.get('secure') else ''}",
-            "retry": retry, "recovery": c2.get("recovery_after_stall_ms"), "failed": failed,
+            "retry": retry, "recovery": math.inf if rec is None else rec, "failed": failed,
             "delivery": s["distributions"]["delivery_ratio"].get("client2"), "rtt_p50": c2.get("rtt_p50_ms")}
 
 
@@ -44,7 +50,7 @@ def verdict(groups: dict) -> tuple[bool, list[str]]:
         other_a = set().union(*(r["failed"] for r in a)) - {"client2_recovery_time"}
         other_b = set().union(*(r["failed"] for r in b)) - {"client2_recovery_time"}
         ok1, ok2, ok3 = fb <= fa, mb <= 0.9 * ma, not (other_b - other_a)
-        reasons.append(f"{key}: failures A {fa} / B {fb} ({'ok' if ok1 else 'NO'}), median A {ma:.0f} / B {mb:.0f} ms "
+        reasons.append(f"{key}: failures A {fa} / B {fb} ({'ok' if ok1 else 'NO'}), median A {ms(ma)} / B {ms(mb)} ms "
                        f"({'ok' if ok2 else 'NO'}), new other failures in B {sorted(other_b - other_a)} ({'ok' if ok3 else 'NO'})")
         adopt &= ok1 and ok2 and ok3
     return adopt, reasons
@@ -64,9 +70,9 @@ def main(argv: list[str]) -> int:
     for key, arms in sorted(groups.items()):
         for retry, rs in sorted(arms.items()):
             rec = sorted(r["recovery"] for r in rs)
-            print(f"{key} retry {retry} ms: n={len(rs)} recovery median {statistics.median(rec):.0f} max {rec[-1]:.0f} ms, "
-                  f"over 3000 ms {sum(x > 3000 for x in rec)}, runs {[round(x) for x in rec]}, "
-                  f"delivery {[r['delivery'] for r in rs]}, rtt_p50 {[round(r['rtt_p50']) for r in rs]}")
+            print(f"{key} retry {retry} ms: n={len(rs)} recovery median {ms(statistics.median(rec))} max {ms(rec[-1])} ms, "
+                  f"over 3000 ms {sum(x > 3000 for x in rec)}, runs {[ms(x) for x in rec]}, "
+                  f"delivery {[r['delivery'] for r in rs]}, rtt_p50 {[ms(r['rtt_p50']) for r in rs]}")
     adopt, reasons = verdict(groups)
     for line in reasons:
         print("  " + line)

@@ -61,7 +61,7 @@
     "evidence/logs/soak-2026-10-24-204115-harsh-udp-sec-g6"
   ],
   "result": "PARTIAL",
-  "errors": "Predeclared hypothesis rejected for GNS (B not adopted); KI-35 still about 29%/13% failure on harsh secure; KI-40 not reproduced, so not diagnosed; one experiment run aborted after warm-up; the KI-40 repro script recorded no exit codes for the test runs (handle not cached; hang detection unaffected).",
+  "errors": "Predeclared hypothesis rejected for GNS (B not adopted); KI-35 still about 29%/13% failure on harsh secure; KI-40 not reproduced, so not diagnosed; one experiment run aborted after warm-up; the KI-40 repro script recorded no exit codes for the test runs (handle not cached; hang detection unaffected). Correction after review of PR #13: the GNS fields in the 'atexit' lifecycle lines were reads of already-destroyed static state (undefined behaviour); only the main_returning values are valid, and the runner now logs no GNS state at atexit.",
   "confidence": "medium",
   "follow_up": "KI-35: a transport-specific retry, or removing the redundant cookie round trip on GNS (F-GNS-001), each only as a new predeclared experiment; owner approval for a debugger to symbolize any KI-40 dump; KI-28b; LAN test; external review.",
   "related": [
