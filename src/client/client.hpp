@@ -18,7 +18,7 @@
 
 namespace mordor::client {
 
-enum class ClientState { Idle, Connecting, Connected, Reconnecting, Rejected, Disconnected, Failed };
+enum class ClientState { Idle, Connecting, Connected, Reconnecting, Rejected, Disconnected, Failed, Leaving };
 const char* to_string(ClientState s);
 
 // Application policy for the overall connect deadline (review #6 answer 3): configurable, explicitly bounded.
@@ -32,7 +32,9 @@ struct ClientConfig {
     std::uint64_t connect_retry_us = 250'000;
     std::uint64_t connect_timeout_us = 5'000'000;
     std::uint64_t reconnect_retry_us = 500'000;
-    std::uint64_t reconnect_window_us = 15'000'000;  // hard bound per reconnect: never reset by transport retries
+    std::uint64_t reconnect_window_us = 15'000'000;
+    std::uint64_t leave_timeout_us = 1'000'000;      // how long leave() waits for the host's DisconnectAck
+    std::uint64_t leave_resend_us = 100'000;  // hard bound per reconnect: never reset by transport retries
     // Hard upper bound for one connect() call, whatever the transport does: transport establishment (GNS
     // TimeoutInitial 10 s, D-014) + session handshake (connect_timeout_us). Review #5 FB-5-02.
     std::uint64_t connect_deadline_us = 20'000'000;
@@ -54,6 +56,9 @@ struct ClientStats {
     std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected host loss
     std::uint64_t last_reconnect_ms = 0, max_reconnect_ms = 0;  // timeout detection -> accepted again
     float max_correction = 0;
+    std::uint64_t leave_disconnects_sent = 0, leave_disconnects_refused = 0;  // explicit leave (FB-10-04)
+    bool leave_confirmed = false;
+    std::uint64_t leave_ms = 0;
     // Application-level reliable events (FB-9-02, KI-28).
     std::uint64_t events_received = 0, events_duplicate = 0, events_out_of_order = 0, events_discarded_new_session = 0;
 };
@@ -86,6 +91,11 @@ public:
     // Events received since the last call, in order, each exactly once (FB-9-02). The host keeps resending them
     // until the application reports them applied with ack_events_applied(); call it only after applying.
     std::vector<ReceivedEvent> take_events();
+    // Explicit leave (review #10 FB-10-04): sends Disconnect and keeps resending it until the host's DisconnectAck
+    // arrives or leave_timeout_us passes. Keep calling update() while leaving(); afterwards stats().leave_confirmed
+    // tells a confirmed clean leave from an unconfirmed one. disconnect() remains the fire-and-forget variant.
+    void leave(std::uint64_t now_us);
+    bool leaving() const { return state_ == ClientState::Leaving; }
     void ack_events_applied(std::uint32_t through_id, std::uint64_t now_us);
     std::uint32_t events_applied_through() const { return applied_through_; }
     std::uint16_t entity_id() const { return entity_id_; }
@@ -112,7 +122,7 @@ private:
     void handle(const net::Packet& p, std::uint64_t now_us);
     void on_snapshot(const net::Snapshot& s, std::uint64_t now_us);
     void produce_input(std::uint64_t now_us);
-    void send(const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
+    bool send(const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void set_state(ClientState s, std::string_view why);
     void begin_reconnect(std::uint64_t now_us, std::string_view why);
     net::Delivery ack_delivery() const;
@@ -142,6 +152,7 @@ private:
     std::vector<float> rtt_samples_ms_, correction_samples_;
     std::uint64_t reconnect_started_us_ = 0;
     std::uint32_t event_session_ = 0, next_event_ = 1, applied_through_ = 0;  // per host session
+    std::uint64_t leave_started_us_ = 0, last_leave_send_us_ = 0;
     std::vector<ReceivedEvent> event_inbox_;
 
     float move_x_ = 0, move_z_ = 0;

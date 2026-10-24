@@ -31,6 +31,7 @@ const char* to_string(ClientState s) {
         case ClientState::Rejected: return "rejected";
         case ClientState::Disconnected: return "disconnected";
         case ClientState::Failed: return "failed";
+        case ClientState::Leaving: return "leaving";
     }
     return "?";
 }
@@ -156,6 +157,22 @@ void Client::update(std::uint64_t now_us) {
             }
             break;
         }
+        case ClientState::Leaving: {
+            if (now_us - leave_started_us_ >= cfg_.leave_timeout_us) {
+                stats_.leave_ms = (now_us - leave_started_us_) / 1000;
+                log_.warn("leave_unconfirmed", {kv("disconnects_sent", stats_.leave_disconnects_sent),
+                                                kv("disconnects_refused", stats_.leave_disconnects_refused)});
+                disconnect_reason_ = DisconnectReason::ClientQuit;
+                set_state(ClientState::Disconnected, "leave_timeout");
+                break;
+            }
+            if (now_us - last_leave_send_us_ >= cfg_.leave_resend_us) {
+                last_leave_send_us_ = now_us;
+                ++stats_.leave_disconnects_sent;
+                if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us)) ++stats_.leave_disconnects_refused;
+            }
+            break;
+        }
         default: break;
     }
     transport_->flush(now_us);
@@ -180,6 +197,14 @@ void Client::receive(std::uint64_t now_us) {
                     break;
                 }
                 if (from_host) transport_up_ = false;
+                if (from_host && state_ == ClientState::Leaving) {
+                    // The host released us before its DisconnectAck reached us (or never sent one): we are gone
+                    // either way; never reconnect while leaving. leave_confirmed stays false.
+                    stats_.leave_ms = (now_us - leave_started_us_) / 1000;
+                    disconnect_reason_ = DisconnectReason::ClientQuit;
+                    set_state(ClientState::Disconnected, "leave_transport_closed");
+                    break;
+                }
                 // A connection-oriented backend lost the host: always open a new transport connection, in ANY state.
                 // (If our own timeout already moved us to Reconnecting, ignoring this left us sending reconnect
                 // requests on a dead PeerId forever; found by the first GNS run, EXP-016.)
@@ -259,6 +284,14 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         log_.info(reconnect ? "reconnected" : "connected",
                   {kv("player", player_id_), kv("entity", entity_id_), kv("session", session_), kv("same_session", same_session)});
         set_state(ClientState::Connected, "connect_accept");
+        return;
+    }
+    if (state_ == ClientState::Leaving && p.header.session == session_ && std::holds_alternative<DisconnectAck>(p.message)) {
+        stats_.leave_confirmed = true;
+        stats_.leave_ms = (now_us - leave_started_us_) / 1000;
+        log_.info("leave_confirmed", {kv("leave_ms", stats_.leave_ms), kv("disconnects_sent", stats_.leave_disconnects_sent)});
+        disconnect_reason_ = DisconnectReason::ClientQuit;
+        set_state(ClientState::Disconnected, "leave_acked");
         return;
     }
     if (state_ != ClientState::Connected || p.header.session != session_) {
@@ -393,7 +426,7 @@ void Client::produce_input(std::uint64_t now_us) {
     send(batch, now_us);
 }
 
-void Client::send(const Message& m, std::uint64_t now_us, Delivery delivery) {
+bool Client::send(const Message& m, std::uint64_t now_us, Delivery delivery) {
     Header h;
     h.version = cfg_.protocol_version;
     h.session = session_;
@@ -402,7 +435,7 @@ void Client::send(const Message& m, std::uint64_t now_us, Delivery delivery) {
     auto bytes = encode(h, m);
     if (bytes.empty()) {
         log_.error("encode_failed", {kv("type", static_cast<int>(type_of(m)))});
-        return;
+        return false;
     }
     ++stats_.packets_out;
     stats_.bytes_out += bytes.size();  // offered load, before simulated loss
@@ -411,6 +444,22 @@ void Client::send(const Message& m, std::uint64_t now_us, Delivery delivery) {
         ++stats_.send_errors;  // surfaced, never silent (review FB-4-04)
         log_.debug("send_failed", {kv("result", to_string(r))});
     }
+    return r == SendResult::Sent;
+}
+
+void Client::leave(std::uint64_t now_us) {
+    if (state_ != ClientState::Connected || !transport_) {
+        disconnect();
+        return;
+    }
+    leave_started_us_ = last_leave_send_us_ = now_us;
+    auto send_disconnect = [&](Delivery d) {
+        ++stats_.leave_disconnects_sent;
+        if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us, d)) ++stats_.leave_disconnects_refused;
+    };
+    if (transport_->capabilities().reliable_ordered) send_disconnect(Delivery::ReliableOrdered);
+    send_disconnect(Delivery::Unreliable);
+    set_state(ClientState::Leaving, "leave");
 }
 
 void Client::disconnect() {

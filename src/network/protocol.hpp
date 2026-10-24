@@ -14,7 +14,8 @@ namespace mordor::net {
 
 inline constexpr std::array<std::uint8_t, 4> kMagic{'M', 'R', 'D', 'R'};
 // v2 (2026-10-24): GameEvent / EventAck, application-level reliable events (review #9 FB-9-02, KI-28).
-inline constexpr std::uint16_t kProtocolVersion = 2;
+// v3 (2026-10-24): DisconnectAck, explicit leave handshake (review #10 FB-10-04, KI-37).
+inline constexpr std::uint16_t kProtocolVersion = 3;
 inline constexpr std::size_t kHeaderSize = 22;
 inline constexpr std::size_t kMaxPacketSize = 1200;  // stays under common internet MTU
 inline constexpr std::size_t kMaxPayloadSize = kMaxPacketSize - kHeaderSize;
@@ -35,6 +36,7 @@ enum class MsgType : std::uint8_t {
     Snapshot = 8,
     Event = 9,     // host -> client: a consequential game event (v2)
     EventAck = 10, // client -> host: every event up to this id has been APPLIED by the client application (v2)
+    DisconnectAck = 11, // host -> client: your Disconnect was received and your slot released (v3)
 };
 
 enum class RejectReason : std::uint8_t { VersionMismatch = 1, ServerFull = 2, Malformed = 3 };
@@ -121,9 +123,13 @@ struct EventAck {
     std::uint32_t applied_through = 0;
     bool operator==(const EventAck&) const = default;
 };
+// Confirms a client's Disconnect (review #10 FB-10-04): a clean leave is only "clean" once the host said so.
+struct DisconnectAck {
+    bool operator==(const DisconnectAck&) const = default;
+};
 
 using Message = std::variant<ConnectRequest, ConnectAccept, ConnectReject, Disconnect, Heartbeat, HeartbeatAck,
-                             InputBatch, Snapshot, GameEvent, EventAck>;
+                             InputBatch, Snapshot, GameEvent, EventAck, DisconnectAck>;
 
 struct Packet {
     Header header;

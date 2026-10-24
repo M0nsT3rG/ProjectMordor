@@ -74,6 +74,7 @@ bool write_payload(Writer& w, const Message& m) {
             return true;
         },
         [&](const EventAck& v) { w.u32(v.applied_through); return true; },
+        [&](const DisconnectAck&) { return true; },
     }, m);
 }
 
@@ -134,6 +135,7 @@ std::optional<Message> read_payload(MsgType t, Reader& r) {
             return v;
         }
         case MsgType::EventAck: return EventAck{r.u32()};
+        case MsgType::DisconnectAck: return DisconnectAck{};
     }
     return std::nullopt;
 }
@@ -186,7 +188,7 @@ DecodeResult decode(std::span<const std::uint8_t> bytes) {
     res.peer_type = type;
     const bool frozen = type == static_cast<std::uint8_t>(MsgType::ConnectReject);
     if (h.version != kProtocolVersion && !frozen) { res.error = DecodeError::VersionMismatch; return res; }
-    if (type < 1 || type > 10) { res.error = DecodeError::UnknownType; return res; }
+    if (type < 1 || type > 11) { res.error = DecodeError::UnknownType; return res; }
     h.type = static_cast<MsgType>(type);
     if (h.payload_len != bytes.size() - kHeaderSize) { res.error = DecodeError::LengthMismatch; return res; }
     Reader pr{bytes.subspan(kHeaderSize)};

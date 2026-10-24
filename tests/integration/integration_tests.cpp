@@ -1195,3 +1195,73 @@ TEST(event_acks_beyond_what_was_sent_are_refused) {
     s.host.update(s.clk.now);
     CHECK(s.host.unapplied_events(player) == 2 && s.host.stats().event_acks_invalid == 2);
 }
+
+// Review #10 FB-10-04 / KI-37: explicit leave handshake (protocol v3).
+TEST(leave_is_confirmed_by_the_host) {
+    test::Session s;
+    auto& a = s.add_client();
+    auto& b = s.add_client();
+    CHECK(s.pump_until([&] { return s.all_connected(); }, 2 * kSec));
+    a.leave(s.clk.now);
+    CHECK(a.leaving());
+    CHECK(s.pump_until([&] { return !a.leaving(); }, 2 * kSec));
+    CHECK(a.stats().leave_confirmed);
+    CHECK(a.state() == ClientState::Disconnected);
+    CHECK(s.host.slot_count() == 1 && s.host.stats().clean_leaves == 1);
+    CHECK(b.state() == ClientState::Connected);
+}
+
+TEST(host_repeats_disconnect_ack_for_a_released_slot) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 91);
+    auto acks = [&] {
+        int n = 0;
+        for (int i = 0; i < 10; ++i) {
+            settle();
+            s.host.update(s.clk.now);
+            settle();
+            for (auto& [from, p] : drain(*fc.t))
+                if (std::holds_alternative<DisconnectAck>(p.message)) ++n;
+        }
+        return n;
+    };
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    CHECK(acks() >= 1);
+    CHECK(s.host.slot_count() == 0 && s.host.stats().clean_leaves == 1);
+    // The first DisconnectAck was lost: the client repeats its Disconnect and is confirmed again. On a
+    // connection-oriented backend the host closed the connection, so the client learns it from the transport.
+    if (!fc.t->capabilities().reports_disconnects) {
+        fc.send(Disconnect{DisconnectReason::ClientQuit});
+        CHECK(acks() >= 1);
+        CHECK(s.host.stats().leave_acks_repeated == 1 && s.host.stats().clean_leaves == 1);
+        fc.h.session ^= 1;  // a Disconnect for another session is not acknowledged
+        fc.send(Disconnect{DisconnectReason::ClientQuit});
+        CHECK(acks() == 0 && s.host.stats().leave_acks_repeated == 1);
+    }
+}
+
+TEST(unconfirmed_leave_ends_after_the_timeout) {
+    test::SimClock clk;
+    TransportFakeHost fh;
+    client::ClientConfig cc;
+    cc.host = fh.endpoint();
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    fh.expect_request(c, clk);
+    fh.accept(c, clk);
+    CHECK(c.state() == ClientState::Connected);
+    c.leave(clk.now);
+    while (c.leaving() && clk.now < 10 * kSec) {
+        clk.now += 10'000;
+        c.update(clk.now);
+        settle();
+        drain(*fh.t);  // the fake host never answers
+    }
+    CHECK(c.state() == ClientState::Disconnected);
+    CHECK(!c.stats().leave_confirmed);
+    CHECK(c.stats().leave_ms >= 1000 && c.stats().leave_ms < 1100);
+    CHECK(c.stats().leave_disconnects_sent >= 10);
+}

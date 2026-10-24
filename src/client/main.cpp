@@ -162,7 +162,7 @@ int main(int argc, char** argv) {
             auto pct = [&](double p) { return pct_of(rtt, p, -1.0); };
             const auto& s = c.stats();
             log.info("summary", {kv("final_state", client::to_string(final_state)), kv("player", c.player_id()),
-                                 kv("rtt_samples", rtt.size()), kv("rtt_p50_ms", pct(50)), kv("rtt_p95_ms", pct(95)),
+                                 kv("rtt_samples", rtt.size()), kv("rtt_p5_ms", pct(5)), kv("rtt_p50_ms", pct(50)), kv("rtt_p95_ms", pct(95)),
                                  kv("rtt_p99_ms", pct(99)), kv("rtt_max_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.back())),
                                  kv("rtt_min_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.front())),
                                  kv("events_applied", events_applied), kv("event_order_errors", event_order_errors),
@@ -181,6 +181,20 @@ int main(int argc, char** argv) {
                                       kv("handshake_ms_max", ss->handshake_ms_max), kv("handshake_ms_total", ss->handshake_ms_total),
                                       kv("pending_failed", ss->pending_failed), kv("reliable_retransmits", ss->reliable_retransmits),
                                       kv("idle_timeouts", ss->idle_timeouts)});
+        // Explicit leave (FB-10-04, KI-37): wait, bounded by leave_timeout_us, for the host's DisconnectAck.
+        if (final_state == client::ClientState::Connected) {
+            const auto send_errors_before = c.stats().send_errors;
+            c.leave(now_us());
+            while (c.leaving()) {
+                c.update(now_us());
+                sleeper.sleep_us(1000);
+            }
+            const auto& s = c.stats();
+            log.info("leave", {kv("leave_confirmed", s.leave_confirmed), kv("leave_ms", s.leave_ms),
+                               kv("disconnects_sent", s.leave_disconnects_sent),
+                               kv("disconnects_refused", s.leave_disconnects_refused),
+                               kv("send_errors", s.send_errors - send_errors_before)});
+        }
         c.disconnect();
         c.close();
         if (sink != stderr) std::fclose(sink);

@@ -206,6 +206,13 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
     }
     Slot* s = find_by_peer(from);
     if (!s || p.header.session != session_) {
+        // A repeated Disconnect after we already released the slot (our first DisconnectAck was lost): confirm again.
+        // Only for this session and only as a reply to that peer, so it cannot be used for reflection.
+        if (!s && p.header.session == session_ && std::holds_alternative<Disconnect>(p.message)) {
+            ack_leave(from, now_us);
+            ++stats_.leave_acks_repeated;
+            return;
+        }
         ++stats_.unknown_peer;
         if (p.header.session == session_) notify_timed_out(from, now_us);
         return;
@@ -234,6 +241,8 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
         },
         [&](const Disconnect& d) {
             log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
+            ack_leave(from, now_us);  // FB-10-04: confirm before the slot (and its transport peer) goes away
+            ++stats_.clean_leaves;
             remove_slot(s->player_id);
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
@@ -432,6 +441,16 @@ SendResult Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery 
     return transmit(s.peer, bytes, now_us, delivery);
 }
 
+// Two unreliable copies plus a reliable one where offered; sent before the slot and its transport peer are released.
+void Host::ack_leave(PeerId to, std::uint64_t now_us) {
+    Header h;
+    h.session = session_;
+    const auto bytes = encode(h, DisconnectAck{});
+    for (int i = 0; i < 2; ++i) transmit(to, bytes, now_us, Delivery::Unreliable);
+    if (transport_->capabilities().reliable_ordered) transmit(to, bytes, now_us, Delivery::ReliableOrdered);
+    transport_->flush(now_us);
+}
+
 void Host::send_unconnected(PeerId to, const Message& m, std::uint64_t now_us) {
     auto bytes = encode(Header{}, m);
     if (bytes.empty()) return;
@@ -469,7 +488,8 @@ void Host::shutdown() {
                                kv("events_queued", stats_.events_queued), kv("events_applied", stats_.events_applied),
                                kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
                                kv("events_dropped_with_slot", stats_.events_dropped_with_slot),
-                               kv("events_send_refused", stats_.events_send_refused), kv("event_acks_invalid", stats_.event_acks_invalid)});
+                               kv("events_send_refused", stats_.events_send_refused), kv("event_acks_invalid", stats_.event_acks_invalid),
+                               kv("clean_leaves", stats_.clean_leaves), kv("leave_acks_repeated", stats_.leave_acks_repeated)});
     if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets
         log_.info("secure_stats", {kv("authenticated", ss->authenticated), kv("pending_opened", ss->pending_opened),
                                    kv("pending_failed", ss->pending_failed), kv("pending_refused_cap", ss->pending_refused_cap),

@@ -41,6 +41,7 @@ struct HostStats {
     std::uint64_t events_queued = 0, events_transmitted = 0, events_retransmitted = 0, events_replayed = 0,
                   events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0,
                   events_send_refused = 0, event_acks_invalid = 0;
+    std::uint64_t clean_leaves = 0, leave_acks_repeated = 0;  // explicit leave handshake (FB-10-04)
 };
 
 class Host {
@@ -109,6 +110,7 @@ private:
     void service_events(std::uint64_t now_us);
     net::SendResult send(Slot& s, const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void send_unconnected(net::PeerId to, const net::Message& m, std::uint64_t now_us);
+    void ack_leave(net::PeerId to, std::uint64_t now_us);
     net::SendResult transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, net::Delivery delivery);
     void accept(Slot& s, std::uint64_t now_us);
     // close_transport_peer = false when the same transport peer is about to be reused (e.g. new client instance).

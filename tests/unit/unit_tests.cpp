@@ -68,6 +68,7 @@ TEST(event_messages_roundtrip_and_respect_limits) {
     GameEvent e{7, 42, {1, 2, 3}};
     CHECK(roundtrip(e) == e);
     CHECK(roundtrip(EventAck{123}) == (EventAck{123}));
+    CHECK(roundtrip(DisconnectAck{}) == (DisconnectAck{}));
     CHECK(encode(hdr(1), GameEvent{0, 1, {}}).empty());                                       // id 0 is invalid
     CHECK(encode(hdr(1), GameEvent{1, 1, std::vector<std::uint8_t>(kMaxEventPayload + 1)}).empty());  // too large
     auto bytes = encode(hdr(1), GameEvent{1, 1, {9}});
