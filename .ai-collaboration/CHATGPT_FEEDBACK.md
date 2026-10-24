@@ -6,6 +6,27 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #9 (PR #9: secure provisioning, secure reliable channel)
+
+- **Status:** received and triaged (2026-10-24) on `feature/secure-liveness` (stacked on PR #9). Not implemented yet.
+- **Source:** [PR #9 comment 6379227966](https://github.com/M0nsT3rG/ProjectMordor/pull/9#issuecomment-6379227966). ChatGPT reviewed the source of `a98b62e` only.
+- **ChatGPT's verdict:** conditional GO for lab development only. No merge, no untrusted networks.
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-9-01** (major) liveness from unauthenticated datagrams | **Yes, confirmed.** `route()` sets `s.last_rx_us = now_us` (`secure_transport.cpp:339`) for **every** datagram routed to an existing slot, before DTLS decides whether it decrypts. Garbage or replays spoofed from the peer's UDP address keep a vanished peer "alive" forever, which defeats FB-8-04. | **Accepted** | Count liveness only when the established session yields an authenticated record (a decrypted frame, keepalives included). Regression test: the real peer goes silent while malformed, replayed and forged datagrams are injected from its address; it must still reach `idle_timeout`. |
+| **FB-9-02** (major) transport ack is not application delivery | **Yes** (KI-28 is open). | **Accepted, as the next milestone** (answer 5) | Application-level event ids, dedup, ack after the game applied the event, and replay. Tests: host restart; disconnect after the transport ack but before application processing; ordering across re-authentication. Selective acks wait. |
+| **FB-9-03** (major) configured vs **realized** impairment | **Yes.** The KI-34 defect passed the soak gates because they only bound RTT from above. | **Accepted** | A realized-impairment gate: the measured minimum RTT must be at least about 2 × the configured latency, and the measured loss/duplication must match the configuration within a tolerance. It applies to both handshake and encrypted application data on secure runs, for both backends. This is a new gate version (v5), fixed before its runs. |
+| **FB-9-04** (minor) key-file lifecycle | **Partly.** Creation is atomic (`CREATE_NEW` with the DACL set at creation), and temp keys are cleaned in `finally` (scripts) and destructors (tests), also on failure. **But** loading checks the ACL by path and then reopens the file (`secure_identity.cpp:147`): a check-then-open race, and reparse points (symlinks or junctions) are followed. An interrupted write leaves a truncated file that is refused (fail-safe) but blocks re-creation. | **Accepted** | Open one handle with `FILE_FLAG_OPEN_REPARSE_POINT` and refuse reparse points; check the DACL **on that handle** (`GetSecurityInfo`) and read from it. Write to a temp name, then move it into place, so an interrupted write never leaves a half key. Document rotation (new key plus new invitation). Tests: reparse point refused, ACL changed after creation, interrupted write (temp file left, final name absent). No app-bundled DPAPI entropy (answer 3). |
+| **FB-9-05** (minor) invitation and authorization | **Yes**, and already the behaviour: possessing an invitation without being on `--allow-peer` is refused (`secure_host_refuses_an_unpinned_player…`, E2E `stranger`). | **Accepted** | More tests: a spoofed or stale invitation, conflicting invitations, swapped fingerprints (the host pins A, B presents A's invitation), and an explicit "the invitation alone grants nothing" assertion. Also rate-limit and count repeated unauthenticated ClientHellos (answer 1). |
+
+**Answers received:**
+1. The cookie rule is off-path mitigation only; add rate limits and accounting.
+2. Cumulative ack is a prototype layer; prioritise KI-28.
+3. DPAPI with a user-only DACL is enough for the lab; no bundled entropy.
+4. Keep host-side `--allow-peer`, with only the host identity in the invitation.
+5. Do KI-28 next; KI-30 (stateless cookies) is a hard precondition for untrusted UDP.
+
 ## Feedback on review #8 (PR #8: secure transport decorator)
 
 - **Status:** triaged and **implemented** (2026-10-24) on `feature/secure-provisioning` (stacked on PR #8), on the owner's go-ahead ("faz tudo"). Record: EXP-021. Review request #8.
