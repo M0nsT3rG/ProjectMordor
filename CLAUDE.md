@@ -79,6 +79,7 @@ python -I tools/collab/test_report.py
 - PowerShell 5.1 `Set-Content -Encoding utf8` writes a BOM, which breaks the JSON readers. Write evidence files from Python.
 - On PowerShell 5.1, `2>$null` on a native exe under `ErrorActionPreference=Stop` throws. Use `--log FILE` instead.
 - The Bash tool can fail on heredocs that contain apostrophes. Write the file with the Write tool instead.
+- The test runner (`tests/test_main.cpp`) requests 1 ms timer resolution and opts out of Windows 11 power throttling, which otherwise ignores the request for windowless processes such as ctest children (KI-39). Never make test timing depend on other programs.
 - The executables' main loops use `PreciseSleeper` (high-resolution waitable timer). Plain `sleep_for(1ms)` sleeps about 15.6 ms on Windows and added about 50 ms of RTT (KI-02, fixed).
 - Soak gates are fixed in `tools/soak/analyze.py` and versioned (`GATE_VERSION`, currently 6; v3 requires `run.json` `scenario` to match `SCENARIOS`; v4 requires `transport` to be declared and to match the host log; results are per transport). Never tune them to results. A gate change is a new version, decided and documented before the runs that use it.
 - Soak evidence is immutable: each run gets a fresh `evidence/logs/soak-<timestamp>-<profile>-g<N>/` directory. Never delete or re-analyze an existing run into the same directory (the analyzer refuses).

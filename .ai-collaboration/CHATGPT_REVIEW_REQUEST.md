@@ -61,10 +61,12 @@ Fixed, with regression tests:
   - dtls 50, integration 44, integration-gns 30 + 14 SKIPPED, network 17, network-gns 12 + 5 SKIPPED, transport 18, transport-both 20, unit 17, gns 7.
 - E2E passed. Asymmetric 4/4 and secure E2E 4/4.
 - KI-27 reproducer: 0 assertions with the 50 ms settle (10/10 runs), and 16–63 per run without it.
-- **After the review fixes:**
-  - the UDP build passed ×2;
-  - the GNS build passed except for GNS-backed timing checks: 3 transport-contract tests on unchanged GNS code, and the GNS case of one DTLS no-busy-loop check (DTLS 50/51). That is **KI-39**: in this machine state each GNS loop iteration takes ~19 ms, and the cause is unknown.
-  - The test runner now requests 1 ms timer resolution itself; it had depended on another program holding it.
+- **After the review fixes:** the suites first failed on GNS timing checks (**KI-39, resolved**).
+  - The test runner's `sleep_for(1 ms)` had depended on some other program holding 1 ms timer resolution.
+  - When that stopped, `Sleep(1)` took 16 ms. 3 transport-contract tests on unchanged GNS code failed, and the DTLS suite hit ctest's timeout.
+  - Windows 11 ignores `timeBeginPeriod` for windowless processes. The runner now requests 1 ms and opts out of that throttling, for its own process only.
+  - `test.ps1` had also kept stale GNS results when ctest failed; that is fixed.
+  - Results after these fixes: see the PR body.
 - **v6 soaks (on `04d153a`): 11/12.** The table is in `docs/soak-testing.md`.
   - harsh-gns plaintext, which failed in v5 (KI-37), passed, with every leave confirmed.
   - harsh-udp-secure recovery: 1397 ms (v5: 1810).
@@ -81,6 +83,7 @@ Fixed, with regression tests:
 - **KI-28b.** Events are not durable.
 - **KI-32.** The secure reliable channel has cumulative acks only.
 - **KI-36.** The symlink check was not run.
+- The 12-soak battery predates the independent-review fixes. After them: secure E2E 2/2, harsh-udp-secure 59/59 (1467 ms) and moderate-gns-secure 59/59 (945 ms).
 - One aborted soak directory is kept, with no summary.
 
 ## 6. Specific questions for ChatGPT

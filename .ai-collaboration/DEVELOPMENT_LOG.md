@@ -30,8 +30,8 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **After the fixes:**
   - the soak battery above ran on `04d153a`, before them;
   - they were verified by the suites, secure E2E and two secure soaks (EXP-023).
-- **KI-39:** test timing depended on the system timer resolution. The runner now requests 1 ms itself. GNS-backed timing checks still fail in this machine state, on unchanged GNS code.
-- **Remaining:** KI-35 on GNS (KI-38 hypothesis), KI-39, KI-28b, LAN test, external review.
+- **KI-39 (resolved):** test timing depended on the system timer resolution. Windows 11 ignores `timeBeginPeriod` for windowless processes, so the test runner now also opts out of that throttling. `test.ps1` also used to stop before copying the GNS results when ctest failed; fixed.
+- **Remaining:** KI-35 on GNS (KI-38 hypothesis), KI-28b, LAN test, external review.
 
 ## 2026-10-24: Review #9 follow-up (`feature/secure-liveness`, stacked on #9)
 

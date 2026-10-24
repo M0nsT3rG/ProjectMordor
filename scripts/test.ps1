@@ -22,7 +22,9 @@ try {
     $stamp = Get-Date -Format 'yyyy-MM-dd'
     $failed = $false
     for ($i = 1; $i -le $Repeat; $i++) {
-        ctest --test-dir $BuildDir -C $Config --output-on-failure
+        $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'  # see the build-gns block below
+        ctest --test-dir $BuildDir -C $Config --output-on-failure 2>&1 | Out-Host
+        $ErrorActionPreference = $eap
         if ($LASTEXITCODE -ne 0) { $failed = $true }
     }
     foreach ($suite in 'unit', 'integration', 'network', 'transport') {
@@ -32,7 +34,11 @@ try {
     # Optional GNS build: per-transport results are recorded separately (review #4 next steps).
     $gnsResults = Join-Path 'build-gns' 'test-results'
     if ($GnsBuild -and (Test-Path $gnsResults)) {
-        ctest --test-dir build-gns -C $Config --output-on-failure
+        # A failing ctest writes to stderr, which throws under ErrorActionPreference=Stop on PowerShell 5.1 and used
+        # to skip the copy below, leaving the previous run's results in evidence (EXP-023). Record failures too.
+        $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+        ctest --test-dir build-gns -C $Config --output-on-failure 2>&1 | Out-Host
+        $ErrorActionPreference = $eap
         if ($LASTEXITCODE -ne 0) { $failed = $true }
         $map = @{ 'integration-gns' = 'integration-gns'; 'network-gns' = 'network-gns'; 'transport' = 'transport-both'; 'gns' = 'gns'; 'dtls' = 'dtls' }
         foreach ($k in $map.Keys) {

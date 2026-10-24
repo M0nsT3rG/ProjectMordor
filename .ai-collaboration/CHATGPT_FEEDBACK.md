@@ -22,6 +22,7 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
     - an event that was refused or backing off let later ones overtake it (the client saw 41 gaps in the FB-10-02 test, now 0);
     - repeated `DisconnectAck`s answered any source, with no rate limit.
   - It also found an unbounded leave loop in the client executable (now bounded at 3 s) and minor accounting issues.
+  - KI-39, found while verifying: test timing had depended on the machine's timer resolution. Fixed in the test runner.
   - One item is documented, not changed, because gate v6 already ran: the per-client delivery gate misattributes a client that rejoined under a new player id.
 - **Source:** [PR #10 comment 6380695083](https://github.com/M0nsT3rG/ProjectMordor/pull/10#issuecomment-6380695083). ChatGPT reviewed the source of `f283a07` only.
 - **ChatGPT's verdict:** conditional GO for continued investigation. NO-GO for merge or release (10/12 soaks, KI-35 and KI-37 open).

@@ -10,15 +10,14 @@
 
 #ifdef _WIN32
 // The suites step with sleep_for(1 ms). Without a 1 ms timer resolution that sleep takes ~15.6 ms, and timing tests
-// then pass or fail depending on whether some other program happens to hold 1 ms (EXP-023). Request it for this
-// process only; Windows releases it when the process exits. (Declared here to keep <windows.h> out of the suites.)
-extern "C" __declspec(dllimport) unsigned int __stdcall timeBeginPeriod(unsigned int);
-#pragma comment(lib, "winmm.lib")
+// then passed or failed depending on whether some other program happened to hold 1 ms (KI-39, EXP-023). Defined at
+// the end of this file, to keep <windows.h> away from the suites' headers.
+void request_1ms_timer_resolution();
 #endif
 
 int main(int argc, char** argv) {
 #ifdef _WIN32
-    timeBeginPeriod(1);
+    request_1ms_timer_resolution();
 #endif
     std::string filter, json_path;
     for (int i = 1; i < argc; ++i) {
@@ -60,3 +59,26 @@ int main(int argc, char** argv) {
     if (!json_path.empty()) std::ofstream(json_path) << json;
     return failed ? 1 : 0;
 }
+
+#ifdef _WIN32
+#ifndef WIN32_LEAN_AND_MEAN
+#define WIN32_LEAN_AND_MEAN
+#endif
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+#include <timeapi.h>
+#pragma comment(lib, "winmm.lib")
+
+void request_1ms_timer_resolution() {
+    // Windows 11 ignores timeBeginPeriod for processes without a visible window (hidden, or started by ctest) unless
+    // they opt out of that power throttling. Both apply to this process only and end with it.
+    PROCESS_POWER_THROTTLING_STATE s{};
+    s.Version = PROCESS_POWER_THROTTLING_CURRENT_VERSION;
+    s.ControlMask = PROCESS_POWER_THROTTLING_IGNORE_TIMER_RESOLUTION;
+    s.StateMask = 0;  // 0: do NOT ignore our timer resolution request
+    SetProcessInformation(GetCurrentProcess(), ProcessPowerThrottling, &s, sizeof s);
+    timeBeginPeriod(1);
+}
+#endif
