@@ -1,6 +1,7 @@
 """Gates for scripts/secure-e2e.ps1 (review #8 FB-8-03). Fixed before the first run.
 
 Positive run (host + client1 + client2, all secure):
+  - (FB-14-02, added 2026-10-24) both clients report connected within the barrier; the host runs until they are done;
   - every process exits 0; host and both clients log security mode "dtls";
   - both clients end connected and applied > 50 snapshots;
   - the host authenticated both players and dropped no non-DTLS datagram; no host timeouts (clean, reliable leave).
@@ -41,6 +42,10 @@ def check(run_dir: Path) -> dict:
     def gate(name, ok, detail=None):
         gates.append({"gate": name, "passed": bool(ok), "detail": detail})
 
+    # FB-14-02: both clients reported connected within the barrier, so a late start is classified, never silent.
+    b = run.get("barrier") or {}
+    gate("participants_ready", b.get("ready") is True,
+         {"limit_s": b.get("limit_s"), "log_appeared_ms": b.get("log_appeared_ms"), "connected_ms": b.get("connected_ms")})
     for name, code in run["exit_codes"].items():
         gate(f"{name}_exit_0", code == 0, code)
     logs = {n: events(run_dir / f"{n}.log") for n in ("host", "client1", "client2", "host2")}

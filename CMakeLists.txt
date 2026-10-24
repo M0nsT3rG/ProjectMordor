@@ -51,7 +51,8 @@ foreach(suite unit integration network transport)
   target_include_directories(mordor_${suite}_tests PRIVATE tests)
   target_link_libraries(mordor_${suite}_tests PRIVATE mordor_host_lib mordor_client_lib)
   add_test(NAME ${suite} COMMAND mordor_${suite}_tests --json ${CMAKE_BINARY_DIR}/test-results/${suite}.json)
-  set_tests_properties(${suite} PROPERTIES TIMEOUT 300)
+  # FB-13-03: pinned, so a MORDOR_TRANSPORT left in the caller's environment cannot change what a plain suite runs.
+  set_tests_properties(${suite} PROPERTIES TIMEOUT 300 ENVIRONMENT "MORDOR_TRANSPORT=udp")
 endforeach()
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/test-results)
 
@@ -72,13 +73,13 @@ if(MORDOR_WITH_GNS)
   target_include_directories(mordor_gns_tests PRIVATE tests)
   target_link_libraries(mordor_gns_tests PRIVATE mordor_host_lib mordor_client_lib GameNetworkingSockets::shared)
   add_test(NAME gns COMMAND mordor_gns_tests --json ${CMAKE_BINARY_DIR}/test-results/gns.json)
-  set_tests_properties(gns PROPERTIES TIMEOUT 300)
+  set_tests_properties(gns PROPERTIES TIMEOUT 300 ENVIRONMENT "MORDOR_TRANSPORT=udp")  # label only: it drives GNS itself
   # D-013 proof test (review #5 FB-5-05, approved by the owner): DTLS 1.2 + RFC 7250 raw public keys.
   add_executable(mordor_dtls_tests tests/dtls/dtls_proof_tests.cpp tests/dtls/dtls_transport_tests.cpp tests/dtls/secure_transport_tests.cpp tests/dtls/secure_identity_tests.cpp tests/test_main.cpp)
   target_include_directories(mordor_dtls_tests PRIVATE tests)
   target_link_libraries(mordor_dtls_tests PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
   add_test(NAME dtls COMMAND mordor_dtls_tests --json ${CMAKE_BINARY_DIR}/test-results/dtls.json)
-  set_tests_properties(dtls PROPERTIES TIMEOUT 300)
+  set_tests_properties(dtls PROPERTIES TIMEOUT 300 ENVIRONMENT "MORDOR_TRANSPORT=udp")  # label only: loops over both backends
   # KI-27 standalone reproducer (GNS public API only; tools/ki27-repro also builds on its own for the upstream report).
   add_executable(gns_listen_close_repro tools/ki27-repro/main.cpp)
   target_link_libraries(gns_listen_close_repro PRIVATE GameNetworkingSockets::shared)

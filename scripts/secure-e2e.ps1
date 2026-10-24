@@ -11,7 +11,8 @@ param(
     [ValidateSet('udp', 'gns')][string]$Transport = 'gns',
     [int]$DurationS = 10,
     [int]$Port = 47843,
-    [string]$Config = 'Release'
+    [string]$Config = 'Release',
+    [int]$BarrierS = 30  # FB-14-02: both clients must report connected within this, or the run is classified not ready
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -45,16 +46,35 @@ try {
         }
     }
     # --- Positive: two invited players play over DTLS. ---
+    # FB-14-02: no fixed host lifetime. The host runs until the clients are done (stop file), with a safety cap. A
+    # readiness barrier classifies late participants instead of letting a fixed duration cut them off silently.
+    $stop = Join-Path $out 'host.stop'
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow -ArgumentList `
-        "--port $Port --duration-s $($DurationS + 4) $common --secure-key $hostKey --invitation $inv --allow-peer $pub1,$pub2 --log $out/host.log"
+        "--port $Port --duration-s $($DurationS + 60) --stop-file $stop $common --secure-key $hostKey --invitation $inv --allow-peer $pub1,$pub2 --log $out/host.log"
     $null = $h.Handle
     Wait-HostStarted "$out/host.log" $h
+    $launched = [Diagnostics.Stopwatch]::StartNew()
     $c1 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow -ArgumentList `
         "--port $Port --duration-s $DurationS --pattern circle $common --secure-key $(Join-Path $keys 'client1.key') --invitation $inv --log $out/client1.log"
     $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow -ArgumentList `
         "--port $Port --duration-s $DurationS --pattern line $common --secure-key $(Join-Path $keys 'client2.key') --invitation $inv --log $out/client2.log"
     $null = $c1.Handle; $null = $c2.Handle
-    $c1.WaitForExit(); $c2.WaitForExit(); $h.WaitForExit()
+    $logAt = [ordered]@{}; $connAt = [ordered]@{}
+    while ($launched.Elapsed.TotalSeconds -lt $BarrierS -and $connAt.Count -lt 2) {
+        foreach ($n in 'client1', 'client2') {
+            $l = "$out/$n.log"
+            if (-not $logAt.Contains($n) -and (Test-Path $l)) { $logAt[$n] = [int]$launched.Elapsed.TotalMilliseconds }
+            if (-not $connAt.Contains($n) -and (Test-Path $l) -and (Select-String -Path $l -Pattern '"evt":"connected"' -Quiet -ErrorAction SilentlyContinue)) {
+                $connAt[$n] = [int]$launched.Elapsed.TotalMilliseconds
+            }
+        }
+        Start-Sleep -Milliseconds 50
+    }
+    $barrier = [ordered]@{ ready = ($connAt.Count -eq 2); limit_s = $BarrierS; log_appeared_ms = $logAt; connected_ms = $connAt }
+    if (-not $barrier.ready) { Write-Warning "participants_not_ready within $BarrierS s: $($connAt.Keys -join ',') connected" }
+    $c1.WaitForExit(); $c2.WaitForExit()
+    New-Item -ItemType File $stop | Out-Null  # every client is done: the host may stop now
+    $h.WaitForExit()
 
     # --- Negatives against a second secure host (only client1 is invited). ---
     $p2 = $Port + 2
@@ -84,6 +104,7 @@ try {
         duration_s = $DurationS
         keys       = 'generated under %TEMP% for this run and deleted afterwards (never in the repository)'
         exit_codes = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode; host2 = $h2.ExitCode }
+        barrier    = $barrier
         negative_exit_codes = $neg
     }
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $out) 'run.json'), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))

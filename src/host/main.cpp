@@ -3,6 +3,7 @@
 #include <atomic>
 #include <chrono>
 #include <cstdio>
+#include <filesystem>
 #include <iostream>
 #include <thread>
 
@@ -40,6 +41,7 @@ int main(int argc, char** argv) {
                          "  --port N          UDP port (default 47800)\n"
                          "  --tick-rate N     simulation ticks per second (default 30)\n"
                          "  --duration-s N    stop after N seconds (default: run until Ctrl+C)\n"
+                         "  --stop-file PATH  stop cleanly once PATH exists (checked every 100 ms)\n"
                          "  --event-interval-ms N  send every player a reliable game event this often (0 = off); players in\n"
                          "                    their grace period get them queued and replayed on reconnect (FB-9-02)\n"
                       << cli::kImpairmentHelp << cli::kSecureHelp;
@@ -70,6 +72,8 @@ int main(int argc, char** argv) {
         log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
                               kv("invitation", secure.invitation_id)});
         const double duration_s = args.num<double>("duration-s", 0.0);
+        // FB-14-02: a test harness can end the run once every participant is done, instead of guessing a duration.
+        const std::string stop_file = args.str("stop-file", "");
         const auto event_interval_us = args.num<std::uint64_t>("event-interval-ms", 0) * 1000;
         std::uint64_t next_event_us = 0, events_refused = 0;
 
@@ -81,9 +85,18 @@ int main(int argc, char** argv) {
         }
         SetConsoleCtrlHandler(on_ctrl, TRUE);
         const auto start = now_us();
+        std::uint64_t next_stop_check_us = 0;
         while (!g_stop) {
             const auto t = now_us();
             if (duration_s > 0 && (t - start) / 1e6 >= duration_s) break;
+            if (!stop_file.empty() && t >= next_stop_check_us) {
+                next_stop_check_us = t + 100'000;
+                std::error_code ec;
+                if (std::filesystem::exists(stop_file, ec)) {
+                    log.info("stop_file_seen", {kv("uptime_ms", (t - start) / 1000)});
+                    break;
+                }
+            }
             h.update(t);
             if (event_interval_us && t >= next_event_us) {
                 next_event_us = t + event_interval_us;

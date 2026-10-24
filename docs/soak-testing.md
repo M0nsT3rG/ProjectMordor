@@ -355,6 +355,30 @@ The full battery plus 4 seeded repeats per harsh secure profile, on `2f2fe20`. D
   KI-35 stays open.
 - The realized conditions match the profile: client2 delivery 0.84–0.85 against 15% loss and 5% duplication, and RTT p50 about 190 ms (GNS) and 203 ms (UDP), for 80 ms ± 40 ms each way.
 
+## Predeclared experiment FB-13-01: transport-specific reconnect retry (2026-10-24, EXP-026)
+
+Written and committed **before** its first run.
+
+- **Question.** In EXP-025, 250 ms helped UDP strongly and GNS not at all. Is a **UDP-only** shorter session reconnect retry better on UDP when tested on fresh seeds? On GNS the retry stays 500 ms, with no GNS arm.
+- **One variable:** the client's `reconnect_retry_us`.
+  - A = 500 ms (the default);
+  - B = 250 ms, set with `soak.ps1 -ReconnectRetryMs 250`.
+
+  The build and the gate (v6) are the same for both arms.
+- **Runs:**
+  - harsh-udp-secure, 120 s;
+  - UDP seed bases 300, 310, …, 370 (8 seeds, none used in EXP-025), each once with A and once with B;
+  - A and B interleaved per seed;
+  - 16 runs in total.
+- **Decision rule, fixed now,** applied by `tools/soak/compare_arms.py`. B becomes the UDP default only if:
+  1. B has no more `client2_recovery_time` failures than A;
+  2. B's median recovery is at least 10% lower;
+  3. B introduces no other gate failure that A does not have.
+
+  Aborted runs (no summary) are reported apart and excluded from every count. Otherwise A stays the default on UDP too.
+- **GNS, alongside:** 8 more default harsh-gns-secure runs (no arm). Their phase distribution goes through `timeline.py --summary`, which measures where the GNS tail lives (GNS establishment, DTLS, session) before any GNS-side change is proposed.
+- **The 3000 ms gate does not change either way.**
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

@@ -7,7 +7,8 @@ Reads host.log and client*.log (JSON lines). Client t_ms is mapped onto the shar
   binding  handshake_done -> client authenticated (invitation binding)
   session  client authenticated -> reconnected (ConnectRequest / ConnectAccept)
 plus handshake timer firings and binding counts. Read-only; nothing is written.
-Usage: python -I tools/soak/timeline.py <run_dir> [<run_dir> ...]
+Usage: python -I tools/soak/timeline.py [--summary] <run_dir> [<run_dir> ...]
+  --summary  per-transport distributions of the phases notice / establish / dtls_auth / session / total (FB-13-01)
 """
 from __future__ import annotations
 
@@ -44,6 +45,9 @@ def reconnects(client: list[dict], host: list[dict]) -> list[dict]:
             out.append({"incomplete": True})
             continue
         ch, d, a, r = (mono_ms(x, base) for x in (first_ch, done, auth, rec))
+        # FB-13-01 phases: the host's timeout notice, then (re)establishing the transport until DTLS can start.
+        rc = next((x for x in rest if x.get("evt") == "state_change" and x.get("to") == "reconnecting"), None)
+        rc_ms = mono_ms(rc, base) if rc else t0
         between = [x for x in trace if ch <= mono_ms(x, base) <= a]
         host_win = [x for x in host if x.get("evt") == "dtls_trace" and ch <= x["mono_us"] / 1000 <= r]
         reqs = [x for x in rest if x.get("evt") == "connect_request" and mono_ms(x, base) <= mono_ms(rec, base)]
@@ -59,6 +63,7 @@ def reconnects(client: list[dict], host: list[dict]) -> list[dict]:
             "cookie_ms": None if not ch2 else mono_ms(ch2, base) - ch,
             "session_requests": len(reqs),
             "session_requests_after_auth": sum(mono_ms(x, base) >= a - 2 for x in reqs),  # log t_ms is 1 ms resolution
+            "phase_notice": rc_ms - t0, "phase_establish": ch - rc_ms, "phase_dtls_auth": a - ch, "phase_session": r - a,
             "detect": ch - t0, "dtls": d - ch, "binding": a - d, "session": r - a, "total": r - t0,
             "reconnect_ms": rec.get("reconnect_ms"),
             "client_timers": sum(x["ev"] == "timer" for x in between),
@@ -71,16 +76,44 @@ def reconnects(client: list[dict], host: list[dict]) -> list[dict]:
     return out
 
 
+PHASES = ("phase_notice", "phase_establish", "phase_dtls_auth", "phase_session", "total")
+
+
+def pct(v: list[float], p: float) -> float:
+    s = sorted(v)
+    return s[min(len(s) - 1, max(0, round(p / 100 * (len(s) - 1))))]
+
+
+def summary(rows: list[tuple[str, dict]]) -> None:
+    """FB-13-01: per-transport distribution of each recovery phase (ms): n, p50, p90, max."""
+    by: dict[str, list[dict]] = {}
+    for transport, r in rows:
+        by.setdefault(transport, []).append(r)
+    for transport, rs in sorted(by.items()):
+        print(f"{transport}: {len(rs)} reconnects")
+        for ph in PHASES:
+            v = [r[ph] for r in rs]
+            print(f"  {ph:<16} p50 {pct(v, 50):6.0f}  p90 {pct(v, 90):6.0f}  max {max(v):6.0f}")
+
+
 def main(argv: list[str]) -> int:
+    want_summary = "--summary" in argv
+    argv = [a for a in argv if a != "--summary"]
     if not argv:
         print(__doc__)
         return 2
+    rows: list[tuple[str, dict]] = []
     for d in map(Path, argv):
+        run = json.loads((d / "run.json").read_text(encoding="utf-8")) if (d / "run.json").is_file() else {}
+        transport = f"{run.get('transport', '?')}{'-sec' if run.get('secure') else ''}"
         host = read(d / "host.log") if (d / "host.log").is_file() else []
         for c in sorted(d.glob("client*.log")):
             for r in reconnects(read(c), host):
                 if r.get("incomplete"):
                     print(f"{d.name} {c.stem}: incomplete reconnect trace")
+                    continue
+                rows.append((transport, r))
+                if want_summary:
                     continue
                 print(f"{d.name} {c.stem}: cookie {r['cookie_ms'] if r['cookie_ms'] is None else round(r['cookie_ms'])} ms | total {r['total']:.0f} ms = detect {r['detect']:.0f} + dtls {r['dtls']:.0f} "
                       f"+ binding {r['binding']:.0f} + session {r['session']:.0f} | client timers {r['client_timers']}, "
@@ -90,6 +123,8 @@ def main(argv: list[str]) -> int:
                       f"{r['inner_connected_after_first_hello']} ms after the first hello, hellos before it "
                       f"{r['hellos_before_inner_connected']} | ConnectRequests {r['session_requests']} "
                       f"({r['session_requests_after_auth']} after authentication)")
+    if want_summary and rows:
+        summary(rows)
     return 0
 
 

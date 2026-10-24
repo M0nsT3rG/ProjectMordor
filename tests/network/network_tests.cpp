@@ -2,6 +2,9 @@
 #include <array>
 
 #include "test_support.hpp"
+#ifdef MORDOR_HAVE_GNS
+#include "network/gns_transport.hpp"
+#endif
 
 using namespace mordor;
 using namespace mordor::net;
@@ -134,19 +137,39 @@ TEST(packet_loss_does_not_break_session) {
     CHECK(s.host.stats().invalid_packets == 0);
 }
 
+// Review #14 FB-14-01 (KI-41): the invariant is "no crash, no corruption, a bounded and explained end state, nothing
+// leaked", not "connects under 60% loss". At 60% loss each way a ConnectRequest/Accept round trip succeeds with
+// p = 0.16, so the 5 s connect window (shorter than this 6 s run) can expire: ~3% of runs where loss is random (GNS;
+// 1 of 37 observed). That ends in Failed("connect_timeout") by design (D-014), and is accepted ONLY with that reason
+// and only once the window has really passed. Successful recovery is tested at less extreme profiles elsewhere.
 TEST(heavy_loss_and_duplication_never_crash) {
-    host::HostConfig hc;
-    hc.impairment = impair(0.6, 30, 30, 31, 0.3);
-    test::Session s(hc);
-    client::ClientConfig cc;
-    cc.impairment = impair(0.6, 30, 30, 32, 0.3);
-    auto& a = s.add_client(cc);
-    a.set_move(1, 1);
-    s.run(6 * kSec);
-    CHECK(s.host.running());
-    const auto st = a.state();
-    CHECK(st == ClientState::Connected || st == ClientState::Connecting || st == ClientState::Reconnecting);
-    CHECK(s.host.stats().invalid_packets == 0);  // duplicates are valid packets, handled as stale
+#ifdef MORDOR_HAVE_GNS
+    const auto gns_before = net::gns_lifecycle();
+#endif
+    {
+        host::HostConfig hc;
+        hc.impairment = impair(0.6, 30, 30, 31, 0.3);
+        test::Session s(hc);
+        client::ClientConfig cc;
+        cc.impairment = impair(0.6, 30, 30, 32, 0.3);
+        auto& a = s.add_client(cc);
+        a.set_move(1, 1);
+        s.run(6 * kSec);
+        CHECK(s.host.running());
+        const auto st = a.state();
+        std::printf("       %s: client ended %s (%s)\n", net::to_string(test::test_transport()), client::to_string(st),
+                    a.state_reason().c_str());
+        const bool live = st == ClientState::Connected || st == ClientState::Connecting || st == ClientState::Reconnecting;
+        const bool explained_failure = st == ClientState::Failed && a.state_reason() == "connect_timeout" &&
+                                       cc.connect_timeout_us < 6 * kSec;  // only reachable because the window is shorter
+        CHECK(live || explained_failure);
+        CHECK(s.host.stats().invalid_packets == 0);  // duplicates are valid packets, handled as stale
+    }
+#ifdef MORDOR_HAVE_GNS
+    // Clean release: once host and client are gone, the GNS runtime holds no more than it did before the test.
+    const auto gns_after = net::gns_lifecycle();
+    CHECK(gns_after.connections <= gns_before.connections && gns_after.listen_sockets <= gns_before.listen_sockets);
+#endif
 }
 
 // Test 9: a client that loses connectivity times out on both ends, then recovers its identity.

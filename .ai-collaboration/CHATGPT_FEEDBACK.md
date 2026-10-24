@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Reviews of PRs #12–#14 (ChatGPT, 2026-10-24 21:05)
+
+- **Status:** received and triaged (2026-10-24) on `feature/review13-14-followup` (stacked on PR #14); the owner asked for all of it.
+- **Sources:** one comment each on PR #12 (P2 accepted, fixed in #14, blockers carried), PR #13 (FB-13-01..03) and PR #14 (FB-14-01..03). Source reviews only.
+- **Verdict:** conditional GO for controlled lab work; NO-GO for merge or release. Keep #12 → #13 → #14 stacked.
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-13-01** (major) KI-35 | **Yes.** Pooled default-policy failures are 4/14 (GNS) and 2/15 (UDP). The phase breakdown exists per run (`timeline.py`), but not as a distribution. | **Accepted** | Phase distributions across runs (GNS establishment, DTLS authentication, session recovery): `timeline.py --summary`. More independent default GNS runs. A **predeclared transport-specific** experiment: 250 ms on UDP only (GNS keeps 500 ms, where EXP-025 showed no gain), decision rule fixed before the runs. No global timer change, gate fixed. |
+| **FB-13-02** (major) KI-40 | **Yes.** It is not reproduced, and not resolved. The watcher lives in the scratchpad, not in the repo. | **Accepted** | Move the hang watcher into the repo (`scripts/hang-watch.ps1`). It dumps through `scripts/dump-stacks.ps1` and records each kill. The battery checks that every process actually exited, not just that its JSON exists. No `Kill`. |
+| **FB-13-03** (minor) harness | **Yes.** The plain ctest suites inherit `MORDOR_TRANSPORT` (`CMakeLists.txt:53`); only the `-gns` ones set it. | **Accepted** | Plain suites get `ENVIRONMENT MORDOR_TRANSPORT=udp`. `test.ps1` fails when a suite's JSON reports a transport other than the one registered for it. A check proves a leaked variable is neutralised. Aborted runs are counted separately in `compare_arms.py`. |
+| **FB-14-01** (major) KI-41 | **To be measured first** (30 repeat runs with client logs). The client exposes no failure reason today. | **Accepted** | Split the invariant: no crash, no invalid packets and a bounded end state, with `Failed` allowed only with an explicit expected reason, within its deadline, and with transport resources released. Recovery stays tested at less extreme profiles. Record the repeats. |
+| **FB-14-02** (major) startup race | **Yes.** `secure-e2e.ps1` gives the host a fixed `--duration-s` and starts clients after `host_started`, so late clients are cut off. | **Accepted** | A barrier: the host runs until a stop file appears (`--stop-file`). The script waits until both clients log `connected` (classified timeout `participants_not_ready`), lets the clients run their window, then stops the host. The client start delay is recorded. The freshly-relinked startup path is tested explicitly. |
+| **FB-14-03** (minor) final head | **Yes.** | **Accepted** | Leave, rejoin and linger tests in the suites ×2, and the full v6 battery plus harsh repeats on the final head of this stack, thresholds unchanged. |
+
+---
+
 ## Follow-up review of PR #12 (inline, 2026-10-24 19:19)
 
 - **Status:** triaged and **fixed** on `fix/linger-eviction-rejoin` (stacked on PR #13), on the owner's go-ahead.

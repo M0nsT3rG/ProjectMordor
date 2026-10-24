@@ -61,12 +61,14 @@ def main(argv: list[str]) -> int:
         print(__doc__)
         return 2
     groups: dict = defaultdict(lambda: defaultdict(list))
+    aborted = []  # FB-13-03: neither passed nor failed; reported apart, never in a denominator
     for d in map(Path, argv):
         r = load(d)
         if r:
             groups[r["key"]][r["retry"]].append(r)
         else:
-            print(f"skipped (no summary): {d.name}")
+            aborted.append(d.name)
+    print(f"aborted runs (no summary, excluded from every count): {len(aborted)} {aborted}")
     for key, arms in sorted(groups.items()):
         for retry, rs in sorted(arms.items()):
             rec = sorted(r["recovery"] for r in rs)

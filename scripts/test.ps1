@@ -46,6 +46,10 @@ try {
             if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$($map[$k])-$stamp.json") -Force }
         }
     }
+    # FB-13-03: every recorded suite must have run on the transport it is registered for (no leaked MORDOR_TRANSPORT).
+    python -I tools/collab/check_test_transport.py --date $stamp unit=udp integration=udp network=udp transport=udp `
+        integration-gns=gns network-gns=gns transport-both=udp gns=udp dtls=udp
+    if ($LASTEXITCODE -ne 0) { $failed = $true }
     if ($E2E) {
         $bin = Join-Path $BuildDir $Config
         $out = Join-Path $logs "e2e-$stamp"
