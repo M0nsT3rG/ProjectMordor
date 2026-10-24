@@ -56,10 +56,15 @@ try {
         $secC2 = "--secure-key $(Join-Path $keys 'client2.key') --invitation $inv"
     }
 
-    # Warm-up (EXP-006 workaround, cause unknown).
-    & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-host.log"
-    & (Join-Path $bin 'mordor-client.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-client.log"
+    # Warm-up (EXP-006 workaround, cause unknown). Two runs stopped right after it (EXP-024/025), probably because a
+    # GNS warning on stderr throws under ErrorActionPreference=Stop (PowerShell 5.1): never let stderr abort a soak,
+    # and keep it if it is not empty.
+    $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-host.log" 2> "$out/warmup-host.stderr.txt"
+    & (Join-Path $bin 'mordor-client.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-client.log" 2> "$out/warmup-client.stderr.txt"
+    $ErrorActionPreference = $eap
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
+    Get-ChildItem "$out/warmup-*.stderr.txt" | Where-Object { $_.Length -eq 0 } | Remove-Item
 
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow `
         -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed $($SeedBase + 1) --event-interval-ms $EventIntervalMs $secHost --log $out/host.log"

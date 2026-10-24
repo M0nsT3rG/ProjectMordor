@@ -622,6 +622,30 @@ TEST(gns_teardown_assertion_probe) {
     CHECK(total == 0);  // regression gate for the KI-27 mitigation (process-lifetime runtime + settle after Init)
 }
 
+// Review #12 FB-12-02 (KI-40): what the runtime holds returns to its earlier level after orderly closes, for one
+// instance and for many in sequence, whichever side closes first; nothing stays registered for exit to tear down.
+TEST(gns_lifecycle_returns_to_baseline_after_orderly_and_repeated_use) {
+    const auto base = gns_lifecycle();
+    auto pair_once = [](bool host_first) {
+        auto h = make_open(TransportKind::Gns, true);
+        auto c = make_open(TransportKind::Gns, false);
+        c->connect(Endpoint::loopback(h->local_endpoint().port));
+        poll_until({h.get(), c.get()}, h.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; });
+        const auto during = gns_lifecycle();
+        if (host_first) h.reset(); else c.reset();
+        return during;
+    };
+    const auto during = pair_once(false);
+    CHECK(during.listen_sockets == base.listen_sockets + 1 && during.connections == base.connections + 2);
+    for (int i = 0; i < 20; ++i) pair_once(i % 2 == 0);
+    const auto after = gns_lifecycle();
+    std::printf("       GNS lifecycle: base %zu connections / %zu listen sockets, during %zu / %zu, after 21 pairs %zu / %zu (refs %d -> %d)\n",
+                base.connections, base.listen_sockets, during.connections, during.listen_sockets, after.connections,
+                after.listen_sockets, base.refs, after.refs);
+    CHECK(after.connections == base.connections && after.listen_sockets == base.listen_sockets && after.refs == base.refs);
+    CHECK(after.initialized);  // by design the runtime lives for the process (KI-27); never killed by us
+}
+
 // Registered last in this file: no GNS internal assertion anywhere in this process's contract run.
 TEST(gns_reported_no_internal_assertions_in_this_run) {
     std::printf("       GNS internal assertions in this process: %llu\n", static_cast<unsigned long long>(gns_internal_assertions()));

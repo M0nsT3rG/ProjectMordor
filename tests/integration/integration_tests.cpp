@@ -1379,7 +1379,7 @@ TEST(lingering_peers_are_bounded) {
         CHECK(s.host.slot_count() == 0);
     }
     CHECK(s.host.stats().clean_leaves == 17);
-    CHECK(s.host.stats().leave_lingers_cut == 1);
+    CHECK(s.host.stats().leave_lingers_cut == 1 && s.host.lingering_count() == 16);
 }
 
 TEST(disconnect_after_the_leave_window_is_not_answered) {
@@ -1403,4 +1403,84 @@ TEST(disconnect_after_the_leave_window_is_not_answered) {
         for (auto& [from, p] : drain(*fc.t)) acked |= std::holds_alternative<DisconnectAck>(p.message);
     }
     CHECK(!acked && s.host.stats().leave_acks_repeated == 0);
+}
+
+// Review #12 FB-12-05: more departure cases; none may produce a false leave_confirmed.
+TEST(leave_survives_repeated_lost_acks) {
+    test::SimClock clk;
+    TransportFakeHost fh;
+    client::ClientConfig cc;
+    cc.host = fh.endpoint();
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    fh.expect_request(c, clk);
+    fh.accept(c, clk);
+    c.leave(clk.now);
+    int disconnects = 0;
+    while (c.leaving() && clk.now < 5 * kSec) {
+        clk.now += 10'000;
+        c.update(clk.now);
+        settle();
+        for (auto& [from, p] : drain(*fh.t))
+            if (std::holds_alternative<Disconnect>(p.message)) ++disconnects;
+        // The host "acks" every Disconnect, but the first two acks are lost: it only gets through on the third.
+        if (disconnects >= 3 && c.leaving()) fh.deliver(c, clk, fh.packet(DisconnectAck{}));
+        CHECK(c.stats().leave_confirmed == !c.leaving());  // confirmed only by an ack that arrived
+    }
+    CHECK(c.stats().leave_confirmed && c.stats().leave_disconnects_sent >= 3);
+}
+
+TEST(lingering_peer_whose_process_ends_is_cleaned_up) {
+    test::Session s;
+    auto fc = std::make_unique<TransportFakeClient>(s.host.port());
+    fc->join(s, 801);
+    fc->send(Disconnect{DisconnectReason::ClientQuit});
+    for (int i = 0; i < 10 && s.host.lingering_count() == 0; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+    }
+    CHECK(s.host.lingering_count() == 1);
+    const bool reports = fc->t->capabilities().reports_disconnects;
+    fc.reset();  // the client process "terminates" during the linger: its transport goes away without a word
+    const auto t0 = s.clk.now;
+    std::uint64_t gone_at = 0;
+    for (int i = 0; i < 300 && !gone_at; ++i) {
+        s.clk.now += 10'000;
+        s.host.update(s.clk.now);
+        settle();
+        if (s.host.lingering_count() == 0) gone_at = s.clk.now;
+    }
+    CHECK(gone_at != 0);  // UDP: at the end of the 1.5 s window; GNS: when the transport reports the close
+    std::printf("       lingering peer cleaned up %llu ms after its process ended (%s)\n",
+                static_cast<unsigned long long>((gone_at - t0) / 1000), reports ? "transport disconnect" : "window end");
+}
+
+TEST(two_peers_leave_and_rejoin_at_once) {
+    test::Session s;
+    TransportFakeClient a(s.host.port()), b(s.host.port());
+    a.join(s, 901);
+    b.join(s, 902);
+    CHECK(s.host.slot_count() == 2);
+    a.send(Disconnect{DisconnectReason::ClientQuit});
+    b.send(Disconnect{DisconnectReason::ClientQuit});
+    for (int i = 0; i < 10 && s.host.slot_count() != 0; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+    }
+    CHECK(s.host.slot_count() == 0 && s.host.lingering_count() == 2);
+    a.join(s, 903);
+    b.join(s, 904);
+    for (int i = 0; i < 250; ++i) {  // past the linger
+        s.clk.now += 10'000;
+        s.host.update(s.clk.now);
+        settle();
+        if (i % 10 == 0) {
+            a.send(Heartbeat{s.clk.now});
+            b.send(Heartbeat{s.clk.now});
+        }
+    }
+    CHECK(s.host.slot_count() == 2 && s.host.lingering_count() == 0 && s.host.stats().clean_leaves == 2);
+    CHECK(a.latest_snapshot().has_value() && b.latest_snapshot().has_value());  // neither rejoined peer was closed
 }
