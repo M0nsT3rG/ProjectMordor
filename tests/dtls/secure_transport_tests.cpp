@@ -3,6 +3,7 @@
 #include <openssl/evp.h>
 
 #include <chrono>
+#include <cstring>
 #include <ctime>
 #include <memory>
 
@@ -256,7 +257,8 @@ TEST(secure_pending_sessions_are_capped_and_expire) {
         const auto ev = run(all, c.get(), [&](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
         CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
         CHECK(c->send(to_host, std::vector<std::uint8_t>{7}, Delivery::Unreliable, 0) == SendResult::Sent);
-        CHECK(c->send(to_host, std::vector<std::uint8_t>{7}, Delivery::ReliableOrdered, 0) == SendResult::Unsupported);
+        // Review #8 FB-8-02: ReliableOrdered is now the decorator's own secure channel (was Unsupported before).
+        CHECK(c->send(to_host, std::vector<std::uint8_t>{7}, Delivery::ReliableOrdered, 0) == SendResult::Sent);
     }
 }
 
@@ -310,4 +312,341 @@ TEST(secure_same_address_reconnects_replace_only_when_authenticated) {
         return e.kind == TransportEvent::Kind::Message && e.bytes == std::vector<std::uint8_t>{9};
     }));
     std::printf("       udp: 2 same-address reconnects replaced the association; late old records dropped; wrong invitation ignored\n");
+}
+
+// ---- Review #8 FB-8-01: forged ClientHellos from the player address must not starve its reconnect. ----
+namespace {
+// Shares one real inner transport with the test, so the test can inject datagrams from the client address.
+struct Tap final : Transport {
+    std::shared_ptr<Transport> t;
+    PeerId last_peer{};
+    explicit Tap(std::shared_ptr<Transport> inner) : t(std::move(inner)) {}
+    bool open(const Endpoint& b, bool l, std::string* e) override { return t->open(b, l, e); }
+    void close() override { t->close(); }
+    bool is_open() const override { return t->is_open(); }
+    Endpoint local_endpoint() const override { return t->local_endpoint(); }
+    TransportCapabilities capabilities() const override { return t->capabilities(); }
+    std::optional<PeerId> connect(const Endpoint& r) override {
+        auto p = t->connect(r);
+        if (p) last_peer = *p;
+        return p;
+    }
+    SendResult send(PeerId p, std::span<const std::uint8_t> b, Delivery d, std::uint64_t n) override {
+        sent_first_bytes.push_back(b.empty() ? 0 : b[0]);
+        return t->send(p, b, d, n);
+    }
+    void poll(std::uint64_t n, std::vector<TransportEvent>& out) override { t->poll(n, out); }
+    void flush(std::uint64_t n) override { t->flush(n); }
+    void close_peer(PeerId p) override { t->close_peer(p); }
+    void flush_all() override { t->flush_all(); }
+    bool set_impairment(const ImpairmentConfig& c) override { return t->set_impairment(c); }
+    TransportKind kind() const override { return t->kind(); }
+    const TransportStats& stats() const override { return t->stats(); }
+    std::vector<std::uint8_t> sent_first_bytes;  // what the decorator put on the wire (record content types)
+};
+// Records what a DTLS client would send, without a network: a source of realistic forged ClientHellos.
+struct Capture final : Transport {
+    std::vector<std::vector<std::uint8_t>> sent;
+    TransportStats s;
+    bool open(const Endpoint&, bool, std::string*) override { return true; }
+    void close() override {}
+    bool is_open() const override { return true; }
+    Endpoint local_endpoint() const override { return {}; }
+    TransportCapabilities capabilities() const override { return {.max_payload = kMaxPacketSize}; }
+    std::optional<PeerId> connect(const Endpoint&) override { return PeerId{1, 0}; }
+    SendResult send(PeerId, std::span<const std::uint8_t> b, Delivery, std::uint64_t) override {
+        sent.emplace_back(b.begin(), b.end());
+        return SendResult::Sent;
+    }
+    void poll(std::uint64_t, std::vector<TransportEvent>&) override {}
+    void flush(std::uint64_t) override {}
+    void close_peer(PeerId) override {}
+    void flush_all() override {}
+    bool set_impairment(const ImpairmentConfig&) override { return true; }
+    TransportKind kind() const override { return TransportKind::Udp; }
+    const TransportStats& stats() const override { return s; }
+};
+std::vector<std::uint8_t> forged_client_hello(const Key& stranger, const std::vector<std::uint8_t>& host_spki, const Invitation& inv) {
+    Capture cap;
+    DtlsConfig d;
+    d.own_key = stranger.p;
+    d.pinned_peers = {host_spki};
+    d.invitation = inv;
+    DtlsSession s(cap, PeerId{1, 0}, Endpoint{}, d);
+    s.service(real_us(), static_cast<std::uint64_t>(std::time(nullptr)));  // first flight: one fresh ClientHello
+    if (cap.sent.empty() || !dtls_parse_client_hello(cap.sent[0])) throw test::CheckFailure("no ClientHello captured");
+    return cap.sent[0];
+}
+}  // namespace
+
+TEST(secure_forged_client_hellos_cannot_starve_a_players_reconnect) {
+    Key host_key, player, stranger;
+    auto hcfg = *secure(host_key, {player.spki()}, invite());
+    hcfg.max_pending_total = 2;
+    auto host = open_secure(TransportKind::Udp, hcfg, true);
+    std::string err;
+    std::shared_ptr<Transport> shared = make_transport(TransportKind::Udp, {}, &err);
+    auto tap_owned = std::make_unique<Tap>(shared);
+    Tap* tap = tap_owned.get();
+    auto c = make_secure_transport(std::move(tap_owned), *secure(player, {host_key.spki()}, hcfg.invitation), &err);
+    CHECK(c && c->open(Endpoint::loopback(0), false, &err));
+    const Endpoint host_ep = Endpoint::loopback(host->local_endpoint().port);
+    auto peer = c->connect(host_ep).value();
+    std::vector<TransportEvent> hev;
+    auto step = [&](int ms, auto done) {
+        auto ev = run({host.get(), c.get()}, host.get(), [&](const auto& e) { return done(e); }, ms);
+        hev.insert(hev.end(), ev.begin(), ev.end());
+    };
+    step(5000, [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; });
+    const auto* hs = secure_stats(*host);
+    CHECK(hs->authenticated == 1);
+    // Strangers from other addresses fill the global pending cap while the player is active.
+    std::vector<std::unique_ptr<Transport>> others;
+    for (int i = 0; i < 3; ++i) {
+        others.push_back(make_transport(TransportKind::Udp, {}, &err));
+        CHECK(others.back()->open(Endpoint::loopback(0), false, &err));
+        const auto p = others.back()->connect(host_ep).value();
+        others.back()->send(p, forged_client_hello(stranger, host_key.spki(), hcfg.invitation), Delivery::Unreliable, 0);
+    }
+    // Forged ClientHellos (fresh randoms) injected from the PLAYER address, continuously.
+    auto spam = [&] { shared->send(tap->last_peer, forged_client_hello(stranger, host_key.spki(), hcfg.invitation), Delivery::Unreliable, 0); };
+    for (int i = 0; i < 5; ++i) {
+        spam();
+        step(20, [](const auto&) { return false; });
+    }
+    const auto replaced_before = hs->pending_replaced;
+    CHECK(hs->pending_refused_cap >= 1);  // the strangers hit the cap...
+    CHECK(c->send(peer, std::vector<std::uint8_t>{5}, Delivery::Unreliable, 0) == SendResult::Sent);  // ...the player still plays
+    step(2000, [](const auto& e) {
+        return std::any_of(e.begin(), e.end(), [](const auto& x) { return x.kind == TransportEvent::Kind::Message; });
+    });
+    CHECK(std::any_of(hev.begin(), hev.end(), [](const auto& x) { return x.kind == TransportEvent::Kind::Message && x.bytes[0] == 5; }));
+    // Legitimate reconnect from the same address while a forgery is injected on EVERY 1 ms step, so some land
+    // between the player handshake proving its cookie and its completion.
+    const auto t0 = std::chrono::steady_clock::now();
+    c->close_peer(peer);
+    peer = c->connect(host_ep).value();
+    for (int i = 0; i < 5000 && hs->authenticated < 2; ++i) {
+        spam();
+        step(1, [&](const auto&) { return hs->authenticated >= 2; });
+    }
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+    std::printf("       udp: reconnect authenticated after %lld ms under forged ClientHellos (replaced %llu, ignored %llu, refused %llu)\n",
+                static_cast<long long>(ms), static_cast<unsigned long long>(hs->pending_replaced),
+                static_cast<unsigned long long>(hs->hello_ignored), static_cast<unsigned long long>(hs->pending_refused_cap));
+    CHECK(hs->authenticated == 2);
+    CHECK(ms < 3000);  // was bounded only by the 10 s pending lifetime before FB-8-01
+    CHECK(hs->hello_ignored >= 1);  // once the player handshake proved its cookie, forgeries could not displace it
+    CHECK(replaced_before >= 4);     // before that, each forgery displaced the previous unverified one (1 pending)
+    // Event order at the host: the old association is retired before the new one is reported.
+    std::size_t disc = SIZE_MAX, conn = SIZE_MAX;
+    for (std::size_t i = 0; i < hev.size(); ++i) {
+        if (hev[i].kind == TransportEvent::Kind::Disconnected && hev[i].reason == "replaced_by_new_session") disc = i;
+        if (hev[i].kind == TransportEvent::Kind::Connected) conn = i;  // last Connected
+    }
+    CHECK(disc != SIZE_MAX && conn != SIZE_MAX && disc < conn);
+    // FB-8-02 check on the same link: nothing but DTLS records ever left the client (content types 20..23).
+    for (auto b : tap->sent_first_bytes) CHECK(b >= 20 && b <= 23);
+    std::printf("       udp: %zu datagrams from the secure client, all DTLS records\n", tap->sent_first_bytes.size());
+}
+
+// Review #8 FB-8-04: a peer that goes silent is reported by the decorator itself on every backend.
+TEST(secure_silent_peer_is_reported_after_idle_timeout) {
+    for (auto k : backends()) {
+        Key host_key, player;
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        hcfg.idle_timeout_us = 1'000'000;
+        auto host = open_secure(k, hcfg, true);
+        auto c = open_secure(k, *secure(player, {host_key.spki()}, hcfg.invitation), false);
+        c->connect(Endpoint::loopback(host->local_endpoint().port));
+        run({host.get(), c.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
+        CHECK(secure_stats(*host)->authenticated == 1);
+        const auto t0 = std::chrono::steady_clock::now();
+        // The client process stops (never polled again): nothing more reaches the host.
+        const auto ev = run({host.get()}, host.get(), [](const auto& e) {
+            return std::any_of(e.begin(), e.end(), [](const auto& x) { return x.kind == TransportEvent::Kind::Disconnected; });
+        }, 5000);
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+        const auto it = std::find_if(ev.begin(), ev.end(), [](const auto& x) { return x.kind == TransportEvent::Kind::Disconnected; });
+        CHECK(it != ev.end());
+        std::printf("       %s: silent peer reported after %lld ms (%s)\n", to_string(k), static_cast<long long>(ms),
+                    it == ev.end() ? "-" : std::string(it->reason).c_str());
+        CHECK(it != ev.end() && it->reason == "idle_timeout" && ms >= 900 && ms < 2500);
+        CHECK(secure_stats(*host)->idle_timeouts == 1);
+    }
+}
+
+// ---- Review #8 FB-8-02: secure reliable-ordered channel inside the authenticated session, every backend. ----
+namespace {
+std::vector<std::uint8_t> tagged(std::uint8_t tag, std::uint32_t seq) {
+    std::vector<std::uint8_t> b(5, tag);
+    std::memcpy(b.data() + 1, &seq, 4);
+    return b;
+}
+std::uint32_t seq_of(const TransportEvent& e) {
+    std::uint32_t v = 0;
+    if (e.bytes.size() >= 5) std::memcpy(&v, e.bytes.data() + 1, 4);
+    return v;
+}
+struct SecureLink {
+    Key host_key, player;
+    std::unique_ptr<Transport> host, client;
+    PeerId to_host{}, to_client{};
+    SecureLink(TransportKind k, ImpairmentConfig imp = {}, std::uint64_t idle_us = 10'000'000) {
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        hcfg.idle_timeout_us = idle_us;
+        auto ccfg = *secure(player, {host_key.spki()}, hcfg.invitation);
+        ccfg.idle_timeout_us = idle_us;
+        ImpairmentConfig cimp = imp;
+        cimp.seed = imp.seed + 7;
+        host = open_secure(k, hcfg, true, imp);
+        client = open_secure(k, ccfg, false, cimp);  // GNS: same config joins the process-global holder
+        to_host = client->connect(Endpoint::loopback(host->local_endpoint().port)).value();
+        const auto ev = run({host.get(), client.get()}, host.get(),
+                            [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 15000);
+        for (const auto& e : ev)
+            if (e.kind == TransportEvent::Kind::Connected) to_client = e.peer;
+        run({host.get(), client.get()}, client.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
+        if (!to_client.valid()) throw test::CheckFailure("secure link did not authenticate");
+    }
+    ~SecureLink() {
+        if (host) host->set_impairment({});
+        if (client) client->set_impairment({});
+    }
+};
+}  // namespace
+
+TEST(secure_reliable_is_exact_and_ordered_under_loss_both_directions) {
+    for (auto k : backends()) {
+        ImpairmentConfig bad;
+        bad.loss = 0.15;
+        bad.duplicate = 0.1;
+        bad.latency_ms = 10;
+        bad.jitter_ms = 20;
+        bad.seed = 91;
+        SecureLink l(k, bad);
+        constexpr std::uint32_t kN = 300;  // more than the 256-message window: senders must respect Backpressure
+        std::uint32_t sent_c = 0, sent_h = 0, at_host = 0, at_client = 0;
+        bool ordered = true;
+        for (int i = 0; i < 30000 && (at_host < kN || at_client < kN); ++i) {
+            while (sent_c < kN && l.client->send(l.to_host, tagged(1, sent_c + 1), Delivery::ReliableOrdered, 0) == SendResult::Sent) ++sent_c;
+            while (sent_h < kN && l.host->send(l.to_client, tagged(2, sent_h + 1), Delivery::ReliableOrdered, 0) == SendResult::Sent) ++sent_h;
+            for (auto* t : {l.host.get(), l.client.get()}) {
+                std::vector<TransportEvent> ev;
+                t->poll(real_us(), ev);
+                for (const auto& e : ev) {
+                    if (e.kind != TransportEvent::Kind::Message || e.delivery != Delivery::ReliableOrdered) continue;
+                    auto& n = t == l.host.get() ? at_host : at_client;
+                    ordered = ordered && seq_of(e) == n + 1;
+                    ++n;
+                }
+            }
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        const auto* hs = secure_stats(*l.host);
+        std::printf("       %s: %u/%u each way, in order; host retransmits %llu, duplicates dropped %llu\n", to_string(k), at_host,
+                    at_client, static_cast<unsigned long long>(hs->reliable_retransmits), static_cast<unsigned long long>(hs->reliable_duplicates));
+        CHECK(ordered && at_host == kN && at_client == kN);  // exact: nothing lost, nothing twice, nothing reordered
+    }
+}
+
+TEST(secure_reliable_window_reports_backpressure_and_delivers_everything_accepted) {
+    for (auto k : backends()) {
+        SecureLink l(k);
+        std::uint32_t accepted = 0, refused = 0;
+        for (int i = 0; i < 1000 && refused == 0; ++i) {
+            const auto r = l.client->send(l.to_host, tagged(3, accepted + 1), Delivery::ReliableOrdered, 0);
+            if (r == SendResult::Sent) ++accepted;
+            else if (r == SendResult::Backpressure) ++refused;
+            else CHECK(r == SendResult::Sent);
+        }
+        CHECK(refused == 1 && accepted == 256);  // bounded window, explicit pushback
+        std::uint32_t got = 0;
+        bool ordered = true;
+        run({l.host.get(), l.client.get()}, l.host.get(), [&](const auto& e) {
+            got = 0;
+            for (const auto& x : e)
+                if (x.kind == TransportEvent::Kind::Message) {
+                    ordered = ordered && seq_of(x) == got + 1;
+                    ++got;
+                }
+            return got == accepted;
+        }, 10000);
+        CHECK(ordered && got == accepted);
+        CHECK(l.client->send(l.to_host, tagged(3, 999), Delivery::ReliableOrdered, 0) == SendResult::Sent);  // window freed
+    }
+}
+
+TEST(secure_reliable_interleaves_with_unreliable_snapshots) {
+    for (auto k : backends()) {
+        SecureLink l(k);
+        for (std::uint32_t i = 1; i <= 100; ++i) {
+            CHECK(l.client->send(l.to_host, tagged(4, i), Delivery::ReliableOrdered, 0) == SendResult::Sent);
+            CHECK(l.client->send(l.to_host, tagged(5, i), Delivery::Unreliable, 0) == SendResult::Sent);
+        }
+        std::uint32_t rel = 0, unrel = 0;
+        bool ordered = true;
+        run({l.host.get(), l.client.get()}, l.host.get(), [&](const auto& e) {
+            rel = unrel = 0;
+            ordered = true;
+            for (const auto& x : e) {
+                if (x.kind != TransportEvent::Kind::Message) continue;
+                if (x.bytes[0] == 4) {
+                    ordered = ordered && x.delivery == Delivery::ReliableOrdered && seq_of(x) == rel + 1;
+                    ++rel;
+                } else {
+                    ordered = ordered && x.delivery == Delivery::Unreliable;
+                    ++unrel;
+                }
+            }
+            return rel == 100;
+        }, 5000);
+        CHECK(ordered && rel == 100 && unrel >= 90);
+    }
+}
+
+// Accepted reliable data that can never be acknowledged is reported, not silently lost.
+TEST(secure_reliable_lost_with_its_session_is_counted) {
+    for (auto k : backends()) {
+        SecureLink l(k, {}, 1'000'000);
+        ImpairmentConfig cut;
+        cut.loss = 1.0;
+        CHECK(l.client->set_impairment(cut));
+        if (l.host->capabilities().per_instance_impairment) CHECK(l.host->set_impairment(cut));
+        for (std::uint32_t i = 1; i <= 5; ++i) CHECK(l.client->send(l.to_host, tagged(6, i), Delivery::ReliableOrdered, 0) == SendResult::Sent);
+        const auto ev = run({l.host.get(), l.client.get()}, l.client.get(),
+                            [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) == 1; }, 5000);
+        CHECK(count(ev, TransportEvent::Kind::Disconnected) == 1);
+        std::printf("       %s: session lost with 5 unacknowledged reliable messages -> accepted_then_failed %llu\n", to_string(k),
+                    static_cast<unsigned long long>(l.client->stats().accepted_then_failed));
+        CHECK(l.client->stats().accepted_then_failed == 5);
+    }
+}
+
+// close() drains for a BOUNDED time and counts what stayed unacknowledged. (Here the host is not polled during
+// the drain - one thread - so no ack can arrive; delivery with acks is covered by the multi-process secure E2E.)
+TEST(secure_close_drain_is_bounded_and_counts_unacked) {
+    for (auto k : backends()) {
+        SecureLink l(k);
+        CHECK(l.client->send(l.to_host, tagged(7, 1), Delivery::ReliableOrdered, 0) == SendResult::Sent);
+        const auto t0 = std::chrono::steady_clock::now();
+        l.client->close();
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+        const auto ev = run({l.host.get()}, l.host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Message) >= 1; }, 3000);
+        std::printf("       %s: close() drained for %lld ms; message delivered: %s\n", to_string(k), static_cast<long long>(ms),
+                    count(ev, TransportEvent::Kind::Message) ? "yes" : "no");
+        CHECK(ms >= 450 && ms < 1000);
+        CHECK(l.client->stats().closed_with_unacked_reliable == 1);
+        CHECK(count(ev, TransportEvent::Kind::Message) >= 1);  // its (re)transmissions did reach the host
+    }
+}
+
+// FB-8-04: a quiet but alive peer is kept (keepalives); only a vanished one times out.
+TEST(secure_quiet_peer_is_kept_alive) {
+    for (auto k : backends()) {
+        SecureLink l(k, {}, 1'000'000);
+        const auto ev = run({l.host.get(), l.client.get()}, l.host.get(), [](const auto&) { return false; }, 3000);
+        CHECK(count(ev, TransportEvent::Kind::Disconnected) == 0);
+        CHECK(l.client->send(l.to_host, tagged(8, 1), Delivery::ReliableOrdered, 0) == SendResult::Sent);
+    }
 }

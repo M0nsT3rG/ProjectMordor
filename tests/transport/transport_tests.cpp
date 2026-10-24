@@ -540,6 +540,33 @@ TEST(contract_process_global_impairment_is_guarded_and_never_leaks) {
     }
 }
 
+// EXP-021: messages that reached the receiver before the sender closed are delivered before Disconnected,
+// never dropped with the connection.
+TEST(contract_messages_received_before_disconnect_are_delivered) {
+    for (auto k : reliable_backends("contract_messages_received_before_disconnect_are_delivered")) {
+        auto host = make_open(k, true);
+        auto client = make_open(k, false);
+        const auto to_host = client->connect(Endpoint::loopback(host->local_endpoint().port));
+        poll_until({host.get(), client.get()}, client.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; });
+        poll_until({host.get(), client.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 500);
+        for (std::uint32_t i = 1; i <= 20; ++i) CHECK(client->send(*to_host, tagged(1, i), Delivery::Unreliable, now_us()) == SendResult::Sent);
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));  // they reach the host, which is not polled
+        client->close();
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));  // the close notification reaches it too
+        const auto ev = poll_until({host.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) == 1; }, 5000);
+        std::size_t msgs = 0, disc_at = SIZE_MAX;
+        for (std::size_t i = 0; i < ev.size(); ++i) {
+            if (ev[i].kind == TransportEvent::Kind::Message) {
+                ++msgs;
+                CHECK(disc_at == SIZE_MAX);  // never after the Disconnected
+            }
+            if (ev[i].kind == TransportEvent::Kind::Disconnected) disc_at = i;
+        }
+        std::printf("       %s: %zu of 20 messages delivered before Disconnected\n", to_string(k), msgs);
+        CHECK(disc_at != SIZE_MAX && msgs == 20);  // loopback, no impairment: all of them
+    }
+}
+
 // ---- KI-27 / review #6 FB-6-03: GNS internal assertion during teardown. Each scenario is repeated and the
 // assertions GNS reports are counted per scenario, so the trigger can be isolated (and a fix regression-tested).
 #ifdef MORDOR_HAVE_GNS

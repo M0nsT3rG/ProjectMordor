@@ -1,6 +1,10 @@
 #include "network/secure_transport.hpp"
 
+#include <array>
+#include <chrono>
 #include <ctime>
+#include <deque>
+#include <thread>
 
 #include "network/dtls_session.hpp"
 
@@ -8,8 +12,31 @@ namespace mordor::net {
 
 namespace {
 
-// DTLS 1.2 record header (13) + AES-GCM explicit nonce (8) + tag (16) + our type byte (1), with margin.
+// DTLS 1.2 record header (13) + AES-GCM explicit nonce (8) + tag (16) + DtlsSession type byte (1) + our channel
+// header (<= 5), with margin.
 constexpr std::size_t kSecureOverhead = 64;
+
+// Secure reliable-ordered channel over the authenticated DTLS session (review #8 FB-8-02). Frames inside DTLS
+// application records: 0x01 unreliable | 0x02 reliable [seq u32 LE] | 0x03 ack [next expected seq u32 LE].
+// Cumulative acks, per-message retransmission with back-off, in-order delivery, duplicate suppression, a bounded
+// send window (Backpressure) and a bounded reorder window.
+// shortcut: cumulative acks only (go-back-N-like retransmission after a loss: ~2.4 retransmits per message at 15%
+// loss, EXP-021); add selective acks if event volume grows. Sequence numbers do not wrap (2^32 messages).
+constexpr std::uint8_t kFrameUnreliable = 0x01, kFrameReliable = 0x02, kFrameAck = 0x03;
+constexpr std::uint8_t kFrameKeepalive = 0x04;  // sent after idle_timeout_us / 3 without traffic (FB-8-04)
+constexpr std::size_t kMaxUnacked = 256;           // send window: beyond this send() returns Backpressure
+constexpr std::uint32_t kReorderWindow = 1024;     // accepted out-of-order distance
+constexpr std::uint64_t kRtoInitialUs = 200'000, kRtoMaxUs = 1'000'000, kAckIntervalUs = 5'000;
+constexpr int kCloseDrainMs = 500;                 // bounded wait for unacknowledged reliable data in close()
+
+void put_u32(std::vector<std::uint8_t>& b, std::uint32_t v) {
+    for (int i = 0; i < 4; ++i) b.push_back(static_cast<std::uint8_t>(v >> (8 * i)));
+}
+std::uint32_t get_u32(std::span<const std::uint8_t> b) {
+    std::uint32_t v = 0;
+    for (int i = 0; i < 4; ++i) v |= std::uint32_t{b[static_cast<std::size_t>(i)]} << (8 * i);
+    return v;
+}
 
 class SecureTransport final : public Transport {
 public:
@@ -23,6 +50,20 @@ public:
         return inner_->open(bind, listen, error);
     }
     void close() override {
+        if (inner_->is_open()) {
+            // Give accepted reliable data (e.g. a graceful Disconnect) a bounded chance to be acknowledged.
+            const auto start = std::chrono::steady_clock::now();
+            const auto base = now_us_;
+            std::vector<TransportEvent> sink;
+            while (any_unacked() && std::chrono::steady_clock::now() - start < std::chrono::milliseconds(kCloseDrainMs)) {
+                const auto el = std::chrono::duration_cast<std::chrono::microseconds>(std::chrono::steady_clock::now() - start);
+                poll(base + static_cast<std::uint64_t>(el.count()), sink);
+                sink.clear();
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+            for (const auto& [k, s] : slots_)
+                if (!s.unacked.empty()) ++stats_.closed_with_unacked_reliable;  // per connection, never silent
+        }
         slots_.clear();
         by_secure_.clear();
         inner_->close();
@@ -31,7 +72,7 @@ public:
     Endpoint local_endpoint() const override { return inner_->local_endpoint(); }
     TransportCapabilities capabilities() const override {
         auto c = inner_->capabilities();
-        c.reliable_ordered = false;     // DTLS records ride the inner Unreliable class only
+        c.reliable_ordered = true;      // our own secure channel over DTLS (FB-8-02); never the inner reliable class
         c.reports_disconnects = true;   // we report peer loss (rejected, replaced, inner disconnect)
         c.max_payload = c.max_payload > kSecureOverhead ? c.max_payload - kSecureOverhead : 0;
         c.exact_loss_accounting = false;
@@ -57,10 +98,6 @@ public:
 
     SendResult send(PeerId peer, std::span<const std::uint8_t> bytes, Delivery d, std::uint64_t) override {
         if (!inner_->is_open()) return SendResult::Closed;
-        if (d == Delivery::ReliableOrdered) {
-            ++stats_.unsupported;
-            return SendResult::Unsupported;  // explicit: never a silent downgrade
-        }
         auto* s = established(peer);
         if (!s) {
             ++stats_.not_connected;
@@ -70,15 +107,30 @@ public:
             ++stats_.too_large;
             return SendResult::TooLarge;
         }
-        if (!s->established->send(bytes)) {
+        std::vector<std::uint8_t> frame;
+        if (d == Delivery::ReliableOrdered) {
+            if (s->unacked.size() >= kMaxUnacked) {
+                ++stats_.backpressure;
+                return SendResult::Backpressure;
+            }
+            frame.push_back(kFrameReliable);
+            put_u32(frame, s->next_seq);
+        } else {
+            frame.push_back(kFrameUnreliable);
+        }
+        frame.insert(frame.end(), bytes.begin(), bytes.end());
+        if (!s->established->send(frame)) {
             ++stats_.send_failed;
             return SendResult::Failed;
         }
+        s->last_tx_us = now_us_;
+        if (d == Delivery::ReliableOrdered) s->unacked.push_back({s->next_seq++, std::move(frame), now_us_, kRtoInitialUs});
         ++stats_.sent;
         return SendResult::Sent;
     }
 
     void poll(std::uint64_t now_us, std::vector<TransportEvent>& out) override {
+        now_us_ = now_us;
         std::vector<TransportEvent> ev;
         inner_->poll(now_us, ev);
         const auto unix_s = cfg_.unix_clock();
@@ -88,7 +140,13 @@ public:
                 case TransportEvent::Kind::Disconnected: {
                     auto it = slots_.find(key(e.peer));
                     if (it == slots_.end()) break;
-                    if (it->second.established) out.push_back(disconnected(it->second, e.reason));
+                    if (it->second.established) {
+                        // Data that arrived before the loss is still delivered, in order, before Disconnected
+                        // (found by secure_close_drain_is_bounded_and_counts_unacked on GNS, EXP-021).
+                        for (auto& m : it->second.established->take_received()) on_frame(it->second, m, out);
+                        out.push_back(disconnected(it->second, e.reason));
+                    }
+                    lose_unacked(it->second);
                     erase(it);
                     break;
                 }
@@ -107,16 +165,26 @@ public:
                     s.pending.reset();  // an established session (if any) is untouched
                 }
             }
-            if (s.established && s.established->state() == DtlsState::Rejected) {
-                ++sstats_.rejected_established;
-                out.push_back(disconnected(s, "dtls_rejected"));
+            if (s.established && cfg_.idle_timeout_us && now_us - s.last_rx_us > cfg_.idle_timeout_us) {
+                ++sstats_.idle_timeouts;
+                out.push_back(disconnected(s, "idle_timeout"));
+                lose_unacked(s);
                 inner_->close_peer(s.inner);
                 it = erase(it);
                 continue;
             }
-            if (s.established)
-                for (auto& m : s.established->take_received())
-                    out.push_back({TransportEvent::Kind::Message, s.secure, s.remote, Delivery::Unreliable, std::move(m), {}});
+            if (s.established && s.established->state() == DtlsState::Rejected) {
+                ++sstats_.rejected_established;
+                out.push_back(disconnected(s, "dtls_rejected"));
+                lose_unacked(s);
+                inner_->close_peer(s.inner);
+                it = erase(it);
+                continue;
+            }
+            if (s.established) {
+                for (auto& m : s.established->take_received()) on_frame(s, m, out);
+                service_reliable(s, now_us);
+            }
             if (!s.established && !s.pending) {
                 if (!listen_) out.push_back(disconnected(s, "dtls_handshake_failed"));  // our own connect failed
                 it = erase(it);
@@ -133,6 +201,7 @@ public:
         auto it = slots_.find(k->second);
         if (it == slots_.end() || it->second.secure != peer) return;
         const auto inner_peer = it->second.inner;
+        if (!it->second.unacked.empty()) ++stats_.closed_with_unacked_reliable;  // per connection, never silent
         erase(it);
         inner_->close_peer(inner_peer);
     }
@@ -147,6 +216,26 @@ private:
         PeerId inner, secure;
         Endpoint remote;
         std::unique_ptr<DtlsSession> established, pending;
+        std::array<std::uint8_t, 32> pending_random{};
+        std::uint64_t last_rx_us = 0;  // last datagram from this peer (idle timeout, FB-8-04)
+        std::uint64_t last_tx_us = 0;  // last frame we sent (keepalive)
+        // Secure reliable channel state, per established session (FB-8-02).
+        struct OutMsg {
+            std::uint32_t seq;
+            std::vector<std::uint8_t> frame;
+            std::uint64_t sent_us, rto_us;
+        };
+        std::deque<OutMsg> unacked;
+        std::uint32_t next_seq = 1, next_expected = 1;
+        std::map<std::uint32_t, std::vector<std::uint8_t>> out_of_order;
+        bool ack_due = false;
+        std::uint64_t last_ack_us = 0;
+        void reset_channel() {
+            unacked.clear();
+            out_of_order.clear();
+            next_seq = next_expected = 1;
+            ack_due = false;
+        }
     };
     using Key = std::uint64_t;
     static Key key(PeerId p) { return (static_cast<Key>(p.id) << 32) | p.generation; }
@@ -162,9 +251,9 @@ private:
         d.binding_timeout_us = cfg_.binding_timeout_us;
         return d;
     }
-    std::size_t pending_total() const {
+    std::size_t unreserved_pending() const {  // pending sessions of peers that have no established session
         std::size_t n = 0;
-        for (const auto& [k, s] : slots_) n += s.pending ? 1 : 0;
+        for (const auto& [k, s] : slots_) n += s.pending && !s.established ? 1 : 0;
         return n;
     }
     Slot* established(PeerId secure) {
@@ -190,35 +279,116 @@ private:
                 return;
             }
         } else {
-            const bool hello = dtls_is_client_hello(e.bytes);
-            const bool has_session = it != slots_.end() && (it->second.established || it->second.pending);
-            if (!has_session || (it->second.established && !it->second.pending && hello)) {
-                if (!hello) {
+            const auto ch = dtls_parse_client_hello(e.bytes);  // complete epoch-0 ClientHello, or nullopt
+            Slot* s = it != slots_.end() ? &it->second : nullptr;
+            bool open_new = false, replacing = false;
+            if (!s || (!s->established && !s->pending)) {
+                if (!ch) {
                     ++sstats_.dropped_not_dtls;  // no plaintext path, ever
                     return;
                 }
-                if (pending_total() >= cfg_.max_pending_total) {
+                open_new = true;
+            } else if (ch && !(s->pending && s->pending_random == ch->random)) {
+                // A ClientHello for a NEW handshake attempt (different client random). Review #8 FB-8-01: it may
+                // displace a pending session that has not proven return routability (no verified cookie); a
+                // cookie-verified one only by a ClientHello carrying a valid cookie for this address, which an
+                // off-path spoofer cannot obtain. The established session is never touched here.
+                if (!s->pending) {
+                    open_new = true;
+                } else if (s->pending->stats().cookies_verified == 0) {
+                    open_new = replacing = true;
+                } else if (!ch->cookie.empty() && s->pending->cookie_matches(ch->cookie)) {
+                    open_new = replacing = true;
+                } else {
+                    ++sstats_.hello_ignored;
+                }
+            }
+            if (open_new) {
+                // A known player (established session) reconnects in its own reserved slot: strangers filling the
+                // global cap cannot block it (FB-8-01). Replacing does not add a pending session.
+                const bool reserved = s && s->established;
+                if (!replacing && !reserved && unreserved_pending() >= cfg_.max_pending_total) {
                     ++sstats_.pending_refused_cap;  // bounded pre-authentication state (FB-7-01)
                     return;
                 }
-                if (it == slots_.end()) {
+                if (!s) {
                     it = slots_.emplace(key(e.peer), Slot{}).first;
                     it->second.inner = e.peer;
                     it->second.remote = e.remote;
+                    s = &it->second;
                 }
-                it->second.pending = std::make_unique<DtlsSession>(*inner_, e.peer, e.remote, session_cfg(true));
+                if (replacing) ++sstats_.pending_replaced;
+                s->pending = std::make_unique<DtlsSession>(*inner_, e.peer, e.remote, session_cfg(true));
+                s->pending_random = ch->random;
                 ++sstats_.pending_opened;
             }
         }
         auto& s = it->second;
+        s.last_rx_us = now_us;
         // Each session silently drops records it cannot decrypt, so both may see every datagram.
         if (s.established) s.established->on_datagram(e.bytes, now_us, unix_s);
         if (s.pending) s.pending->on_datagram(e.bytes, now_us, unix_s);
     }
 
+    bool any_unacked() const {
+        for (const auto& [k, s] : slots_)
+            if (s.established && !s.unacked.empty()) return true;
+        return false;
+    }
+    void lose_unacked(Slot& s) {  // accepted reliable messages that will now never be acknowledged: counted
+        stats_.accepted_then_failed += s.unacked.size();
+        s.reset_channel();
+    }
+    void send_frame(Slot& s, const std::vector<std::uint8_t>& frame) {
+        if (!s.established->send(frame)) ++stats_.send_failed;
+        s.last_tx_us = now_us_;
+    }
+    void on_frame(Slot& s, const std::vector<std::uint8_t>& f, std::vector<TransportEvent>& out) {
+        if (f.empty()) return;
+        const std::span<const std::uint8_t> body(f.data() + 1, f.size() - 1);
+        if (f[0] == kFrameUnreliable) {
+            out.push_back({TransportEvent::Kind::Message, s.secure, s.remote, Delivery::Unreliable, {body.begin(), body.end()}, {}});
+        } else if (f[0] == kFrameReliable && body.size() >= 4) {
+            const std::uint32_t seq = get_u32(body);
+            s.ack_due = true;
+            if (seq < s.next_expected || seq - s.next_expected >= kReorderWindow) {
+                ++sstats_.reliable_duplicates;  // already delivered (or absurdly far): re-ack, never deliver twice
+                return;
+            }
+            s.out_of_order.emplace(seq, std::vector<std::uint8_t>(body.begin() + 4, body.end()));
+            for (auto it = s.out_of_order.find(s.next_expected); it != s.out_of_order.end(); it = s.out_of_order.find(s.next_expected)) {
+                out.push_back({TransportEvent::Kind::Message, s.secure, s.remote, Delivery::ReliableOrdered, std::move(it->second), {}});
+                s.out_of_order.erase(it);
+                ++s.next_expected;
+            }
+        } else if (f[0] == kFrameAck && body.size() >= 4) {
+            const std::uint32_t next = get_u32(body);
+            while (!s.unacked.empty() && s.unacked.front().seq < next) s.unacked.pop_front();
+        }
+    }
+    void service_reliable(Slot& s, std::uint64_t now_us) {
+        for (auto& m : s.unacked)
+            if (now_us - m.sent_us >= m.rto_us) {
+                send_frame(s, m.frame);
+                m.sent_us = now_us;
+                m.rto_us = std::min(m.rto_us * 2, kRtoMaxUs);
+                ++sstats_.reliable_retransmits;
+            }
+        // A live but quiet peer must not be mistaken for a vanished one: keep the association warm.
+        if (cfg_.idle_timeout_us && now_us - s.last_tx_us >= cfg_.idle_timeout_us / 3) send_frame(s, {kFrameKeepalive});
+        if (s.ack_due && (now_us - s.last_ack_us >= kAckIntervalUs || !s.out_of_order.empty())) {
+            std::vector<std::uint8_t> ack{kFrameAck};
+            put_u32(ack, s.next_expected);
+            send_frame(s, ack);
+            s.ack_due = false;
+            s.last_ack_us = now_us;
+        }
+    }
+
     void promote(Slot& s, std::vector<TransportEvent>& out) {
         if (s.established) {  // retire the old association: its peer is gone or reconnected
             out.push_back(disconnected(s, "replaced_by_new_session"));
+            lose_unacked(s);
             by_secure_.erase(s.secure.id);
             ++sstats_.promotions_replacing;
             s.secure = PeerId{next_id_++, 0};
@@ -226,6 +396,8 @@ private:
             s.secure = PeerId{next_id_++, 0};
         }
         s.established = std::move(s.pending);
+        s.reset_channel();
+        s.last_rx_us = s.last_tx_us = now_us_;
         by_secure_[s.secure.id] = key(s.inner);
         ++sstats_.authenticated;
         out.push_back({TransportEvent::Kind::Connected, s.secure, s.remote, Delivery::Unreliable, {}, "authenticated"});
@@ -234,6 +406,7 @@ private:
     std::unique_ptr<Transport> inner_;
     SecureTransportConfig cfg_;
     bool listen_ = false;
+    std::uint64_t now_us_ = 0;  // time of the current poll()
     std::map<Key, Slot> slots_;            // by inner PeerId
     std::map<std::uint32_t, Key> by_secure_;  // secure PeerId.id -> slot
     std::uint32_t next_id_ = 1;

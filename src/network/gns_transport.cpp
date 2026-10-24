@@ -220,6 +220,10 @@ void GnsTransport::close() {
         // loss kept blocking the next host in the same process, EXP-016), but it must not end another holder's
         // either (FB-5-03).
         drop_impairment_hold(this);
+        // The runtime outlives us (KI-27), so drain the status callbacks our closes just queued; otherwise they
+        // pile up until some other instance polls ("Callbacks backing up", EXP-021). Ours are no longer routed
+        // (conn_owner entries erased above); other instances' callbacks land in their own pending_ queues.
+        s->RunCallbacks();
         release();
     }
     conns_.clear();
@@ -281,6 +285,15 @@ void GnsTransport::on_status(SteamNetConnectionStatusChangedCallback_t* info) {
                 // Accepted reliable data that will now never be delivered: surfaced, not silent (review #4).
                 // Use our own tracking: GNS no longer reports the pending bytes once the connection has failed.
                 if (it->second.reliable_outstanding || has_unacked_reliable(conn)) ++stats_.accepted_then_failed;
+                // Messages that arrived before the close are still ours: deliver them, then report the loss.
+                // (Before, they were dropped once the connection was forgotten; found by the secure-transport
+                // close-drain test on GNS, EXP-021.)
+                SteamNetworkingMessage_t* msgs[64];
+                for (int got = s->ReceiveMessagesOnConnection(conn, msgs, 64); got > 0; got = s->ReceiveMessagesOnConnection(conn, msgs, 64))
+                    for (int i = 0; i < got; ++i) {
+                        deliver(it->second, msgs[i], pending_);
+                        msgs[i]->Release();
+                    }
                 const bool report = it->second.connected_reported || it->second.outgoing;
                 forget(conn, info->m_info.m_eState == k_ESteamNetworkingConnectionState_ClosedByPeer ? "closed_by_peer"
                                                                                                    : "problem_detected_locally",
@@ -352,25 +365,27 @@ void GnsTransport::poll(std::uint64_t, std::vector<TransportEvent>& out) {
         for (int i = 0; i < got; ++i) {
             auto* m = msgs[i];
             auto it = conns_.find(m->m_conn);
-            if (it != conns_.end()) {
-                if (!it->second.connected_reported) {  // contract: Connected precedes the first Message
-                    it->second.connected_reported = true;
-                    out.push_back({TransportEvent::Kind::Connected, it->second.peer, it->second.remote, Delivery::Unreliable, {}, "connected"});
-                }
-                if (static_cast<std::size_t>(m->m_cbSize) > kMaxPacketSize) {
-                    ++stats_.dropped_inbound_oversized;
-                    out.push_back({TransportEvent::Kind::DroppedInbound, it->second.peer, it->second.remote, Delivery::Unreliable, {}, "oversized_message"});
-                } else {
-                    ++stats_.received;
-                    const auto* p = static_cast<const std::uint8_t*>(m->m_pData);
-                    out.push_back({TransportEvent::Kind::Message, it->second.peer, it->second.remote,
-                                   (m->m_nFlags & k_nSteamNetworkingSend_Reliable) ? Delivery::ReliableOrdered : Delivery::Unreliable,
-                                   std::vector<std::uint8_t>(p, p + m->m_cbSize), {}});
-                }
-            }
+            if (it != conns_.end()) deliver(it->second, m, out);
             m->Release();
         }
     }
+}
+
+void GnsTransport::deliver(Conn& c, SteamNetworkingMessage_t* m, std::vector<TransportEvent>& out) {
+    if (!c.connected_reported) {  // contract: Connected precedes the first Message
+        c.connected_reported = true;
+        out.push_back({TransportEvent::Kind::Connected, c.peer, c.remote, Delivery::Unreliable, {}, "connected"});
+    }
+    if (static_cast<std::size_t>(m->m_cbSize) > kMaxPacketSize) {
+        ++stats_.dropped_inbound_oversized;
+        out.push_back({TransportEvent::Kind::DroppedInbound, c.peer, c.remote, Delivery::Unreliable, {}, "oversized_message"});
+        return;
+    }
+    ++stats_.received;
+    const auto* p = static_cast<const std::uint8_t*>(m->m_pData);
+    out.push_back({TransportEvent::Kind::Message, c.peer, c.remote,
+                   (m->m_nFlags & k_nSteamNetworkingSend_Reliable) ? Delivery::ReliableOrdered : Delivery::Unreliable,
+                   std::vector<std::uint8_t>(p, p + m->m_cbSize), {}});
 }
 
 void GnsTransport::close_peer(PeerId peer) {

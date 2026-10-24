@@ -12,6 +12,7 @@
 //
 // Status: research prototype behind the optional GNS build (OpenSSL). Not integrated with Host/Client yet, not
 // independently reviewed: loopback / trusted lab only (D-013, KI-29).
+#include <array>
 #include <cstdint>
 #include <optional>
 #include <span>
@@ -84,6 +85,7 @@ public:
     // Internal (OpenSSL cookie callbacks).
     bool cookie_generate(unsigned char* out, unsigned int* len);
     bool cookie_verify(const unsigned char* cookie, unsigned int len);
+    bool cookie_matches(std::span<const std::uint8_t> cookie) const;  // same check, without counting
     unsigned int next_retransmit_us(unsigned int previous_us) const;
 
 private:
@@ -116,6 +118,15 @@ private:
 // arrives on the SAME PeerId; the host then runs a second, pending session next to the established one and
 // promotes it only once it authenticates, so a spoofed ClientHello cannot tear down a valid session.
 bool dtls_is_client_hello(std::span<const std::uint8_t> datagram);
+
+// Fields of a complete (unfragmented) epoch-0 ClientHello, or nullopt. The client random identifies one handshake
+// attempt (retransmissions and the cookie-bearing second ClientHello keep it); the cookie proves the sender
+// received our HelloVerifyRequest at that address (review #8 FB-8-01).
+struct ClientHelloInfo {
+    std::array<std::uint8_t, 32> random{};
+    std::vector<std::uint8_t> cookie;
+};
+std::optional<ClientHelloInfo> dtls_parse_client_hello(std::span<const std::uint8_t> datagram);
 
 // Helpers for pinning: DER SubjectPublicKeyInfo and its SHA-256 fingerprint (hex).
 std::vector<std::uint8_t> spki_der(EVP_PKEY* key);

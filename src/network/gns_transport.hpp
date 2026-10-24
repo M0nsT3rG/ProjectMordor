@@ -14,6 +14,7 @@
 #include "network/transport.hpp"
 
 struct SteamNetConnectionStatusChangedCallback_t;
+struct SteamNetworkingMessage_t;
 
 namespace mordor::net {
 
@@ -56,6 +57,7 @@ private:
         bool reliable_outstanding = false;
     };
     PeerId new_peer(const Endpoint& remote);
+    void deliver(Conn& c, SteamNetworkingMessage_t* m, std::vector<TransportEvent>& out);
     void forget(std::uint32_t conn, std::string_view reason, bool report);
     bool has_unacked_reliable(std::uint32_t conn) const;
 

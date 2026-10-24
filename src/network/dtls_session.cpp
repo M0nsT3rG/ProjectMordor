@@ -102,6 +102,23 @@ bool dtls_is_client_hello(std::span<const std::uint8_t> d) {
     return d.size() > 13 && d[0] == 22 && d[3] == 0 && d[4] == 0 && d[13] == 1;
 }
 
+std::optional<ClientHelloInfo> dtls_parse_client_hello(std::span<const std::uint8_t> d) {
+    if (!dtls_is_client_hello(d) || d.size() < 60) return std::nullopt;
+    auto u24 = [&](std::size_t o) { return (std::size_t{d[o]} << 16) | (std::size_t{d[o + 1]} << 8) | d[o + 2]; };
+    const std::size_t length = u24(14), frag_off = u24(19), frag_len = u24(22);
+    if (frag_off != 0 || frag_len != length || d.size() < 25 + length) return std::nullopt;  // complete only
+    ClientHelloInfo ch;
+    std::copy(d.begin() + 27, d.begin() + 59, ch.random.begin());
+    std::size_t p = 59;
+    const std::size_t sid = d[p++];
+    p += sid;
+    if (p >= d.size()) return std::nullopt;
+    const std::size_t cookie_len = d[p++];
+    if (p + cookie_len > d.size()) return std::nullopt;
+    ch.cookie.assign(d.begin() + static_cast<std::ptrdiff_t>(p), d.begin() + static_cast<std::ptrdiff_t>(p + cookie_len));
+    return ch;
+}
+
 std::vector<std::uint8_t> spki_der(EVP_PKEY* key) {
     const int n = i2d_PUBKEY(key, nullptr);
     if (n <= 0) return {};
@@ -211,6 +228,12 @@ bool DtlsSession::cookie_generate(unsigned char* out, unsigned int* len) {
     if (!make_cookie(out, len)) return false;
     ++stats_.cookies_issued;
     return true;
+}
+
+bool DtlsSession::cookie_matches(std::span<const std::uint8_t> cookie) const {
+    unsigned char expect[EVP_MAX_MD_SIZE];
+    unsigned int n = 0;
+    return make_cookie(expect, &n) && n == cookie.size() && CRYPTO_memcmp(expect, cookie.data(), n) == 0;
 }
 
 bool DtlsSession::cookie_verify(const unsigned char* cookie, unsigned int len) {
