@@ -8,7 +8,16 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #7 (PR #7: DTLS over the Transport)
 
-- **Status:** received and triaged (2026-10-24) on `feature/secure-transport` (stacked on PR #7). Only the KI-27 status correction is applied; the rest is not implemented yet.
+- **Status:** triaged and **implemented** (2026-10-24) on `feature/secure-transport` (stacked on PR #7), on the owner's go-ahead. Record: EXP-019. Review request #7.
+- **As implemented:**
+  - **FB-7-01:** caps and expiry in the decorator; the stateful cookie is labelled (KI-30).
+  - **FB-7-02:** `DTLS_set_timer_cb` back-off, plus timer tests.
+  - **FB-7-03:**
+    - KI-27 is open;
+    - a minimal reproducer (`tools/ki27-repro`) and a 10-process stress test;
+    - upstream draft `docs/upstream/gns-ki27-issue.md`, not published.
+  - **FB-7-04:** reply rate limit, plus binding tests.
+  - **FB-7-05 / answer 3:** `SecureTransport` decorator (D-015), with Host/Client over DTLS and no plaintext fallback.
 - **Source:** [PR #7 comment 6376769358](https://github.com/M0nsT3rG/ProjectMordor/pull/7#issuecomment-6376769358). ChatGPT reviewed the source of `e81065d` only.
 - **ChatGPT's verdict:** conditional GO for isolated development. Not for WAN, release or merge.
 

@@ -12,6 +12,7 @@
 #include "common/log.hpp"
 #include "network/impairment.hpp"
 #include "network/protocol.hpp"
+#include "network/secure_transport.hpp"
 #include "network/transport.hpp"
 #include "simulation/world.hpp"
 
@@ -40,6 +41,9 @@ struct ClientConfig {
     std::uint16_t protocol_version = net::kProtocolVersion;  // overridable only to test version rejection
     net::ImpairmentConfig impairment;
     net::TransportKind transport = net::TransportKind::Udp;
+    // When set, ALL traffic goes through the secure transport decorator (DTLS + pinned keys + invitation binding).
+    // If this build or config cannot provide it, start() FAILS: there is no plaintext fallback (review #7 answer 3).
+    std::shared_ptr<const net::SecureTransportConfig> secure;
 };
 
 struct ClientStats {

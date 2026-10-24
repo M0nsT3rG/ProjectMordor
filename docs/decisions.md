@@ -71,6 +71,20 @@ Each entry gives the context, the decision, the alternatives considered and how 
 - **Proof test (2026-10-24, owner-approved).** DTLS 1.2 + RFC 7250 pinned raw public keys work in OpenSSL 3.6.5. Every failure path tested (wrong key either way, no RPK, DTLS 1.0, non-AEAD suite, replay, tamper) is rejected. The exporter binding is fresh per handshake. Details: [d013-evaluation.md](d013-evaluation.md#proof-test-review-5-fb-5-05-2026-10-24), EXP-017. OpenSSL is now a direct dependency of the optional GNS build. **Still open:** integration behind the Transport and an independent review (KI-29).
 - **Over a real transport (2026-10-24, review #6).** `DtlsSession` runs over `Transport::Unreliable` on both backends, with OpenSSL retransmission, cookies and the fail-closed invitation binding: 9 transport tests × 2 backends (EXP-018). GNS reliable delivery is not used for DTLS (decided: datagram protocol, one path for both backends). **Still open:** carrying game messages, a cookie before per-peer state, and an independent review.
 
+## D-015: Security as a Transport decorator, with no plaintext fallback (2026-10-24, review #7 answer 3)
+
+- **Context.** DTLS worked over the Transport (EXP-018), but Host/Client still spoke plaintext, and the reconnect and pending rules lived only in test code (FB-7-05).
+- **Decision.**
+  - `SecureTransport` wraps any backend and implements `Transport`. Host and Client opt in through `secure` in their config.
+  - If security is configured but cannot be provided, `start()` fails. There is never a silent plaintext fallback.
+  - Pre-authentication state is bounded (FB-7-01).
+  - A same-address reconnect is promoted only after it authenticates.
+  - The DTLS retransmission back-off is 250 ms doubling to a 2 s cap, set through OpenSSL's `DTLS_set_timer_cb` (FB-7-02).
+- **Alternatives.**
+  - Calling `DtlsSession` from inside Host/Client: this mixes session logic with security and makes a plaintext path easy to keep by accident.
+  - A new UDP association per reconnect: possible, but it needs client-side socket churn. Kept as an option.
+- **Revisit** before any untrusted network: a stateless cookie gate, key/invitation provisioning for the executables, and an independent review.
+
 ## D-014: On connection-oriented transports, the transport owns connection establishment (2026-10-23)
 
 - **Context.** EXP-016: under 60% loss the client's own 5 s connect timer raced GNS's handshake timeout, and `heavy_loss_and_duplication_never_crash` passed only 3/8 on GNS.

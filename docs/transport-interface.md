@@ -2,6 +2,22 @@
 
 **Status:** **contract v2** after review #4: `PeerId{id, generation}`, lifecycle events, delivery classes, explicit `SendResult`, failure counters. See `src/network/transport.hpp` for the normative comments. The interface and the **UDP backend are implemented** (`src/network/transport.hpp`, `udp_transport.hpp`, `transport_factory.cpp`). Host and client use it, and every existing test passes unchanged (EXP-014). The **GNS adapter is implemented** (`gns_transport.hpp/.cpp`, build with `-DMORDOR_WITH_GNS=ON`; select with `--transport gns` or `MORDOR_TRANSPORT=gns` in tests). See EXP-016 and the section below.
 
+## Secure transport decorator (D-015, EXP-019)
+
+`make_secure_transport(inner, cfg)` returns a `Transport` that carries everything as DTLS 1.2 records over the inner backend's `Unreliable` class.
+
+**Capabilities:**
+- `reliable_ordered=false`;
+- `reports_disconnects=true`;
+- `max_payload` = inner minus 64 bytes;
+- `exact_loss_accounting=false`.
+
+**Events:** `Connected` only after DTLS plus the invitation binding; `Disconnected` on rejection, inner loss, or `replaced_by_new_session`.
+
+**Counters:** `secure_stats()` exposes the decorator's own counters (pending opened, refused by cap, failed, authenticated, replaced, dropped non-DTLS).
+
+**Build:** GNS/OpenSSL builds only. In other builds `make_secure_transport` returns `nullptr` with an error, and Host/Client `start()` fails.
+
 ## GNS adapter (EXP-016)
 
 - **Runtime.** One process-wide GNS instance, initialised on first use and **never killed** by us (KI-27, EXP-018: rapid Init/Kill cycles exposed a GNS-internal assertion; the first Init waits 50 ms). Callbacks are routed to the owning `GnsTransport` by listen socket or connection handle. Each instance has a poll group.

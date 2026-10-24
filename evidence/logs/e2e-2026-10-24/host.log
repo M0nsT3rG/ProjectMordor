@@ -1,7 +1,7 @@
 {"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
-{"t_ms":2,"lvl":"info","comp":"host","evt":"host_started","port":47811,"loopback_only":true,"session":78318379,"tick_rate_hz":30,"protocol_version":1,"transport":"udp"}
-{"t_ms":169,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
-{"t_ms":176,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
-{"t_ms":6121,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
-{"t_ms":6127,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
-{"t_ms":9003,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":359,"packets_out":399,"invalid":0,"bytes_in":29171,"bytes_out":32327,"world_tick":270,"uptime_us":8999514,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":1362,"joins":2,"reconnects":0,"timeouts":0,"timeout_notices":0,"unknown_peer":3,"send_errors":0,"transport":"udp","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0}
+{"t_ms":2,"lvl":"info","comp":"host","evt":"host_started","port":47811,"loopback_only":true,"session":3137983555,"secure":false,"tick_rate_hz":30,"protocol_version":1,"transport":"udp"}
+{"t_ms":158,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":167,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":6112,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":6114,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":9003,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":359,"packets_out":400,"invalid":0,"bytes_in":30419,"bytes_out":32442,"world_tick":270,"uptime_us":8999179,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":1466,"joins":2,"reconnects":0,"timeouts":0,"timeout_notices":0,"unknown_peer":3,"send_errors":0,"transport":"udp","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0}

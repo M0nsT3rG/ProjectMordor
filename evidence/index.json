@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 80,
+  "count": 81,
   "records": [
     {
       "id": "EXP-001",
@@ -199,6 +199,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #6 FB-6-01..05: fail-closed invitation binding, DTLS over a real Transport::Unreliable link on both backends, KI-27 root cause, wording, separate-process asymmetric scenarios; plus the bounded connect-deadline policy."
+    },
+    {
+      "id": "EXP-019",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-019.json",
+      "date": "2026-10-24",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #7 FB-7-01..05 and answer 3 (secure transport decorator); prepare the KI-27 upstream report for the owner."
     },
     {
       "id": "F-COMM-001",

@@ -34,6 +34,7 @@ bool Host::start(std::string* error) {
         return false;
     }
     transport_ = make_transport(cfg_.transport, cfg_.impairment, error);
+    if (transport_ && cfg_.secure) transport_ = make_secure_transport(std::move(transport_), *cfg_.secure, error);
     if (!transport_ || !transport_->open(cfg_.bind, true, error)) {
         transport_.reset();
         return false;
@@ -42,6 +43,7 @@ bool Host::start(std::string* error) {
     running_ = true;
     clock_started_ = false;
     log_.info("host_started", {kv("port", port()), kv("loopback_only", cfg_.bind.is_loopback()), kv("session", session_),
+                               kv("secure", cfg_.secure != nullptr),
                                kv("tick_rate_hz", cfg_.tick_rate_hz), kv("protocol_version", kProtocolVersion),
                                kv("transport", to_string(cfg_.transport))});
     return true;

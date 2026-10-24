@@ -39,7 +39,7 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
 ./scripts/test.ps1 -Repeat 3   # ctest (unit 16, integration 34, network 16, transport 17 contract tests)
-./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (19), gns spike, dtls (17)
+./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (19), gns spike, dtls (30)
 ./scripts/asymmetric.ps1 -Scenario uplink-outage -Transport gns   # separate-process asymmetric impairment
 ./scripts/soak.ps1 -Profile moderate -DurationS 120 -Transport udp   # lan | moderate | harsh; udp | gns; gates in tools/soak/analyze.py
 python -I tools/soak/test_analyze.py
@@ -83,7 +83,8 @@ python -I tools/collab/test_report.py
 - GNS fake impairment is **process-global** (KI-24): two transports in one process share it, and a different config while another instance holds one is refused (`set_impairment` returns false). Asymmetric-impairment tests are UDP-only; asymmetric GNS cases need separate processes. Substitutes and the per-skip matrix: `docs/test-coverage.md`.
 - Transport counters are wire-level diagnostics, never proof of delivery (FB-5-01). `discarded_on_close` counts messages; `closed_with_unacked_reliable` counts connections.
 - The client has an overall `connect_deadline_us` (20 s) on top of the transport timeouts (D-014 amended). `tests/dtls` is the D-013 DTLS proof (GNS build only, OpenSSL direct dependency); `SSL_add_expected_rpk` needs DANE enabled first.
-- `src/network/dtls_session.*` (GNS build only): DTLS 1.2 + RFC 7250 over `Transport::Unreliable` on both backends, with fail-closed invitation binding. It is not wired into Host/Client yet (KI-29). Never carry DTLS over GNS reliable delivery.
+- `src/network/dtls_session.*` (GNS build only): DTLS 1.2 + RFC 7250 over `Transport::Unreliable` on both backends, with fail-closed invitation binding. Never carry DTLS over GNS reliable delivery.
+- `src/network/secure_transport.*` (D-015): a decorator that gates all Host/Client traffic through DTLS (`HostConfig::secure` / `ClientConfig::secure`). Never add a plaintext fallback: when security is configured but unavailable, `start()` must fail. The executables cannot load keys yet (KI-31). The cookie is stateful (KI-30).
 - The GNS runtime is initialised once per process and never killed (KI-27). `gns_internal_assertions()` counts GNS asserts; the transport suite requires 0.
 - `./scripts/asymmetric.ps1 -Scenario uplink-outage|host-jitter-client-outage -Transport gns|udp` runs asymmetric impairment in separate processes (gates in `tools/e2e/check_asymmetric.py`). GNS jitter does not reorder (KI-25). GNS rejects listen port 0.
 - On GNS the transport owns connection establishment and every reconnect is a new connection (D-014). Under GNS, tests must couple the sim clock to real time (`test::step_wait`).

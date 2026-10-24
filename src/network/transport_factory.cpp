@@ -1,5 +1,6 @@
 #include "network/transport.hpp"
 
+#include "network/secure_transport.hpp"
 #include "network/udp_transport.hpp"
 #ifdef MORDOR_HAVE_GNS
 #include "network/gns_transport.hpp"
@@ -48,5 +49,14 @@ std::unique_ptr<Transport> make_transport(TransportKind kind, const ImpairmentCo
     return nullptr;
 #endif
 }
+
+#ifndef MORDOR_HAVE_DTLS
+// No OpenSSL in this build: a secure transport cannot exist, and callers must fail rather than run in clear text.
+std::unique_ptr<Transport> make_secure_transport(std::unique_ptr<Transport>, const SecureTransportConfig&, std::string* error) {
+    if (error) *error = "secure transport needs a MORDOR_WITH_GNS build (OpenSSL)";
+    return nullptr;
+}
+const SecureStats* secure_stats(const Transport&) { return nullptr; }
+#endif
 
 }  // namespace mordor::net

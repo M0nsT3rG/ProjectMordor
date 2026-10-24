@@ -108,10 +108,50 @@ Suite `dtls`: 17 tests, the 8 in-memory proofs above plus 9 over a real link, ea
 
 **First run: 15/16** (log `tests-dtls-transport-first-run-2026-10-24.json`). A UDP reconnect from the same address hit the established session, which ignored the new ClientHello. Fixed by the pending-session rule above.
 
+## Secure transport decorator, game traffic over DTLS (review #7, 2026-10-24)
+
+`src/network/secure_transport.{hpp,cpp}` (D-015) implements `Transport` on top of any backend. Host/Client opt in with `HostConfig::secure` / `ClientConfig::secure`. **There is no plaintext fallback:** if the build or the config cannot provide security, `start()` fails.
+
+**Gating.** `Connected` is reported, and messages are delivered, only after DTLS and the binding succeed. A non-DTLS datagram from a peer without a session is counted (`dropped_not_dtls`) and dropped. `ReliableOrdered` returns `Unsupported`.
+
+**Pre-authentication state is bounded (FB-7-01):**
+- one pending session per inner peer;
+- `max_pending_total` overall (default 4);
+- each pending session lives at most `pending_lifetime_us` (default 10 s).
+
+The HelloVerifyRequest cookie is **stateful**: a session exists before it. It is a handshake-integrity measure, **not** a stateless DoS gate.
+
+**Reconnect from the same address (FB-7-05).**
+- It runs as a pending session and is promoted only once authenticated.
+- The old association is then retired: the host sees `Disconnected("replaced_by_new_session")`, then `Connected` under a **new** PeerId.
+- Late records of the retired session are dropped.
+- A peer with a different invitation never replaces anything.
+
+**Retransmission policy (FB-7-02).**
+- OpenSSL's default (1 s doubling to 60 s) left about 4 attempts in a 15 s budget. Under 25% loss that made `dtls_over_transport_survives…` fail once and `dtls_timer_fires_with_late_irregular_service` fail on UDP (preserved: `tests-dtls-review7-first-run-2026-10-24.json`).
+- The back-off is now set through OpenSSL's own `DTLS_set_timer_cb`: 250 ms doubling to a 2 s cap.
+- `service()` fires an expired timer even when it is called late.
+
+| Test (both backends unless noted) | Result |
+|---|---|
+| Game session over DTLS (2 players) | both connected, snapshots and remote entities flow, `dropped_not_dtls` = 0 |
+| Plaintext client vs secure host | refused (13 non-DTLS datagrams dropped); client ends `connect_deadline` |
+| Secure client vs plaintext host | never connects (`connect_deadline`) |
+| Unpinned player, wrong invitation | `transport_handshake_failed`; no slot on the host |
+| Outage and reconnect | same player id via the game token, after a new DTLS handshake (UDP: replaced association) |
+| Pending cap and expiry | 6 unpinned handshakes against a cap of 3 are refused beyond it; all expire; a legitimate player then connects |
+| Same-address reconnects ×2 (UDP) | each replaces the association only once authenticated; late old records dropped; wrong invitation ignored |
+| Late, irregular `service()` (every 250 ms) | authenticated; timer fired on late calls |
+| 3 s total loss during the handshake | recovers; 3 retransmits during the outage, about 2,000 service calls (no busy loop) |
+| Permanent loss, 4 s budget | `handshake_timeout`; 4 retransmits |
+| Altered confirmation | `binding_confirmation_mismatch` |
+| 50% duplication, 20% loss, 60 ms jitter | authenticated; bindings sent ≤ 5 per side; replies rate-limited |
+| Invitation expiring during a long handshake | refused (`invitation_expired`) |
+
 **Status:** the evidence supports Option A as the working choice for the next step (integration behind the Transport). D-013 is **not** closed. Still required:
-- carrying Host/Client game messages over `DtlsSession` (they still travel in clear text above the transport);
-- a cookie exchange before allocating any per-peer state;
-- an independent review.
+- **Executables:** Host/Client game traffic can now run over DTLS (in-process tests), but `mordor-host` / `mordor-client` have no key or invitation loading yet, so the executables still run in plaintext;
+- **Cookies:** a stateless cookie before allocating any per-peer state;
+- **Review:** an independent review.
 
 Until then the prototype stays on loopback or trusted lab networks.
 

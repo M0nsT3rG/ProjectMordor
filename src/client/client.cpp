@@ -50,6 +50,7 @@ bool Client::start(std::string* error) {
     // Bind to loopback when talking to a loopback host so tests never open a LAN-facing port.
     const Endpoint bind_to = cfg_.host.is_loopback() ? Endpoint::loopback(0) : Endpoint{0, 0};
     transport_ = make_transport(cfg_.transport, cfg_.impairment, error);
+    if (transport_ && cfg_.secure) transport_ = make_secure_transport(std::move(transport_), *cfg_.secure, error);
     if (!transport_ || !transport_->open(bind_to, false, error)) {
         transport_.reset();
         return false;

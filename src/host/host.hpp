@@ -11,6 +11,7 @@
 #include "common/log.hpp"
 #include "network/impairment.hpp"
 #include "network/protocol.hpp"
+#include "network/secure_transport.hpp"
 #include "network/transport.hpp"
 #include "simulation/world.hpp"
 
@@ -24,6 +25,9 @@ struct HostConfig {
     std::uint64_t reconnect_grace_us = 30'000'000;
     net::ImpairmentConfig impairment;
     net::TransportKind transport = net::TransportKind::Udp;
+    // When set, ALL traffic goes through the secure transport decorator (DTLS + pinned keys + invitation binding).
+    // If this build or config cannot provide it, start() FAILS: there is no plaintext fallback (review #7 answer 3).
+    std::shared_ptr<const net::SecureTransportConfig> secure;
 };
 
 struct HostStats {
@@ -48,6 +52,7 @@ public:
     const sim::World& world() const { return world_; }
     const HostStats& stats() const { return stats_; }
     std::optional<net::Transform> player_transform(std::uint16_t player_id) const;
+    const net::Transport* transport_for_test() const { return transport_.get(); }
     bool set_impairment(const net::ImpairmentConfig& c) {  // false: refused by the transport (FB-5-03)
         if (transport_ && !transport_->set_impairment(c)) return false;
         cfg_.impairment = c;

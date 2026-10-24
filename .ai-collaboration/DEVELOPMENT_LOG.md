@@ -2,6 +2,24 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-24: Review #7 follow-up (`feature/secure-transport`, stacked on #7)
+
+- **Input:** [PR #7 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/7#issuecomment-6376769358), FB-7-01 to FB-7-05, on the owner's go-ahead; also prepare the KI-27 upstream draft.
+- **Changes:**
+  - `SecureTransport` decorator (D-015): Host/Client over DTLS, no plaintext fallback.
+  - Caps and expiry for pending sessions.
+  - `DTLS_set_timer_cb` back-off.
+  - Binding reply rate limit; multi-pin.
+  - KI-27 back to open; minimal reproducer `tools/ki27-repro`; upstream draft `docs/upstream/gns-ki27-issue.md` (not published).
+- **Tests:**
+  - unit {'PASSED': 16}; integration {'PASSED': 34}; network {'PASSED': 16}; transport {'PASSED': 17}; transport-both {'PASSED': 19}; integration-gns {'PASSED': 20, 'SKIPPED': 14}; network-gns {'SKIPPED': 5, 'PASSED': 11}; gns {'PASSED': 7}; dtls {'PASSED': 30};
+  - ×2, plus E2E;
+  - soak v4 43/43 × 6;
+  - asymmetric 4/4;
+  - KI-27 stress 0/10 processes.
+- **Problems encountered:** with the default OpenSSL back-off, 2 DTLS tests failed (one intermittently); fixed with the timer policy.
+- **Remaining:** KI-30 (stateless cookie), KI-31 (executable provisioning), independent review, owner decision on the upstream post.
+
 ## 2026-10-24: Review #6 follow-up (`feature/dtls-transport`, stacked on #6)
 
 - **Input:** [PR #6 review comment](https://github.com/M0nsT3rG/ProjectMordor/pull/6#issuecomment-6376091101), FB-6-01 to FB-6-05, on the owner's go-ahead.

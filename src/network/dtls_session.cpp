@@ -40,6 +40,11 @@ int cookie_verify_cb(SSL* ssl, const unsigned char* cookie, unsigned int len) {
     return self && self->cookie_verify(cookie, len) ? 1 : 0;
 }
 
+unsigned int timer_cb(SSL* ssl, unsigned int previous_us) {
+    auto* self = static_cast<DtlsSession*>(SSL_get_app_data(ssl));
+    return self ? self->next_retransmit_us(previous_us) : 1'000'000;
+}
+
 std::string last_errors() {
     std::string all;
     for (unsigned long e = ERR_get_error(); e; e = ERR_get_error()) {
@@ -123,15 +128,12 @@ DtlsSession::DtlsSession(Transport& transport, PeerId peer, Endpoint remote, Dtl
     : transport_(transport), peer_(peer), remote_(remote), cfg_(std::move(cfg)) {
     ERR_clear_error();
     auto fail = [&](const char* what) { reject(std::string("setup: ") + what + " " + last_errors()); };
-    const unsigned char* p = cfg_.peer_spki.data();
-    EVP_PKEY* pinned = cfg_.peer_spki.empty() ? nullptr : d2i_PUBKEY(nullptr, &p, static_cast<long>(cfg_.peer_spki.size()));
     ctx_ = SSL_CTX_new(DTLS_method());
     const unsigned char rpk[] = {TLSEXT_cert_type_rpk};  // raw public keys only; X.509 is neither offered nor accepted
-    if (!ctx_ || !pinned || !cfg_.own_key || SSL_CTX_set_min_proto_version(ctx_, DTLS1_2_VERSION) != 1 ||
+    if (!ctx_ || cfg_.pinned_peers.empty() || !cfg_.own_key || SSL_CTX_set_min_proto_version(ctx_, DTLS1_2_VERSION) != 1 ||
         SSL_CTX_set_max_proto_version(ctx_, DTLS1_2_VERSION) != 1 || SSL_CTX_set_cipher_list(ctx_, kCiphers) != 1 ||
         SSL_CTX_set1_client_cert_type(ctx_, rpk, sizeof rpk) != 1 || SSL_CTX_set1_server_cert_type(ctx_, rpk, sizeof rpk) != 1 ||
         SSL_CTX_use_PrivateKey(ctx_, cfg_.own_key) != 1 || SSL_CTX_dane_enable(ctx_) != 1) {
-        EVP_PKEY_free(pinned);
         fail("context");
         return;
     }
@@ -144,14 +146,23 @@ DtlsSession::DtlsSession(Transport& transport, PeerId peer, Endpoint remote, Dtl
     }
     SSL_CTX_set_options(ctx_, SSL_OP_NO_RENEGOTIATION);  // a new handshake is a new session, never in-place
     ssl_ = SSL_new(ctx_);
-    // SSL_add_expected_rpk stores the pin as a DANE-EE SPKI record: DANE must be enabled first (EXP-017).
-    if (!ssl_ || SSL_dane_enable(ssl_, nullptr) != 1 || SSL_add_expected_rpk(ssl_, pinned) != 1) {
-        EVP_PKEY_free(pinned);
+    // SSL_add_expected_rpk stores each pin as a DANE-EE SPKI record: DANE must be enabled first (EXP-017).
+    if (!ssl_ || SSL_dane_enable(ssl_, nullptr) != 1) {
         fail("session");
         return;
     }
-    EVP_PKEY_free(pinned);
+    for (const auto& der : cfg_.pinned_peers) {
+        const unsigned char* p = der.data();
+        EVP_PKEY* pin = d2i_PUBKEY(nullptr, &p, static_cast<long>(der.size()));
+        const bool ok = pin && SSL_add_expected_rpk(ssl_, pin) == 1;
+        EVP_PKEY_free(pin);
+        if (!ok) {
+            fail("pin");
+            return;
+        }
+    }
     SSL_set_app_data(ssl_, this);
+    DTLS_set_timer_cb(ssl_, timer_cb);
     SSL_set_options(ssl_, SSL_OP_NO_QUERY_MTU);
     const auto mtu = std::min(cfg_.mtu, transport_.capabilities().max_payload);
     DTLS_set_link_mtu(ssl_, static_cast<long>(mtu));
@@ -189,6 +200,11 @@ bool DtlsSession::make_cookie(unsigned char* out, unsigned int* len) const {
     std::memcpy(out, md, n);
     *len = static_cast<unsigned int>(n);
     return true;
+}
+
+unsigned int DtlsSession::next_retransmit_us(unsigned int previous_us) const {
+    if (previous_us == 0) return cfg_.retransmit_initial_us;  // first flight
+    return std::min<unsigned int>(previous_us * 2, cfg_.retransmit_max_us);
 }
 
 bool DtlsSession::cookie_generate(unsigned char* out, unsigned int* len) {
@@ -298,7 +314,10 @@ void DtlsSession::read_records(std::uint64_t now_us, std::uint64_t now_unix_s) {
             if (state_ == DtlsState::Rejected) return;
             // A binding arriving after we are done means the peer has not seen ours yet (it resends until it
             // has): answer it. Not when this binding is the one that completed us, or both sides would echo.
-            if (was_authenticated && cfg_.send_binding) send_binding(now_us);
+            if (was_authenticated && cfg_.send_binding) {
+                if (now_us - last_binding_us_ >= cfg_.binding_resend_us) send_binding(now_us);
+                else ++stats_.binding_replies_suppressed;  // bounded: never more than the peer's own resend rate
+            }
         } else if (rec[0] == kTypeApp) {
             if (state_ != DtlsState::Authenticated) {
                 ++stats_.app_dropped_before_auth;  // fail closed: nothing before the binding is verified
@@ -330,6 +349,7 @@ void DtlsSession::send_binding(std::uint64_t now_us) {
     const auto inv = encode_invitation(cfg_.invitation);
     m.insert(m.end(), inv.begin(), inv.end());
     m.insert(m.end(), confirmation_.begin(), confirmation_.end());
+    if (cfg_.corrupt_confirmation) m.back() ^= 0x01;
     if (SSL_write(ssl_, m.data(), static_cast<int>(m.size())) > 0) ++stats_.binding_sent;
     last_binding_us_ = now_us;
     flush_out();
