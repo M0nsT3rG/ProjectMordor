@@ -42,6 +42,7 @@ struct HostStats {
                   events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0,
                   events_send_refused = 0, event_acks_invalid = 0;
     std::uint64_t clean_leaves = 0, leave_acks_repeated = 0;  // explicit leave handshake (FB-10-04)
+    std::uint64_t leave_lingers_cut = 0;  // linger ended early because kMaxLingering were held (FB-11-03)
 };
 
 class Host {
@@ -129,6 +130,7 @@ private:
     std::vector<Slot> slots_;
     // Transport peers of players that left cleanly, closed after the client's leave window (KI-37).
     static constexpr std::uint64_t kLeaveLingerUs = 1'500'000;
+    static constexpr std::size_t kMaxLingering = 16;
     struct Closing {
         net::PeerId peer;
         std::uint64_t close_at_us, last_ack_us;

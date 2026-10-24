@@ -193,6 +193,8 @@ void Host::on_datagram(PeerId from, std::span<const std::uint8_t> bytes, std::ui
 // A connection-oriented backend detected that the peer is gone: start the grace period now instead of waiting
 // for our own timeout (review #3 answer 2: the transport owns liveness when it can detect it).
 void Host::on_transport_disconnect(PeerId peer, std::uint64_t now_us) {
+    // FB-11-03: a player in its leave window whose transport is gone needs no further linger.
+    std::erase_if(closing_, [&](const Closing& c) { return c.peer == peer; });
     for (auto& s : slots_) {
         if (!s.connected || s.peer != peer) continue;
         s.connected = false;
@@ -258,6 +260,11 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             // notice overtake our (delayed, unreliable) DisconnectAcks, so the client never saw them (KI-37), and
             // its repeated Disconnects could not reach us. It is closed later, or by the client first.
             remove_slot(s->player_id, false);
+            if (closing_.size() >= kMaxLingering) {  // bounded (FB-11-03): the oldest linger ends early, counted
+                transport_->close_peer(closing_.front().peer);
+                closing_.erase(closing_.begin());
+                ++stats_.leave_lingers_cut;
+            }
             closing_.push_back({from, now_us + kLeaveLingerUs, now_us});
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
@@ -508,7 +515,8 @@ void Host::shutdown() {
                                kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
                                kv("events_dropped_with_slot", stats_.events_dropped_with_slot),
                                kv("events_send_refused", stats_.events_send_refused), kv("event_acks_invalid", stats_.event_acks_invalid),
-                               kv("clean_leaves", stats_.clean_leaves), kv("leave_acks_repeated", stats_.leave_acks_repeated)});
+                               kv("clean_leaves", stats_.clean_leaves), kv("leave_acks_repeated", stats_.leave_acks_repeated),
+                               kv("leave_lingers_cut", stats_.leave_lingers_cut)});
     if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets
         log_.info("secure_stats", {kv("authenticated", ss->authenticated), kv("pending_opened", ss->pending_opened),
                                    kv("pending_failed", ss->pending_failed), kv("pending_refused_cap", ss->pending_refused_cap),

@@ -221,6 +221,78 @@ std::size_t count(const std::vector<TransportEvent>& ev, TransportEvent::Kind k)
 }
 }  // namespace
 
+// Review #11 FB-11-01: on a connection-oriented inner transport the client sends no DTLS datagram before the inner
+// connection reports Connected (GNS queued earlier ClientHellos while the DTLS timer backed off, EXP-024). Delayed
+// connect (100 ms each way) and repeated reconnects; on UDP there is no inner Connected and the handshake starts at once.
+TEST(secure_client_handshake_starts_only_after_inner_connected) {
+    for (auto k : backends()) {
+        Key host_key, player;
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        ImpairmentConfig slow;
+        slow.latency_ms = 100;
+        auto host = open_secure(k, hcfg, true, slow);
+        auto ccfg = *secure(player, {host_key.spki()}, hcfg.invitation);
+        std::vector<std::string> trace;
+        ccfg.trace = [&](const char* ev, std::uint64_t, std::uint32_t, std::string_view) { trace.emplace_back(ev); };
+        auto c = open_secure(k, ccfg, false, slow);  // GNS: the same config joins the process-global holder
+        std::string err;
+        const bool inner_conn = make_transport(k, {}, &err)->capabilities().reports_disconnects;  // the decorator always reports
+        const Endpoint host_ep = Endpoint::loopback(host->local_endpoint().port);
+        for (int round = 0; round < 3; ++round) {
+            trace.clear();
+            const auto peer = c->connect(host_ep).value();
+            const auto ev = run({host.get(), c.get()}, c.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 15000);
+            CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
+            const auto inner = std::find(trace.begin(), trace.end(), "inner_connected");
+            const auto first_tx = std::find(trace.begin(), trace.end(), "tx");
+            CHECK(first_tx != trace.end());
+            if (inner_conn) CHECK(inner != trace.end() && inner < first_tx);  // (UDP may report Connected too; not waited for)
+            CHECK(std::find(trace.begin(), first_tx, "timer") == first_tx);  // no DTLS back-off before the first flight
+            c->close_peer(peer);
+            run({host.get(), c.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) >= 1; }, 3000);
+        }
+        std::printf("       %s: 3 connects, first DTLS datagram %s\n", to_string(k),
+                    inner_conn ? "after inner Connected each time" : "at once (connectionless inner: not gated)");
+    }
+}
+
+// FB-11-01, failed connect: when the inner connection never comes up, the caller is told (on GNS by the inner
+// transport, before any DTLS), instead of waiting for its own overall deadline.
+TEST(secure_client_reports_a_failed_inner_connect) {
+    for (auto k : backends()) {
+        Key host_key, player;
+        auto ccfg = *secure(player, {host_key.spki()}, invite());
+        ccfg.pending_lifetime_us = 2'000'000;  // UDP has no inner failure signal: the DTLS handshake times out
+        std::vector<std::string> trace;
+        ccfg.trace = [&](const char* ev, std::uint64_t, std::uint32_t, std::string_view) { trace.emplace_back(ev); };
+        std::uint16_t dead_port = 0;
+        {
+            std::string err;
+            auto probe = make_transport(k, {}, &err);
+            CHECK(probe && probe->open(Endpoint::loopback(0), true, &err));
+            dead_port = probe->local_endpoint().port;  // closed again below: nothing listens there
+        }
+        auto c = open_secure(k, ccfg, false);
+        std::string err;
+        const bool inner_conn = make_transport(k, {}, &err)->capabilities().reports_disconnects;
+        CHECK(c->connect(Endpoint::loopback(dead_port)).has_value());
+        const auto t0 = std::chrono::steady_clock::now();
+        const auto ev = run({c.get()}, c.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) == 1; }, 20000);
+        const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - t0).count();
+        CHECK(count(ev, TransportEvent::Kind::Disconnected) == 1);
+        const auto d = std::find_if(ev.begin(), ev.end(), [](const auto& e) { return e.kind == TransportEvent::Kind::Disconnected; });
+        const std::string why = d == ev.end() ? std::string() : std::string(d->reason);
+        std::printf("       %s: failed connect reported after %lld ms (%s), %zu DTLS datagrams sent\n", to_string(k),
+                    static_cast<long long>(ms), why.c_str(), static_cast<std::size_t>(std::count(trace.begin(), trace.end(), "tx")));
+        if (inner_conn) {
+            CHECK(why == "inner_connect_failed");
+            CHECK(std::count(trace.begin(), trace.end(), "tx") == 0);  // never started DTLS on a connection that never came up
+        } else {
+            CHECK(why == "dtls_handshake_failed");
+        }
+    }
+}
+
 // Pre-authentication state is bounded: more unpinned handshakes than max_pending_total are refused, each pending
 // session expires, and afterwards a legitimate player still gets in.
 TEST(secure_pending_sessions_are_capped_and_expire) {

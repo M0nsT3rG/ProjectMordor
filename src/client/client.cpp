@@ -303,6 +303,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         set_state(ClientState::Disconnected, "leave_acked");
         return;
     }
+    if (state_ == ClientState::Leaving && p.header.session == session_ && std::holds_alternative<Disconnect>(p.message)) {
+        // The host itself went away (e.g. shutdown) while we were leaving: done, unconfirmed (FB-11-03).
+        stats_.leave_ms = (now_us - leave_started_us_) / 1000;
+        disconnect_reason_ = DisconnectReason::ClientQuit;
+        set_state(ClientState::Disconnected, "host_left_during_leave");
+        return;
+    }
     if (state_ != ClientState::Connected || p.header.session != session_) {
         ++stats_.foreign_packets;
         return;

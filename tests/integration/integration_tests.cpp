@@ -1291,3 +1291,116 @@ TEST(unconfirmed_leave_ends_after_the_timeout) {
     CHECK(c.stats().leave_ms >= 1000 && c.stats().leave_ms < 1100);
     CHECK(c.stats().leave_disconnects_sent >= 10);
 }
+
+// Review #11 FB-11-03: departure edge cases.
+TEST(leave_ack_for_another_session_is_ignored) {
+    test::SimClock clk;
+    TransportFakeHost fh;
+    client::ClientConfig cc;
+    cc.host = fh.endpoint();
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    fh.expect_request(c, clk);
+    fh.accept(c, clk);
+    CHECK(c.state() == ClientState::Connected);
+    c.leave(clk.now);
+    fh.h.session ^= 1;  // a DisconnectAck for a foreign session must not confirm the leave
+    fh.deliver(c, clk, fh.packet(DisconnectAck{}));
+    CHECK(c.leaving() && !c.stats().leave_confirmed);
+    fh.h.session ^= 1;
+    fh.deliver(c, clk, fh.packet(DisconnectAck{}));
+    CHECK(!c.leaving() && c.stats().leave_confirmed);
+}
+
+TEST(host_disconnect_during_a_leave_ends_it_unconfirmed) {
+    test::SimClock clk;
+    TransportFakeHost fh;
+    client::ClientConfig cc;
+    cc.host = fh.endpoint();
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    fh.expect_request(c, clk);
+    fh.accept(c, clk);
+    c.leave(clk.now);
+    fh.deliver(c, clk, fh.packet(Disconnect{DisconnectReason::HostShutdown}));  // host shut down meanwhile
+    CHECK(c.state() == ClientState::Disconnected && !c.stats().leave_confirmed);
+    CHECK(c.stats().leave_ms < 1000);  // not the full leave window
+}
+
+TEST(host_shutdown_during_a_real_leave_is_bounded) {
+    test::Session s;
+    auto& a = s.add_client();
+    CHECK(s.pump_until([&] { return a.state() == ClientState::Connected; }, 2 * kSec));
+    a.leave(s.clk.now);
+    s.host.shutdown();
+    CHECK(test::pump(s.clk, nullptr, {&a}, [&] { return !a.leaving(); }, 2 * kSec));
+    CHECK(a.state() == ClientState::Disconnected);
+    CHECK(a.stats().leave_ms <= 1000);
+}
+
+TEST(rejoin_from_the_same_peer_during_the_leave_window_is_kept) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 501);
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    for (int i = 0; i < 10; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+        drain(*fc.t);
+    }
+    CHECK(s.host.slot_count() == 0 && s.host.stats().clean_leaves == 1);
+    fc.join(s, 502);  // same transport peer (old PeerId reused) while it is still lingering
+    CHECK(s.host.slot_count() == 1);
+    for (int i = 0; i < 300; ++i) {  // well past the 1.5 s linger
+        s.clk.now += 10'000;
+        s.host.update(s.clk.now);
+        settle();
+        if (i % 10 == 0) fc.send(Heartbeat{s.clk.now});
+    }
+    CHECK(s.host.slot_count() == 1);
+    CHECK(fc.latest_snapshot().has_value());  // the rejoined player is still served: its peer was not closed
+}
+
+TEST(lingering_peers_are_bounded) {
+    test::Session s;
+    std::vector<std::unique_ptr<TransportFakeClient>> fcs;
+    for (int i = 0; i < 17; ++i) {  // 17 clean leaves inside one linger window: one more than kMaxLingering
+        fcs.push_back(std::make_unique<TransportFakeClient>(s.host.port()));
+        fcs.back()->join(s, 600 + static_cast<std::uint64_t>(i));
+        fcs.back()->send(Disconnect{DisconnectReason::ClientQuit});
+        for (int j = 0; j < 10 && s.host.slot_count() != 0; ++j) {
+            settle();
+            s.host.update(s.clk.now);
+        }
+        CHECK(s.host.slot_count() == 0);
+    }
+    CHECK(s.host.stats().clean_leaves == 17);
+    CHECK(s.host.stats().leave_lingers_cut == 1);
+}
+
+TEST(disconnect_after_the_leave_window_is_not_answered) {
+    UDP_ONLY("on a connection-oriented backend the host closed the connection when the window ended");
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 701);
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    for (int i = 0; i < 200; ++i) {  // 2 s: the window (1.5 s) ends
+        s.clk.now += 10'000;
+        s.host.update(s.clk.now);
+        settle();
+        drain(*fc.t);
+    }
+    fc.send(Disconnect{DisconnectReason::ClientQuit});  // our last ack was lost and we try again, too late
+    bool acked = false;
+    for (int i = 0; i < 10; ++i) {
+        settle();
+        s.host.update(s.clk.now);
+        settle();
+        for (auto& [from, p] : drain(*fc.t)) acked |= std::holds_alternative<DisconnectAck>(p.message);
+    }
+    CHECK(!acked && s.host.stats().leave_acks_repeated == 0);
+}

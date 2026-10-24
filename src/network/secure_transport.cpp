@@ -95,6 +95,9 @@ public:
         s.remote = remote;
         s.secure = PeerId{next_id_++, 0};
         s.pending = std::make_unique<DtlsSession>(*inner_, *inner_peer, remote, session_cfg(false));
+        // FB-11-01: on a connection-oriented inner transport the handshake starts when it reports Connected. Earlier
+        // ClientHellos were queued by GNS while its own DTLS timer backed off (EXP-024).
+        s.inner_up = !inner_->capabilities().reports_disconnects;
         s.pending_since_us = 0;  // set on the first poll: connect() has no clock (a 0 start time made 88 h "handshakes")
         ++sstats_.pending_opened;
         by_secure_[s.secure.id] = key(*inner_peer);
@@ -150,8 +153,17 @@ public:
             switch (e.kind) {
                 case TransportEvent::Kind::Message: route(e, now_us, unix_s); break;
                 case TransportEvent::Kind::Disconnected: {
+                    if (cfg_.trace) cfg_.trace("inner_disconnected", now_us, e.peer.id, e.reason);
                     auto it = slots_.find(key(e.peer));
                     if (it == slots_.end()) break;
+                    if (!it->second.established && !listen_) {
+                        // Our own connect failed below DTLS (e.g. the inner connection never came up): say so now
+                        // instead of leaving the caller to its overall deadline.
+                        ++sstats_.pending_failed;
+                        out.push_back(disconnected(it->second, "inner_connect_failed"));
+                        erase(it);
+                        break;
+                    }
                     if (it->second.established) {
                         // Data that arrived before the loss is still delivered, in order, before Disconnected
                         // (found by secure_close_drain_is_bounded_and_counts_unacked on GNS, EXP-021).
@@ -163,14 +175,18 @@ public:
                     break;
                 }
                 case TransportEvent::Kind::DroppedInbound: out.push_back(std::move(e)); break;  // informational
-                case TransportEvent::Kind::Connected: break;  // transport-level only: we report after DTLS
+                case TransportEvent::Kind::Connected: {  // transport-level only: we report after DTLS
+                    if (cfg_.trace) cfg_.trace("inner_connected", now_us, e.peer.id, "");
+                    if (auto it = slots_.find(key(e.peer)); it != slots_.end()) it->second.inner_up = true;
+                    break;
+                }
             }
         }
         for (auto it = slots_.begin(); it != slots_.end();) {
             auto& s = it->second;
-            if (s.pending && s.pending_since_us == 0) s.pending_since_us = now_us;
+            if (s.pending && s.inner_up && s.pending_since_us == 0) s.pending_since_us = now_us;
             if (s.established) s.established->service(now_us, unix_s);
-            if (s.pending) {
+            if (s.pending && s.inner_up) {
                 s.pending->service(now_us, unix_s);
                 if (s.pending->state() == DtlsState::Authenticated) promote(s, out);
                 else if (s.pending->state() == DtlsState::Rejected) {
@@ -236,6 +252,7 @@ private:
         std::uint64_t last_rx_us = 0;  // last AUTHENTICATED record from this peer (idle timeout, FB-8-04/FB-9-01)
         std::uint64_t last_tx_us = 0;  // last frame we sent (keepalive)
         std::uint64_t pending_since_us = 0;  // when the current pending session was opened (diagnostics)
+        bool inner_up = true;  // false: our connect() waits for the inner transport's Connected (FB-11-01)
         std::uint64_t hello_window_start_us = 0;  // reserved ClientHello budget of an established peer (answer 5)
         std::uint32_t hello_window_attempts = 0;
         // Secure reliable channel state, per established session (FB-8-02).
