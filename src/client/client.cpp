@@ -186,8 +186,12 @@ void Client::receive(std::uint64_t now_us) {
         switch (e.kind) {
             case TransportEvent::Kind::Connected:
                 if (from_host) {
+                    log_.info("transport_connected", {kv("state", to_string(state_))});
                     transport_up_ = true;
                     if (state_ == ClientState::Connecting) phase_started_us_ = now_us;  // D-014: full window from here
+                    // KI-35: requests sent before the transport was up were refused; send one now instead of
+                    // waiting out the retry interval (up to 500 ms when reconnecting).
+                    if (state_ == ClientState::Connecting || state_ == ClientState::Reconnecting) attempted_ = false;
                 }
                 break;
             case TransportEvent::Kind::Disconnected:
@@ -196,7 +200,10 @@ void Client::receive(std::uint64_t now_us) {
                     set_state(ClientState::Failed, "transport_handshake_failed");
                     break;
                 }
-                if (from_host) transport_up_ = false;
+                if (from_host) {
+                    transport_up_ = false;
+                    log_.info("transport_disconnected", {kv("state", to_string(state_))});
+                }
                 if (from_host && state_ == ClientState::Leaving) {
                     // The host released us before its DisconnectAck reached us (or never sent one): we are gone
                     // either way; never reconnect while leaving. leave_confirmed stays false.
@@ -280,9 +287,11 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
             ++stats_.reconnects;
             stats_.last_reconnect_ms = (now_us - reconnect_started_us_) / 1000;
             stats_.max_reconnect_ms = std::max(stats_.max_reconnect_ms, stats_.last_reconnect_ms);
+            awaiting_first_snapshot_ = true;
         }
         log_.info(reconnect ? "reconnected" : "connected",
-                  {kv("player", player_id_), kv("entity", entity_id_), kv("session", session_), kv("same_session", same_session)});
+                  {kv("player", player_id_), kv("entity", entity_id_), kv("session", session_), kv("same_session", same_session),
+                   kv("reconnect_ms", reconnect ? stats_.last_reconnect_ms : 0)});
         set_state(ClientState::Connected, "connect_accept");
         return;
     }
@@ -383,6 +392,10 @@ void Client::on_snapshot(const Snapshot& s, std::uint64_t now_us) {
     }
     latest_tick_ = s.server_tick;
     last_snapshot_us_ = now_us;
+    if (awaiting_first_snapshot_) {  // KI-35 timeline: when play actually resumed after a reconnect
+        awaiting_first_snapshot_ = false;
+        log_.info("first_snapshot_after_reconnect", {kv("since_reconnect_start_ms", (now_us - reconnect_started_us_) / 1000)});
+    }
     ++stats_.snapshots_applied;
     std::set<std::uint16_t> seen;
     for (const auto& e : s.entities) {

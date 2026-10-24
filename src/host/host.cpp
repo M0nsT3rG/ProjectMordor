@@ -217,6 +217,7 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
         if (p.header.session == session_) notify_timed_out(from, now_us);
         return;
     }
+    ++s->packets_in;
     // Only host-bound message types prove the peer is alive (review FB-1-02).
     const bool host_bound = std::holds_alternative<Heartbeat>(p.message) || std::holds_alternative<InputBatch>(p.message) ||
                             std::holds_alternative<Disconnect>(p.message) || std::holds_alternative<EventAck>(p.message);
@@ -353,6 +354,7 @@ void Host::remove_slot(std::uint16_t player_id, bool close_transport_peer) {
         }
     auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
     if (it == slots_.end()) return;
+    log_.info("player_stats", {kv("player", player_id), kv("packets_in", it->packets_in)});
     if (close_transport_peer && it->peer.valid()) transport_->close_peer(it->peer);
     world_.despawn(it->entity_id);
     slots_.erase(it);
@@ -467,6 +469,7 @@ void Host::shutdown() {
                 for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
         }
     transport_->flush_all();
+    for (const auto& s : slots_) log_.info("player_stats", {kv("player", s.player_id), kv("packets_in", s.packets_in)});
     const auto& ts = transport_->stats();
     transport_->close();
     running_ = false;
@@ -485,6 +488,8 @@ void Host::shutdown() {
                                kv("transport_discarded_on_close", ts.discarded_on_close),
                                kv("transport_closed_with_unacked_reliable", ts.closed_with_unacked_reliable),
                                kv("transport_impairment_refused", ts.impairment_refused),
+                               kv("transport_simulated_drops", ts.simulated_drops), kv("transport_sent", ts.sent),
+                               kv("transport_received", ts.received),
                                kv("events_queued", stats_.events_queued), kv("events_applied", stats_.events_applied),
                                kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
                                kv("events_dropped_with_slot", stats_.events_dropped_with_slot),

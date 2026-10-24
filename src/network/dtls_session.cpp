@@ -55,6 +55,20 @@ std::string last_errors() {
     return all;
 }
 
+// "22/0/1,20/0,22/1": content type / epoch [/ handshake type when readable] of each record in a datagram.
+std::string describe_records(std::span<const std::uint8_t> b) {
+    std::string s;
+    for (std::size_t off = 0; off + 13 <= b.size();) {
+        const unsigned epoch = (b[off + 3] << 8) | b[off + 4];
+        const std::size_t len = (b[off + 11] << 8) | b[off + 12];
+        if (!s.empty()) s += ',';
+        s += std::to_string(b[off]) + '/' + std::to_string(epoch);
+        if (b[off] == 22 && epoch == 0 && off + 13 < b.size()) s += '/' + std::to_string(b[off + 13]);
+        off += 13 + len;
+    }
+    return s;
+}
+
 void put_u16(std::vector<std::uint8_t>& b, std::uint16_t v) {
     b.push_back(static_cast<std::uint8_t>(v >> 8));
     b.push_back(static_cast<std::uint8_t>(v));
@@ -236,6 +250,12 @@ bool DtlsSession::cookie_matches(std::span<const std::uint8_t> cookie) const {
     return make_cookie(expect, &n) && n == cookie.size() && CRYPTO_memcmp(expect, cookie.data(), n) == 0;
 }
 
+bool DtlsSession::cookie_valid_for(PeerId peer, Endpoint remote, std::span<const std::uint8_t> cookie) {
+    peer_ = peer;
+    remote_ = remote;
+    return cookie_matches(cookie);
+}
+
 bool DtlsSession::cookie_verify(const unsigned char* cookie, unsigned int len) {
     unsigned char expect[EVP_MAX_MD_SIZE];
     unsigned int n = 0;
@@ -248,18 +268,35 @@ void DtlsSession::reject(std::string why) {
     if (state_ == DtlsState::Rejected) return;
     state_ = DtlsState::Rejected;
     reason_ = std::move(why);
+    if (cfg_.trace) cfg_.trace("rejected", now_us_, peer_.id, reason_);
 }
 
 void DtlsSession::flush_out() {
     if (!out_) return;
+    // KI-35: OpenSSL packs a flight's first transmission into one datagram but RETRANSMITS it one datagram per
+    // record, so a 5-record flight then needs 5 datagrams to all survive (0.85^5 = 44% per round at 15% loss).
+    // Consecutive BIO datagrams are coalesced up to the MTU; several records per datagram is valid DTLS
+    // (RFC 6347 4.1.1), and each BIO datagram holds whole records.
+    const std::size_t mtu = std::min(cfg_.mtu, transport_.capabilities().max_payload);
+    std::vector<std::uint8_t> pack;
+    auto send_pack = [&] {
+        if (pack.empty()) return;
+        const auto r = transport_.send(peer_, pack, Delivery::Unreliable, now_us_);
+        if (cfg_.trace && state_ != DtlsState::Authenticated)
+            cfg_.trace(r == SendResult::Sent ? "tx" : "tx_failed", now_us_, peer_.id, describe_records(pack));
+        stats_.max_datagram_out = std::max(stats_.max_datagram_out, pack.size());
+        if (r == SendResult::Sent) ++stats_.datagrams_out;
+        else ++stats_.send_failures;  // lost like any datagram: DTLS retransmits handshake flights itself
+        pack.clear();
+    };
     std::array<std::uint8_t, 4096> buf{};
     for (int n = BIO_read(out_, buf.data(), static_cast<int>(buf.size())); n > 0;
          n = BIO_read(out_, buf.data(), static_cast<int>(buf.size()))) {
-        const auto r = transport_.send(peer_, {buf.data(), static_cast<std::size_t>(n)}, Delivery::Unreliable, now_us_);
-        stats_.max_datagram_out = std::max(stats_.max_datagram_out, static_cast<std::size_t>(n));
-        if (r == SendResult::Sent) ++stats_.datagrams_out;
-        else ++stats_.send_failures;  // lost like any datagram: DTLS retransmits handshake flights itself
+        if (!pack.empty() && pack.size() + static_cast<std::size_t>(n) > mtu) send_pack();
+        else if (!pack.empty()) ++stats_.datagrams_coalesced;
+        pack.insert(pack.end(), buf.data(), buf.data() + n);
     }
+    send_pack();
 }
 
 bool DtlsSession::listen_offer(std::span<const std::uint8_t> datagram, PeerId peer, Endpoint remote, std::uint64_t now_us) {
@@ -268,6 +305,7 @@ bool DtlsSession::listen_offer(std::span<const std::uint8_t> datagram, PeerId pe
     remote_ = remote;
     now_us_ = now_us;
     ERR_clear_error();
+    if (cfg_.trace) cfg_.trace("listen_rx", now_us, peer.id, describe_records(datagram));
     BIO_write(in_, datagram.data(), static_cast<int>(datagram.size()));
     BIO_ADDR* addr = BIO_ADDR_new();
     const int r = DTLSv1_listen(ssl_, addr);
@@ -288,6 +326,7 @@ void DtlsSession::on_datagram(std::span<const std::uint8_t> bytes, std::uint64_t
     now_us_ = now_us;
     if (state_ == DtlsState::Rejected || !in_) return;
     ++stats_.datagrams_in;
+    if (cfg_.trace && state_ != DtlsState::Authenticated) cfg_.trace("rx", now_us, peer_.id, describe_records(bytes));
     BIO_write(in_, bytes.data(), static_cast<int>(bytes.size()));
     drive(now_us, now_unix_s);
 }
@@ -303,7 +342,10 @@ void DtlsSession::service(std::uint64_t now_us, std::uint64_t now_unix_s) {
     if (state_ == DtlsState::Handshaking) {
         timeval tv{};
         if (DTLSv1_get_timeout(ssl_, &tv) == 1 && tv.tv_sec == 0 && tv.tv_usec == 0) {
-            if (DTLSv1_handle_timeout(ssl_) > 0) ++stats_.timeouts_handled;  // retransmit the last flight
+            if (DTLSv1_handle_timeout(ssl_) > 0) {
+                ++stats_.timeouts_handled;  // retransmit the last flight
+                if (cfg_.trace) cfg_.trace("timer", now_us, peer_.id, "");
+            }
         }
         if (now_us - started_us_ > cfg_.handshake_timeout_us) return reject("handshake_timeout");
     }
@@ -329,6 +371,7 @@ void DtlsSession::drive(std::uint64_t now_us, std::uint64_t now_unix_s) {
             }
             state_ = DtlsState::Binding;
             binding_started_us_ = now_us;
+            if (cfg_.trace) cfg_.trace("handshake_done", now_us, peer_.id, "");
             if (cfg_.send_binding) send_binding(now_us);
         } else {
             const int e = SSL_get_error(ssl_, rc);
@@ -362,7 +405,9 @@ void DtlsSession::read_records(std::uint64_t now_us, std::uint64_t now_unix_s) {
             // A binding arriving after we are done means the peer has not seen ours yet (it resends until it
             // has): answer it. Not when this binding is the one that completed us, or both sides would echo.
             if (was_authenticated && cfg_.send_binding) {
-                if (now_us - last_binding_us_ >= cfg_.binding_resend_us) send_binding(now_us);
+                const bool reply = now_us - last_binding_us_ >= cfg_.binding_resend_us;
+                if (cfg_.trace) cfg_.trace(reply ? "binding_reply" : "binding_reply_suppressed", now_us, peer_.id, "");
+                if (reply) send_binding(now_us);
                 else ++stats_.binding_replies_suppressed;  // bounded: never more than the peer's own resend rate
             }
         } else if (rec[0] == kTypeApp) {
@@ -388,7 +433,10 @@ void DtlsSession::on_binding(std::span<const std::uint8_t> msg, std::uint64_t no
     // Both sides derived the value over THEIR invitation; equal only if the invitations and keys agree.
     if (CRYPTO_memcmp(msg.data() + used, confirmation_.data(), kConfirmationSize) != 0) return reject("binding_confirmation_mismatch");
     peer_bound_ = true;
-    if (state_ == DtlsState::Binding) state_ = DtlsState::Authenticated;
+    if (state_ == DtlsState::Binding) {
+        state_ = DtlsState::Authenticated;
+        if (cfg_.trace) cfg_.trace("authenticated", now_us_, peer_.id, "");
+    }
 }
 
 void DtlsSession::send_binding(std::uint64_t now_us) {

@@ -87,6 +87,7 @@ public:
     std::optional<net::DisconnectReason> disconnect_reason() const { return disconnect_reason_; }
     std::uint16_t player_id() const { return player_id_; }
     const ClientConfig& config() const { return cfg_; }
+    const net::TransportStats* transport_stats() const { return transport_ ? &transport_->stats() : nullptr; }
     const net::SecureStats* transport_stats_secure() const { return transport_ ? net::secure_stats(*transport_) : nullptr; }
     // Events received since the last call, in order, each exactly once (FB-9-02). The host keeps resending them
     // until the application reports them applied with ack_events_applied(); call it only after applying.
@@ -153,6 +154,7 @@ private:
     std::uint64_t reconnect_started_us_ = 0;
     std::uint32_t event_session_ = 0, next_event_ = 1, applied_through_ = 0;  // per host session
     std::uint64_t leave_started_us_ = 0, last_leave_send_us_ = 0;
+    bool awaiting_first_snapshot_ = false;
     std::vector<ReceivedEvent> event_inbox_;
 
     float move_x_ = 0, move_z_ = 0;

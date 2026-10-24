@@ -51,6 +51,7 @@ int main(int argc, char** argv) {
             return 2;
         }
         Logger log("host", sink);
+        log.info("clock", {kv("mono_us", now_us())});  // maps this log's t (ms since start) onto the shared steady clock
         PreciseSleeper sleeper;
         log.info("loop_timer", {kv("high_resolution", sleeper.high_resolution())});
         host::HostConfig cfg;
@@ -61,6 +62,10 @@ int main(int argc, char** argv) {
         cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
         // Secure mode: kept alive for the whole run (it owns the identity key). Never logs key material.
         const auto secure = cli::secure_from(args, true, static_cast<std::uint64_t>(std::time(nullptr)));
+        if (secure.cfg)  // KI-35 handshake timeline: record types and milestones only, never key material
+            secure.cfg->trace = [&log](const char* ev, std::uint64_t t_us, std::uint32_t peer, std::string_view detail) {
+                log.info("dtls_trace", {kv("ev", ev), kv("mono_us", t_us), kv("peer", peer), kv("detail", detail)});
+            };
         cfg.secure = secure.cfg;
         log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
                               kv("invitation", secure.invitation_id)});

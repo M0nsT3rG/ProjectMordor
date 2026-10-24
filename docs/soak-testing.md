@@ -196,6 +196,19 @@ Fixed before its first run. v1–v4 thresholds are unchanged. New gates:
 
 Quick 30 s runs used to validate v5 and to diagnose KI-35 are also kept (`soak-*-g5` with `duration_s` 30). Some of them fail `rtt_sample_count`, which is tighter in short runs.
 
+## Gate version 6 (review #10 FB-10-05, 2026-10-24)
+
+Fixed before its first run. v1–v5 thresholds are unchanged except where named here.
+
+- **`<client>_realized_rtt_floor`** now uses the RTT 5th percentile, and needs at least 100 samples: p5 ≥ 2 × latency − 2 ms. The v5 minimum let one sample decide the gate. The minimum is still reported.
+- **`<client>_realized_delivery`** (new): host `packets_in` for that player divided by the client's `packets_out`, inside the same bounds as the v5 aggregate (which is kept). An aggregate can hide one client with no loss and one with too much.
+  - The host logs `player_stats` when a slot is released and at shutdown.
+  - It counts session-valid packets only, so `ConnectRequest`s, and packets the stalled client sends before it learns it timed out, are missing. That is a few packets in thousands.
+- **`<client>_leave_confirmed`** (new): the client's `leave` record must show a leave the host confirmed (protocol v3 `DisconnectAck`, KI-37).
+- **Distributions** are reported in `summary.json` and not gated: per-client RTT p5/p50/p95/p99 and delivery ratios.
+
+Directories are named `-g6`. Secure runs also log `dtls_trace` records (record types, epochs, handshake message types and milestones, never key material) for the KI-35 timeline (`tools/soak/timeline.py`).
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

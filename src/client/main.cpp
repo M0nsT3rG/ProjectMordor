@@ -58,6 +58,7 @@ int main(int argc, char** argv) {
             return 2;
         }
         Logger log("client", sink);
+        log.info("clock", {kv("mono_us", now_us())});  // maps this log's t (ms since start) onto the shared steady clock
         PreciseSleeper sleeper;
         log.info("loop_timer", {kv("high_resolution", sleeper.high_resolution())});
         client::ClientConfig cfg;
@@ -68,6 +69,10 @@ int main(int argc, char** argv) {
         cfg.impairment = cli::impairment_from(args); cfg.transport = cli::transport_from(args);
         // Secure mode: kept alive for the whole run (it owns the identity key). Never logs key material.
         const auto secure = cli::secure_from(args, false, static_cast<std::uint64_t>(std::time(nullptr)));
+        if (secure.cfg)  // KI-35 handshake timeline: record types and milestones only, never key material
+            secure.cfg->trace = [&log](const char* ev, std::uint64_t t_us, std::uint32_t peer, std::string_view detail) {
+                log.info("dtls_trace", {kv("ev", ev), kv("mono_us", t_us), kv("peer", peer), kv("detail", detail)});
+            };
         cfg.secure = secure.cfg;
         log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
                               kv("invitation", secure.invitation_id)});
@@ -176,6 +181,10 @@ int main(int argc, char** argv) {
                                  kv("packets_in", s.packets_in), kv("packets_out", s.packets_out),
                                  kv("elapsed_ms", (now_us() - start) / 1000)});
         }
+        if (const auto* ts = c.transport_stats())  // realized impairment per direction (KI-35, FB-10-03)
+            log.info("transport_stats", {kv("sent", ts->sent), kv("received", ts->received),
+                                         kv("simulated_drops", ts->simulated_drops), kv("send_failed", ts->send_failed),
+                                         kv("not_connected", ts->not_connected), kv("backpressure", ts->backpressure)});
         if (const auto* ss = c.transport_stats_secure())  // secure mode diagnostics (no secrets)
             log.info("secure_stats", {kv("handshakes_done", ss->handshakes_done), kv("handshake_retransmits", ss->handshake_retransmits),
                                       kv("handshake_ms_max", ss->handshake_ms_max), kv("handshake_ms_total", ss->handshake_ms_total),

@@ -81,6 +81,7 @@ private:
         std::uint64_t token = 0;
         std::uint64_t nonce = 0;
         std::uint64_t last_recv_us = 0;
+        std::uint64_t packets_in = 0;  // session-valid packets from this player (gate v6 per-client delivery ratio)
         std::uint64_t disconnected_at_us = 0;
         std::uint64_t last_notice_us = 0;  // rate limit for "you timed out" notices
         std::uint32_t last_received_input = 0;

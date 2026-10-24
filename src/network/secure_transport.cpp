@@ -221,7 +221,10 @@ public:
     void flush_all() override { inner_->flush_all(); }
     bool set_impairment(const ImpairmentConfig& c) override { return inner_->set_impairment(c); }
     TransportKind kind() const override { return inner_->kind(); }
-    const TransportStats& stats() const override { return stats_; }
+    const TransportStats& stats() const override {
+        stats_.simulated_drops = inner_->stats().simulated_drops;  // the impairment lives in the inner backend
+        return stats_;
+    }
     const SecureStats& secure() const { return sstats_; }
 
 private:
@@ -261,6 +264,7 @@ private:
         d.own_key = cfg_.own_key;
         d.pinned_peers = cfg_.pinned_peers;
         d.invitation = cfg_.invitation;
+        d.trace = cfg_.trace;
         d.mtu = inner_->capabilities().max_payload;
         d.handshake_timeout_us = cfg_.pending_lifetime_us;
         d.binding_timeout_us = cfg_.binding_timeout_us;
@@ -301,15 +305,19 @@ private:
             // receives at its address. Forgeries from spoofed addresses therefore never allocate anything.
             const bool retransmit_for_pending = ch && s && s->pending && s->pending_random == ch->random;
             if (ch && !retransmit_for_pending) {
+                if (!listener_) listener_ = std::make_unique<DtlsSession>(*inner_, PeerId{}, Endpoint{}, session_cfg(true));
+                // A ClientHello with a VALID cookie already proved return routability: it never spends the budget,
+                // so forgeries cannot starve a real player's second ClientHello (found by the FB-8-01 test). The
+                // check is one HMAC; everything else is rate-limited before any OpenSSL work.
+                const bool proven = !ch->cookie.empty() && listener_->cookie_valid_for(e.peer, e.remote, ch->cookie);
                 if (now_us - window_start_us_ >= 1'000'000) {
                     window_start_us_ = now_us;
                     window_attempts_ = 0;
                 }
-                if (++window_attempts_ > cfg_.max_new_handshakes_per_s) {
+                if (!proven && ++window_attempts_ > cfg_.max_new_handshakes_per_s) {
                     ++sstats_.hello_rate_limited;  // bounds the CPU spent on HelloVerifyRequests
                     return;
                 }
-                if (!listener_) listener_ = std::make_unique<DtlsSession>(*inner_, PeerId{}, Endpoint{}, session_cfg(true));
                 if (!listener_->listen_offer(e.bytes, e.peer, e.remote, now_us)) {
                     ++sstats_.hello_verify_sent;
                     return;
@@ -450,7 +458,7 @@ private:
     std::map<Key, Slot> slots_;            // by inner PeerId
     std::map<std::uint32_t, Key> by_secure_;  // secure PeerId.id -> slot
     std::uint32_t next_id_ = 1;
-    TransportStats stats_;
+    mutable TransportStats stats_;
     SecureStats sstats_;
 };
 

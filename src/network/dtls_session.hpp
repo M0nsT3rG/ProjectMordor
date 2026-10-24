@@ -14,6 +14,7 @@
 // independently reviewed: loopback / trusted lab only (D-013, KI-29).
 #include <array>
 #include <cstdint>
+#include <functional>
 #include <optional>
 #include <span>
 #include <string>
@@ -48,6 +49,9 @@ struct DtlsConfig {
     std::uint32_t retransmit_max_us = 1'000'000;
     bool send_binding = true;                  // test hook only: false simulates a peer that never confirms
     bool corrupt_confirmation = false;         // test hook only: flips one bit of the confirmation we send
+    // KI-35 diagnostics (review #10): called for every datagram and milestone BEFORE Authenticated. No secrets:
+    // `detail` lists records as content_type/epoch[/handshake_type], or names a milestone / reject reason.
+    std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;
 };
 
 enum class DtlsState { Handshaking, Binding, Authenticated, Rejected };
@@ -61,6 +65,7 @@ struct DtlsStats {
     std::uint64_t binding_replies_suppressed = 0;  // rate limit: at most one reply per binding_resend_us (FB-7-04)
     std::uint64_t app_dropped_before_auth = 0;   // fail-closed: application data before Authenticated
     std::uint64_t app_in = 0, app_out = 0;
+    std::uint64_t datagrams_coalesced = 0;  // BIO datagrams merged into the previous one (KI-35)
     std::size_t max_datagram_out = 0;  // never above min(mtu, transport max_payload)
 };
 
@@ -96,6 +101,8 @@ public:
     bool cookie_generate(unsigned char* out, unsigned int* len);
     bool cookie_verify(const unsigned char* cookie, unsigned int len);
     bool cookie_matches(std::span<const std::uint8_t> cookie) const;  // same check, without counting
+    // Listener only: would `cookie` verify for a ClientHello from (peer, remote)? Rebinds the listener to them.
+    bool cookie_valid_for(PeerId peer, Endpoint remote, std::span<const std::uint8_t> cookie);
     unsigned int next_retransmit_us(unsigned int previous_us) const;
 
 private:

@@ -32,7 +32,7 @@ try {
     $bin = Join-Path $BuildDir $Config
     # Every run gets a fresh directory; existing runs are evidence and are never deleted or reused (FB-2-01).
     $mode = if ($Secure) { "$Transport-sec" } else { $Transport }
-    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g5" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $mode)
+    $out = Join-Path 'evidence/logs' ("soak-{0}-{1}-{2}-g6" -f (Get-Date -Format 'yyyy-MM-dd-HHmmss'), $Profile, $mode)
     if (Test-Path $out) { throw "Run directory $out already exists; refusing to overwrite evidence." }
     New-Item -ItemType Directory $out | Out-Null
     $stallAt = [math]::Round($DurationS * 0.4)

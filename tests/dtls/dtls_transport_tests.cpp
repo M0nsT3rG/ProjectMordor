@@ -363,6 +363,34 @@ TEST(dtls_timer_fires_with_late_irregular_service) {
     }
 }
 
+// KI-35: a retransmitted flight must leave as ONE datagram (as its first transmission does), not one per record.
+TEST(dtls_retransmitted_flight_is_one_datagram) {
+    // UDP only: the window needs per-instance latency; GNS impairment is process-global (KI-24) and the cut did
+    // not land inside it (0 rounds observed). The coalescing is in DtlsSession::flush_out, backend-independent.
+    std::printf("       gns: NOT RUN (needs per-instance latency)\n");
+    for (auto k : {TransportKind::Udp}) {
+        Link l(k);
+        ImpairmentConfig slow;  // 100 ms each way: the cut below lands before the client's flight reaches the host
+        slow.latency_ms = 100;
+        CHECK(l.host_t->set_impairment(slow));
+        if (l.client_t->capabilities().per_instance_impairment) CHECK(l.client_t->set_impairment(slow));
+        l.start_client();
+        CHECK(l.pump([&] { return l.host_s && l.host_s->stats().datagrams_out >= 2; }, 5000));  // HVR + server flight
+        l.set_cut(true);
+        const auto rounds0 = l.host_s->stats().timeouts_handled, out0 = l.host_s->stats().datagrams_out;
+        l.pump([] { return false; }, 1500);
+        const auto rounds = l.host_s->stats().timeouts_handled - rounds0, out = l.host_s->stats().datagrams_out - out0;
+        l.set_cut(false);
+        std::printf("       %s: %llu retransmission rounds, %llu datagrams, %llu coalesced\n", to_string(k),
+                    static_cast<unsigned long long>(rounds), static_cast<unsigned long long>(out),
+                    static_cast<unsigned long long>(l.host_s->stats().datagrams_coalesced));
+        CHECK(rounds >= 1);
+        CHECK(out == rounds);  // was 5 datagrams per round (ServerHello, Certificate, KeyExchange, CertRequest, Done)
+        CHECK(l.host_s->stats().datagrams_coalesced >= 4 * rounds);
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 15000));
+    }
+}
+
 TEST(dtls_handshake_recovers_after_a_long_loss_window) {
     for (auto k : backends()) {
         Link l(k);

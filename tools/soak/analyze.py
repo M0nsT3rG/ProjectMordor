@@ -28,7 +28,15 @@ import re
 import sys
 from pathlib import Path
 
-GATE_VERSION = 5
+GATE_VERSION = 6
+# v6 (review #10 FB-10-05, fixed 2026-10-24 before its first run; v1-v5 thresholds unchanged unless named here):
+#  - the realized RTT floor uses the 5th percentile (needs RTT_P5_MIN_SAMPLES samples) instead of the minimum, so
+#    one early sample cannot decide it either way;
+#  - the realized delivery ratio is gated PER CLIENT (host player_stats packets_in / client packets_out), with the
+#    same bounds as the v5 aggregate (which is kept);
+#  - every client must end with a host-confirmed leave (protocol v3 DisconnectAck, KI-37);
+#  - per-client RTT percentiles and delivery ratios are reported as distributions (not gated).
+RTT_P5_MIN_SAMPLES = 100
 # v5 (review #9 FB-9-03, fixed 2026-10-24 before its first run; v1-v4 thresholds unchanged): the configured
 # impairment must be REALIZED, not only configured (KI-34 passed v4 with impairment silently off), and the
 # application-level reliable events (FB-9-02) are gated when run.json declares event_interval_ms.
@@ -204,7 +212,8 @@ def analyze(run_dir: Path) -> dict:
                                                       "max_correction", "correction_p50", "correction_p99",
                                                       "reconnects", "max_reconnect_ms", "stale_notices", "invalid",
                                                       "bytes_in", "bytes_out", "elapsed_ms", "rtt_min_ms", "packets_out",
-                                                      "events_applied", "event_order_errors", "events_duplicate")},
+                                                      "events_applied", "event_order_errors", "events_duplicate",
+                                                      "rtt_p5_ms")},
                             "stalled": is_stalled, "recovery_after_stall_ms": rec, "kbit_s_in": kin, "kbit_s_out": kout,
                             "high_resolution_timer": (last(ev, "loop_timer") or {}).get("high_resolution"),
                             "window_rates_kbit_s": window_rates(ev)}
@@ -249,9 +258,10 @@ def analyze(run_dir: Path) -> dict:
     for name in expected:
         ev = found.get(name, [])
         s = last(ev, "summary") or {}
-        rmin = s.get("rtt_min_ms")
-        gate(f"{name}_realized_rtt_floor", rmin is not None and rmin >= rtt_floor,
-             f"rtt_min={rmin} ms, floor={rtt_floor} ms (2 x latency {lat} - {REALIZED_RTT_SLACK_MS})")
+        p5, n = s.get("rtt_p5_ms"), s.get("rtt_samples") or 0
+        gate(f"{name}_realized_rtt_floor", p5 is not None and n >= RTT_P5_MIN_SAMPLES and p5 >= rtt_floor,
+             f"rtt_p5={p5} ms over {n} samples (min {RTT_P5_MIN_SAMPLES}), floor={rtt_floor} ms "
+             f"(2 x latency {lat} - {REALIZED_RTT_SLACK_MS}); rtt_min={s.get('rtt_min_ms')} reported only")
         conn = next((e.get("t_ms") for e in ev if e.get("evt") == "connected"), None)
         gate(f"{name}_realized_handshake_delay", conn is not None and conn >= hs_floor,
              f"first connected at {conn} ms, floor={hs_floor} ms ({'secure' if secure else 'plaintext'} handshake)")
@@ -261,6 +271,21 @@ def analyze(run_dir: Path) -> dict:
     lo = max(0.0, 1 - 2 * loss - 0.02)
     gate("realized_upstream_loss", lo <= ratio <= hi,
          f"host packets_in / clients packets_out = {ratio:.4f}, expected within [{lo:.4f}, {hi:.4f}] (loss {loss}, dup {dup})")
+    # ---- v6: per-client delivery, confirmed leave, distributions (FB-10-05) ----
+    host_in = {e.get("player"): e.get("packets_in") for e in host if e.get("evt") == "player_stats"}  # last per player
+    distributions = {"rtt_ms": {}, "delivery_ratio": {}}
+    for name in expected:
+        ev = found.get(name, [])
+        s = last(ev, "summary") or {}
+        got, sent = host_in.get(s.get("player")), s.get("packets_out") or 0
+        r = got / sent if got is not None and sent else None
+        distributions["delivery_ratio"][name] = None if r is None else round(r, 4)
+        distributions["rtt_ms"][name] = {k: s.get(f"rtt_{k}_ms") for k in ("p5", "p50", "p95", "p99")}
+        gate(f"{name}_realized_delivery", r is not None and lo <= r <= hi,
+             f"host packets_in[player {s.get('player')}]={got} / packets_out={sent} = {r}, expected within [{lo:.4f}, {hi:.4f}]")
+        lv = last(ev, "leave") or {}
+        gate(f"{name}_leave_confirmed", lv.get("leave_confirmed") is True,
+             f"leave_confirmed={lv.get('leave_confirmed')}, leave_ms={lv.get('leave_ms')}, disconnects_sent={lv.get('disconnects_sent')}")
     # ---- v5: application-level reliable events (FB-9-02) ----
     interval = run.get("event_interval_ms", 0)
     if interval:
@@ -289,6 +314,7 @@ def analyze(run_dir: Path) -> dict:
                                         "bytes_in", "bytes_out", "packets_in", "events_queued", "events_applied",
                                         "events_retransmitted", "events_replayed", "events_dropped_with_slot")},
         "realized_upstream_ratio": round(ratio, 4),
+        "distributions": distributions,
         "host_tick_drift": round(drift, 6),
         "clients": per_client,
         "gates": gates,

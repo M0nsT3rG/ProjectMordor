@@ -72,6 +72,23 @@ A 200,000-case fuzz test checks that the decoder never crashes and that every ac
   - a new host session resets the stream.
 - **Not durable:** events do not survive a host restart or a client process restart.
 
+The host also refuses (`event_ack_invalid`) any `EventAck` above the highest event id the transport accepted for that player (review #10 FB-10-01). An event counts as sent only when the transport returned `Sent`. A refused send is retried with back-off (FB-10-02).
+
+### Version 3 (2026-10-24): explicit leave handshake (review #10 FB-10-04, KI-37)
+
+| Type | Direction | Payload |
+|---|---|---|
+| 11 DisconnectAck | H→C | none: the host received this client's `Disconnect` and released its slot |
+
+**Semantics:**
+- **Client.** `leave()` sends `Disconnect` (reliably where the transport offers it, and once unreliably). The client is then in `Leaving`: it resends `Disconnect` every 100 ms until a `DisconnectAck` for its session arrives, or 1 s passes.
+  - `stats().leave_confirmed` tells a confirmed leave from an unconfirmed one.
+  - The client never reconnects while leaving. If the transport reports the host gone first, the leave ends unconfirmed.
+  - `disconnect()` is still the fire-and-forget variant.
+- **Host.** On `Disconnect` it sends `DisconnectAck` (twice unreliably, plus reliably where offered) and flushes, **before** it releases the slot and closes the transport peer.
+  - A repeated `Disconnect` for the current session from a peer without a slot (our first ack was lost) is acknowledged again (`leave_acks_repeated`). This is a reply to that peer only.
+  - On GNS the connection is closed with linger, so the reliable ack is flushed. A repeat cannot arrive after that, and the client learns of the close from the transport.
+
 ## Sessions, identities, sequencing
 
 - **Session.** A random non-zero u32 chosen at host start. After acceptance, packets whose session differs are ignored.

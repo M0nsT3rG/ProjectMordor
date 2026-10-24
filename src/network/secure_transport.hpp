@@ -54,6 +54,8 @@ struct SecureTransportConfig {
     // stateless cookie gate then answers unverified ones without allocating per-peer state (KI-30).
     std::uint32_t max_new_handshakes_per_s = 64;
     std::function<std::uint64_t()> unix_clock;               // wall-clock seconds; default std::time
+    // KI-35 diagnostics: handed to every DTLS session (see DtlsConfig::trace). No secrets.
+    std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;
 };
 
 struct SecureStats {
