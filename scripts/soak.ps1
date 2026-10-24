@@ -15,7 +15,8 @@ param(
     [string]$BuildDir = '',
     [ValidateSet('udp', 'gns')][string]$Transport = 'udp',
     [switch]$Secure,  # review #8 FB-8-03: all three processes over DTLS (keys under %TEMP%, deleted afterwards)
-    [int]$EventIntervalMs = 500  # review #9 FB-9-02: reliable game events host -> players (0 = off)
+    [int]$EventIntervalMs = 500,  # review #9 FB-9-02: reliable game events host -> players (0 = off)
+    [int]$SeedBase = 100  # review #11 FB-11-02: UDP impairment seeds are SeedBase+1 (host), +2, +3 (clients)
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -59,7 +60,7 @@ try {
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
 
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed 101 --event-interval-ms $EventIntervalMs $secHost --log $out/host.log"
+        -ArgumentList "--port $Port --duration-s $($DurationS + 6) $imp --seed $($SeedBase + 1) --event-interval-ms $EventIntervalMs $secHost --log $out/host.log"
     $null = $h.Handle
     $deadline = (Get-Date).AddSeconds(30)
     while (-not ((Test-Path "$out/host.log") -and (Select-String -Path "$out/host.log" -Pattern 'host_started' -Quiet -ErrorAction SilentlyContinue))) {
@@ -68,9 +69,9 @@ try {
     }
     $started = (Get-Date).ToUniversalTime().ToString('o')
     $c1 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $DurationS --pattern circle $imp --seed 102 $secC1 --log $out/client1.log"
+        -ArgumentList "--port $Port --duration-s $DurationS --pattern circle $imp --seed $($SeedBase + 2) $secC1 --log $out/client1.log"
     $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow `
-        -ArgumentList "--port $Port --duration-s $DurationS --pattern line $imp --seed 103 --stall-at-s $stallAt --stall-s $StallS $secC2 --log $out/client2.log"
+        -ArgumentList "--port $Port --duration-s $DurationS --pattern line $imp --seed $($SeedBase + 3) --stall-at-s $stallAt --stall-s $StallS $secC2 --log $out/client2.log"
     $null = $c1.Handle; $null = $c2.Handle
     $c1.WaitForExit(); $c2.WaitForExit(); $h.WaitForExit()
 
@@ -84,7 +85,8 @@ try {
         scenario         = 'two-clients-one-stall'  # must match tools/soak/analyze.py SCENARIOS
         expected_clients = @('client1', 'client2')
         stalled_clients  = @('client2')
-        gate_version     = 5
+        gate_version     = 6
+        impairment_seeds = [ordered]@{ host = $SeedBase + 1; client1 = $SeedBase + 2; client2 = $SeedBase + 3 }  # UDP only; GNS fake loss is not seedable
         event_interval_ms = $EventIntervalMs
         transport        = $Transport
         secure           = [bool]$Secure

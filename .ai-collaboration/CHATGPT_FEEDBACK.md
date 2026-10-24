@@ -6,6 +6,28 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #11 (PR #11: KI-35/KI-37 investigation, gate v6)
+
+- **Status:** received and triaged (2026-10-24) on `feature/review11-gns-readiness` (stacked on PR #11); the owner asked for all of it.
+- **Source:** [PR #11 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/11). ChatGPT reviewed the source of `a341969` only.
+- **ChatGPT's verdict:** conditional GO for controlled lab development; NO-GO for merge or release (the full v6 battery was not rerun after the review fixes; the last full run was 11/12).
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-11-01** (major) GNS handshake readiness | **Yes.** `SecureTransport::connect()` creates the client DTLS session at once (`secure_transport.cpp:97`). The inner `Connected` event is ignored (`:166`), so the first ClientHello can be sent before the GNS connection exists. Whether GNS drops or queues it is not measured (KI-38). | **Accepted** | Measure first: trace the inner `Connected` time next to the first ClientHello. Then, on connection-oriented inner transports (`reports_disconnects`), start the client handshake only on inner `Connected`, with no sleep. An inner failure before that fails the pending session. Tests: immediate connect, delayed connect (latency), failed connect, repeated reconnect. |
+| **FB-11-02** (major) full battery | **Yes.** The 12-run battery ran on `04d153a`, before the independent-review fixes. | **Accepted** | The full 12 × 120 s v6 battery at HEAD, plus repeats of harsh-gns-secure and harsh-udp-secure, with no gate change. Each secure harsh run gets a timeline (cookie, flights, inner connect, ConnectRequest/Accept). "Seeded": each process already had its own fixed UDP impairment seed (101/102/103), the same in every run. `soak.ps1 -SeedBase N` now varies them per repeat and records them in `run.json`. GNS fake loss is not seedable; recorded as such. |
+| **FB-11-03** (major) departure semantics | **Partly.** `leave_confirmed` already requires the current session id (`client.cpp`, `DisconnectAck` branch). `closing_` holds one entry per clean leave with no upper bound. | **Accepted** | Cap `closing_` (oldest closed first, counted). Drop a peer from it when the transport reports the client gone. Tests: lost first ack, lost last ack, repeated `Disconnect` after slot deletion, host shutdown during a leave, reconnect racing a leave, old PeerId reuse, and an ack for a foreign session ignored. |
+| **FB-11-04** (minor) cookie and rate budgets | **Partly.** The HMAC key lives for the process (static, random). Slot rollover accepts the current and previous slot (tested). Invalid cookies count in the stranger or reserved budget. **Not verified:** whether a GNS connection proves return routability. There is no GNS source here, only headers. | **Accepted (checks); GNS bypass rejected for now** | Test that an invalid cookie spends the budget and allocates nothing, and the boundary just after a slot rollover. Document the key lifetime. Keep GNS peers on the same admission path until the GNS handshake is verified from source. |
+| **FB-11-05** (minor) flight coalescing | **Yes.** Coalescing changes packetization and loss correlation. | **Accepted** | Add `DtlsConfig::coalesce_records` (default on), to compare against uncoalesced behaviour. Tests: records that would cross the MTU stay in separate datagrams, a fragmented flight at MTU 256, and malformed or truncated datagrams are dropped without harm, on both backends where impairment allows. |
+
+**Answers received:**
+1. Coalescing complete records is valid if bounds and parsing are validated on both backends. A DTLS-native approach is preferable long term.
+2. Measure, then gate outgoing DTLS on GNS `Connected`; never mask a race with sleeps.
+3. Fix the measured causal delay, then judge the distribution over repeated runs.
+4. A 1.5 s linger is defensible lab policy. Close earlier on a confirmed client-side disconnect, and keep bounded cleanup for silent peers.
+
+---
+
 ## Feedback on review #10 (PR #10: protocol v2 events, soak gate v5)
 
 - **Status:** triaged and **implemented** (2026-10-24) on `feature/ki35-ki37-investigation` (stacked on PR #10), on the owner's go-ahead. Record: EXP-023. Review request #10.
