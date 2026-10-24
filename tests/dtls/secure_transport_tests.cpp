@@ -461,6 +461,40 @@ std::vector<std::uint8_t> forged_client_hello(const Key& stranger, const std::ve
 }
 }  // namespace
 
+// Review #11 FB-11-04: a real cookie-bearing ClientHello replayed from another address is not "proven" (the cookie
+// is bound to the sender's peer and address): it is answered with a stateless HelloVerifyRequest, spends the
+// strangers' budget and allocates nothing.
+TEST(secure_replayed_cookie_from_another_address_allocates_nothing) {
+    Key host_key, player;
+    auto hcfg = *secure(host_key, {player.spki()}, invite());
+    auto host = open_secure(TransportKind::Udp, hcfg, true);
+    std::string err;
+    std::shared_ptr<Transport> shared = make_transport(TransportKind::Udp, {}, &err);
+    auto tap_owned = std::make_unique<Tap>(shared);
+    Tap* tap = tap_owned.get();
+    auto c = make_secure_transport(std::move(tap_owned), *secure(player, {host_key.spki()}, hcfg.invitation), &err);
+    CHECK(c && c->open(Endpoint::loopback(0), false, &err));
+    const Endpoint host_ep = Endpoint::loopback(host->local_endpoint().port);
+    CHECK(c->connect(host_ep).has_value());
+    auto ev = run({host.get(), c.get()}, c.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
+    CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
+    std::vector<std::uint8_t> with_cookie;
+    for (const auto& d : tap->sent_tail)
+        if (auto ch = dtls_parse_client_hello(d); ch && !ch->cookie.empty()) with_cookie = d;
+    CHECK(!with_cookie.empty());  // the client's second ClientHello
+    const auto* hs = secure_stats(*host);
+    const auto opened = hs->pending_opened, verify = hs->hello_verify_sent;
+    auto other = make_transport(TransportKind::Udp, {}, &err);
+    CHECK(other && other->open(Endpoint::loopback(0), false, &err));
+    const auto p = other->connect(host_ep).value();
+    for (int i = 0; i < 5; ++i) CHECK(other->send(p, with_cookie, Delivery::Unreliable, 0) == SendResult::Sent);
+    run({host.get(), c.get(), other.get()}, host.get(), [](const auto&) { return false; }, 300);
+    std::printf("       udp: replayed cookie from another address -> %llu HelloVerifyRequests, %llu pending opened\n",
+                static_cast<unsigned long long>(hs->hello_verify_sent - verify), static_cast<unsigned long long>(hs->pending_opened - opened));
+    CHECK(hs->pending_opened == opened);
+    CHECK(hs->hello_verify_sent - verify == 5);
+}
+
 TEST(secure_forged_client_hellos_cannot_starve_a_players_reconnect) {
     Key host_key, player, stranger;
     auto hcfg = *secure(host_key, {player.spki()}, invite());

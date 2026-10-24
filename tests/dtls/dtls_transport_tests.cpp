@@ -410,6 +410,62 @@ TEST(dtls_retransmitted_flight_is_one_datagram) {
     }
 }
 
+// FB-11-05: the same scenario with coalescing off reproduces OpenSSL's packetization (one datagram per record on
+// retransmission), so the two can be compared; and a small MTU keeps every coalesced datagram within the limit,
+// records never split across datagrams (each datagram parses as whole records).
+TEST(dtls_coalescing_can_be_disabled_and_respects_the_mtu) {
+    std::printf("       gns: NOT RUN (needs per-instance latency)\n");
+    for (auto k : {TransportKind::Udp}) {
+        Link l(k);
+        l.host_cfg.coalesce_records = false;
+        ImpairmentConfig slow;
+        slow.latency_ms = 100;
+        CHECK(l.host_t->set_impairment(slow));
+        CHECK(l.client_t->set_impairment(slow));
+        l.start_client();
+        CHECK(l.pump([&] { return l.host_s && l.host_s->stats().datagrams_out >= 2; }, 5000));
+        l.set_cut(true);
+        const auto rounds0 = l.host_s->stats().timeouts_handled, out0 = l.host_s->stats().datagrams_out;
+        l.pump([] { return false; }, 1500);
+        const auto rounds = l.host_s->stats().timeouts_handled - rounds0, out = l.host_s->stats().datagrams_out - out0;
+        l.set_cut(false);
+        std::printf("       udp, coalescing off: %llu rounds, %llu datagrams\n", static_cast<unsigned long long>(rounds),
+                    static_cast<unsigned long long>(out));
+        CHECK(rounds >= 1 && out == 5 * rounds && l.host_s->stats().datagrams_coalesced == 0);
+    }
+    for (auto k : backends()) {
+        Link l(k);
+        l.host_cfg.mtu = l.client_cfg.mtu = 256;
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        CHECK(l.host_s->stats().max_datagram_out <= 256 && l.client_s->stats().max_datagram_out <= 256);
+        std::printf("       %s, MTU 256: coalesced host %llu, client %llu\n", to_string(k),
+                    static_cast<unsigned long long>(l.host_s->stats().datagrams_coalesced),
+                    static_cast<unsigned long long>(l.client_s->stats().datagrams_coalesced));
+    }
+}
+
+// FB-11-05: malformed and truncated datagrams (bad lengths, cut records, garbage) are dropped by a handshaking
+// server without harm, and the real handshake still completes afterwards.
+TEST(dtls_malformed_and_truncated_datagrams_are_dropped) {
+    for (auto k : backends()) {
+        Link l(k);
+        l.start_client();
+        CHECK(l.pump([&] { return l.host_s != nullptr; }, 5000));
+        const std::vector<std::vector<std::uint8_t>> junk = {
+            {22, 254, 253, 0, 0, 0, 0, 0, 0, 0, 0, 0xff, 0xff, 1},          // record length far beyond the datagram
+            {22, 254, 253, 0, 0, 0, 0, 0, 0, 0, 1, 0, 4, 1, 0},               // handshake cut mid-header
+            {23, 254, 253, 0, 1, 0, 0, 0, 0, 0, 9, 0, 3, 1, 2, 3},            // epoch-1 data before any keys
+            {0, 1, 2, 3},                                                      // shorter than a record header
+            std::vector<std::uint8_t>(1500, 0x16),                             // garbage, datagram-sized
+        };
+        for (const auto& j : junk) l.host_s->on_datagram(j, now_us(), now_unix());
+        CHECK(l.host_s->state() != DtlsState::Authenticated);
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 15000));
+        std::printf("       %s: %zu malformed datagrams dropped, handshake completed\n", to_string(k), junk.size());
+    }
+}
+
 TEST(dtls_handshake_recovers_after_a_long_loss_window) {
     for (auto k : backends()) {
         Link l(k);

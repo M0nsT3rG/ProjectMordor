@@ -299,7 +299,11 @@ void DtlsSession::flush_out() {
     std::array<std::uint8_t, 4096> buf{};
     for (int n = BIO_read(out_, buf.data(), static_cast<int>(buf.size())); n > 0;
          n = BIO_read(out_, buf.data(), static_cast<int>(buf.size()))) {
-        if (!pack.empty() && pack.size() + static_cast<std::size_t>(n) > mtu) send_pack();
+        if (static_cast<std::size_t>(n) >= buf.size()) {  // BIO datagram reads truncate silently: never send one
+            ++stats_.send_failures;
+            continue;
+        }
+        if (!pack.empty() && (!cfg_.coalesce_records || pack.size() + static_cast<std::size_t>(n) > mtu)) send_pack();
         else if (!pack.empty()) ++stats_.datagrams_coalesced;
         pack.insert(pack.end(), buf.data(), buf.data() + n);
     }
