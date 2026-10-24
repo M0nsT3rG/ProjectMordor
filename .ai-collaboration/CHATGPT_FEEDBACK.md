@@ -6,6 +6,26 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #10 (PR #10: protocol v2 events, soak gate v5)
+
+- **Status:** received and triaged (2026-10-24) on `feature/ki35-ki37-investigation` (stacked on PR #10). Not implemented yet.
+- **Source:** [PR #10 comment 6380695083](https://github.com/M0nsT3rG/ProjectMordor/pull/10#issuecomment-6380695083). ChatGPT reviewed the source of `f283a07` only.
+- **ChatGPT's verdict:** conditional GO for continued investigation. NO-GO for merge or release (10/12 soaks, KI-35 and KI-37 open).
+
+| ID | Assumptions verified? | Decision | Plan |
+|---|---|---|---|
+| **FB-10-01** (major) EventAck trust | **Yes, confirmed.** `host.cpp:231` pops every queued event with `id <= applied_through` and never checks the value. An ack beyond the highest id actually **delivered** therefore erases events that were never transmitted (for example ones queued while the player was away), silently. In plaintext mode a forged `EventAck` can do the same. | **Accepted** | Accept an ack only up to the highest id **transmitted on the current connection**. Count and ignore larger ones (`event_acks_invalid`), and never erase untransmitted events. Tests: future ack, ack of an untransmitted event, stale ack, ack across reconnect and restart. The client already acks only delivered ids, after `ack_events_applied()`. |
+| **FB-10-02** (major) retransmit bookkeeping | **Yes, confirmed.** `Host::send()` returns `void` (`host.cpp:402`), and `service_events` sets `last_sent_us` (`host.cpp:136`) whatever the transport answered (`Backpressure`, `NotConnected`, `Failed`). | **Accepted** | Return the `SendResult` from `send`/`transmit`. Mark an event sent only on `Sent`; otherwise retry on the next update with bounded back-off, and count it. Test under sustained queue pressure (a tiny transport window). |
+| **FB-10-03** (major) KI-35 | **Yes.** The mechanism is unknown. I already lowered the DTLS retransmit cap before identifying it, which is the kind of change ChatGPT warns against. That change was measured and justified, and the gate was not touched, but it is recorded here as tuning done before the mechanism was known. | **Accepted** | A per-attempt timeline in **both** processes, with timestamps: stall exit, timeout notice, old transport close, new connect, each DTLS flight (ClientHello / HelloVerifyRequest / ClientHello with cookie / server flight / client flight / Finished), binding, ConnectRequest/Accept, first snapshot; plus the retransmit timer state and the realized loss per direction. Compare passing and failing traces from separate-process soaks. No further tuning until the mechanism is shown. |
+| **FB-10-04** (major) KI-37 | **Yes.** | **Accepted** | Correlate the client's final sends (`SendResult`, GNS connection state, linger, process-exit timing) with the host's GNS callbacks, PeerId mapping and session. Add an **explicit leave handshake**: `Disconnect` → `DisconnectAck`, with the client waiting for it within a bounded time before teardown. Classify "timed out after the client said it was leaving" differently from a real timeout (a new host counter). `Sent` is not proof of receipt. |
+| **FB-10-05** (minor) gate validity | **Yes.** The v5 realized checks use a single minimum and an aggregate ratio. | **Accepted** | Report the sample counts and a distribution (p5, p50 RTT, per-client delivery ratio), and require a minimum sample count for the realized gates. Keep them transport-independent. This becomes gate v6, fixed before its runs. |
+
+**Answers received, and what follows from them:**
+1. The event semantic is sound for **volatile** effects only. KI-28 stays partially open for durable effects (campaign/Nemesis): a persistent idempotent log or snapshot reconciliation is needed. Re-opened as KI-28b.
+2. Keep the three observables, and add sample-count sanity and reproducibility (FB-10-05).
+3. and 4. Instrumentation plans as above.
+5. **The known-player exemption must not be unlimited:** a UDP source address is not authentication. Give established peers a **bounded reserved budget**: a separate, higher rate (for example 20 new attempts per second per address), with cookie-bearing valid ClientHellos still exempt. A same-address flood then cannot monopolise CPU or allocation, and still cannot starve a cookie-proven reconnect.
+
 ## Feedback on review #9 (PR #9: secure provisioning, secure reliable channel)
 
 - **Status:** triaged and **implemented** (2026-10-24) on `feature/secure-liveness` (stacked on PR #9), on the owner's go-ahead ("faz tudo, incluindo o FB-9-02"). Record: EXP-022. Review request #9.
