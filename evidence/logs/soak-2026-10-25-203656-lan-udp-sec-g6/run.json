@@ -1,0 +1,49 @@
+{
+    "profile":  "lan",
+    "clock":  "real-time",
+    "started_utc":  "2026-10-25T19:36:58.5407070Z",
+    "duration_s":  120,
+    "impairment":  {
+                       "latency_ms":  2,
+                       "loss":  0.01,
+                       "jitter_ms":  2,
+                       "duplicate":  0
+                   },
+    "impairment_scope":  "every sender (host and both clients), independent seeds",
+    "scenario":  "two-clients-one-stall",
+    "expected_clients":  [
+                             "client1",
+                             "client2"
+                         ],
+    "stalled_clients":  [
+                            "client2"
+                        ],
+    "gate_version":  6,
+    "reconnect_retry_ms":  "default",
+    "skip_cookie_if_routable":  false,
+    "impairment_seeds":  {
+                             "host":  101,
+                             "client1":  102,
+                             "client2":  103
+                         },
+    "event_interval_ms":  500,
+    "transport":  "udp",
+    "secure":  true,
+    "stall_at_s":  48,
+    "stall_s":  5,
+    "host_timeout_ms":  3000,
+    "exit_codes":  {
+                       "host":  0,
+                       "client1":  0,
+                       "client2":  0
+                   },
+    "exit_status":  {
+                        "client1":  "exited",
+                        "client2":  "exited",
+                        "host":  "exited"
+                    },
+    "warmup_exit_status":  {
+                               "host":  "exited",
+                               "client":  "exited"
+                           }
+}

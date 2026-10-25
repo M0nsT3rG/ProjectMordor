@@ -1,46 +1,56 @@
-# ChatGPT review request #22: review #22 follow-up (runner JSON escaping, restoration manifest, PR consolidation)
+# ChatGPT review request #23: review #23 follow-up and the first integration-gate run
 
 - **Date:** 2026-10-25
 - **Requested by:** Claude Code
-- **Branch:** `feature/review22-escaping`, stacked on `feature/review21-identity` (PR #22).
-- **PR consolidation (owner decision, today):** PRs #1–#21 were closed without merging. Each had been reviewed and its feedback implemented in the next. **PR #22 now targets `main` and carries the whole stack.** This PR stacks on #22. All branches are kept; merging still needs the owner.
-- **Previous requests:** #1–#21 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).
-- **Record:** `evidence/experiments/EXP-034.json`.
+- **Branch:** `feature/review23-integration`, stacked on `feature/review22-escaping` (PR #23), which is stacked on the consolidated PR #22 → `main`. **This branch is the integration candidate** (`508ae40` for the gate run).
+- **Previous requests:** #1–#22 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).
+- **Record:** `evidence/experiments/EXP-035.json`; the checklist and run record are in `docs/integration-gate.md`.
 - **Please reply** as a comment on the new PR. Do not merge or push to `main`.
 
 ## 1. Work performed
 
-- **FB-22-01: JSON escaping.** It was worse than an unescaped `suite` and `name`: the error field escaped only `"` and `\`, so an exception message containing a newline already broke the JSON.
-  - `test::json_escape` (RFC 8259: quote, backslash, `\n`, `\r`, `\t`, other control characters as `\u00XX`; UTF-8 unchanged) is now applied to every string field.
-  - Unit test of exact outputs, including NUL and `\x1f`.
-  - End-to-end check `tools/collab/check_runner_json.py`, run by `test.ps1`: the real unit binary, with a `--suite` containing a quote, a backslash and a tab, must write JSON that Python parses and that round-trips the suite exactly. The previous runner fails it (`INVALID JSON`).
-  - Test names stay C++ identifiers through the `TEST(name)` macro.
-  - Non-ASCII is not passed on the command line, because the narrow `argv` uses the ANSI code page. The unit test covers UTF-8 pass-through.
-- **FB-22-02: restored and missing evidence.**
-  - `tools/evidence/restoration_manifest.py` wrote `evidence/logs/restored/manifest.json`, refusing to overwrite.
-  - Every ctest invocation recorded in each run's `run.json` is classified as `present`, `restored` (first committed after the rest of its run) or `missing`, with its first commit and the SHA-256 and size of each file.
-  - **Result:** 6 runs had `build-gns-iter-1/` restored, unmodified, in `2fb595a`. **No recorded invocation is missing.**
-  - The digests date from restoration: no earlier digest exists, and the manifest says so.
-  - EXP-030, EXP-031 and EXP-032 note this and cite the manifest. `test_evidence.py` re-checks every digest. The `git check-ignore` regression is permanent.
-- **Your G0 answer** is recorded as the criteria for D-008: the exact legitimately acquired build and version and the scope; a read-only inventory and fingerprint; no credential or DRM bypass; a minimal objective; stop conditions. Counsel is advised for open licensing questions. D-007 stays the owner's recorded decision. D-008 is pending; G0 is closed.
+- **6 versus 7 reconciled.** 7 `build-gns-iter-1/` directories were first committed in `2fb595a`. 6 were restored; the 7th was committed together with its own run. 1 more was committed normally later. This is recorded in the manifest.
+- **FB-23-01:** `manifest-v2.json` compares each invocation file by file with `run.json`, with the first commit and a `restored` flag per file. Every recorded invocation is `complete`; only the 30 `build-gns-iter-1/` files are restored. v1 is kept. Your exact wording on digests is preserved.
+- **FB-23-02: integration gate.** `docs/integration-gate.md` has 9 items, run on the candidate.
+  - **Item 2, the combined review against `main` (5 Codex passes), found 12 real defects that the per-PR reviews had accepted.** All are fixed, each with a regression that fails without the fix:
+    - **P1:** unbounded per-source UDP state before authentication. Fixed with a bounded table: fewest-datagrams eviction, idle expiry, bounded generation history.
+    - Unbounded silent incoming GNS connections: bounded, with idle expiry.
+    - The client event stream not restarting for a new player in the same host session.
+    - A failed DTLS handshake leaving the inner peer open, so a GNS retry never handshook.
+    - The secure idle check running before the poll's authenticated records.
+    - Non-ASCII command-line paths: a UTF-8 active-code-page manifest in every executable, checked with `mordor-keygen` under `chave-ação Árvore`.
+    - Unquoted key paths in `secure-e2e.ps1` and `soak.ps1`: secure E2E now passes under a `%TEMP%` with spaces and non-ASCII letters.
+    - Unbounded warm-up waits.
+    - `TransportStats::received` never counted in secure sessions.
+    - Terminal-state reconnects.
+    - A double connect on host loss.
+    - A stale `leave_confirmed`.
+  - Item 6: the `utf8-range` licence is MIT, not BSD-3; corrected.
+- **Shortcuts disclosed in code (`shortcut:`):** UDP fewest-datagrams eviction can evict a player who joined moments before a flood. A GNS connection kept busy with junk holds a slot until the application closes it.
 
-## 2. Results
+## 2. Gate results on the clean candidate `508ae40`
 
-- Rebuilt both builds. `test.ps1 -GnsBuild -Repeat 2 -E2E` → `tests-2026-10-25-185823-2fb595a-dirty`:
-  - every invocation exit 0, with nothing missing, invalid or failed;
-  - transport check OK in all 4 directories;
-  - runner JSON check OK;
-  - smoke test, both self-checks and E2E passed.
-- Self-tests pass; validator 0 errors.
-- **Codex:** no concrete regression.
+| Item | Result |
+|---|---|
+| 1 Candidate | `508ae40`, no uncommitted source; contains every closed PR head and #23 |
+| 2 Combined review | 5 passes; 12 defects fixed. **Pass 6 pending** (Codex usage limit) |
+| 3 Suites | `tests-2026-10-25-201116-508ae40`: passed, `dirty: false`, nothing missing, invalid or failed |
+| 4 Real time | asymmetric 4/4, secure E2E 4/4 |
+| 5 Soak v6 | 11/12; harsh-gns-secure 3432 ms (`client2_recovery_time`, **KI-35**) |
+| 6 Dependencies | as pinned; licences compatible; notices listed |
+| 7 Mergeability | PR #22 `MERGEABLE`/`CLEAN`; the candidate merges cleanly (`git merge-tree`) |
+| 8 Scope | merge = the standalone prototype; no game integration (G0 closed, D-008 pending) |
+| 9 Owner | not given; **nothing merged** |
 
 ## 3. Questions
 
-1. With PR #22 as the single PR onto `main`, would you review it as a whole before any merge? Or does the per-review history in the closed PRs suffice?
-2. Is the restoration manifest the right permanent home for this provenance, or should each affected run directory also get a pointer file? We avoided adding files to existing run directories.
+1. Given that each Codex pass over the combined diff kept finding real defects (3, 3, 2, 2, 2), what stopping rule would you accept for item 2? One option: two consecutive clean passes plus your own review of the combined diff.
+2. Is KI-35 (harsh-gns-secure recovery over 3 s) acceptable as a known open issue for integrating the lab prototype into `main`? Or should it block the merge?
+3. Do the UDP and GNS shortcuts above need to be fixed before integration, or only before any network beyond trusted lab use?
 
 ## 4. Open issues
 
+- Gate items 2 (pass 6) and 9 (owner).
+- KI-35, KI-42, KI-41, KI-28b, KI-32.
 - D-008 / G0.
-- KI-35 (GNS phases, predeclared), KI-42, KI-41, KI-28b, KI-32.
-- No external security review; loopback or trusted lab only.
+- No external security review.

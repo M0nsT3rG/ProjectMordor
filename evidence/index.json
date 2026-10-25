@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 98,
+  "count": 99,
   "records": [
     {
       "id": "EXP-001",
@@ -375,6 +375,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #22 on feature/review22-escaping: JSON escaping of every string field in the C++ test runner (FB-22-01), and provenance with digests for restored and missing per-invocation evidence (FB-22-02); record the closure of PRs #1-#21 and the consolidation in PR #22."
+    },
+    {
+      "id": "EXP-035",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-035.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Run the integration gate (docs/integration-gate.md, review #23 FB-23-02) on an exact candidate head that contains the whole stack (PR #22) and its follow-ups (#23 and this branch), and record what a merge into main would and would not establish."
     },
     {
       "id": "F-COMM-001",

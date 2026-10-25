@@ -2,6 +2,22 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #23 follow-up and the first integration-gate run (`feature/review23-integration`, stacked on #23)
+
+- **Input:** [PR #23 review](https://github.com/M0nsT3rG/ProjectMordor/pull/23); the owner asked for all of it. Record: EXP-035.
+- **Changes:**
+  - Restoration manifest v2, checked per file against `run.json`; 6 vs 7 reconciled.
+  - `docs/integration-gate.md`; `utf8-range` licence corrected to MIT.
+- **The gate's combined review against `main`** (Codex, 5 passes) found **12 real defects** that the per-PR reviews had missed. All are fixed, each with a regression that fails without the fix:
+  - an unbounded pre-authentication peer table (UDP) and unbounded silent incoming connections (GNS);
+  - the client event stream for a new player; terminal-state reconnects; a double connect; a stale `leave_confirmed`;
+  - a failed DTLS handshake leaving the inner peer open; the idle check order; secure `received` never counted;
+  - non-ASCII command-line paths (UTF-8 code-page manifest); unquoted key paths; unbounded warm-ups.
+- **Gate run on `508ae40` (clean):** suites passed; asymmetric 4/4; secure E2E 4/4; soak 11/12 (harsh-gns-secure 3432 ms, KI-35); merges cleanly.
+- **Gate not yet passed:** Codex pass 6 is pending (usage limit), and the owner's approval is needed.
+- **Pitfalls found:** `Copy-Item` keeps old timestamps, so MSBuild runs a stale binary in red-before checks; a heredoc `\n` in C++ again.
+- **Remaining:** gate items 2 and 9; KI-35, KI-42, KI-41, KI-28b, KI-32; D-008 / G0.
+
 ## 2026-10-25: Review #22 follow-up (`feature/review22-escaping`, stacked on #22)
 
 - **Input:** [PR #22 review](https://github.com/M0nsT3rG/ProjectMordor/pull/22); the owner asked for all of it. Record: EXP-034.

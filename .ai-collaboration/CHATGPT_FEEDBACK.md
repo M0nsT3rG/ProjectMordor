@@ -6,6 +6,22 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #23 (PR #23 and the consolidation of PR #22)
+
+- **Status:** implemented (2026-10-25) on `feature/review23-integration` (stacked on PR #23); the owner asked for all of it.
+- **Source:** [PR #23 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/23). Source review only.
+- **Verdict:** PR #23's fixes are supported; integration and release remain **NO-GO** until the owner approves the combined candidate and the gates are met.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-22-02 language** | **Agreed.** | **Accepted** | Digests prove consistency from restoration onward, not contemporaneous authenticity. Both manifests and EXP-034 say so. |
+| **6 versus 7** | **Reconciled.** | **Accepted** | 7 `build-gns-iter-1/` directories were first committed in `2fb595a`. 6 of them were restored (committed later than their run). The 7th belongs to EXP-033's run, which was committed in that same commit. 1 more was committed normally in `b5a6f3d`. Recorded in `manifest-v2.json` (`build_gns_dirs_by_first_commit`). |
+| **FB-23-01** (minor) Per-file manifest against `run.json` | **Yes.** v1 classified a directory by any files present and the first file's commit. | **Accepted** | `manifest-v2.json`: each invocation's files are compared with `run.json` `files` (plus `<suite>.invalid.json`); `present`, `missing` or `unexpected` per file; the first commit and a `restored` flag per file; the invocation is `complete`, `partial` or `missing`. Result: every recorded invocation is complete; the only restored files are the 30 in `build-gns-iter-1/`. v1 is kept as written. `test_evidence.py` checks the digests of both and the completeness of v2. |
+| **FB-23-02** (major) Integration gate | **Yes.** | **Accepted** | `docs/integration-gate.md`: 9 items, from the candidate head to the owner's approval. Run on the candidate; the result is in EXP-035 and the gate table. **The combined-diff review found real defects**, fixed across 5 Codex passes, each with a regression that fails without its fix: unbounded pre-authentication UDP peer state (P1); unbounded silent incoming GNS connections; the client event stream for a new player in the same session; a failed DTLS handshake leaving the inner peer open; the secure idle check running before the poll's records; non-ASCII command-line paths (UTF-8 manifest); unquoted key paths; unbounded warm-ups; `received` never counted in secure sessions; terminal-state reconnects; a double connect on host loss; a stale `leave_confirmed`. The `utf8-range` licence was corrected to MIT. |
+| Answers 1 and 2 | **Agreed.** | — | PR #22 is reviewed as a whole against `main` (gate item 2). The central manifest is the permanent home; old run directories are not touched. |
+
+---
+
 ## Feedback on review #22 (PR #22: review #21 follow-up, now the consolidated PR)
 
 - **Status:** implemented (2026-10-25) on `feature/review22-escaping` (stacked on PR #22); the owner asked for all of it.

@@ -1,6 +1,10 @@
 # Current task
 
-**Last completed:** review #22 follow-up on `feature/review22-escaping`. Record: EXP-034.
+**Last completed:** review #23 follow-up and the first integration-gate run on `feature/review23-integration`. Record: EXP-035.
+- 12 defects found by the combined review against `main` were fixed with regressions.
+- Gate on `508ae40`: all green except KI-35 (harsh-gns-secure); Codex pass 6 pending; owner approval needed. **Nothing merged.**
+
+**Before that:** review #22 follow-up on `feature/review22-escaping`. Record: EXP-034.
 - JSON escaping in the runner; restoration manifest with digests; PRs #1–#21 closed and #22 consolidated onto `main`.
 
 **Before that:** review #21 follow-up on `feature/review21-identity`. Record: EXP-033.
@@ -80,7 +84,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#20](https://github.com/M0nsT3rG/ProjectMordor/pull/20) | `feature/review19-freshness` | #19 | Review #19: results deleted before each invocation, missing suites fail the run, recent-runs history |
 | [#21](https://github.com/M0nsT3rG/ProjectMordor/pull/21) | `feature/review20-validation` | #20 | Review #20: failure reasons in run.json, result-file validation, commit and dirty on recent runs |
 | [#22](https://github.com/M0nsT3rG/ProjectMordor/pull/22) | `feature/review21-identity` | **`main`** (was #21) | Review #21: FAILED cases fail the run, suite identity, path redaction; lost GNS evidence restored; D-007 recorded. **Open: the consolidated PR.** |
-| #23 | `feature/review22-escaping` | #22 | Review #22: JSON escaping in the C++ runner, restoration manifest with digests, PR consolidation recorded |
+| [#23](https://github.com/M0nsT3rG/ProjectMordor/pull/23) | `feature/review22-escaping` | #22 | Review #22: JSON escaping in the C++ runner, restoration manifest with digests, PR consolidation recorded |
+| #24 | `feature/review23-integration` | #23 | Review #23: manifest v2, integration gate, 12 combined-review fixes; the integration candidate |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 
