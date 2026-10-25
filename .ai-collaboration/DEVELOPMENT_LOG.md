@@ -15,6 +15,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Codex pass 3:** a client log that failed to open would have counted every session as 0 requests. The probe now exits 2 before any trial, and the analyser reports a missing log as unavailable (`available: false`, n = 0), with a self-check. Every EXP-037 batch has its client log.
 - **Codex pass 4:** the proportions were conditioned on a successful join. Each now counts every trial that reached its phase: DTLS from the first ClientHello, session from authentication, and the GNS cycle over all trials. This has a self-check. EXP-037 had no failed join, and its rules re-analyse unchanged.
 - **Codex pass 5:** the session count included one unsent pre-authentication attempt (`sent: false`). Only sent requests are counted now. The corrected re-analysis is in its own directory (`…-reanalysis-6b116e2`): GNS session_first goes from 163 to 164 of 300, and no rule outcome changes. The original run and its verdict are kept unchanged.
+- **Codex pass 6 (`b75cd25`):** clean, no findings.
 - **Next for KI-35:** DTLS timing (retransmission timer, cookie round trip), and the session phase on the reconnect path with a corrected metric. Each needs its own predeclaration.
 - **Candidate:** Codex passes 6 and 7 found 3 P2 defects, so the candidate is not clean yet. They are not fixed on this branch.
 

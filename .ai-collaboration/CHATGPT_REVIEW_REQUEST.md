@@ -48,6 +48,8 @@ The `-dirty` suffix is from the uncommitted docs and evidence in the tree at run
 - **Codex pass 3:** if the client log failed to open, every session would have counted as 0 requests. The probe now refuses to start, and the analyser marks a missing log as unavailable. Every EXP-037 batch has its log.
 - **Codex pass 4:** the proportions counted only joins that finally connected. Each now counts every trial that reached its phase, including later failures. EXP-037 had no failures, and its rules re-analyse unchanged.
 
+- **Codex passes 5 and 6:** pass 5 found the unsent-request count (the corrected re-analysis above). Pass 6 on `b75cd25` was clean.
+
 ## 3. Questions
 
 1. Is DTLS timing the right next target for KI-35? There are two candidates, each needing its own predeclared experiment:
