@@ -328,7 +328,10 @@ private:
                 // A ClientHello with a VALID cookie already proved return routability: it never spends the budget,
                 // so forgeries cannot starve a real player's second ClientHello (found by the FB-8-01 test). The
                 // check is one HMAC; everything else is rate-limited before any OpenSSL work.
-                const bool proven = !ch->cookie.empty() && listener_->cookie_valid_for(e.peer, e.remote, ch->cookie, now_us);
+                // FB-15-01: where the inner transport itself proved this address answers (GNS), our cookie adds a round
+                // trip and no guarantee; skipped only when configured, and never on UDP.
+                const bool skip_cookie = cfg_.skip_cookie_when_inner_proves_routability && inner_->capabilities().proves_return_routability;
+                const bool proven = skip_cookie || (!ch->cookie.empty() && listener_->cookie_valid_for(e.peer, e.remote, ch->cookie, now_us));
                 if (now_us - window_start_us_ >= 1'000'000) {
                     window_start_us_ = now_us;
                     window_attempts_ = window_proven_ = 0;
@@ -353,7 +356,7 @@ private:
                     ++sstats_.hello_rate_limited;  // bounds the CPU spent on HelloVerifyRequests and flights
                     return;
                 }
-                if (!listener_->listen_offer(e.bytes, e.peer, e.remote, now_us)) {
+                if (!skip_cookie && !listener_->listen_offer(e.bytes, e.peer, e.remote, now_us)) {
                     ++sstats_.hello_verify_sent;
                     return;
                 }
@@ -361,7 +364,7 @@ private:
                 const bool reserved = s && s->established;  // a known player reconnects outside the global cap
                 if (!(s && s->pending) && !reserved && unreserved_pending() >= cfg_.max_pending_total) {
                     ++sstats_.pending_refused_cap;  // bounded pre-authentication state (FB-7-01)
-                    listener_.reset();               // its state is bound to this refused peer: start a fresh one
+                    if (!skip_cookie) listener_.reset();  // its state is bound to this refused peer: start a fresh one
                     return;
                 }
                 if (!s) {
@@ -371,11 +374,19 @@ private:
                     s = &it->second;
                 }
                 if (s->pending) ++sstats_.pending_replaced;  // a new, cookie-proven attempt supersedes an older one
-                s->pending = std::move(listener_);
+                if (skip_cookie) {
+                    auto dcfg = session_cfg(true);
+                    dcfg.cookie_exchange = false;
+                    s->pending = std::make_unique<DtlsSession>(*inner_, e.peer, e.remote, std::move(dcfg));
+                    ++sstats_.cookie_skipped;
+                } else {
+                    s->pending = std::move(listener_);  // already holds this ClientHello (DTLSv1_listen)
+                }
                 s->pending_since_us = now_us;
                 s->pending_random = ch->random;
                 ++sstats_.pending_opened;
-                s->pending->service(now_us, unix_s);  // continue the handshake with the buffered ClientHello
+                if (skip_cookie) s->pending->on_datagram(e.bytes, now_us, unix_s);  // the ClientHello starts the handshake
+                else s->pending->service(now_us, unix_s);                           // continue with the buffered one
                 return;
             }
             // Anything else continues an existing association only; there is no plaintext path, ever. (The earlier

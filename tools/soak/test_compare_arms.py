@@ -51,6 +51,19 @@ class DecisionRule(unittest.TestCase):
             r = c.load(Path(d))
         self.assertEqual((r["recovery"], r["retry"], r["key"]), (math.inf, 250, "harsh-gns-sec"))
 
+    def test_boolean_arm_field(self):
+        import json, tempfile
+        s = {"run": {"profile": "harsh", "transport": "gns", "secure": True, "skip_cookie_if_routable": True},
+             "gates": [], "clients": {"client2": {"recovery_after_stall_ms": 1500, "rtt_p50_ms": 190}},
+             "distributions": {"delivery_ratio": {"client2": 0.84}}}
+        with tempfile.TemporaryDirectory() as d:
+            (Path(d) / "summary.json").write_text(json.dumps(s), encoding="utf-8")
+            c.ARM_FIELD = "skip_cookie_if_routable"
+            try:
+                self.assertEqual(c.load(Path(d))["retry"], c.B_MS)  # true -> arm B
+            finally:
+                c.ARM_FIELD = None
+
     def test_missing_arm_rejects_b(self):
         self.assertFalse(c.verdict({"p": {500: [run(2000)]}})[0])
 

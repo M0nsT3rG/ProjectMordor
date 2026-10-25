@@ -17,9 +17,11 @@ param(
     [switch]$Secure,  # review #8 FB-8-03: all three processes over DTLS (keys under %TEMP%, deleted afterwards)
     [int]$EventIntervalMs = 500,  # review #9 FB-9-02: reliable game events host -> players (0 = off)
     [int]$SeedBase = 100,  # review #11 FB-11-02: UDP impairment seeds are SeedBase+1 (host), +2, +3 (clients)
-    [int]$ReconnectRetryMs = 0  # review #12 FB-12-01 experiment variable for both clients (0 = the client default)
+    [int]$ReconnectRetryMs = 0,  # review #12 FB-12-01 experiment variable for both clients (0 = the client default)
+    [switch]$SkipCookieIfRoutable  # review #15 FB-15-01 experiment variable: host skips the DTLS cookie on GNS only
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'wait-bounded.ps1')
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
@@ -52,6 +54,7 @@ try {
         }
         $inv = (& $kg --invite --key (Join-Path $keys 'host.key') --id "soak-$Profile" --ttl-s 3600)
         $secHost = "--secure-key $(Join-Path $keys 'host.key') --invitation $inv --allow-peer $($pub['client1']),$($pub['client2'])"
+        if ($SkipCookieIfRoutable) { $secHost += ' --dtls-skip-cookie-if-routable' }
         $secC1 = "--secure-key $(Join-Path $keys 'client1.key') --invitation $inv"
         $secC2 = "--secure-key $(Join-Path $keys 'client2.key') --invitation $inv"
     }
@@ -80,7 +83,11 @@ try {
     $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow `
         -ArgumentList "--port $Port --duration-s $DurationS --pattern line $imp --seed $($SeedBase + 3) $retry --stall-at-s $stallAt --stall-s $StallS $secC2 --log $out/client2.log"
     $null = $c1.Handle; $null = $c2.Handle
-    $c1.WaitForExit(); $c2.WaitForExit(); $h.WaitForExit()
+    # Bounded (FB-15-03/05): a process that does not exit is dumped, killed and reported as hung, never waited on forever.
+    $exitStatus = [ordered]@{}
+    $exitStatus.client1 = Wait-Bounded $c1 'client1' ($DurationS + 60)
+    $exitStatus.client2 = Wait-Bounded $c2 'client2' 60
+    $exitStatus.host = Wait-Bounded $h 'host' 60
 
     $run = [ordered]@{
         profile          = $Profile
@@ -94,6 +101,7 @@ try {
         stalled_clients  = @('client2')
         gate_version     = 6
         reconnect_retry_ms = if ($ReconnectRetryMs -gt 0) { $ReconnectRetryMs } else { 'default' }
+        skip_cookie_if_routable = [bool]($SkipCookieIfRoutable -and $Secure -and $Transport -eq 'gns')  # effective, not requested
         impairment_seeds = [ordered]@{ host = $SeedBase + 1; client1 = $SeedBase + 2; client2 = $SeedBase + 3 }  # UDP only; GNS fake loss is not seedable
         event_interval_ms = $EventIntervalMs
         transport        = $Transport
@@ -102,6 +110,7 @@ try {
         stall_s          = $StallS
         host_timeout_ms  = 3000
         exit_codes       = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode }
+        exit_status      = $exitStatus  # exited | hung (infrastructure failure, not a gate result)
     }
     # UTF-8 without BOM: Python's json reader rejects a BOM.
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $out) 'run.json'), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))

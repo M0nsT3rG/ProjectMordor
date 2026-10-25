@@ -1,4 +1,4 @@
-# KI-40 (review #13 FB-13-02): watches this project's test executables while a long battery runs. A test process
+# KI-40 (review #13 FB-13-02, #15 FB-15-03): watches this project's test executables while a long battery runs. A test process
 # that has a single thread left and has used no CPU for -IdleMinutes is stuck at exit: its dump and thread stacks
 # are written first (scripts/dump-stacks.ps1, local only), then it is killed and the event is logged, so the battery
 # continues and the hang is evidence instead of a silent stall. Runs until -UntilFile exists.
@@ -18,7 +18,14 @@ while (-not (Test-Path $UntilFile)) {
         $s = $seen[$p.Id]
         if ($p.CPU -ne $s.cpu) { $seen[$p.Id] = @{ t = Get-Date; cpu = $p.CPU }; continue }
         if (((Get-Date) - $s.t).TotalMinutes -lt $IdleMinutes) { continue }
-        "$(Get-Date -Format o) hung-at-exit: $($p.ProcessName) pid $($p.Id) started $($p.StartTime.ToString('HH:mm:ss'))" | Out-File $Log -Append -Encoding ascii
+        # FB-15-03: did it finish its work? A results JSON written after it started means "stuck at exit"; none
+        # means it hung mid-run. Either way it never exited, which is what ctest and the battery count.
+        $suite = $p.ProcessName -replace '^mordor_', '' -replace '_tests$', ''
+        $root = Split-Path -Parent $PSScriptRoot
+        $results = Get-ChildItem (Join-Path $root 'build*\test-results') -Filter "$suite*.json" -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -ge $p.StartTime } | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
+        $phase = if ($results) { "after writing results ($($results -join ', '))" } else { 'before writing any results' }
+        "$(Get-Date -Format o) hung: $($p.ProcessName) pid $($p.Id) started $($p.StartTime.ToString('HH:mm:ss')), $phase" | Out-File $Log -Append -Encoding ascii
         try { & (Join-Path $PSScriptRoot 'dump-stacks.ps1') -ProcessId $p.Id -OutDir $OutDir *>&1 | Out-File $Log -Append -Encoding ascii }
         catch { "  dump failed: $($_.Exception.Message)" | Out-File $Log -Append -Encoding ascii }
         try { Stop-Process -Id $p.Id -Force -ErrorAction Stop; "  killed" | Out-File $Log -Append -Encoding ascii }

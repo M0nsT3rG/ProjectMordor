@@ -464,6 +464,70 @@ std::vector<std::uint8_t> forged_client_hello(const Key& stranger, const std::ve
 // Review #11 FB-11-04: a real cookie-bearing ClientHello replayed from another address is not "proven" (the cookie
 // is bound to the sender's peer and address): it is answered with a stateless HelloVerifyRequest, spends the
 // strangers' budget and allocates nothing.
+// Review #15 FB-15-01: with the cookie skip switched ON, it happens only where the inner transport proves return
+// routability (GNS); UDP still runs the stateless cookie. Skipping the cookie never skips identity: an unpinned key
+// and a wrong invitation are still refused, on both backends.
+TEST(secure_cookie_skip_never_weakens_identity_or_udp) {
+    for (auto k : backends()) {
+        std::string err;
+        const bool routable = make_transport(k, {}, &err)->capabilities().proves_return_routability;
+        Key host_key, player, stranger;
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        hcfg.skip_cookie_when_inner_proves_routability = true;
+        auto host = open_secure(k, hcfg, true);
+        const Endpoint host_ep = Endpoint::loopback(host->local_endpoint().port);
+        auto good = open_secure(k, *secure(player, {host_key.spki()}, hcfg.invitation), false);
+        CHECK(good->connect(host_ep).has_value());
+        auto ev = run({host.get(), good.get()}, good.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 10000);
+        CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
+        const auto* hs = secure_stats(*host);
+        if (routable) CHECK(hs->cookie_skipped == 1 && hs->hello_verify_sent == 0);
+        else CHECK(hs->cookie_skipped == 0 && hs->hello_verify_sent >= 1);  // UDP: the stateless cookie, as always
+        // Identity is untouched by the skip: an unpinned key and the right key with a wrong invitation both fail.
+        auto unpinned = open_secure(k, *secure(stranger, {host_key.spki()}, hcfg.invitation), false);
+        auto wrong_inv = open_secure(k, *secure(player, {host_key.spki()}, invite("invite-other")), false);
+        CHECK(unpinned->connect(host_ep).has_value() && wrong_inv->connect(host_ep).has_value());
+        ev = run({host.get(), good.get(), unpinned.get(), wrong_inv.get()}, unpinned.get(), [](const auto&) { return false; }, 4000);
+        CHECK(count(ev, TransportEvent::Kind::Connected) == 0);
+        CHECK(hs->authenticated == 1);
+        std::printf("       %s: skip %s; cookie_skipped %llu, verify requests %llu; unpinned and wrong-invitation refused (authenticated %llu)\n",
+                    to_string(k), routable ? "applied" : "not applicable (UDP keeps its cookie)",
+                    static_cast<unsigned long long>(hs->cookie_skipped), static_cast<unsigned long long>(hs->hello_verify_sent),
+                    static_cast<unsigned long long>(hs->authenticated));
+    }
+}
+
+// FB-15-01: without the cookie, pre-authentication state on GNS is still bounded: real ClientHellos from unpinned
+// keys on many GNS connections open at most max_pending_total sessions, the rest are refused and counted.
+TEST(secure_cookie_skip_keeps_pending_state_bounded) {
+    for (auto k : backends()) {
+        Key host_key, player, attacker;
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        hcfg.skip_cookie_when_inner_proves_routability = true;
+        hcfg.max_pending_total = 3;
+        auto host = open_secure(k, hcfg, true);
+        const Endpoint host_ep = Endpoint::loopback(host->local_endpoint().port);
+        std::vector<std::unique_ptr<Transport>> raw;
+        std::vector<Transport*> all{host.get()};
+        const auto hello = forged_client_hello(attacker, host_key.spki(), hcfg.invitation);
+        for (int i = 0; i < 6; ++i) {
+            std::string err;
+            raw.push_back(make_transport(k, {}, &err));
+            CHECK(raw.back()->open(Endpoint::loopback(0), false, &err));
+            const auto p = raw.back()->connect(host_ep).value();
+            all.push_back(raw.back().get());
+            run(all, host.get(), [](const auto&) { return false; }, 300);  // let a GNS connection come up
+            raw.back()->send(p, hello, Delivery::Unreliable, 0);
+        }
+        run(all, host.get(), [](const auto&) { return false; }, 500);
+        const auto* hs = secure_stats(*host);
+        std::printf("       %s: 6 unpinned ClientHellos -> pending opened %llu (cap 3), refused by cap %llu, cookie_skipped %llu\n", to_string(k),
+                    static_cast<unsigned long long>(hs->pending_opened), static_cast<unsigned long long>(hs->pending_refused_cap),
+                    static_cast<unsigned long long>(hs->cookie_skipped));
+        CHECK(hs->pending_opened <= 3 && hs->authenticated == 0);
+    }
+}
+
 TEST(secure_replayed_cookie_from_another_address_allocates_nothing) {
     Key host_key, player;
     auto hcfg = *secure(host_key, {player.spki()}, invite());

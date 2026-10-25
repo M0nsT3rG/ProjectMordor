@@ -171,7 +171,7 @@ DtlsSession::DtlsSession(Transport& transport, PeerId peer, Endpoint remote, Dtl
         return;
     }
     SSL_CTX_set_verify(ctx_, SSL_VERIFY_PEER | SSL_VERIFY_FAIL_IF_NO_PEER_CERT, nullptr);
-    if (cfg_.server) {
+    if (cfg_.server && cfg_.cookie_exchange) {
         // HelloVerifyRequest cookies bound to this peer (review #6 answer 5).
         SSL_CTX_set_cookie_generate_cb(ctx_, cookie_generate_cb);
         SSL_CTX_set_cookie_verify_cb(ctx_, cookie_verify_cb);

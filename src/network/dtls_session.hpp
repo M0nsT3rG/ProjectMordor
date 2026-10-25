@@ -50,6 +50,8 @@ struct DtlsConfig {
     bool send_binding = true;                  // test hook only: false simulates a peer that never confirms
     bool corrupt_confirmation = false;         // test hook only: flips one bit of the confirmation we send
     bool coalesce_records = true;              // KI-35 / FB-11-05: false restores OpenSSL's own packetization
+    bool cookie_exchange = true;               // server: HelloVerifyRequest round trip (off only where the inner
+                                               // transport already proves return routability, FB-15-01)
     // KI-35 diagnostics (review #10): called for every datagram and milestone BEFORE Authenticated. No secrets:
     // `detail` lists records as content_type/epoch[/handshake_type], or names a milestone / reject reason.
     std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;

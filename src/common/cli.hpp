@@ -122,6 +122,7 @@ inline SecureSetup secure_from(const Args& a, bool host, std::uint64_t now_unix_
     const auto own_spki = net::spki_der(out.key.get());
     auto cfg = std::make_shared<net::SecureTransportConfig>();
     cfg->own_key = out.key.get();
+    cfg->skip_cookie_when_inner_proves_routability = a.has("dtls-skip-cookie-if-routable");  // FB-15-01 experiment
     cfg->invitation = inv->invitation;
     if (host) {
         if (own_spki != inv->host_spki) throw std::invalid_argument("secure host: the invitation was made for a different host key");
@@ -146,7 +147,9 @@ inline SecureSetup secure_from(const Args& a, bool host, std::uint64_t now_unix_
 inline constexpr const char* kSecureHelp =
     "  --secure-key FILE  DPAPI-protected identity key (mordor-keygen --new); enables secure mode, no plaintext fallback\n"
     "  --invitation STR   invitation from the host (mordor-keygen --invite); public fields only\n"
-    "  --allow-peer B64   host only: comma-separated public keys of the invited players\n";
+    "  --allow-peer B64   host only: comma-separated public keys of the invited players\n"
+    "  --dtls-skip-cookie-if-routable  host only, experiment (FB-15-01): no DTLS cookie on transports that prove\n"
+    "                     return routability themselves (GNS); UDP always keeps it\n";
 
 inline constexpr const char* kImpairmentHelp =
     "  --transport T     udp (default) or gns (needs a MORDOR_WITH_GNS build; impairment is then process-global)\n"

@@ -8,6 +8,8 @@
 #include <cstring>
 #include <cmath>
 #include <cstdio>
+#include <cstdlib>
+#include <string>
 #include <set>
 #include <thread>
 
@@ -27,6 +29,7 @@ constexpr int kCloseDrainMs = 500;         // bounded wait for unacknowledged re
 struct Runtime {
     int refs = 0;
     bool initialized = false;  // the GNS library lives for the whole process once started (KI-27)
+    bool shut_down = false;    // gns_shutdown_for_exit() ran: never initialised again in this process (KI-27/KI-40)
     // Process-global fake impairment (FB-5-03): one effective config. Several instances may hold it only if they
     // asked for the same one; a different request is refused, and the config is reset when the last holder lets go.
     std::set<const GnsTransport*> impairment_holders;
@@ -39,14 +42,42 @@ Runtime& rt() {
     return r;
 }
 
+// KI-42 (review #15 FB-15-02): MORDOR_GNS_TRACE=1 prints every connection lifecycle step to stderr (handles, states,
+// reasons; no payloads). Read once; off by default.
+bool gns_tracing() {
+    static const bool on = [] {
+        char* v = nullptr;
+        std::size_t n = 0;
+        const bool r = _dupenv_s(&v, &n, "MORDOR_GNS_TRACE") == 0 && v && v[0] == '1';
+        std::free(v);
+        return r;
+    }();
+    return on;
+}
+void gns_trace(const char* what, std::uint32_t conn, int a, int b, const char* detail) {
+    if (!gns_tracing()) return;
+    const auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
+    std::fprintf(stderr, "[gns-trace] %lld %s conn=%u a=%d b=%d %s\n", static_cast<long long>(ms), what, conn, a, b, detail ? detail : "");
+}
+
+std::atomic<std::uint64_t> g_unrouted_status{0};  // KI-42: status callbacks no transport claimed (never silent)
+
 void status_cb(SteamNetConnectionStatusChangedCallback_t* info) {
     auto& r = rt();
+    const int from = info->m_eOldState, to = info->m_info.m_eState;
     if (auto it = r.conn_owner.find(info->m_hConn); it != r.conn_owner.end()) {
+        gns_trace("status", info->m_hConn, from, to, info->m_info.m_szEndDebug);
         it->second->on_status(info);
         return;
     }
     if (info->m_info.m_hListenSocket != k_HSteamListenSocket_Invalid)
-        if (auto it = r.listen_owner.find(info->m_info.m_hListenSocket); it != r.listen_owner.end()) it->second->on_status(info);
+        if (auto it = r.listen_owner.find(info->m_info.m_hListenSocket); it != r.listen_owner.end()) {
+            gns_trace("status_listen", info->m_hConn, from, to, info->m_info.m_szEndDebug);
+            it->second->on_status(info);
+            return;
+        }
+    ++g_unrouted_status;
+    gns_trace("status_unrouted", info->m_hConn, from, to, info->m_info.m_szEndDebug);
 }
 
 std::atomic<std::uint64_t> g_internal_assertions{0};  // KI-27 / FB-6-03: GNS asserts are counted, never ignored
@@ -73,6 +104,10 @@ constexpr int kInitSettleMs = 50;
 
 bool acquire(std::string* error) {
     auto& r = rt();
+    if (r.shut_down) {  // Kill then Init in one process is what KI-27 warned about: refuse instead
+        if (error) *error = "GNS runtime already shut down for this process exit (KI-40)";
+        return false;
+    }
     if (!r.initialized) {
         SteamDatagramErrMsg err{};
         if (!GameNetworkingSockets_Init(nullptr, err)) {
@@ -139,13 +174,28 @@ GnsLifecycle gns_lifecycle() {
     const auto& r = rt();
     return {r.initialized, r.refs, r.conn_owner.size(), r.listen_owner.size()};
 }
+std::uint64_t gns_unrouted_status_callbacks() { return g_unrouted_status.load(); }
+
+// KI-40 root cause (dump of a hung exit, 2026-10-25): GNS installs its own atexit handler "so that if static
+// destruction is triggered without cleaning up the library properly, we won't crash"; it takes the global lock. At
+// ExitProcess the service thread is terminated first; if it held that lock at that instant, the handler waits
+// forever. Killing the library cleanly before exit stops the service thread while it holds nothing.
+bool gns_shutdown_for_exit() {
+    auto& r = rt();
+    if (!r.initialized || r.shut_down) return true;
+    if (r.refs > 0) return false;  // a transport is still open: refuse rather than kill it under its feet
+    GameNetworkingSockets_Kill();
+    r.initialized = false;
+    r.shut_down = true;
+    return true;
+}
 
 GnsTransport::GnsTransport(const ImpairmentConfig& impairment) : impairment_(impairment) {}
 
 GnsTransport::~GnsTransport() { close(); }
 
 TransportCapabilities GnsTransport::capabilities() const {
-    return {.reliable_ordered = true, .reports_disconnects = true, .max_payload = kMaxPacketSize,
+    return {.reliable_ordered = true, .reports_disconnects = true, .proves_return_routability = true, .max_payload = kMaxPacketSize,
             .exact_loss_accounting = false, .per_instance_impairment = false};
 }
 
@@ -250,6 +300,7 @@ bool GnsTransport::has_unacked_reliable(std::uint32_t conn) const {
 void GnsTransport::forget(std::uint32_t conn, std::string_view reason, bool report) {
     auto it = conns_.find(conn);
     if (it == conns_.end()) return;
+    gns_trace("forget", conn, report ? 1 : 0, static_cast<int>(it->second.peer.id), std::string(reason).c_str());
     if (report) pending_.push_back({TransportEvent::Kind::Disconnected, it->second.peer, it->second.remote, Delivery::Unreliable, {}, reason});
     by_peer_id_.erase(it->second.peer.id);
     conns_.erase(it);
@@ -326,6 +377,7 @@ std::optional<PeerId> GnsTransport::connect(const Endpoint& remote) {
     conns_[conn] = Conn{new_peer(remote), remote, true, false};
     by_peer_id_[conns_[conn].peer.id] = conn;
     rt().conn_owner[conn] = this;
+    gns_trace("connect", conn, static_cast<int>(conns_[conn].peer.id), static_cast<int>(remote.port), "");
     return conns_[conn].peer;
 }
 
@@ -396,6 +448,7 @@ void GnsTransport::close_peer(PeerId peer) {
     const auto it = by_peer_id_.find(peer.id);
     if (it == by_peer_id_.end() || conns_.at(it->second).peer != peer) return;
     const auto conn = it->second;
+    gns_trace("close_peer", conn, static_cast<int>(peer.id), static_cast<int>(peer.generation), "");
     if (has_unacked_reliable(conn)) ++stats_.closed_with_unacked_reliable;  // GNS keeps lingering, but we stop tracking it
     SteamNetworkingSockets()->CloseConnection(conn, 0, "closed by application", true);  // linger: flush reliable data
     forget(conn, "closed_locally", true);

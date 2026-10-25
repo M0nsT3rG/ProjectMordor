@@ -4,7 +4,8 @@ Groups gate-v6 run directories by (profile, transport, secure) and by the run.js
 ('default' counts as 500), and applies the decision rule documented in docs/soak-testing.md before the runs:
 B is adopted only if, on every profile, it has no more client2_recovery_time failures than A, a median recovery
 at least 10% lower, and no other gate failure that A does not have. Read-only; prints a table and the verdict.
-Usage: python -I tools/soak/compare_arms.py <run_dir> [<run_dir> ...]
+Usage: python -I tools/soak/compare_arms.py [--arm FIELD] <run_dir> [<run_dir> ...]
+  --arm FIELD  compare on a boolean run.json field (A = false, B = true; arms print as 500 / 250)
 """
 from __future__ import annotations
 
@@ -16,6 +17,8 @@ from collections import defaultdict
 from pathlib import Path
 
 A_MS, B_MS = 500, 250
+# FB-15-01: `--arm skip_cookie_if_routable` compares on that boolean run.json field instead (A = false, B = true).
+ARM_FIELD = None
 
 
 def ms(x) -> str:
@@ -27,8 +30,11 @@ def load(d: Path) -> dict | None:
         return None
     s = json.loads((d / "summary.json").read_text(encoding="utf-8"))
     run = s["run"]
-    retry = run.get("reconnect_retry_ms", "default")
-    retry = A_MS if retry == "default" else int(retry)
+    if ARM_FIELD:
+        retry = B_MS if run.get(ARM_FIELD) is True else A_MS  # the arm, encoded as A_MS / B_MS
+    else:
+        retry = run.get("reconnect_retry_ms", "default")
+        retry = A_MS if retry == "default" else int(retry)
     failed = {g["gate"] for g in s["gates"] if not g["passed"]}
     c2 = s["clients"]["client2"]
     rec = c2.get("recovery_after_stall_ms")  # None: the stalled client never reconnected, the worst outcome
@@ -57,6 +63,9 @@ def verdict(groups: dict) -> tuple[bool, list[str]]:
 
 
 def main(argv: list[str]) -> int:
+    global ARM_FIELD
+    if argv[:1] == ["--arm"] and len(argv) >= 2:
+        ARM_FIELD, argv = argv[1], argv[2:]
     if not argv:
         print(__doc__)
         return 2
@@ -72,7 +81,8 @@ def main(argv: list[str]) -> int:
     for key, arms in sorted(groups.items()):
         for retry, rs in sorted(arms.items()):
             rec = sorted(r["recovery"] for r in rs)
-            print(f"{key} retry {retry} ms: n={len(rs)} recovery median {ms(statistics.median(rec))} max {ms(rec[-1])} ms, "
+            arm = f"{ARM_FIELD}={'true' if retry == B_MS else 'false'}" if ARM_FIELD else f"retry {retry} ms"
+            print(f"{key} {arm}: n={len(rs)} recovery median {ms(statistics.median(rec))} max {ms(rec[-1])} ms, "
                   f"over 3000 ms {sum(x > 3000 for x in rec)}, runs {[ms(x) for x in rec]}, "
                   f"delivery {[r['delivery'] for r in rs]}, rtt_p50 {[ms(r['rtt_p50']) for r in rs]}")
     adopt, reasons = verdict(groups)

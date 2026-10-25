@@ -18,6 +18,9 @@
 #include <windows.h>
 
 #include "client/client.hpp"
+#ifdef MORDOR_HAVE_GNS
+#include "network/gns_transport.hpp"
+#endif
 #include "common/cli.hpp"
 #include "common/precise_sleep.hpp"
 
@@ -214,6 +217,9 @@ int main(int argc, char** argv) {
         }
         c.disconnect();
         c.close();
+#ifdef MORDOR_HAVE_GNS
+        log.info("gns_shutdown", {kv("done", net::gns_shutdown_for_exit())});  // KI-40, see mordor-host
+#endif
         if (sink != stderr) std::fclose(sink);
         return final_state == client::ClientState::Connected ? 0 : 1;
     } catch (const std::exception& e) {

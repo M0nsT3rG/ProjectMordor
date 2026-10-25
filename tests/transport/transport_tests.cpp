@@ -572,6 +572,8 @@ TEST(contract_messages_received_before_disconnect_are_delivered) {
 #ifdef MORDOR_HAVE_GNS
 #include "network/gns_transport.hpp"
 
+std::unique_ptr<Transport> g_keeper;  // the "runtime kept alive" scenario's extra instance (was a function static)
+
 TEST(gns_teardown_assertion_probe) {
     constexpr int kRuns = 200;
     struct Scenario {
@@ -586,7 +588,7 @@ TEST(gns_teardown_assertion_probe) {
              std::this_thread::sleep_for(std::chrono::milliseconds(50));
          }},
         {"listener_with_runtime_kept_alive", [] {  // another instance holds the runtime: no Init/Kill per run
-             static auto keeper = make_open(TransportKind::Gns, false);
+             if (!g_keeper) g_keeper = make_open(TransportKind::Gns, false);
              auto h = make_open(TransportKind::Gns, true);
          }},
         {"connect_then_close_immediately", [] {
@@ -618,6 +620,7 @@ TEST(gns_teardown_assertion_probe) {
         total += n;
         std::printf("       KI-27 probe %-32s %llu assertions in %d runs\n", s.name, static_cast<unsigned long long>(n), kRuns);
     }
+    g_keeper.reset();  // released before exit: the runner shuts GNS down only when nothing is open (KI-40)
     std::printf("       KI-27 probe total: %llu\n", static_cast<unsigned long long>(total));
     CHECK(total == 0);  // regression gate for the KI-27 mitigation (process-lifetime runtime + settle after Init)
 }
@@ -646,9 +649,69 @@ TEST(gns_lifecycle_returns_to_baseline_after_orderly_and_repeated_use) {
     CHECK(after.initialized);  // by design the runtime lives for the process (KI-27); never killed by us
 }
 
+// Review #15 FB-15-02 (KI-42): a closed GNS connection must ALWAYS be reported to the other side. Stress the
+// endpoint-reuse pattern with three teardown orders and require every Disconnected, and no status callback that no
+// transport claimed. MORDOR_GNS_TRACE=1 prints the lifecycle of each connection when this needs diagnosing.
+TEST(gns_close_is_always_reported_to_the_other_side) {
+    struct Order { const char* name; bool host_closes, client_closes; };
+    const Order orders[] = {{"host closes", true, false}, {"client closes", false, true}, {"both close", true, true}};
+    const auto unrouted_before = gns_unrouted_status_callbacks();
+    auto host = make_open(TransportKind::Gns, true);
+    auto client = make_open(TransportKind::Gns, false);
+    const auto host_ep = Endpoint::loopback(host->local_endpoint().port);
+    int misses = 0, rounds = 0;
+    for (const auto& o : orders) {
+        int order_misses = 0;
+        for (int i = 0; i < 60; ++i) {
+            ++rounds;
+            const auto to_host = client->connect(host_ep);
+            CHECK(client->send(*to_host, payload(1), Delivery::Unreliable, now_us()) == SendResult::Sent);
+            auto ev = poll_until({host.get(), client.get()}, host.get(), [](const auto& e) { return first_message(e) != nullptr; });
+            const PeerId at_host = must_message(ev).peer;
+            if (o.host_closes) host->close_peer(at_host);
+            if (o.client_closes) client->close_peer(*to_host);
+            // Whoever did NOT close must hear about it; whoever closed gets no event (its PeerId is simply gone).
+            if (!o.client_closes) {
+                const auto cev = poll_until({host.get(), client.get()}, client.get(),
+                                            [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) == 1; }, 5000);
+                if (count(cev, TransportEvent::Kind::Disconnected) != 1) ++order_misses;
+            }
+            if (!o.host_closes) {
+                const auto hev = poll_until({host.get(), client.get()}, host.get(),
+                                            [](const auto& e) { return count(e, TransportEvent::Kind::Disconnected) == 1; }, 5000);
+                if (count(hev, TransportEvent::Kind::Disconnected) != 1) ++order_misses;
+            }
+            if (o.host_closes && o.client_closes) poll_until({host.get(), client.get()}, host.get(), [](const auto&) { return false; }, 20);
+        }
+        std::printf("       KI-42 %-13s: %d missed Disconnected in 60 rounds\n", o.name, order_misses);
+        misses += order_misses;
+    }
+    const auto unrouted = gns_unrouted_status_callbacks() - unrouted_before;
+    std::printf("       KI-42 total: %d misses in %d rounds; %llu status callbacks claimed by no transport\n", misses, rounds,
+                static_cast<unsigned long long>(unrouted));
+    CHECK(misses == 0);
+}
+
 // Registered last in this file: no GNS internal assertion anywhere in this process's contract run.
 TEST(gns_reported_no_internal_assertions_in_this_run) {
     std::printf("       GNS internal assertions in this process: %llu\n", static_cast<unsigned long long>(gns_internal_assertions()));
     CHECK(gns_internal_assertions() == 0);
+}
+
+// KI-40 fix (review #15): the exit shutdown is refused while a transport is open, works when none is, and afterwards
+// nothing can re-initialise GNS in this process (KI-27). MUST stay the very last test: GNS is gone after it.
+TEST(gns_shutdown_for_exit_refuses_while_open_and_blocks_reinit) {
+    {
+        auto open_one = make_open(TransportKind::Gns, false);
+        CHECK(!gns_shutdown_for_exit());  // refused: a transport is still open
+        CHECK(gns_lifecycle().initialized);
+    }
+    CHECK(gns_shutdown_for_exit());
+    CHECK(!gns_lifecycle().initialized);
+    std::string err;
+    auto late = make_transport(TransportKind::Gns, {}, &err);
+    CHECK(late && !late->open(Endpoint::loopback(0), false, &err));  // no Kill-then-Init in one process
+    std::printf("       after the exit shutdown, a new GNS transport is refused: %s\n", err.c_str());
+    CHECK(gns_shutdown_for_exit());  // idempotent: the runner calls it again at exit
 }
 #endif

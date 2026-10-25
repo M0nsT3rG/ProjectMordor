@@ -525,7 +525,7 @@ void Host::shutdown() {
                                    kv("pending_failed", ss->pending_failed), kv("pending_refused_cap", ss->pending_refused_cap),
                                    kv("dropped_not_dtls", ss->dropped_not_dtls), kv("idle_timeouts", ss->idle_timeouts),
                                    kv("reliable_retransmits", ss->reliable_retransmits),
-                                   kv("pending_replaced", ss->pending_replaced), kv("hello_verify_sent", ss->hello_verify_sent),
+                                   kv("pending_replaced", ss->pending_replaced), kv("hello_verify_sent", ss->hello_verify_sent), kv("cookie_skipped", ss->cookie_skipped),
                                    kv("hello_rate_limited", ss->hello_rate_limited), kv("promotions_replacing", ss->promotions_replacing),
                                    kv("rejected_established", ss->rejected_established), kv("handshakes_done", ss->handshakes_done),
                                    kv("handshake_retransmits", ss->handshake_retransmits), kv("handshake_ms_max", ss->handshake_ms_max)});

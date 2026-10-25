@@ -16,6 +16,11 @@
 // so it is already destroyed when the handler runs; reading it there would be undefined behaviour.
 void lifecycle(const char* phase, bool read_gns = true);
 #endif
+#ifdef MORDOR_HAVE_GNS
+namespace mordor::net {
+bool gns_shutdown_for_exit();  // network/gns_transport.hpp, included at the end with <windows.h> kept away (KI-40)
+}
+#endif
 #ifdef _WIN32
 // The suites step with sleep_for(1 ms). Without a 1 ms timer resolution that sleep takes ~15.6 ms, and timing tests
 // then passed or failed depending on whether some other program happened to hold 1 ms (KI-39, EXP-023). Defined at
@@ -69,6 +74,10 @@ int main(int argc, char** argv) {
     if (!json_path.empty()) std::ofstream(json_path) << json;
 #ifdef _WIN32
     lifecycle("main_returning");
+#endif
+#ifdef MORDOR_HAVE_GNS
+    // KI-40: stop GNS cleanly before ExitProcess. Refused (and reported) if a transport is still open.
+    if (!mordor::net::gns_shutdown_for_exit()) std::cerr << "warning: a GNS transport is still open at exit; GNS not shut down (KI-40)\n";
 #endif
     return failed ? 1 : 0;
 }

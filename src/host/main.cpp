@@ -18,6 +18,9 @@
 #include "common/cli.hpp"
 #include "common/precise_sleep.hpp"
 #include "host/host.hpp"
+#ifdef MORDOR_HAVE_GNS
+#include "network/gns_transport.hpp"
+#endif
 
 namespace {
 std::atomic<bool> g_stop{false};
@@ -70,6 +73,7 @@ int main(int argc, char** argv) {
             };
         cfg.secure = secure.cfg;
         log.info("security", {kv("mode", secure.cfg ? "dtls" : "plaintext"), kv("own_fingerprint", secure.own_fingerprint),
+                              kv("skip_cookie_if_routable", secure.cfg && secure.cfg->skip_cookie_when_inner_proves_routability),
                               kv("invitation", secure.invitation_id)});
         const double duration_s = args.num<double>("duration-s", 0.0);
         // FB-14-02: a test harness can end the run once every participant is done, instead of guessing a duration.
@@ -111,6 +115,10 @@ int main(int argc, char** argv) {
         }
         if (event_interval_us) log.info("event_source", {kv("events_refused", events_refused)});
         h.shutdown();
+#ifdef MORDOR_HAVE_GNS
+        // KI-40: stop GNS cleanly so its own atexit handler cannot deadlock on a lock the killed service thread held.
+        log.info("gns_shutdown", {kv("done", net::gns_shutdown_for_exit())});
+#endif
         if (sink != stderr) std::fclose(sink);
         return 0;
     } catch (const std::exception& e) {

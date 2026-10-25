@@ -54,6 +54,10 @@ struct SecureTransportConfig {
     // stateless cookie gate then answers unverified ones without allocating per-peer state (KI-30).
     std::uint32_t max_new_handshakes_per_s = 64;   // strangers (shared), and cookie-proven (shared, separate)
     std::uint32_t max_reconnect_hellos_per_s = 20; // per address with an established session (reserved)
+    // FB-15-01 experiment variable (default off): skip OUR DTLS cookie round trip when the inner transport already
+    // proves return routability (capability proves_return_routability: GNS). Identity, pinning, the invitation
+    // binding, budgets and the pending cap are unchanged; UDP always keeps the stateless cookie.
+    bool skip_cookie_when_inner_proves_routability = false;
     std::function<std::uint64_t()> unix_clock;               // wall-clock seconds; default std::time
     // KI-35 diagnostics: handed to every DTLS session (see DtlsConfig::trace). No secrets.
     std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;
@@ -64,6 +68,7 @@ struct SecureStats {
     std::uint64_t pending_replaced = 0;   // an unverified (or cookie-bearing) new handshake displaced a pending one
     std::uint64_t hello_rate_limited = 0; // new ClientHello dropped by max_new_handshakes_per_s (before any work)
     std::uint64_t hello_verify_sent = 0;  // stateless HelloVerifyRequests: ClientHellos without a valid cookie
+    std::uint64_t cookie_skipped = 0;     // pending sessions opened without our cookie (inner proved routability)
     std::uint64_t authenticated = 0, promotions_replacing = 0, rejected_established = 0, idle_timeouts = 0;
     std::uint64_t dropped_not_dtls = 0;      // plaintext / non-ClientHello from a peer without a session
     std::uint64_t dropped_unknown_peer = 0;  // client side: datagram from a peer we never connected to

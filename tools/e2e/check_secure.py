@@ -43,6 +43,9 @@ def check(run_dir: Path) -> dict:
         gates.append({"gate": name, "passed": bool(ok), "detail": detail})
 
     # FB-14-02: both clients reported connected within the barrier, so a late start is classified, never silent.
+    # FB-15-03/05: every process actually exited (a hung one was dumped and killed by the script), reported apart.
+    hung = sorted(n for n, st in (run.get("exit_status") or {}).items() if st != "exited")
+    gate("all_processes_exited", not hung and bool(run.get("exit_status")), {"hung": hung})
     b = run.get("barrier") or {}
     gate("participants_ready", b.get("ready") is True,
          {"limit_s": b.get("limit_s"), "log_appeared_ms": b.get("log_appeared_ms"), "connected_ms": b.get("connected_ms")})

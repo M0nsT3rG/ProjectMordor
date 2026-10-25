@@ -15,6 +15,7 @@ param(
     [int]$BarrierS = 30  # FB-14-02: both clients must report connected within this, or the run is classified not ready
 )
 $ErrorActionPreference = 'Stop'
+. (Join-Path $PSScriptRoot 'wait-bounded.ps1')
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 $keys = Join-Path $env:TEMP ("mordor-secure-e2e-" + [guid]::NewGuid().ToString('N'))
@@ -72,9 +73,11 @@ try {
     }
     $barrier = [ordered]@{ ready = ($connAt.Count -eq 2); limit_s = $BarrierS; log_appeared_ms = $logAt; connected_ms = $connAt }
     if (-not $barrier.ready) { Write-Warning "participants_not_ready within $BarrierS s: $($connAt.Keys -join ',') connected" }
-    $c1.WaitForExit(); $c2.WaitForExit()
+    $exitStatus = [ordered]@{}
+    $exitStatus.client1 = Wait-Bounded $c1 'client1' ($DurationS + $BarrierS + 60)
+    $exitStatus.client2 = Wait-Bounded $c2 'client2' 60
     New-Item -ItemType File $stop | Out-Null  # every client is done: the host may stop now
-    $h.WaitForExit()
+    $exitStatus.host = Wait-Bounded $h 'host' 60
 
     # --- Negatives against a second secure host (only client1 is invited). ---
     $p2 = $Port + 2
@@ -94,10 +97,10 @@ try {
         $p = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow -RedirectStandardError "$out/$name.stderr.txt" -ArgumentList `
             "--port $p2 --duration-s 6 $common $($cases[$name]) --log $out/$name.log"
         $null = $p.Handle
-        $p.WaitForExit()
+        $exitStatus[$name] = Wait-Bounded $p $name 60
         $neg[$name] = $p.ExitCode
     }
-    $h2.WaitForExit()
+    $exitStatus.host2 = Wait-Bounded $h2 'host2' 60
     $run = [ordered]@{
         transport  = $Transport
         clock      = 'real-time'
@@ -105,6 +108,7 @@ try {
         keys       = 'generated under %TEMP% for this run and deleted afterwards (never in the repository)'
         exit_codes = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode; host2 = $h2.ExitCode }
         barrier    = $barrier
+        exit_status = $exitStatus  # exited | hung (infrastructure failure, not a gate result)
         negative_exit_codes = $neg
     }
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $out) 'run.json'), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))

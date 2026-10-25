@@ -27,6 +27,12 @@ struct GnsLifecycle {
     std::size_t connections = 0, listen_sockets = 0;
 };
 GnsLifecycle gns_lifecycle();
+// KI-42: GNS connection status callbacks that no transport in this process claimed (they used to vanish silently).
+std::uint64_t gns_unrouted_status_callbacks();
+// KI-40: call once at the very end of main, after every GNS transport is closed. Stops the GNS service thread so
+// that GNS's own atexit handler cannot deadlock on a lock the terminated thread held. Afterwards no GNS transport
+// can be opened in this process (no re-initialisation, KI-27). Returns false (and does nothing) while any is open.
+bool gns_shutdown_for_exit();
 
 class GnsTransport final : public Transport {
 public:

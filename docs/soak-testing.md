@@ -434,6 +434,35 @@ On `8d553a3`, after reviews #13 and #14. The gates are unchanged.
   No single phase dominates: each of the three adds a second or so under loss.
 - The hang watcher (`scripts/hang-watch.ps1`) recorded **no** stuck process during the whole run.
 
+## Predeclared experiment FB-15-01: no DTLS cookie on GNS (2026-10-25, EXP-027)
+
+Written and committed **before** its first run.
+
+- **Question.** On GNS our DTLS cookie exchange costs a round trip, and the guarantee it gives is already provided by GNS itself:
+  - an address-bound stateless challenge before a connection exists (F-GNS-001);
+  - address-bound packet dispatch afterwards (F-GNS-002).
+
+  Does skipping it reduce harsh-gns-secure recovery?
+- **One variable:** the host's `--dtls-skip-cookie-if-routable`.
+  - A = off (cookie, the default);
+  - B = on (`soak.ps1 -SkipCookieIfRoutable`).
+
+  Same build, gate v6, 120 s. UDP keeps its cookie in both arms by construction; no UDP arm is run.
+- **Runs:**
+  - harsh-gns-secure, **10 per arm**, A and B interleaved;
+  - GNS fake loss is not seedable: the seed bases (600, 610, …, 690) are recorded but change nothing on GNS;
+  - 20 runs in total.
+- **Measures:** client2 recovery (median, p90, maximum, count over 3000 ms), the phase distribution (`timeline.py --summary`, where the cookie appears inside `dtls_auth`), and every other gate.
+- **Decision rule, fixed now** (`compare_arms.py --arm skip_cookie_if_routable`). B becomes the GNS default only if **all** of these hold:
+  1. B has no more recovery failures than A;
+  2. B's median recovery is at least 10% lower;
+  3. B introduces no other gate failure that A does not have;
+  4. the security tests pass with the skip on:
+     - `secure_cookie_skip_never_weakens_identity_or_udp`: UDP keeps its cookie, and an unpinned key or a wrong invitation is refused;
+     - `secure_cookie_skip_keeps_pending_state_bounded`.
+
+  Aborted runs are reported apart. Otherwise the cookie stays everywhere. **The 3000 ms gate does not change either way.**
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

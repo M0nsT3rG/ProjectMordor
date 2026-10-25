@@ -81,6 +81,9 @@ struct TransportStats {
 struct TransportCapabilities {
     bool reliable_ordered = false;
     bool reports_disconnects = false;  // backend detects peer loss itself (connection-oriented)
+    // The backend delivers data only from an address that answered its own stateless challenge before the
+    // connection existed (GNS direct UDP: F-GNS-001, F-GNS-002). Return routability, NOT identity.
+    bool proves_return_routability = false;
     std::size_t max_payload = 0;
     // true: simulated_drops and discarded_on_close are exact per-message counts (UDP: impairment runs in our code).
     // false: the backend's fault injection and queues are internal (GNS); counts are per connection and cover
