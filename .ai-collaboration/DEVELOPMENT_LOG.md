@@ -2,6 +2,21 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #16 follow-up (`feature/review16-followup`, stacked on #16)
+
+- **Input:** [PR #16 review](https://github.com/M0nsT3rG/ProjectMordor/pull/16), FB-16-01 to FB-16-03; the owner asked for all of it. Record: EXP-028.
+- **Changes:**
+  - `Invoke-BoundedDump`: the diagnostic runs in its own bounded process, and its tree is killed on expiry. The target is always killed, and a timed-out dump gives `hung_dump_timeout`. `hang-watch.ps1` uses the same helper.
+  - `scripts/test-wait-bounded.ps1` (12 checks, run by `test.ps1`).
+  - `compare_arms.py`: no verdict without usable runs or without a finite B median; 4 regressions.
+  - GNS shutdown guard on every exit path of `mordor-host` and `mordor-client`; shutdown trace; a start-failure smoke test in `test.ps1 -GnsBuild`.
+- **Review:** an independent subagent reviewed the diff. It found nothing significant, and 5 of its 7 low findings were applied.
+- **Tests:**
+  - suites ×3 on both builds, all passed; start-failure smoke 9/9;
+  - E2E; secure E2E UDP and GNS;
+  - soaks moderate-gns-secure and moderate-udp-secure, 59/59 each.
+- **Remaining:** KI-35 (GNS), KI-42, KI-41, KI-28b, LAN test, external review.
+
 ## 2026-10-25: Review #15 follow-up (`feature/review15-followup`, stacked on #15)
 
 - **Input:** [PR #15 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/15), FB-15-01 to FB-15-05; the owner asked for all of it. Record: EXP-027.

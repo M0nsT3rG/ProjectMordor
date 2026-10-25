@@ -1,0 +1,35 @@
+{
+  "id": "EXP-028",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; real time",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #16 (FB-16-01..03) on feature/review16-followup: bound the stack-dump diagnostic inside Wait-Bounded and hang-watch, make compare_arms.py refuse a verdict on empty or non-finite cohorts, and shut GNS down on every exit path of mordor-host and mordor-client.",
+  "hypothesis": "With the diagnostic in its own bounded process, a never-returning diagnostic still ends the wait in bounded time with the target and the diagnostic's process tree killed; compare_arms gives no adoption verdict without a finite B median; a GNS host whose start fails after GNS initialisation shuts GNS down before exit.",
+  "procedure": "Invoke-BoundedDump runs dump-stacks.ps1 in its own process with -DumpTimeoutS and kills its tree on expiry; Wait-Bounded kills the target in finally and returns hung_dump_timeout when the dump timed out; hang-watch uses the same helper. scripts/test-wait-bounded.ps1 (disposable processes only, run by test.ps1): exited process, never-returning diagnostic with a child, finishing diagnostic, failing diagnostic, throwing helper. compare_arms: empty input rejected, finite B median required, CLI exit 1 with 'no decision'; 4 regressions. Host/client main: a guard declared before try calls gns_shutdown_for_exit() last; the function traces killed/refused under MORDOR_GNS_TRACE=1; test.ps1 -GnsBuild smoke: a GNS host bound to 192.0.2.1 (not on this machine), 3 runs, must exit 1 with the shutdown traced. Red-before checks: the new compare_arms regressions (3 of 4 failed on the old code), the wait-bounded timeout checks (2 failed on the old function), the smoke trace (absent with the guard removed). An independent review subagent read the diff (no significant finding; 7 low, 5 applied). Validation on the working tree over b7405d9 (each step in its own process, hang-watch running): suites on both builds x2, E2E, secure E2E udp + gns, soaks moderate-gns-secure and moderate-udp-secure; after the review fixes, one more suite pass on both builds.",
+  "expected_result": "All checks pass; the old code fails the new regressions.",
+  "observed_result": "All three suite passes passed on both builds (unit 17, integration 54, network 17, transport 18, transport-both 23, gns 7, dtls 58, integration-gns 39 + 15 SKIPPED, network-gns 12 + 5 SKIPPED), transport check OK each time; the start-failure smoke exited 1 with GNS shut down 9/9; the wait-bounded self-check passed every run (12/12 checks after the review fixes; the never-returning diagnostic ended in 10.3-10.4 s for a 10 s limit, 3.3 s for a 3 s limit before). E2E, secure E2E udp and gns passed; soaks moderate-gns-secure 59/59 (recovery 762 ms) and moderate-udp-secure 59/59 (1216 ms), every process exited. compare_arms: 13/13 tests; the CLI on a missing directory prints 'VERDICT: no decision (no usable runs)' and exits 1. Hang watcher: no stuck process. Note: test.ps1 copies suite results to dated files, so the tests-*-2026-10-25.json files cited by EXP-027 now hold this run's (also all-passing) results; EXP-027's suite results are in its own record and in git history.",
+  "evidence_paths": [
+    "evidence/logs/tests-unit-2026-10-25.json",
+    "evidence/logs/tests-integration-2026-10-25.json",
+    "evidence/logs/tests-network-2026-10-25.json",
+    "evidence/logs/tests-transport-2026-10-25.json",
+    "evidence/logs/tests-transport-both-2026-10-25.json",
+    "evidence/logs/tests-integration-gns-2026-10-25.json",
+    "evidence/logs/tests-network-gns-2026-10-25.json",
+    "evidence/logs/tests-gns-2026-10-25.json",
+    "evidence/logs/tests-dtls-2026-10-25.json",
+    "evidence/logs/e2e-2026-10-25",
+    "evidence/logs/secure-e2e-2026-10-25-131209-udp",
+    "evidence/logs/secure-e2e-2026-10-25-131238-gns",
+    "evidence/logs/soak-2026-10-25-131306-moderate-gns-sec-g6",
+    "evidence/logs/soak-2026-10-25-131514-moderate-udp-sec-g6"
+  ],
+  "result": "PASSED",
+  "errors": "None. The exception exit path (return 2 after GNS initialisation) is covered by the same guard by inspection only.",
+  "confidence": "high",
+  "follow_up": "KI-35 on GNS (establishment and session phases); KI-42 instrumented; dated test-result files are overwritten by a second run on the same day (consider a per-run name).",
+  "related": [
+    "EXP-027"
+  ]
+}

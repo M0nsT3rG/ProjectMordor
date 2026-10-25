@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 91,
+  "count": 92,
   "records": [
     {
       "id": "EXP-001",
@@ -298,6 +298,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT review #15 (FB-15-01..05) on feature/review15-followup: verify GNS return routability from source, investigate KI-42 and KI-40, run the predeclared GNS-only DTLS cookie A/B with negative security tests, and validate the head with the full v6 battery."
+    },
+    {
+      "id": "EXP-028",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-028.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #16 (FB-16-01..03) on feature/review16-followup: bound the stack-dump diagnostic inside Wait-Bounded and hang-watch, make compare_arms.py refuse a verdict on empty or non-finite cohorts, and shut GNS down on every exit path of mordor-host and mordor-client."
     },
     {
       "id": "F-COMM-001",

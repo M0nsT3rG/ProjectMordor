@@ -38,6 +38,9 @@ std::uint64_t now_us() {
 
 int main(int argc, char** argv) {
     using namespace mordor;
+#ifdef MORDOR_HAVE_GNS
+    struct GnsExit { ~GnsExit() { net::gns_shutdown_for_exit(); } } gns_exit;  // KI-40 (FB-16-03), see mordor-host
+#endif
     try {
         cli::Args args(argc, argv);
         if (args.has("help")) {

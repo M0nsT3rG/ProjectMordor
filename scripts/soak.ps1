@@ -110,7 +110,7 @@ try {
         stall_s          = $StallS
         host_timeout_ms  = 3000
         exit_codes       = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode }
-        exit_status      = $exitStatus  # exited | hung (infrastructure failure, not a gate result)
+        exit_status      = $exitStatus  # exited | hung | hung_dump_timeout (infrastructure failure, not a gate result)
     }
     # UTF-8 without BOM: Python's json reader rejects a BOM.
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $out) 'run.json'), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))

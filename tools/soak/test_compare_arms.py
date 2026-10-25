@@ -67,6 +67,30 @@ class DecisionRule(unittest.TestCase):
     def test_missing_arm_rejects_b(self):
         self.assertFalse(c.verdict({"p": {500: [run(2000)]}})[0])
 
+    def test_no_usable_runs_rejects_b(self):
+        # FB-16-02: every run aborted leaves no group; that must never read as an adoption.
+        self.assertFalse(c.verdict({})[0])
+
+    def test_all_aborted_cli_gives_no_decision(self):
+        import contextlib, io
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = c.main(["__no_such_run_dir__"])
+        self.assertEqual(code, 1)
+        self.assertIn("VERDICT: no decision", out.getvalue())
+        self.assertNotIn("adopt B", out.getvalue())
+
+    def test_never_recovered_in_both_arms_rejects_b(self):
+        # FB-16-02: inf <= 0.9 * inf is True; neither arm recovered, so B cannot have improved.
+        f = run(math.inf, ["client2_recovery_time"])
+        self.assertFalse(c.verdict({"p": {500: [f], 250: [f]}})[0])
+        self.assertFalse(c.verdict({"p": {500: [f] * 5, 250: [f] * 5}})[0])
+
+    def test_finite_b_against_never_recovered_a_still_judged(self):
+        # B recovered where A never did: a finite B median is measurable, so the rule can still adopt it.
+        g = {"p": {500: [run(math.inf, ["client2_recovery_time"])] * 3, 250: [run(1500)] * 3}}
+        self.assertTrue(c.verdict(g)[0])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -44,6 +44,8 @@ def load(d: Path) -> dict | None:
 
 
 def verdict(groups: dict) -> tuple[bool, list[str]]:
+    if not groups:  # FB-16-02: no usable run at all is no evidence for B
+        return False, ["no usable runs"]
     reasons, adopt = [], True
     for key, arms in sorted(groups.items()):
         a, b = arms.get(A_MS, []), arms.get(B_MS, [])
@@ -55,7 +57,8 @@ def verdict(groups: dict) -> tuple[bool, list[str]]:
         mb = statistics.median(r["recovery"] for r in b)
         other_a = set().union(*(r["failed"] for r in a)) - {"client2_recovery_time"}
         other_b = set().union(*(r["failed"] for r in b)) - {"client2_recovery_time"}
-        ok1, ok2, ok3 = fb <= fa, mb <= 0.9 * ma, not (other_b - other_a)
+        # FB-16-02: B must have a measurable (finite) median; inf <= 0.9 * inf would claim an improvement.
+        ok1, ok2, ok3 = fb <= fa, math.isfinite(mb) and mb <= 0.9 * ma, not (other_b - other_a)
         reasons.append(f"{key}: failures A {fa} / B {fb} ({'ok' if ok1 else 'NO'}), median A {ms(ma)} / B {ms(mb)} ms "
                        f"({'ok' if ok2 else 'NO'}), new other failures in B {sorted(other_b - other_a)} ({'ok' if ok3 else 'NO'})")
         adopt &= ok1 and ok2 and ok3
@@ -85,6 +88,9 @@ def main(argv: list[str]) -> int:
             print(f"{key} {arm}: n={len(rs)} recovery median {ms(statistics.median(rec))} max {ms(rec[-1])} ms, "
                   f"over 3000 ms {sum(x > 3000 for x in rec)}, runs {[ms(x) for x in rec]}, "
                   f"delivery {[r['delivery'] for r in rs]}, rtt_p50 {[ms(r['rtt_p50']) for r in rs]}")
+    if not groups:
+        print("VERDICT: no decision (no usable runs)")
+        return 1
     adopt, reasons = verdict(groups)
     for line in reasons:
         print("  " + line)

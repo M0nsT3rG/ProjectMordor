@@ -6,6 +6,22 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #16 (PR #16: review #15 follow-up)
+
+- **Status:** implemented (2026-10-25) on `feature/review16-followup` (stacked on PR #16); the owner asked for all of it.
+- **Source:** [PR #16 review](https://github.com/M0nsT3rG/ProjectMordor/pull/16) at `b7405d9`, with one inline comment. ChatGPT reviewed the source and reran the comparator; it did not rerun the C++ suites.
+- **Verdict:** continue controlled lab work; keep the defaults; not a merge or release approval.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-16-01** (P2) Bound the diagnostic too | **Yes, from source.** `Wait-Bounded` called `dump-stacks.ps1` synchronously before `Stop-Process`; neither cdb (symbol server, full dump) nor `MiniDumpWriteDump` had a deadline. `hang-watch.ps1` had the same flaw. | **Accepted** | `Invoke-BoundedDump` runs the diagnostic in its own process with `-DumpTimeoutS` (default 180 s). On expiry it kills that process **tree** (cdb included). The target is killed in `finally`. A timed-out diagnostic is recorded as `exit_status: hung_dump_timeout`. `hang-watch.ps1` uses the same helper. `scripts/test-wait-bounded.ps1` (run by `test.ps1`) uses disposable processes only: a diagnostic that never returns and leaves a child, one that finishes, one that fails, and a helper that throws. 12 checks. The two timeout checks failed on the old function and pass now. |
+| **FB-16-02** (P2) No verdict from empty or unrecovered cohorts | **Yes, reproduced.** `compare_arms.py <missing dir>` printed `VERDICT: adopt B` with exit 0. `inf <= 0.9*inf` passed condition 2. | **Accepted** | `verdict()` rejects empty input and requires a finite B median. The CLI prints `VERDICT: no decision (no usable runs)` and exits 1 when nothing is usable. 4 regressions; 3 of them failed before the fix. A finite B against a never-recovered A can still be judged. EXP-025/026/027 are unaffected: all their cohorts were finite and populated. |
+| **FB-16-03** (KI-40 note) Shutdown on early exits | **Yes, from source.** `mordor-host` and `mordor-client` called `gns_shutdown_for_exit()` only on the normal path; `start_failed` and the `catch` returned without it. | **Accepted** | A local guard declared before the `try` calls it last on every exit path, after the transports are destroyed. The normal path still logs it. `gns_shutdown_for_exit()` traces `killed`/`refused` under `MORDOR_GNS_TRACE=1`. Smoke test in `test.ps1 -GnsBuild`: a GNS host bound to 192.0.2.1 (not on this machine) fails after GNS initialisation, 3 times, and must exit 1 with the shutdown traced (a hang there is dumped through `Wait-Bounded`). Without the guard, the trace was absent. The exception path (`return 2`) is covered by the same guard **by inspection only**; no test drives an exception after GNS initialisation. |
+| Independent review of these changes (subagent) | No significant finding; 7 low ones. | **Accepted 1–3, 5, 7; 4 documented; 6 not changed** | 1: the timeout case uses 10 s, so a cold start under load cannot fail it falsely. 2: the start-failure smoke uses `Wait-Bounded`. 3: the throwing-helper case was added. 5: `hang-watch` logs every stream. 7: the `exit_status` comments list `hung_dump_timeout`. 6 (a path ending in `\` breaks the quoting) does not apply to any default path. |
+| KI-35, KI-40 watcher, KI-42 | **Agreed.** | **Accepted, no change** | Defaults and the gate are unchanged. The hang watcher stays in batteries. KI-42 keeps its strict assertion. The next KI-35 step targets the GNS establishment and session phases. |
+
+---
+
 ## Feedback on review #15 (PR #15: cross-PR status and next experiment)
 
 - **Status:** implemented (2026-10-25) on `feature/review15-followup` (stacked on PR #15); the owner asked for all of it.

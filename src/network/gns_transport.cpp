@@ -183,7 +183,11 @@ std::uint64_t gns_unrouted_status_callbacks() { return g_unrouted_status.load();
 bool gns_shutdown_for_exit() {
     auto& r = rt();
     if (!r.initialized || r.shut_down) return true;
-    if (r.refs > 0) return false;  // a transport is still open: refuse rather than kill it under its feet
+    if (r.refs > 0) {  // a transport is still open: refuse rather than kill it under its feet
+        gns_trace("shutdown", 0, 0, r.refs, "refused");
+        return false;
+    }
+    gns_trace("shutdown", 0, 1, 0, "killed");  // FB-16-03: makes the early-exit path observable in tests
     GameNetworkingSockets_Kill();
     r.initialized = false;
     r.shut_down = true;

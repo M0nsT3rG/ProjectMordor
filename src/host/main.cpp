@@ -36,6 +36,11 @@ std::uint64_t now_us() {
 
 int main(int argc, char** argv) {
     using namespace mordor;
+#ifdef MORDOR_HAVE_GNS
+    // KI-40 (FB-16-03): every exit path, start failures and exceptions included, stops GNS last, after the try
+    // block's transports are destroyed. The normal path also calls it earlier, to log the result (idempotent).
+    struct GnsExit { ~GnsExit() { net::gns_shutdown_for_exit(); } } gns_exit;
+#endif
     try {
         cli::Args args(argc, argv);
         if (args.has("help")) {

@@ -45,10 +45,35 @@ try {
             $src = Join-Path $gnsResults "$k.json"
             if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$($map[$k])-$stamp.json") -Force }
         }
+        # FB-16-03 (KI-40): a GNS host whose start fails after GNS is initialised (192.0.2.1 is a documentation
+        # address that is not on this machine, so the listen socket cannot bind) must still shut GNS down and exit.
+        $tmp = Join-Path $env:TEMP "mordor-startfail-$PID"
+        New-Item -ItemType Directory -Force $tmp | Out-Null
+        . (Join-Path $PSScriptRoot 'wait-bounded.ps1')
+        $env:MORDOR_GNS_TRACE = '1'
+        try {
+            foreach ($i in 1..3) {
+                $p = Start-Process (Join-Path "build-gns/$Config" 'mordor-host.exe') -ArgumentList "--transport gns --bind 192.0.2.1 --port 47831 --duration-s 1" `
+                    -PassThru -WindowStyle Hidden -RedirectStandardError "$tmp/err$i.txt"
+                $null = $p.Handle
+                $exited = (Wait-Bounded $p 'startfail-host' 20) -eq 'exited'  # a hang is dumped (KI-40), then killed
+                $shut = $exited -and (Select-String -Path "$tmp/err$i.txt" -Pattern 'shutdown conn=0 a=1' -Quiet)
+                Write-Host "start-failure exit $i : exited=$exited code=$(if ($exited) { $p.ExitCode }) gns_shutdown=$shut"
+                if (-not $exited -or $p.ExitCode -ne 1 -or -not $shut) { $failed = $true }
+            }
+        } finally {
+            Remove-Item Env:MORDOR_GNS_TRACE -ErrorAction SilentlyContinue  # never leak into later steps (EXP-025)
+            Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
+        }
     }
     # FB-13-03: every recorded suite must have run on the transport it is registered for (no leaked MORDOR_TRANSPORT).
     python -I tools/collab/check_test_transport.py --date $stamp unit=udp integration=udp network=udp transport=udp `
         integration-gns=gns network-gns=gns transport-both=udp gns=udp dtls=udp
+    if ($LASTEXITCODE -ne 0) { $failed = $true }
+    # FB-16-01: the bounded wait stays bounded even when its diagnostic never returns.
+    $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+    powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'test-wait-bounded.ps1') 2>&1 | Out-Host
+    $ErrorActionPreference = $eap
     if ($LASTEXITCODE -ne 0) { $failed = $true }
     if ($E2E) {
         $bin = Join-Path $BuildDir $Config

@@ -7,9 +7,11 @@ param(
     [Parameter(Mandatory)][string]$UntilFile,
     [Parameter(Mandatory)][string]$Log,
     [double]$IdleMinutes = 3,
-    [string]$OutDir = (Join-Path $env:TEMP 'mordor-dumps')
+    [string]$OutDir = (Join-Path $env:TEMP 'mordor-dumps'),
+    [int]$DumpTimeoutS = 180
 )
 $ErrorActionPreference = 'Continue'
+. (Join-Path $PSScriptRoot 'wait-bounded.ps1')
 $seen = @{}
 while (-not (Test-Path $UntilFile)) {
     foreach ($p in Get-Process | Where-Object { $_.ProcessName -like 'mordor_*_tests' }) {
@@ -26,7 +28,8 @@ while (-not (Test-Path $UntilFile)) {
             Where-Object { $_.LastWriteTime -ge $p.StartTime } | ForEach-Object { $_.FullName.Substring($root.Length + 1) }
         $phase = if ($results) { "after writing results ($($results -join ', '))" } else { 'before writing any results' }
         "$(Get-Date -Format o) hung: $($p.ProcessName) pid $($p.Id) started $($p.StartTime.ToString('HH:mm:ss')), $phase" | Out-File $Log -Append -Encoding ascii
-        try { & (Join-Path $PSScriptRoot 'dump-stacks.ps1') -ProcessId $p.Id -OutDir $OutDir *>&1 | Out-File $Log -Append -Encoding ascii }
+        # FB-16-01: the dump runs in its own bounded process, so a stalled debugger cannot stop the watcher.
+        try { Invoke-BoundedDump $p.Id $DumpTimeoutS -ExtraArgs @('-OutDir', "`"$OutDir`"") *>&1 | Out-File $Log -Append -Encoding ascii }
         catch { "  dump failed: $($_.Exception.Message)" | Out-File $Log -Append -Encoding ascii }
         try { Stop-Process -Id $p.Id -Force -ErrorAction Stop; "  killed" | Out-File $Log -Append -Encoding ascii }
         catch { "  stop failed: $($_.Exception.Message)" | Out-File $Log -Append -Encoding ascii }

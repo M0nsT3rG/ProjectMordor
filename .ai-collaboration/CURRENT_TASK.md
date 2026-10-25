@@ -1,6 +1,9 @@
 # Current task
 
-**Last completed:** review #15 follow-up on `feature/review15-followup`. Record: EXP-027.
+**Last completed:** review #16 follow-up on `feature/review16-followup`. Record: EXP-028.
+- Bounded diagnostics inside bounded waits; no comparator verdict from empty or non-finite cohorts; GNS shutdown on every exit path.
+
+**Before that:** review #15 follow-up on `feature/review15-followup`. Record: EXP-027.
 - KI-40 root-caused and fixed; KI-42 instrumented (not reproduced).
 - The GNS-only cookie skip saved one RTT but was not adopted by the predeclared rule.
 - At the head, the battery passed 20/20; pooled harsh-gns-secure 3/15 (KI-35).
@@ -51,7 +54,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#13](https://github.com/M0nsT3rG/ProjectMordor/pull/13) | `feature/review12-retry-experiment` | #12 | Review #12: predeclared retry experiment (500 ms kept), KI-40 lifecycle trace and repro, GNS challenge finding, departure tests, battery 20/20 |
 | [#14](https://github.com/M0nsT3rG/ProjectMordor/pull/14) | `fix/linger-eviction-rejoin` | #13 | PR #12 review P2: linger eviction must not close a rejoined player |
 | [#15](https://github.com/M0nsT3rG/ProjectMordor/pull/15) | `feature/review13-14-followup` | #14 | Reviews #13/#14: harness hardening, KI-41 contract, E2E barrier, EXP-026, battery at the final head |
-| #16 | `feature/review15-followup` | #15 | Review #15: GNS cookie-skip A/B (not adopted), KI-40 root cause and fix, KI-42 tracing, bounded waits, battery 20/20 |
+| [#16](https://github.com/M0nsT3rG/ProjectMordor/pull/16) | `feature/review15-followup` | #15 | Review #15: GNS cookie-skip A/B (not adopted), KI-40 root cause and fix, KI-42 tracing, bounded waits, battery 20/20 |
+| #17 | `feature/review16-followup` | #16 | Review #16: bounded diagnostics, comparator refuses empty/non-finite cohorts, GNS shutdown on every exit path |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 
