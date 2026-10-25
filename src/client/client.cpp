@@ -226,10 +226,13 @@ void Client::receive(std::uint64_t now_us) {
                 // (Disconnected after leave(), Failed, Rejected) never opens a new connection; only connect() does.
                 if (from_host) {
                     ++stats_.transport_disconnects;
-                    if (state_ == ClientState::Connecting || state_ == ClientState::Connected || state_ == ClientState::Reconnecting) {
+                    // Connected: begin_reconnect() opens the one new connection (opening one here as well made a second,
+                    // immediately cancelled attempt; Codex review). Connecting/Reconnecting: open it here.
+                    if (state_ == ClientState::Connected) {
+                        begin_reconnect(now_us, "transport_disconnected");
+                    } else if (state_ == ClientState::Connecting || state_ == ClientState::Reconnecting) {
                         server_peer_ = transport_->connect(cfg_.host);
                         ++stats_.transport_connects;
-                        if (state_ == ClientState::Connected) begin_reconnect(now_us, "transport_disconnected");
                     }
                 }
                 break;
@@ -492,6 +495,9 @@ void Client::leave(std::uint64_t now_us) {
         return;
     }
     leave_started_us_ = last_leave_send_us_ = now_us;
+    // Codex review: this departure's own outcome; a previous confirmed leave() must not make this one look confirmed.
+    stats_.leave_confirmed = false;
+    stats_.leave_ms = stats_.leave_disconnects_sent = stats_.leave_disconnects_refused = 0;
     auto send_disconnect = [&](Delivery d) {
         ++stats_.leave_disconnects_sent;
         if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us, d)) ++stats_.leave_disconnects_refused;

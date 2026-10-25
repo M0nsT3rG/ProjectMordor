@@ -1198,6 +1198,59 @@ TEST(a_client_that_left_never_reconnects_on_its_own) {
                 static_cast<unsigned long long>(c.stats().transport_connects - connects));
 }
 
+// Codex review of the combined diff (P2): a second leave() reports its own outcome. The first is confirmed by the host;
+// the second gets no DisconnectAck (the host hears nothing) and must not inherit leave_confirmed = true.
+TEST(a_second_leave_reports_its_own_confirmation) {
+    test::Session s;
+    client::Client& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    c.leave(s.clk.now);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Disconnected; }, 3 * kSec));
+    CHECK(c.stats().leave_confirmed);
+    c.connect(s.clk.now);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 3 * kSec));
+    ImpairmentConfig deaf;
+    deaf.loss = 1.0;
+    CHECK(s.host.set_impairment(deaf));  // the host neither hears the leave nor acknowledges it
+    c.leave(s.clk.now);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Disconnected; }, 3 * kSec));
+    CHECK(!c.stats().leave_confirmed);
+    CHECK(c.stats().leave_ms >= 1000);
+}
+
+// Codex review of the combined diff (P2): the host closing our transport connection while Connected opens exactly ONE
+// new connection (begin_reconnect's), not a second one that begin_reconnect then cancels. Connectionless backends report
+// no such close: the client stays on its own timeout and opens none.
+TEST(losing_the_host_connection_opens_one_new_connection) {
+    test::SimClock clk;
+    TransportFakeHost fh;
+    client::ClientConfig cc;
+    cc.host = fh.endpoint();
+    cc.transport = test::test_transport();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    c.connect(clk.now);
+    fh.expect_request(c, clk);
+    fh.accept(c, clk);
+    CHECK(c.state() == ClientState::Connected);
+    const auto before = c.stats().transport_connects;
+    fh.t->close_peer(fh.client);  // the host side drops the connection, with no session goodbye
+    for (int i = 0; i < 300 && c.state() == ClientState::Connected; ++i) {
+        clk.now += 10'000;
+        c.update(clk.now);
+        settle();
+        drain(*fh.t);
+    }
+    const auto opened = c.stats().transport_connects - before;
+    if (fh.t->capabilities().reports_disconnects) {
+        CHECK(c.state() == ClientState::Reconnecting);
+        CHECK(opened == 1);
+    } else {
+        CHECK(opened == 0);  // nothing reported: no transport connect at all
+    }
+    std::printf("       state %s, new transport connections: %llu\n", to_string(c.state()), static_cast<unsigned long long>(opened));
+}
+
 // EXP-022 regression: the host resends an unapplied event on EVERY transport, including reliable ones. (The soak
 // found a client that discarded an event which overtook its ConnectAccept; on a reliable transport the host had
 // never resent it, so the stream stalled behind that gap for the whole run.)
