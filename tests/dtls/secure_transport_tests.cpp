@@ -732,6 +732,8 @@ TEST(secure_late_poll_keeps_a_peer_that_kept_sending) {
         CHECK(count(hev, TransportEvent::Kind::Disconnected) == 0);
         CHECK(count(hev, TransportEvent::Kind::Message) >= 1);
         CHECK(secure_stats(*host)->idle_timeouts == 0);
+        // Codex review: the decorator counts what it delivers (TransportStats::received stayed 0 in secure sessions).
+        CHECK(host->stats().received >= count(hev, TransportEvent::Kind::Message));
         std::printf("       %s: after a 1.5 s stall: %zu messages, %zu disconnects\n", to_string(k),
                     count(hev, TransportEvent::Kind::Message), count(hev, TransportEvent::Kind::Disconnected));
     }

@@ -28,8 +28,12 @@ try {
     $hostImp = if ($Scenario -eq 'host-jitter-client-outage') { @{ latency_ms = 20; jitter_ms = 40 } } else { @{ latency_ms = 0; jitter_ms = 0 } }
     $outageAt = [math]::Round($DurationS * 0.3)
     # Warm-up after a relink (EXP-006).
-    & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-host.log"
-    & (Join-Path $bin 'mordor-client.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-client.log"
+    . (Join-Path $PSScriptRoot 'wait-bounded.ps1')  # Codex review: the warm-ups are bounded waits too
+    foreach ($w in 'mordor-host.exe', 'mordor-client.exe') {
+        $wp = Start-Process (Join-Path $bin $w) -PassThru -WindowStyle Hidden `
+            -ArgumentList "--port $($Port + 1) --duration-s 1 --transport $Transport --log `"$out/warmup-$($w.Split('-')[1].Split('.')[0]).log`""
+        if ((Wait-Bounded $wp "warmup-$w" 30) -ne 'exited') { Write-Warning "warm-up $w hung (dumped and killed)" }
+    }
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
 
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow -ArgumentList `

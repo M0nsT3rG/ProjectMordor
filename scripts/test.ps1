@@ -192,8 +192,12 @@ try {
         New-Item -ItemType Directory $out | Out-Null
         # Workaround (EXP-006, cause unknown): right after a relink, the first run of the binaries
         # exchanged no packets at all. A short warm-up run of each binary avoided it.
-        & (Join-Path $bin 'mordor-host.exe') --port 47812 --duration-s 1 --log "$out/warmup-host.log"
-        & (Join-Path $bin 'mordor-client.exe') --port 47812 --duration-s 1 --log "$out/warmup-client.log"
+        . (Join-Path $PSScriptRoot 'wait-bounded.ps1')  # Codex review: the warm-ups are bounded waits too
+        foreach ($w in 'mordor-host.exe', 'mordor-client.exe') {
+            $wp = Start-Process (Join-Path $bin $w) -PassThru -WindowStyle Hidden `
+                -ArgumentList "--port 47812 --duration-s 1 --log `"$out/warmup-$($w.Split('-')[1].Split('.')[0]).log`""
+            if ((Wait-Bounded $wp "warmup-$w" 30) -ne 'exited') { $failed = $true }
+        }
         Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
         $imp = '--latency-ms 40 --jitter-ms 20 --loss 0.1'
         $h = Start-Process (Join-Path $bin 'mordor-host.exe') -ArgumentList "--port 47811 --duration-s 9 $imp --seed 5 --log $out/host.log" -PassThru -NoNewWindow

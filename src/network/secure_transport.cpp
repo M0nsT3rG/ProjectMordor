@@ -429,6 +429,7 @@ private:
         if (f.empty()) return;
         const std::span<const std::uint8_t> body(f.data() + 1, f.size() - 1);
         if (f[0] == kFrameUnreliable) {
+            ++stats_.received;  // Codex review: counted per delivered message (it stayed 0 in every secure session)
             out.push_back({TransportEvent::Kind::Message, s.secure, s.remote, Delivery::Unreliable, {body.begin(), body.end()}, {}});
         } else if (f[0] == kFrameReliable && body.size() >= 4) {
             const std::uint32_t seq = get_u32(body);
@@ -439,6 +440,7 @@ private:
             }
             s.out_of_order.emplace(seq, std::vector<std::uint8_t>(body.begin() + 4, body.end()));
             for (auto it = s.out_of_order.find(s.next_expected); it != s.out_of_order.end(); it = s.out_of_order.find(s.next_expected)) {
+                ++stats_.received;  // delivered in order; duplicates returned above are never counted
                 out.push_back({TransportEvent::Kind::Message, s.secure, s.remote, Delivery::ReliableOrdered, std::move(it->second), {}});
                 s.out_of_order.erase(it);
                 ++s.next_expected;

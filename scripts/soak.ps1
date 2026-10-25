@@ -62,10 +62,13 @@ try {
     # Warm-up (EXP-006 workaround, cause unknown). Two runs stopped right after it (EXP-024/025), probably because a
     # GNS warning on stderr throws under ErrorActionPreference=Stop (PowerShell 5.1): never let stderr abort a soak,
     # and keep it if it is not empty.
-    $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-    & (Join-Path $bin 'mordor-host.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-host.log" 2> "$out/warmup-host.stderr.txt"
-    & (Join-Path $bin 'mordor-client.exe') --port ($Port + 1) --duration-s 1 --transport $Transport --log "$out/warmup-client.log" 2> "$out/warmup-client.stderr.txt"
-    $ErrorActionPreference = $eap
+    # Codex review: bounded like every other wait (a warm-up stuck at start-up or exit, KI-40, used to stall the soak).
+    $warmupStatus = [ordered]@{}
+    foreach ($w in @(@('host', 'mordor-host.exe'), @('client', 'mordor-client.exe'))) {
+        $wp = Start-Process (Join-Path $bin $w[1]) -PassThru -WindowStyle Hidden -RedirectStandardError "$out/warmup-$($w[0]).stderr.txt" `
+            -ArgumentList "--port $($Port + 1) --duration-s 1 --transport $Transport --log `"$out/warmup-$($w[0]).log`""
+        $warmupStatus[$w[0]] = Wait-Bounded $wp "warmup-$($w[0])" 30
+    }
     Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
     Get-ChildItem "$out/warmup-*.stderr.txt" | Where-Object { $_.Length -eq 0 } | Remove-Item
 
@@ -111,6 +114,7 @@ try {
         host_timeout_ms  = 3000
         exit_codes       = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode }
         exit_status      = $exitStatus  # exited | hung | hung_dump_timeout (infrastructure failure, not a gate result)
+        warmup_exit_status = $warmupStatus  # the warm-up runs, bounded the same way (Codex review)
     }
     # UTF-8 without BOM: Python's json reader rejects a BOM.
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $out) 'run.json'), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))
