@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 99,
+  "count": 100,
   "records": [
     {
       "id": "EXP-001",
@@ -892,6 +892,17 @@
       "scope": "source_verified",
       "confidence": "high",
       "summary": "In GameNetworkingSockets v1.6.1, packets arriving on a shared direct-UDP listen socket are dispatched by source address: an accepted connection is registered under its remote address (CSharedSocket::AddRemoteHost) and receives only packets from that address; any other source goes to the listen socket's unknown-address handler (challenge / connect / close messages). Together with F-GNS-001, data on an established GNS connection comes only from the address that answered the stateless challenge."
+    },
+    {
+      "id": "F-GNS-003",
+      "type": "finding",
+      "path": "evidence/findings/F-GNS-003.json",
+      "date": "2026-10-25",
+      "subsystem": "networking",
+      "status": "CONFIRMED",
+      "scope": "source_verified",
+      "confidence": "high",
+      "summary": "In GameNetworkingSockets v1.6.1, a direct-UDP client establishes a connection with a 4-leg exchange that restarts from the first leg every 500 ms: ThinkConnection_ClientConnecting calls SendEndToEndConnectRequest every k_usecConnectRetryInterval (a compile-time constant, 500 ms), which on the UDP transport sends a ChallengeRequest; a ChallengeReply makes the client send one ConnectRequest, and the connection completes on ConnectOK. Losing any of the 4 packets ends that attempt until the next ChallengeRequest. The interval is not a GNS configuration value."
     },
     {
       "id": "F-SOWM-001",

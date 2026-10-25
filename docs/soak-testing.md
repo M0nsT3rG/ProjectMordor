@@ -525,6 +525,30 @@ On `bd052d6`, with the default policy (cookie on, 500 ms retry). The gates are u
 - **GNS phases** of the 5 battery harsh-gns-secure reconnects (`timeline.py --summary`): p50 notice 185, establish 436, DTLS 560, session 674, total 2080 ms (p90 total 2898 ms).
 - Test suites, both passes on both builds: all passed, with the transport check OK. E2E, asymmetric 4/4 and secure E2E 4/4 also passed. The hang watcher recorded no stuck process.
 
+## Predeclared experiment KI-35: what sets GNS establishment time (2026-10-25, EXP-036)
+
+Written and committed **before** its first run. Measurement only: no product, default or gate change.
+
+- **Context.** In the 39 harsh-gns-secure reconnects recorded so far, `phase_establish` (from `reconnecting` to the
+  first DTLS ClientHello, which waits for the inner GNS `Connected`) has p50 880 ms and p90 1580 ms. It is the largest
+  phase. F-GNS-003, source-verified, describes how GNS connects: a 4-packet exchange that restarts every 500 ms; the
+  500 ms is a compile-time constant, not a GNS setting.
+- **Model** (`tools/ki35/model.py`, fixed seed, 200 000 samples, harsh mapping of `gns_transport.cpp`, duplicates not
+  modelled). Raw establishment: **p50 409 ms, p90 1850 ms, p99 3360 ms**. Per-attempt success is 0.85^4 = 0.52.
+- **Measurement** (`tools/ki35/probe`, GNS build). One process holds a listening GNS transport and a fresh client
+  transport per trial. The harsh profile is applied through our own `set_impairment`; it is process-global, so both
+  directions are impaired, as in the soak. Each trial times `connect()` to the client's `Connected` event, with both
+  transports polled every 1 ms at 1 ms timer resolution. 300 harsh trials and 50 unimpaired trials.
+- **Decision rules, fixed now:**
+  - **H1 (the GNS model explains raw establishment):** supported if the measured raw p50 is in [259, 559] ms **and**
+    the raw p90 in [1388, 2313] ms (each ±max(25%, 150 ms) of the model). If supported, the establishment tail is set
+    by a GNS constant we cannot configure, and any remedy must avoid or overlap new connections, each in its own
+    predeclared experiment.
+  - **H2 (our reconnect path adds latency beyond raw GNS):** supported if 880 ms (the soak p50 above) exceeds the
+    measured raw p50 by more than 200 ms. If supported, the next predeclared step instruments the client between
+    `reconnecting`, the GNS `connect()` call and the inner `Connected`. Instrumentation only.
+  - Neither result changes a gate, a default or the protocol.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

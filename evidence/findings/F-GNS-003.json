@@ -1,0 +1,39 @@
+{
+  "id": "F-GNS-003",
+  "type": "finding",
+  "date": "2026-10-25",
+  "subsystem": "networking",
+  "claim": "In GameNetworkingSockets v1.6.1, a direct-UDP client establishes a connection with a 4-leg exchange that restarts from the first leg every 500 ms: ThinkConnection_ClientConnecting calls SendEndToEndConnectRequest every k_usecConnectRetryInterval (a compile-time constant, 500 ms), which on the UDP transport sends a ChallengeRequest; a ChallengeReply makes the client send one ConnectRequest, and the connection completes on ConnectOK. Losing any of the 4 packets ends that attempt until the next ChallengeRequest. The interval is not a GNS configuration value.",
+  "evidence": "steamnetworkingsockets_connections.h: const SteamNetworkingMicroseconds k_usecConnectRetryInterval = k_nMillion/2. steamnetworkingsockets_connections.cpp: CSteamNetworkConnectionBase::ThinkConnection_ClientConnecting sends a request when usecNow >= m_usecWhenSentConnectRequest + k_usecConnectRetryInterval and wakes up again at that time. steamnetworkingsockets_udp.cpp: CConnectionTransportUDP::SendEndToEndConnectRequest builds and sends a CMsgSteamSockets_UDP_ChallengeRequest; Received_ChallengeReply builds and sends a CMsgSteamSockets_UDP_ConnectRequest; Received_ConnectOK completes the connection.",
+  "sources": [
+    {
+      "url": "https://github.com/ValveSoftware/GameNetworkingSockets",
+      "commit": "d534c19aa760df3fb75fd20db13ba1932b8a5463",
+      "path": "src/steamnetworkingsockets/clientlib/steamnetworkingsockets_connections.h",
+      "location": "k_usecConnectRetryInterval (line 33) at tag v1.6.1"
+    },
+    {
+      "url": "https://github.com/ValveSoftware/GameNetworkingSockets",
+      "commit": "d534c19aa760df3fb75fd20db13ba1932b8a5463",
+      "path": "src/steamnetworkingsockets/clientlib/steamnetworkingsockets_connections.cpp",
+      "location": "CSteamNetworkConnectionBase::ThinkConnection_ClientConnecting (about line 3715) at tag v1.6.1"
+    },
+    {
+      "url": "https://github.com/ValveSoftware/GameNetworkingSockets",
+      "commit": "d534c19aa760df3fb75fd20db13ba1932b8a5463",
+      "path": "src/steamnetworkingsockets/clientlib/steamnetworkingsockets_udp.cpp",
+      "location": "CConnectionTransportUDP::SendEndToEndConnectRequest (about line 1258), Received_ChallengeReply, Received_ConnectOK (about line 1576) at tag v1.6.1"
+    }
+  ],
+  "game_build_compatibility": "N/A (prototype transport library)",
+  "verification_method": "Read-only reading of a fresh shallow clone of tag v1.6.1 (the same commit as F-GNS-001/002), outside the repository; nothing built or run from it.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Source reading only: the timing under loss is a prediction until EXP-036 measures it. Host-side acceptance needs the application to call AcceptConnection from the status callback, which our transport does inside poll(); that dispatch delay is ours, not GNS's. Duplicated packets (our harsh profile duplicates 5%) were not traced. P2P and relayed paths were not examined.",
+  "next_experiment": "EXP-036 (predeclared): measure raw GNS establishment under the harsh profile against a Monte Carlo of this 4-leg / 500 ms model, and compare it with the soak's 'establish' phase.",
+  "related": [
+    "F-GNS-001",
+    "F-GNS-002"
+  ]
+}
