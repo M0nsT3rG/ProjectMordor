@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 94,
+  "count": 95,
   "records": [
     {
       "id": "EXP-001",
@@ -331,6 +331,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #18 on feature/review18-repeat: keep every test.ps1 -Repeat invocation with its exit code (FB-18-01), show each suite's run status in the report (FB-18-02), and qualify the wait budget (FB-18-03) and the meaning of a creation snapshot (FB-18-04)."
+    },
+    {
+      "id": "EXP-031",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-031.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #19 on feature/review19-freshness: a bounded recent-runs history with every invocation's exit code in the report (FB-19-01), and result freshness without timestamps plus failing missing suites (FB-19-02)."
     },
     {
       "id": "F-COMM-001",

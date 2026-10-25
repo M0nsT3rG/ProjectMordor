@@ -38,28 +38,38 @@ try {
     $ctestRuns = New-Object System.Collections.ArrayList  # FB-18-01: every ctest invocation, its exit code and its files
     # Runs ctest once and keeps what THAT invocation wrote in <runDir>/<Label>/, before the next one can replace it,
     # failed invocations included. The top-level <suite>.json files hold the latest invocation's copy.
+    # Returns $true only if ctest exited 0 AND every expected suite wrote its results (FB-19-02).
     function Invoke-Suites([string]$Dir, [string]$Label, [int]$Iteration, $Map) {
-        $since = Get-Date
+        # FB-19-02: remove the expected result files first, so whatever exists afterwards was written by THIS
+        # invocation. No timestamp comparison: its precision and fast repeats made "fresh" ambiguous.
+        foreach ($k in $Map) {
+            $old = Join-Path $Dir "test-results/$($k[0]).json"
+            Remove-Item -LiteralPath $old -ErrorAction SilentlyContinue
+            # A file that cannot be removed (locked by a stuck test process, KI-40) would be taken as fresh: stop.
+            if (Test-Path -LiteralPath $old) { throw "cannot remove stale results $old" }
+        }
         $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'  # a failing ctest writes to stderr (EXP-023)
         & $CtestCommand --test-dir $Dir -C $Config --output-on-failure 2>&1 | Out-Host
         $code = $LASTEXITCODE
         $ErrorActionPreference = $eap
         $iterDir = Join-Path $runDir $Label
         New-Item -ItemType Directory $iterDir | Out-Null
-        $files = @()
+        $files = @(); $missing = @()
         foreach ($k in $Map) {  # ctest result name, recorded name, transport the suite is registered for (FB-13-03)
             $src = Join-Path $Dir "test-results/$($k[0]).json"
-            # Only results this invocation wrote: a suite that did not run must not bring in an older file.
-            if ((Test-Path $src) -and (Get-Item $src).LastWriteTime -ge $since) {
+            if (Test-Path $src) {
                 Copy-Item $src (Join-Path $iterDir "$($k[1]).json")
                 Copy-Item $src (Join-Path $runDir "$($k[1]).json") -Force  # latest invocation, for the report
                 $suites[$k[1]] = $k[2]
                 $files += "$Label/$($k[1]).json"
+            } else {
+                $missing += $k[1]  # exit code 0 does not prove a suite wrote its results
+                Write-Host "MISSING RESULTS: $($k[1]) wrote no $($k[0]).json in $Label"
             }
         }
-        [void]$ctestRuns.Add([ordered]@{ build = $Dir; iteration = $Iteration; dir = $Label; exit_code = $code; files = $files })
+        [void]$ctestRuns.Add([ordered]@{ build = $Dir; iteration = $Iteration; dir = $Label; exit_code = $code; files = $files; missing = $missing })
         Write-RunJson 'incomplete'  # on disk now: a run that stops later (E2E throw, Ctrl+C) keeps this history
-        return $code
+        return ($code -eq 0 -and $missing.Count -eq 0)
     }
     function Write-RunJson([string]$Result, $E2EExit = $null) {
         $run = [ordered]@{
@@ -75,23 +85,25 @@ try {
     $e2eExit = $null
     $udpSuites = @(@('unit', 'unit', 'udp'), @('integration', 'integration', 'udp'), @('network', 'network', 'udp'), @('transport', 'transport', 'udp'))
     for ($i = 1; $i -le $Repeat; $i++) {
-        if ((Invoke-Suites $BuildDir "iter-$i" $i $udpSuites) -ne 0) { $failed = $true }
+        if (-not (Invoke-Suites $BuildDir "iter-$i" $i $udpSuites)) { $failed = $true }
     }
     # Optional GNS build: per-transport results are recorded separately (review #4 next steps).
-    $gnsResults = Join-Path 'build-gns' 'test-results'
-    if ($GnsBuild -and (Test-Path $gnsResults)) {
+    # FB-19-02: asked for and absent is a failure (missing results), never a silent skip.
+    if ($GnsBuild) {
         $gnsSuites = @(@('integration-gns', 'integration-gns', 'gns'), @('network-gns', 'network-gns', 'gns'),
                        @('transport', 'transport-both', 'udp'), @('gns', 'gns', 'udp'), @('dtls', 'dtls', 'udp'))
-        if ((Invoke-Suites 'build-gns' 'build-gns-iter-1' 1 $gnsSuites) -ne 0) { $failed = $true }
+        if (-not (Invoke-Suites 'build-gns' 'build-gns-iter-1' 1 $gnsSuites)) { $failed = $true }
         # FB-16-03 (KI-40): a GNS host whose start fails after GNS is initialised (192.0.2.1 is a documentation
         # address that is not on this machine, so the listen socket cannot bind) must still shut GNS down and exit.
         $tmp = Join-Path $env:TEMP "mordor-startfail-$PID"
         New-Item -ItemType Directory -Force $tmp | Out-Null
         . (Join-Path $PSScriptRoot 'wait-bounded.ps1')
         $env:MORDOR_GNS_TRACE = '1'
+        $hostExe = Join-Path "build-gns/$Config" 'mordor-host.exe'
+        $smoke = if (Test-Path -LiteralPath $hostExe) { 1..3 } else { Write-Host "start-failure smoke: no $hostExe"; $failed = $true; @() }
         try {
-            foreach ($i in 1..3) {
-                $p = Start-Process (Join-Path "build-gns/$Config" 'mordor-host.exe') -ArgumentList "--transport gns --bind 192.0.2.1 --port 47831 --duration-s 1" `
+            foreach ($i in $smoke) {
+                $p = Start-Process $hostExe -ArgumentList "--transport gns --bind 192.0.2.1 --port 47831 --duration-s 1" `
                     -PassThru -WindowStyle Hidden -RedirectStandardError "$tmp/err$i.txt"
                 $null = $p.Handle
                 $exited = (Wait-Bounded $p 'startfail-host' 20) -eq 'exited'  # a hang is dumped (KI-40), then killed

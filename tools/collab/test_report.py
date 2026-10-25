@@ -83,6 +83,55 @@ class ReportTests(unittest.TestCase):
             (run / "run.json").write_text("{broken")
             self.assertIn("unknown", report.latest_test_logs(logs)["unit"]["run"]["result"])
 
+    def test_recent_runs_keep_every_invocation_visible(self):
+        # FB-19-01: a later pass inside a run never hides an earlier failed invocation; the list is bounded.
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            def mk(name, run):
+                (logs / name).mkdir()
+                (logs / name / "run.json").write_text(json.dumps(run))
+            for i in range(6):
+                mk(f"tests-2026-01-0{i + 1}-000000-abcdef1", {"result": "passed", "ctest_runs": [{"dir": "iter-1", "exit_code": 0}]})
+            mk("tests-2026-01-09-000000-abcdef1", {"result": "failed", "ctest_runs": [
+                {"dir": "iter-1", "exit_code": 1, "missing": []}, {"dir": "iter-2", "exit_code": 0, "missing": ["transport"]}]})
+            mk("tests-2026-01-08-000000-abcdef1", {"result": "passed"})  # before per-invocation records
+            (logs / "tests-2026-01-07-000000-notacommit").mkdir()  # not a run directory name: ignored
+            lines = report.recent_runs(logs)
+            self.assertEqual(len(lines), report.RECENT_RUNS)
+            self.assertIn("tests-2026-01-09-000000-abcdef1", lines[0])  # newest first
+            self.assertIn("**failed**", lines[0])
+            self.assertIn("iter-1: exit 1", lines[0])
+            self.assertIn("iter-2: exit 0, MISSING transport", lines[0])
+            self.assertIn("before per-invocation records", lines[1])
+            self.assertFalse(any("notacommit" in x for x in lines))
+
+    def test_unreadable_or_null_run_records_never_crash(self):
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            for name, raw in (("tests-2026-01-01-000000-abcdef1", b"{broken"), ("tests-2026-01-02-000000-abcdef1", b"\xff\xfe\xfa"),
+                              ("tests-2026-01-03-000000-abcdef1", b'{"result": "passed", "ctest_runs": null}')):
+                (logs / name).mkdir()
+                (logs / name / "run.json").write_bytes(raw)
+                (logs / name / "unit.json").write_text(json.dumps([{"name": "a", "result": "PASSED"}]))
+            lines = report.recent_runs(logs)
+            self.assertIn("no ctest invocation recorded", lines[0])
+            self.assertIn("no readable run.json", lines[1])  # invalid UTF-8 (a ValueError, not a JSONDecodeError)
+            self.assertIn("no readable run.json", lines[2])
+            self.assertIn("passed", report.latest_test_logs(logs)["unit"]["run"]["result"])
+            (logs / "tests-2026-01-03-000000-abcdef1" / "run.json").write_bytes(b"\xff\xfe\xfa")
+            self.assertIn("unknown", report.latest_test_logs(logs)["unit"]["run"]["result"])
+
+    def test_recent_runs_appear_in_both_generated_blocks(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            for sub in ("evidence/findings", "evidence/experiments", "evidence/logs/tests-2026-01-02-100000-abcdef1"):
+                (repo / sub).mkdir(parents=True)
+            (repo / "evidence/logs/tests-2026-01-02-100000-abcdef1/run.json").write_text(json.dumps(
+                {"result": "failed", "ctest_runs": [{"dir": "iter-1", "exit_code": 1}, {"dir": "iter-2", "exit_code": 0}]}))
+            out = report.build(repo)
+            for block in ("status_block", "test_results"):
+                self.assertIn("iter-1: exit 1, iter-2: exit 0", out[block], block)
+
     def test_e2e_logs_inside_run_directories_are_listed(self):
         with tempfile.TemporaryDirectory() as d:
             repo = Path(d)

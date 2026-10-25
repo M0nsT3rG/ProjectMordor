@@ -6,6 +6,22 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #19 (PR #19: review #18 follow-up)
+
+- **Status:** implemented (2026-10-25) on `feature/review19-freshness` (stacked on PR #19); the owner asked for all of it.
+- **Source:** [PR #19 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/19) at `01006cf`. ChatGPT reviewed the source and the evidence only.
+- **Verdict:** no newly demonstrated blocker; conditional GO for controlled lab work; no merge. The 19 PRs stay stacked pending the owner's integration decision.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-19-01** (minor) Run history in the report | **Yes.** `report.py` showed only the selected suite's parent-run status, not each invocation. | **Accepted** | `recent_runs()`: the newest 5 run directories, newest first. Each shows the overall result (bold unless passed) and **every** ctest invocation with its exit code and missing suites. Runs from before per-invocation records are labelled as such. The section appears in PROJECT_STATUS and TEST_RESULTS. Tests: a run with a failed `iter-1` and a passing `iter-2` still shows `iter-1: exit 1`; bounded to 5; non-run names ignored; both blocks contain it. |
+| **FB-19-02** (minor) Freshness by timestamp; missing suites | **Yes, and worse than stated.** The previous `test.ps1` accepted a stale file with a newer timestamp as this invocation's result. A suite that wrote no results was silently omitted while ctest exited 0. `-GnsBuild` was also skipped silently when `build-gns/test-results` did not exist. Both were reproduced in the harness. | **Accepted** | `Invoke-Suites` deletes the expected result files **before** ctest, so whatever exists afterwards is this invocation's; no timestamp comparison. An expected suite with no file is recorded in `ctest_runs[].missing`, printed (`MISSING RESULTS`) and fails the run, whatever ctest's exit code. `-GnsBuild` always runs; absent results are missing results. Harness +6 checks (19, then 21 with the positive control): a stale file with a future timestamp is removed and not taken, `missing` is `transport` next to exit code 0, and the run fails. The previous `test.ps1` failed 5 of those checks. |
+| Independent review (subagent; Codex hit its account usage limit until 17:35) | Nothing significant; 4 low or medium points, all confirmed by reading. (1) No positive control: a harness or `test.ps1` that failed every run would pass every check. (2) A stale file that could not be deleted (locked by a stuck process) was silently ignored and then taken as fresh. (3) With `-GnsBuild` and no GNS build, the start-failure smoke threw, leaving `run.json` at `incomplete`. (4) An invalid UTF-8 `run.json` (a `ValueError`, not a `JSONDecodeError`) crashed the report. | **Accepted, fixed** | (1) A clean-run positive control: no throw, `passed`, nothing missing, exit 0. 21 checks in all. (2) `-LiteralPath`, and a stale file that is still there after the delete stops the run. (3) The smoke test is skipped and fails the run when the host executable is absent. (4) `ValueError` caught in both readers; tests for invalid UTF-8, broken JSON and `ctest_runs: null`. The locked-file path (2) and the missing-GNS-build path (3) are not exercised by a test. |
+| **FB-19-03** (major, status) KI-35, KI-42, KI-28b, KI-32 | **Agreed.** | **Accepted, no change** | They stay open. KI-35 next, with a predeclared investigation of GNS establishment, DTLS and session phases. Tracing stays available. KI-28b and KI-32 are not represented as complete. |
+| Answers 1 and 2 | **Agreed.** | — | The top-level files stay a convenience view; `run.json` and `iter-*` hold the history. The bounded recent-runs section is added (FB-19-01). |
+
+---
+
 ## Feedback on review #18 (PR #18: review #17 follow-up)
 
 - **Status:** implemented (2026-10-25) on `feature/review18-repeat` (stacked on PR #18); the owner asked for all of it.

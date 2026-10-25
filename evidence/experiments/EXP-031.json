@@ -1,0 +1,23 @@
+{
+  "id": "EXP-031",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; PowerShell 5.1, Python 3",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #19 on feature/review19-freshness: a bounded recent-runs history with every invocation's exit code in the report (FB-19-01), and result freshness without timestamps plus failing missing suites (FB-19-02).",
+  "hypothesis": "Deleting the expected result files before each ctest invocation makes every remaining file this invocation's; recording expected-but-absent suites catches a suite that wrote nothing even when ctest exits 0.",
+  "procedure": "test.ps1 Invoke-Suites: delete each expected test-results/<suite>.json (-LiteralPath; stop if one cannot be removed), run ctest, copy what exists, record ctest_runs[].missing, return true only for exit 0 and nothing missing; -GnsBuild always runs; the start-failure smoke is skipped and fails the run when the host executable is absent. report.py recent_runs(): newest 5 run directories with overall result and every invocation's exit code and missing suites, in both generated blocks; ValueError (invalid UTF-8) handled. Harness scripts/test-repeat-capture.ps1: the stand-in ctest writes all four UDP suites; a mode file selects 'skip-transport'; new cases: missing suite with exit 0 plus a stale file with a future timestamp, and a clean-run positive control. Red-before: against the previous test.ps1 the harness failed 5 checks (the run with a missing suite passed, and the stale file was taken as a result). Independent review subagent (Codex was at its account usage limit): nothing significant, 4 points fixed. Ran test.ps1 -GnsBuild -Repeat 2 -E2E twice on the working tree over 01006cf (before and after the review fixes).",
+  "expected_result": "Harness and report tests pass; the old test.ps1 fails the new cases; both full runs pass with nothing missing.",
+  "observed_result": "Harness 21/21; report self-tests 11/11; validator, comparator and analyzer self-tests pass. Previous test.ps1: 5 harness checks failed. Full runs tests-2026-10-25-162657-01006cf-dirty and tests-2026-10-25-164201-01006cf-dirty: iter-1, iter-2 (4 suites each) and build-gns-iter-1 (5 suites), all exit 0 and nothing missing; transport check OK in all 4 directories; start-failure smoke 3/3; wait-bounded and repeat-capture self-checks passed; E2E exit codes 0. The harness wrote nothing under evidence/logs. Not exercised by a test: a stale file that cannot be deleted, and -GnsBuild without a GNS build.",
+  "evidence_paths": [
+    "evidence/logs/tests-2026-10-25-162657-01006cf-dirty",
+    "evidence/logs/tests-2026-10-25-164201-01006cf-dirty"
+  ],
+  "result": "PASSED",
+  "errors": "None. Runs are marked dirty because the changed scripts were not yet committed; the C++ code under test equals 01006cf.",
+  "confidence": "high",
+  "follow_up": "Codex review of the branch once its usage limit resets; KI-35 GNS phases with predeclared comparisons.",
+  "related": [
+    "EXP-030"
+  ]
+}

@@ -1,6 +1,9 @@
 # Current task
 
-**Last completed:** review #18 follow-up on `feature/review18-repeat`. Record: EXP-030.
+**Last completed:** review #19 follow-up on `feature/review19-freshness`. Record: EXP-031.
+- Result freshness without timestamps; missing suites fail the run; recent-runs history in the report.
+
+**Before that:** review #18 follow-up on `feature/review18-repeat`. Record: EXP-030.
 - Every repeat invocation is kept with its exit code; the report shows run status.
 
 **Before that:** review #17 follow-up on `feature/review17-evidence`. Record: EXP-029.
@@ -63,7 +66,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#16](https://github.com/M0nsT3rG/ProjectMordor/pull/16) | `feature/review15-followup` | #15 | Review #15: GNS cookie-skip A/B (not adopted), KI-40 root cause and fix, KI-42 tracing, bounded waits, battery 20/20 |
 | [#17](https://github.com/M0nsT3rG/ProjectMordor/pull/17) | `feature/review16-followup` | #16 | Review #16: bounded diagnostics, comparator refuses empty/non-finite cohorts, GNS shutdown on every exit path |
 | [#18](https://github.com/M0nsT3rG/ProjectMordor/pull/18) | `feature/review17-evidence` | #17 | Review #17: immutable per-run test evidence, recovery of overwritten evidence, validator rule |
-| #19 | `feature/review18-repeat` | #18 | Review #18: every repeat invocation kept with exit codes, run status in the report, budget and snapshot wording |
+| [#19](https://github.com/M0nsT3rG/ProjectMordor/pull/19) | `feature/review18-repeat` | #18 | Review #18: every repeat invocation kept with exit codes, run status in the report, budget and snapshot wording |
+| #20 | `feature/review19-freshness` | #19 | Review #19: results deleted before each invocation, missing suites fail the run, recent-runs history |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 

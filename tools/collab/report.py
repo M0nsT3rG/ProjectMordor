@@ -23,6 +23,8 @@ from pathlib import Path
 
 AUTO_BEGIN = "<!-- AUTO:BEGIN"
 AUTO_END = "<!-- AUTO:END -->"
+RUN_DIR = re.compile(r"^tests-(\d{4}-\d{2}-\d{2}-\d{6})-[0-9a-f]{7}(-dirty)?$")  # test.ps1 per-run directory (FB-17-02)
+RECENT_RUNS = 5  # FB-19-01: a short history, not every run ever
 SUITES = ("unit", "integration", "network")  # required (UDP / default build)
 # Reported when present: contract suite and per-transport GNS results (review #4 next steps).
 OPTIONAL_SUITES = ("transport", "transport-both", "integration-gns", "network-gns", "gns", "dtls")
@@ -70,8 +72,7 @@ def latest_test_logs(logs: Path, suites=SUITES) -> dict[str, dict]:
     tests-<suite>-YYYY-MM-DD.json (exact name, so 'integration' never matches 'integration-gns' or '*-first-run').
     Ordered by the timestamp in the name; a legacy day sorts before any run directory of that day."""
     found = {}
-    run_dir = re.compile(r"^tests-(\d{4}-\d{2}-\d{2}-\d{6})-[0-9a-f]{7}(-dirty)?$")
-    runs = [(m.group(1), d) for d in logs.glob("tests-*") if d.is_dir() and (m := run_dir.match(d.name))]
+    runs = [(m.group(1), d) for d in logs.glob("tests-*") if d.is_dir() and (m := RUN_DIR.match(d.name))]
     for suite in suites:
         pat = re.compile(rf"^tests-{re.escape(suite)}-(\d{{4}}-\d{{2}}-\d{{2}})\.json$")
         cands = [(m.group(1), p) for p in logs.glob("tests-*.json") if (m := pat.match(p.name))]
@@ -100,8 +101,24 @@ def run_info(logs: Path, rel: str) -> dict | None:
     try:
         r = json.loads((logs / rel.split("/")[0] / "run.json").read_text(encoding="utf-8"))
         return {"result": str(r.get("result", "unknown")), "commit": str(r.get("commit", ""))[:7], "dirty": bool(r.get("dirty"))}
-    except (OSError, json.JSONDecodeError, AttributeError):
+    except (OSError, ValueError, AttributeError):  # ValueError covers JSONDecodeError and invalid UTF-8
         return {"result": "unknown (no readable run.json)", "commit": "", "dirty": False}
+
+
+def recent_runs(logs: Path, n: int = RECENT_RUNS) -> list[str]:
+    """FB-19-01: the newest test.ps1 runs, each with its overall result and EVERY ctest invocation's exit code and
+    missing suites, so a later pass never hides an earlier failed invocation in the same run."""
+    lines = []
+    for d in sorted((d for d in logs.glob("tests-*") if d.is_dir() and RUN_DIR.match(d.name)), key=lambda d: d.name)[-n:][::-1]:
+        try:
+            r = json.loads((d / "run.json").read_text(encoding="utf-8"))
+            calls = ", ".join(f"{c.get('dir')}: exit {c.get('exit_code')}" + (f", MISSING {'/'.join(c['missing'])}" if c.get("missing") else "")
+                              for c in r.get("ctest_runs") or [])
+            res = str(r.get("result", "unknown"))
+            lines.append(f"- `{d.name}`: {res if res == 'passed' else f'**{res}**'} ({calls or ('no ctest invocation recorded' if 'ctest_runs' in r else 'before per-invocation records')})")
+        except (OSError, ValueError, AttributeError, TypeError):  # ValueError covers invalid UTF-8 too
+            lines.append(f"- `{d.name}`: **no readable run.json**")
+    return lines
 
 
 def run_note(t: dict) -> str:
@@ -153,6 +170,8 @@ def build(repo: Path) -> dict[str, str]:
         f"{len(exps)} experiments ({', '.join(f'{k} {v}' for k, v in sorted(res.items()))})",
         f"- Latest automated tests: {passed}/{total} passed" + (f"; missing suites: {', '.join(missing)}" if missing else ""),
         *test_lines,
+        f"- Recent test runs (newest first, at most {RECENT_RUNS}):",
+        *(["  " + x for x in recent_runs(ev / "logs")] or ["  - none"]),
         f"- End-to-end runs logged: {', '.join(e2e) if e2e else 'none'}",
     ])
 
@@ -172,6 +191,7 @@ def build(repo: Path) -> dict[str, str]:
             tr.append(f"| {s} | {CLOCK[s]} | {t['passed']} | {len(t['skipped'])} | {t['total']} | "
                       f"{md_cell(', '.join(t['failed']) or 'none')} | `evidence/logs/{t['file']}`{md_cell(run_note(t))} |")
     tr += ["", "SKIPPED tests are listed with their reason in the JSON log; a skip is never counted as a pass."]
+    tr += ["", f"Recent test runs, newest first (at most {RECENT_RUNS}), with every ctest invocation:", ""] + (recent_runs(ev / "logs") or ["- none"])
     tr += ["", "**Real-time** results (wall clock, separate processes) come only from end-to-end and soak runs, listed below; "
            "LAN results only from two-PC experiments. Simulated-clock passes do not imply real-time behaviour."]
     tr += ["", "## Real-time soak runs (wall clock, separate processes)", "",

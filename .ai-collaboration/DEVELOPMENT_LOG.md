@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #19 follow-up (`feature/review19-freshness`, stacked on #19)
+
+- **Input:** [PR #19 review](https://github.com/M0nsT3rG/ProjectMordor/pull/19); the owner asked for all of it. Record: EXP-031.
+- **Changes:**
+  - Expected result files are deleted before each invocation, with no timestamp check. A suite that writes nothing is `missing` and fails the run, even with ctest exit 0. `-GnsBuild` always runs.
+  - `report.py` lists the 5 newest runs with every invocation's exit code.
+  - The harness has 21 checks, including a missing suite, a stale file and a positive control.
+- **Review:** an independent subagent (Codex was at its usage limit) found nothing significant; its 4 points are fixed.
+- **Tests:** two full `-GnsBuild -Repeat 2 -E2E` runs, all passed; tool self-tests pass.
+- **Remaining:** a Codex review once the limit resets; KI-35 (GNS phases), KI-42, KI-41, KI-28b, KI-32.
+
 ## 2026-10-25: Review #18 follow-up (`feature/review18-repeat`, stacked on #18)
 
 - **Input:** [PR #18 review](https://github.com/M0nsT3rG/ProjectMordor/pull/18); the owner asked for all of it. Record: EXP-030.
