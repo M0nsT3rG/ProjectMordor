@@ -36,7 +36,7 @@ try {
     $otherInv = (& $kg --invite --key (Join-Path $keys 'host.key') --id "other-$Transport" --ttl-s 600)
     $expiredInv = (& $kg --invite --key (Join-Path $keys 'host.key') --id "old-$Transport" --ttl-s 1)
     Start-Sleep -Seconds 2  # $expiredInv is now past its expiry
-    $hostKey = Join-Path $keys 'host.key'
+    $hostKey = Join-Path $keys 'host.key'  # key paths are quoted in every -ArgumentList: %TEMP% may hold spaces (Codex review)
     $common = "--transport $Transport"
 
     function Wait-HostStarted($log, $proc) {
@@ -51,14 +51,14 @@ try {
     # readiness barrier classifies late participants instead of letting a fixed duration cut them off silently.
     $stop = Join-Path $out 'host.stop'
     $h = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow -ArgumentList `
-        "--port $Port --duration-s $($DurationS + 60) --stop-file $stop $common --secure-key $hostKey --invitation $inv --allow-peer $pub1,$pub2 --log $out/host.log"
+        "--port $Port --duration-s $($DurationS + 60) --stop-file `"$stop`" $common --secure-key `"$hostKey`" --invitation $inv --allow-peer $pub1,$pub2 --log $out/host.log"
     $null = $h.Handle
     Wait-HostStarted "$out/host.log" $h
     $launched = [Diagnostics.Stopwatch]::StartNew()
     $c1 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow -ArgumentList `
-        "--port $Port --duration-s $DurationS --pattern circle $common --secure-key $(Join-Path $keys 'client1.key') --invitation $inv --log $out/client1.log"
+        "--port $Port --duration-s $DurationS --pattern circle $common --secure-key `"$(Join-Path $keys 'client1.key')`" --invitation $inv --log $out/client1.log"
     $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow -ArgumentList `
-        "--port $Port --duration-s $DurationS --pattern line $common --secure-key $(Join-Path $keys 'client2.key') --invitation $inv --log $out/client2.log"
+        "--port $Port --duration-s $DurationS --pattern line $common --secure-key `"$(Join-Path $keys 'client2.key')`" --invitation $inv --log $out/client2.log"
     $null = $c1.Handle; $null = $c2.Handle
     $logAt = [ordered]@{}; $connAt = [ordered]@{}
     while ($launched.Elapsed.TotalSeconds -lt $BarrierS -and $connAt.Count -lt 2) {
@@ -82,16 +82,16 @@ try {
     # --- Negatives against a second secure host (only client1 is invited). ---
     $p2 = $Port + 2
     $h2 = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow -ArgumentList `
-        "--port $p2 --duration-s 14 $common --secure-key $hostKey --invitation $inv --allow-peer $pub1 --log $out/host2.log"
+        "--port $p2 --duration-s 14 $common --secure-key `"$hostKey`" --invitation $inv --allow-peer $pub1 --log $out/host2.log"
     $null = $h2.Handle
     Wait-HostStarted "$out/host2.log" $h2
     $neg = [ordered]@{}
     $cases = [ordered]@{
         plaintext          = "--connect-deadline-s 4"
-        stranger           = "--connect-deadline-s 4 --secure-key $(Join-Path $keys 'stranger.key') --invitation $inv"
-        wrong_invitation   = "--connect-deadline-s 4 --secure-key $(Join-Path $keys 'client1.key') --invitation $otherInv"
-        expired_invitation = "--connect-deadline-s 4 --secure-key $(Join-Path $keys 'client1.key') --invitation $expiredInv"
-        missing_key        = "--connect-deadline-s 4 --secure-key $(Join-Path $keys 'nope.key') --invitation $inv"
+        stranger           = "--connect-deadline-s 4 --secure-key `"$(Join-Path $keys 'stranger.key')`" --invitation $inv"
+        wrong_invitation   = "--connect-deadline-s 4 --secure-key `"$(Join-Path $keys 'client1.key')`" --invitation $otherInv"
+        expired_invitation = "--connect-deadline-s 4 --secure-key `"$(Join-Path $keys 'client1.key')`" --invitation $expiredInv"
+        missing_key        = "--connect-deadline-s 4 --secure-key `"$(Join-Path $keys 'nope.key')`" --invitation $inv"
     }
     foreach ($name in $cases.Keys) {
         $p = Start-Process (Join-Path $bin 'mordor-client.exe') -PassThru -NoNewWindow -RedirectStandardError "$out/$name.stderr.txt" -ArgumentList `

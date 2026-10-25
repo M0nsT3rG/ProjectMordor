@@ -140,6 +140,9 @@ try {
         $gnsSuites = @(@('integration-gns', 'integration-gns', 'gns'), @('network-gns', 'network-gns', 'gns'),
                        @('transport', 'transport-both', 'udp'), @('gns', 'gns', 'udp'), @('dtls', 'dtls', 'udp'))
         if (-not (Invoke-Suites $GnsBuildDir 'build-gns-iter-1' 1 $gnsSuites)) { $failed = $true }
+        # Codex review (P2): a non-ASCII path on the command line reaches the executables intact (UTF-8 manifest).
+        python -I tools/collab/check_cli_unicode.py (Join-Path (Join-Path $GnsBuildDir $Config) 'mordor-keygen.exe')
+        if ($LASTEXITCODE -ne 0) { $failed = $true }
         # FB-16-03 (KI-40): a GNS host whose start fails after GNS is initialised (192.0.2.1 is a documentation
         # address that is not on this machine, so the listen socket cannot bind) must still shut GNS down and exit.
         $tmp = Join-Path $env:TEMP "mordor-startfail-$PID"

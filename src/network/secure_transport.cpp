@@ -194,14 +194,6 @@ public:
                     s.pending.reset();  // an established session (if any) is untouched
                 }
             }
-            if (s.established && cfg_.idle_timeout_us && now_us - s.last_rx_us > cfg_.idle_timeout_us) {
-                ++sstats_.idle_timeouts;
-                out.push_back(disconnected(s, "idle_timeout"));
-                lose_unacked(s);
-                inner_->close_peer(s.inner);
-                it = erase(it);
-                continue;
-            }
             if (s.established && s.established->state() == DtlsState::Rejected) {
                 ++sstats_.rejected_established;
                 out.push_back(disconnected(s, "dtls_rejected"));
@@ -213,6 +205,17 @@ public:
             if (s.established) {
                 for (auto& m : s.established->take_received()) on_frame(s, m, out);
                 service_reliable(s, now_us);
+            }
+            // Codex review of the combined diff (P2): idle is judged AFTER this poll's authenticated records refreshed
+            // last_rx_us. Checked first, a poll that came late (a stalled caller) dropped a peer whose datagrams were
+            // already waiting, together with those datagrams.
+            if (s.established && cfg_.idle_timeout_us && now_us - s.last_rx_us > cfg_.idle_timeout_us) {
+                ++sstats_.idle_timeouts;
+                out.push_back(disconnected(s, "idle_timeout"));
+                lose_unacked(s);
+                inner_->close_peer(s.inner);
+                it = erase(it);
+                continue;
             }
             if (!s.established && !s.pending) {
                 if (!listen_) out.push_back(disconnected(s, "dtls_handshake_failed"));  // our own connect failed

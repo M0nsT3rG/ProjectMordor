@@ -89,3 +89,12 @@ if(MORDOR_WITH_GNS)
     set_tests_properties(${suite}-gns PROPERTIES TIMEOUT 1200 ENVIRONMENT "MORDOR_TRANSPORT=gns")
   endforeach()
 endif()
+
+# Codex review of the combined diff (P2): every executable runs with a UTF-8 ANSI code page (see the manifest), so
+# non-ASCII paths on the command line (keys, logs, %TEMP%) arrive intact whatever the system code page is.
+foreach(exe mordor-host mordor-client mordor_unit_tests mordor_integration_tests mordor_network_tests mordor_transport_tests
+            mordor-keygen mordor_gns_tests mordor_dtls_tests gns_listen_close_repro)
+  if(TARGET ${exe})
+    target_sources(${exe} PRIVATE ${CMAKE_SOURCE_DIR}/cmake/utf8-codepage.manifest)
+  endif()
+endforeach()

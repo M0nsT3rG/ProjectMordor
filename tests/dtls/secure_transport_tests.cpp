@@ -700,6 +700,43 @@ TEST(secure_silent_peer_is_reported_after_idle_timeout) {
     }
 }
 
+// Codex review of the combined diff (P2): a host whose poll() comes late (here: not polled for longer than the idle
+// timeout) must first take the authenticated records already waiting, then judge idleness. The client kept sending
+// during the stall, so the host must deliver its message and keep the peer.
+TEST(secure_late_poll_keeps_a_peer_that_kept_sending) {
+    for (auto k : backends()) {
+        Key host_key, player;
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        hcfg.idle_timeout_us = 1'000'000;
+        auto host = open_secure(k, hcfg, true);
+        auto c = open_secure(k, *secure(player, {host_key.spki()}, hcfg.invitation), false);
+        const auto to_host = c->connect(Endpoint::loopback(host->local_endpoint().port));
+        run({host.get(), c.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 5000);
+        CHECK(secure_stats(*host)->authenticated == 1);
+        // The host stalls for 1.5 s (never polled); the client keeps sending, the last datagram just before the host
+        // resumes.
+        const auto stall_end = std::chrono::steady_clock::now() + std::chrono::milliseconds(1500);
+        while (std::chrono::steady_clock::now() < stall_end) {
+            std::vector<TransportEvent> ev;
+            c->poll(real_us(), ev);
+            c->send(*to_host, std::vector<std::uint8_t>{0x42}, Delivery::Unreliable, real_us());
+            std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        }
+        std::vector<TransportEvent> hev;
+        for (int i = 0; i < 50; ++i) {  // the late polls: the waiting records come first
+            host->poll(real_us(), hev);
+            std::vector<TransportEvent> cev;
+            c->poll(real_us(), cev);
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+        }
+        CHECK(count(hev, TransportEvent::Kind::Disconnected) == 0);
+        CHECK(count(hev, TransportEvent::Kind::Message) >= 1);
+        CHECK(secure_stats(*host)->idle_timeouts == 0);
+        std::printf("       %s: after a 1.5 s stall: %zu messages, %zu disconnects\n", to_string(k),
+                    count(hev, TransportEvent::Kind::Message), count(hev, TransportEvent::Kind::Disconnected));
+    }
+}
+
 // ---- Review #8 FB-8-02: secure reliable-ordered channel inside the authenticated session, every backend. ----
 namespace {
 std::vector<std::uint8_t> tagged(std::uint8_t tag, std::uint32_t seq) {

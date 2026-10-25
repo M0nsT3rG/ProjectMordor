@@ -53,10 +53,10 @@ try {
             $pub[$n] = (($lines | Select-String '^public: ').Line -replace '^public: ', '')
         }
         $inv = (& $kg --invite --key (Join-Path $keys 'host.key') --id "soak-$Profile" --ttl-s 3600)
-        $secHost = "--secure-key $(Join-Path $keys 'host.key') --invitation $inv --allow-peer $($pub['client1']),$($pub['client2'])"
+        $secHost = "--secure-key `"$(Join-Path $keys 'host.key')`" --invitation $inv --allow-peer $($pub['client1']),$($pub['client2'])"
         if ($SkipCookieIfRoutable) { $secHost += ' --dtls-skip-cookie-if-routable' }
-        $secC1 = "--secure-key $(Join-Path $keys 'client1.key') --invitation $inv"
-        $secC2 = "--secure-key $(Join-Path $keys 'client2.key') --invitation $inv"
+        $secC1 = "--secure-key `"$(Join-Path $keys 'client1.key')`" --invitation $inv"
+        $secC2 = "--secure-key `"$(Join-Path $keys 'client2.key')`" --invitation $inv"
     }
 
     # Warm-up (EXP-006 workaround, cause unknown). Two runs stopped right after it (EXP-024/025), probably because a
