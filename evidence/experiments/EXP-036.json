@@ -17,7 +17,7 @@
   "result": "PARTIAL",
   "errors": "H1 rejected by its predeclared p50 band, although the post-hoc retry-cycle analysis matches the model's mechanism; the next predeclaration should judge per-attempt success rates or the cycle distribution, not a median near a 0.5 boundary. Duplicates were not modelled.",
   "confidence": "medium",
-  "follow_up": "Our stack adds about 37 ms: the establishment phase is GNS's own fixed 500 ms retry. Candidate remedies, each needing its own predeclared experiment: avoid a new GNS connection when the old one survives the stall; start the new connection earlier (on the first sign of trouble); or a GNS change (a dependency patch: owner approval). The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and remain to be decomposed.",
+  "follow_up": "The establishment phase follows GNS's own fixed 500 ms retry. The 36.5 ms gap between the soak p50 and the raw p50 compares different samples: it is not a paired estimate and does not bound what our path adds (corrected after review #25). Candidate remedies, each needing its own predeclared experiment: avoid a new GNS connection when the old one survives the stall; start the new connection earlier (on the first sign of trouble); or a GNS change (a dependency patch: owner approval). The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and remain to be decomposed.",
   "related": [
     "EXP-027",
     "EXP-035",

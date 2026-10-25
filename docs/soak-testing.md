@@ -559,9 +559,46 @@ Written and committed **before** its first run. Measurement only: no product, de
 
 - **By the rules:**
   - H1 fails on its p50 band; its p90 is inside the band.
-  - H2 fails: our path adds only about **37 ms** to raw GNS.
+  - H2 fails: the soak's p50 exceeds the raw p50 by about 37 ms. That compares medians of different samples (the probe and earlier soak reconnects): it is not a paired estimate and does not bound what our reconnect path adds (corrected after review #25).
 - **Post-hoc, not a rule:** the successes fall in 500 ms retry cycles as F-GNS-003 describes. In the first cycle 149/300 = 0.50 succeed; the model predicted 0.52. With a first-attempt rate this close to 0.5, the median sits on the boundary between cycle 1 (about 400 ms) and cycle 2 (about 850 ms). So the p50 band was a fragile criterion. The rule's result stands; future predeclarations judge per-attempt rates, not a median near such a boundary.
-- **What it means for KI-35:** the establishment phase is GNS's own fixed 500 ms retry, a compile-time constant. Our code adds about 37 ms of it. Remedies would avoid or overlap new GNS connections, or patch GNS (a dependency change, owner approval). Each would need its own predeclared experiment. The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and are not yet decomposed.
+- **What it means for KI-35:** the establishment phase is GNS's own fixed 500 ms retry, a compile-time constant. How much of it our polling and connection lifecycle add is not measured by this unpaired comparison. Remedies would avoid or overlap new GNS connections, or patch GNS (a dependency change, owner approval). Each would need its own predeclared experiment. The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and are not yet decomposed.
+
+## Predeclared experiment KI-35: DTLS and session phases per connection (2026-10-25, EXP-037)
+
+Written and committed **before** its first run, after review #25 (FB-25-01..03). Measurement only: no product, default
+or gate change.
+
+- **Question.**
+  - Do the DTLS and session phases, which are ours, behave as their packet-level mechanisms predict?
+  - Which phase makes each slow connection slow? Phases are correlated per connection, not by adding medians of
+    unrelated samples.
+- **Probe** (`tools/ki35/secure_probe.cpp`, GNS build).
+  - A secure Host and Client in one process, in real time (1 ms loop at 1 ms timer resolution), harsh profile.
+  - Each trial is a fresh secure join, then a leave. **A fresh join is not a stall reconnect:** it has no notice
+    phase and no token.
+  - Per trial: `establish` (`connect()` to the first DTLS ClientHello), `dtls` (to `authenticated`), `session` (to the
+    client's `Connected`) and `total`.
+  - Counts per trial: client DTLS retransmission timers, ClientHellos, the session's ConnectRequests (from the
+    client's `connect_accept_received` log line) and, on GNS, the time of the inner `Connected`.
+- **Batches.**
+  - UDP: seeds 3701, 3702, 3703 (host and client impairment seeded), 100 trials each.
+  - GNS: 3 repetitions of 100 trials. GNS fake loss cannot be seeded, so these are repetitions, not seeds.
+- **Model** (`tools/ki35/model.py` `proportions()`). Per-attempt success, as [without, with] duplicates; a duplicate
+  is assumed to be lost independently:
+  - `dtls_no_timer` **[0.377, 0.394]**: all 6 handshake flights arrive (cookie on; each flight one coalesced datagram).
+  - `session_first` **[0.614, 0.628]**: one ConnectRequest suffices; needs the client's binding, the ConnectRequest
+    and the ConnectAccept. Alternative `session_first_2leg` [0.723, 0.733].
+  - GNS `gns_first_cycle` **[0.522, 0.538]**: the inner connection completes within its first 500 ms cycle (inner
+    `Connected` before 800 ms, the EXP-036 classification).
+- **Decision rules, fixed now.**
+  - For each proportion, pooled per backend, compute the 95% Wilson interval. The mechanism is **supported** if that
+    interval intersects the model's [without, with] interval, **not supported** otherwise.
+  - For the session, report which of the 3-packet and 2-packet intervals it intersects: both, one or none.
+  - Reproducibility: per-batch intervals are reported. The batches are **consistent** if every pair of per-batch
+    95% intervals overlaps.
+  - User-facing latency (FB-25-02): per backend, n, failures, and p50/p90/p95/p99 of each phase and of the total.
+    Among the slowest 10% of totals, count which phase was the largest.
+  - No result here changes a gate, a default or the protocol, nor closes KI-35.
 
 ## What the soak found, and what was fixed
 

@@ -7,7 +7,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Input:** the owner asked to advance KI-35 and to read PR #24 (review #24, triaged).
 - **F-GNS-003:** GNS connects with a 4-packet exchange restarted every 500 ms (a compile-time constant).
 - **EXP-036, predeclared before running:**
-  - raw GNS establishment under harsh: p50 844, p90 1598 ms; our path adds about 37 ms;
+  - raw GNS establishment under harsh: p50 844, p90 1598 ms; the soak's establish p50 is about 37 ms higher (an unpaired comparison, not a bound on our part; corrected after review #25);
   - H1 rejected on its median band (post-hoc, first-attempt success 0.50 against the model's 0.52); H2 rejected.
 - **Conclusion:** the establishment phase is GNS's own retry; next, the DTLS and session phases (ours).
 - **Candidate:** Codex passes 6 and 7 are scheduled on the unchanged candidate.
