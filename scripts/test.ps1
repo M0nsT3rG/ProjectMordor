@@ -172,6 +172,10 @@ try {
     if (-not $NoSelfCheck) {
         # FB-16-01: the bounded wait stays bounded even when its diagnostic never returns.
         # FB-18-01: a fail-then-pass repeat keeps both invocations and the aggregate failure.
+        # FB-22-01: the real runner writes valid JSON whatever its --suite holds.
+        $unitExe = Join-Path (Join-Path $BuildDir $Config) 'mordor_unit_tests.exe'
+        python -I tools/collab/check_runner_json.py $unitExe
+        if ($LASTEXITCODE -ne 0) { $failed = $true }
         foreach ($check in 'test-wait-bounded.ps1', 'test-repeat-capture.ps1') {
             $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
             powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot $check) 2>&1 | Out-Host

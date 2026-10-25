@@ -1,0 +1,26 @@
+{
+  "id": "EXP-034",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; PowerShell 5.1, Python 3",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #22 on feature/review22-escaping: JSON escaping of every string field in the C++ test runner (FB-22-01), and provenance with digests for restored and missing per-invocation evidence (FB-22-02); record the closure of PRs #1-#21 and the consolidation in PR #22.",
+  "hypothesis": "A complete RFC 8259 escaper keeps the results file valid JSON for any --suite or error message; the git history plus the files on disk are enough to classify every recorded ctest invocation as present, restored or missing.",
+  "procedure": "tests/test_support.hpp: test::json_escape (quote, backslash, \\n, \\r, \\t, other control characters as \\u00XX, UTF-8 unchanged), used for suite, name, transport and error in tests/test_main.cpp; unit test json_escape_handles_quotes_backslashes_and_control_characters. tools/collab/check_runner_json.py (run by test.ps1): the real unit binary with --suite containing a quote, a backslash and a tab must write JSON Python parses, with the suite round-tripping. Red-before: with the previous runner the check reported INVALID JSON. tools/evidence/restoration_manifest.py wrote evidence/logs/restored/manifest.json (first commit of each invocation's files versus its run, SHA-256 and size); EXP-030/031/032 annotated; test_evidence.py re-checks the digests. Rebuilt both builds; ran test.ps1 -GnsBuild -Repeat 2 -E2E. Codex review of the working tree.",
+  "expected_result": "Escaping tests pass and the old runner fails the end-to-end check; the manifest classifies every invocation; the full run passes.",
+  "observed_result": "Unit test passed; end-to-end runner JSON check OK (old runner: INVALID JSON, 'Expecting , delimiter'). Manifest: 6 runs with build-gns-iter-1 restored unmodified in 2fb595a, 0 missing invocations; digest test passes. Full run tests-2026-10-25-185823-2fb595a-dirty: iter-1, iter-2 (4 suites each), build-gns-iter-1 (5 suites) exit 0, nothing missing, invalid or failed; transport check OK x4; runner JSON check OK; smoke 3/3; both self-checks passed; E2E 0; its build-gns-iter-1 is visible to git. Codex: no concrete regression.",
+  "evidence_paths": [
+    "evidence/logs/tests-2026-10-25-185823-2fb595a-dirty",
+    "evidence/logs/restored/manifest.json"
+  ],
+  "result": "PASSED",
+  "errors": "Restoration digests date from restoration, not from the runs (no earlier digest exists). Non-ASCII is not exercised through the command line (narrow argv uses the ANSI code page); UTF-8 pass-through is covered by the unit test. The run is marked dirty because the changes were not yet committed.",
+  "confidence": "high",
+  "follow_up": "D-008 and the G0 criteria agreed with review #22; KI-35 GNS phases with predeclared comparisons.",
+  "related": [
+    "EXP-033",
+    "EXP-030",
+    "EXP-031",
+    "EXP-032"
+  ]
+}

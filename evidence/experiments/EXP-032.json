@@ -11,10 +11,11 @@
   "observed_result": "First harness run exposed a defect in the new validator: in PowerShell 5.1, @($raw | ConvertFrom-Json) wraps the whole array as one element, so '[]' was reported as 'a case without a name' and multi-case real files would have been rejected; the one-case stand-in had hidden it. Fixed by assigning first, then @(); the stand-in now writes two cases per suite. Harness then all passed (invalid recorded as 'no test cases', not missing; locked file gave infrastructure_failure with reason 'cannot remove stale results %TEMP%\\...' and no absolute path; absent GNS build gave failed with all 5 GNS suites missing). Report self-tests 12/12. Full run tests-2026-10-25-171414-01eceea-dirty: iter-1, iter-2 (4 suites each) and build-gns-iter-1 (5 suites) exit 0 with nothing missing or invalid (real multi-case files accepted), transport check OK x4, smoke 3/3, both self-checks passed, E2E 0, builds recorded as relative paths. Codex found 4 real defects in this work over 3 passes (external absolute paths in reason, unsanitized ctest_runs[].build, stale top-level copy after a valid-then-invalid repeat, nested arrays accepted); all fixed with tests proven to fail without the fix; the 4th pass found no regression. Final full run with every fix: tests-2026-10-25-174833-01eceea-dirty, all passed, nothing missing or invalid, builds and per-invocation build fields relative.",
   "evidence_paths": [
     "evidence/logs/tests-2026-10-25-171414-01eceea-dirty",
-    "evidence/logs/tests-2026-10-25-174833-01eceea-dirty"
+    "evidence/logs/tests-2026-10-25-174833-01eceea-dirty",
+    "evidence/logs/restored/manifest.json"
   ],
   "result": "PASSED",
-  "errors": "Suite identity is not checked: the runner does not write its suite name. The run is marked dirty because the changed scripts were not yet committed; the C++ code under test equals 01eceea.",
+  "errors": "Suite identity is not checked: the runner does not write its suite name. The run is marked dirty because the changed scripts were not yet committed; the C++ code under test equals 01eceea. Per-invocation GNS evidence (build-gns-iter-1/) of the cited run(s) was not committed with the run: .gitignore's unanchored build-*/ hid it. It was restored unmodified from disk in 2fb595a; provenance and SHA-256 digests are in evidence/logs/restored/manifest.json (review #22 FB-22-02).",
   "confidence": "high",
   "follow_up": "Write the suite name into the runner's JSON if identity checks are wanted; KI-35 GNS phases with predeclared comparisons.",
   "related": [

@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #22 (PR #22: review #21 follow-up, now the consolidated PR)
+
+- **Status:** implemented (2026-10-25) on `feature/review22-escaping` (stacked on PR #22); the owner asked for all of it.
+- **Source:** [PR #22 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/22) at `2fb595a`. Source review only.
+- **Verdict:** FB-21-01/02 and the `.gitignore` fix are addressed. Conditional GO for contained lab and network work only; NO-GO for merge, release and game-side work (G0).
+- **Same session, owner decision:** PRs #1–#21 were closed without merging and PR #22 was retargeted to `main` as the consolidated PR (see CURRENT_TASK).
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-22-01** (minor) JSON escaping in the C++ runner | **Yes, and worse than stated.** `suite` and `name` were not escaped. The error string escaped only `"` and `\`, so an exception message containing a newline already produced invalid JSON. Test names are C++ identifiers (`TEST(name)`); `--suite` and error messages are free text. | **Accepted** | `test::json_escape` (RFC 8259: quote, backslash, `\n`, `\r`, `\t`, every other control character as `\u00XX`; UTF-8 passes through) is applied to every string field. Unit test `json_escape_handles_quotes_backslashes_and_control_characters`. End-to-end check `tools/collab/check_runner_json.py`, run by `test.ps1`: the real unit binary, with a `--suite` containing a quote, a backslash and a tab, must write JSON that Python parses and that round-trips the suite exactly. With the previous runner: `INVALID JSON`. Non-ASCII is not passed on the command line: the narrow `argv` uses the ANSI code page. |
+| **FB-22-02** (minor) Mark restored and missing evidence | **Yes.** | **Accepted** | `tools/evidence/restoration_manifest.py` writes `evidence/logs/restored/manifest.json`, refusing to overwrite. For every per-run directory, each recorded ctest invocation is classified as `present`, `restored` (first committed after the rest of its run) or `missing` (cannot be reconstructed), with its first commit and the SHA-256 and size of each file. **Result:** 6 runs had `build-gns-iter-1/` restored, unmodified, in `2fb595a`; **0 invocations are missing**. The 7th directory belongs to EXP-033's run, which was committed together with the fix. The digests date from restoration: no earlier digest exists, and the manifest says so. EXP-030, EXP-031 and EXP-032 note the restoration in `errors` and cite the manifest. `test_evidence.py` re-checks every digest. The `git check-ignore` regression stays permanently. |
+| Answer 1: G0 criteria | **Agreed, recorded for D-008.** | — | Before G0 can pass: an owner decision D-008 naming the exact, legitimately acquired build and version and the scope; a read-only inventory and build fingerprint; no credential or DRM bypass; a minimal interoperability objective; safety and stop conditions. Qualified counsel for unresolved licensing questions is advised. **D-007 is the owner's recorded decision** (risk accepted without counsel); that is their call and is not reopened here. No game-side work starts because of D-007. |
+| Answer 2 | **Agreed.** | — | Done in FB-22-02. |
+| Carry-forward | **Agreed.** | — | KI-35, KI-42, KI-41, KI-28b, KI-32 open. **`main`:** the only changes to `main` are the README progress updates the owner explicitly asked for. No merge. |
+
+---
+
 ## Feedback on review #21 (PR #21: review #20 follow-up)
 
 - **Status:** implemented (2026-10-25) on `feature/review21-identity` (stacked on PR #21); the owner asked for all of it.

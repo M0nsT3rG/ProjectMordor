@@ -40,6 +40,16 @@ class PathRules(unittest.TestCase):
         self.assertEqual(r.stdout.strip(), "", f"git ignores evidence paths: {r.stdout}")
         self.assertEqual(subprocess.run(["git", "check-ignore", "-q", "--no-index", "build-gns/Release/x.json"], cwd=ev.ROOT).returncode, 0)
 
+    def test_restored_evidence_matches_its_digests(self):
+        # FB-22-02: restored per-invocation files must still be exactly what the manifest recorded.
+        import hashlib, json
+        m = json.loads((ev.ROOT / "evidence/logs/restored/manifest.json").read_text(encoding="utf-8"))
+        files = [f for r in m["runs"] for i in r["invocations"] for f in i["files"]]
+        self.assertTrue(files)
+        for f in files:
+            data = (ev.ROOT / f["path"]).read_bytes()
+            self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (f["bytes"], f["sha256"]), f["path"])
+
     def test_repository_records_pass(self):
         recs, errs = ev.load_records()
         self.assertEqual(errs + ev.validate(recs), [])

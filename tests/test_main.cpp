@@ -65,11 +65,10 @@ int main(int argc, char** argv) {
         if (!error.empty()) std::cout << "\n       " << error;
         if (!skip_reason.empty()) std::cout << "\n       " << skip_reason;
         std::cout << std::endl;
-        std::string esc;
-        for (char c : (error.empty() ? skip_reason : error)) esc += (c == '"' || c == '\\') ? std::string("\\") + c : std::string(1, c);
-        json += std::string(json.size() > 1 ? "," : "") + "\n  {\"suite\":\"" + suite + "\",\"name\":\"" + t.name + "\",\"result\":\"" + result +
-                "\",\"transport\":\"" + mordor::net::to_string(mordor::test::test_transport()) + "\",\"ms\":" + std::to_string(ms) +
-                ",\"error\":\"" + esc + "\"}";
+        using mordor::test::json_escape;  // FB-22-01: every string field, not only the error
+        json += std::string(json.size() > 1 ? "," : "") + "\n  {\"suite\":\"" + json_escape(suite) + "\",\"name\":\"" + json_escape(t.name) +
+                "\",\"result\":\"" + result + "\",\"transport\":\"" + json_escape(mordor::net::to_string(mordor::test::test_transport())) +
+                "\",\"ms\":" + std::to_string(ms) + ",\"error\":\"" + json_escape(error.empty() ? skip_reason : error) + "\"}";
     }
     json += "\n]\n";
     std::cout << passed << " passed, " << failed << " failed, " << skipped << " skipped (transport "

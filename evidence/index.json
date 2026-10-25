@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 97,
+  "count": 98,
   "records": [
     {
       "id": "EXP-001",
@@ -364,6 +364,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #21 on feature/review21-identity: FAILED cases fail the run whatever ctest's exit code (FB-21-01), suite identity in the runner's JSON (FB-21-02), redaction of paths with spaces and non-ASCII letters (FB-21-03)."
+    },
+    {
+      "id": "EXP-034",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-034.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #22 on feature/review22-escaping: JSON escaping of every string field in the C++ test runner (FB-22-01), and provenance with digests for restored and missing per-invocation evidence (FB-22-02); record the closure of PRs #1-#21 and the consolidation in PR #22."
     },
     {
       "id": "F-COMM-001",

@@ -11,10 +11,11 @@
   "observed_result": "Harness 21/21; report self-tests 11/11; validator, comparator and analyzer self-tests pass. Previous test.ps1: 5 harness checks failed. Full runs tests-2026-10-25-162657-01006cf-dirty and tests-2026-10-25-164201-01006cf-dirty: iter-1, iter-2 (4 suites each) and build-gns-iter-1 (5 suites), all exit 0 and nothing missing; transport check OK in all 4 directories; start-failure smoke 3/3; wait-bounded and repeat-capture self-checks passed; E2E exit codes 0. The harness wrote nothing under evidence/logs. Not exercised by a test: a stale file that cannot be deleted, and -GnsBuild without a GNS build.",
   "evidence_paths": [
     "evidence/logs/tests-2026-10-25-162657-01006cf-dirty",
-    "evidence/logs/tests-2026-10-25-164201-01006cf-dirty"
+    "evidence/logs/tests-2026-10-25-164201-01006cf-dirty",
+    "evidence/logs/restored/manifest.json"
   ],
   "result": "PASSED",
-  "errors": "None. Runs are marked dirty because the changed scripts were not yet committed; the C++ code under test equals 01006cf.",
+  "errors": "None. Runs are marked dirty because the changed scripts were not yet committed; the C++ code under test equals 01006cf. Per-invocation GNS evidence (build-gns-iter-1/) of the cited run(s) was not committed with the run: .gitignore's unanchored build-*/ hid it. It was restored unmodified from disk in 2fb595a; provenance and SHA-256 digests are in evidence/logs/restored/manifest.json (review #22 FB-22-02).",
   "confidence": "high",
   "follow_up": "Codex review of the branch once its usage limit resets; KI-35 GNS phases with predeclared comparisons.",
   "related": [

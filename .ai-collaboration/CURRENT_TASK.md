@@ -1,6 +1,9 @@
 # Current task
 
-**Last completed:** review #21 follow-up on `feature/review21-identity`. Record: EXP-033.
+**Last completed:** review #22 follow-up on `feature/review22-escaping`. Record: EXP-034.
+- JSON escaping in the runner; restoration manifest with digests; PRs #1–#21 closed and #22 consolidated onto `main`.
+
+**Before that:** review #21 follow-up on `feature/review21-identity`. Record: EXP-033.
 - FAILED cases fail the run; suite identity is checked; spaced and non-ASCII paths are redacted; lost GNS invocation evidence is restored.
 - D-007 is recorded by the owner; **D-008 is pending, so G0 is still closed**.
 
@@ -51,7 +54,7 @@
 
 v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md).
 
-**Branches and PRs** (all open, none merged; merging needs the user):
+**Branches and PRs.** On 2026-10-25 the owner closed PRs #1–#21 without merging. Each had been reviewed and its feedback triaged and implemented in the next PR. **PR #22 now targets `main` and carries the whole stack** for a future merge, which needs the owner. Follow-up PRs stack on #22. All branches are kept. The table is the history:
 
 | PR | Branch | Base | Content |
 |---|---|---|---|
@@ -76,7 +79,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#19](https://github.com/M0nsT3rG/ProjectMordor/pull/19) | `feature/review18-repeat` | #18 | Review #18: every repeat invocation kept with exit codes, run status in the report, budget and snapshot wording |
 | [#20](https://github.com/M0nsT3rG/ProjectMordor/pull/20) | `feature/review19-freshness` | #19 | Review #19: results deleted before each invocation, missing suites fail the run, recent-runs history |
 | [#21](https://github.com/M0nsT3rG/ProjectMordor/pull/21) | `feature/review20-validation` | #20 | Review #20: failure reasons in run.json, result-file validation, commit and dirty on recent runs |
-| #22 | `feature/review21-identity` | #21 | Review #21: FAILED cases fail the run, suite identity, path redaction; lost GNS evidence restored; D-007 recorded |
+| [#22](https://github.com/M0nsT3rG/ProjectMordor/pull/22) | `feature/review21-identity` | **`main`** (was #21) | Review #21: FAILED cases fail the run, suite identity, path redaction; lost GNS evidence restored; D-007 recorded. **Open: the consolidated PR.** |
+| #23 | `feature/review22-escaping` | #22 | Review #22: JSON escaping in the C++ runner, restoration manifest with digests, PR consolidation recorded |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 

@@ -3,11 +3,13 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
@@ -53,6 +55,32 @@ inline void step_wait(std::uint64_t step_us) {
     }
     thread_local PreciseSleeper sleeper;
     sleeper.sleep_us(static_cast<std::uint32_t>(step_us));
+}
+
+// FB-22-01: JSON string escaping for the runner's results file (RFC 8259): quote, backslash and every control
+// character. Test names are C++ identifiers, but --suite and error messages can hold anything (a newline in an
+// exception message used to produce invalid JSON).
+inline std::string json_escape(std::string_view s) {
+    std::string out;
+    out.reserve(s.size());
+    for (unsigned char c : s) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    char buf[8];
+                    std::snprintf(buf, sizeof buf, "\\u%04x", static_cast<unsigned>(c));
+                    out += buf;
+                } else {
+                    out += static_cast<char>(c);  // UTF-8 bytes pass through unchanged
+                }
+        }
+    }
+    return out;
 }
 
 struct TestCase {

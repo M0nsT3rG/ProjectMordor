@@ -11,10 +11,11 @@
   "observed_result": "Harness 8/8 (both result files kept, exit codes 1,0, aggregate failed); 1 check failed against the previous test.ps1. Real run tests-2026-10-25-154155-22ffed1-dirty: iter-1 and iter-2 (4 UDP suites each, exit 0) and build-gns-iter-1 (5 suites, exit 0), all ctest suites passed, transport check OK in all 4 directories, start-failure smoke 3/3, wait-bounded self-check 12/12, repeat-capture self-check 8/8, E2E exit codes 0, run.json result passed. The nested harness wrote nothing under evidence/logs. Report self-tests 8/8; the status block shows e.g. '[run passed, 3ee5a8a, dirty]'. Codex review: no concrete regression (tests that write files not run in its read-only sandbox). After the review fixes: harness 13/13 (the early-stop case failed without the fix); tests-2026-10-25-160027-6fef68d-dirty: all suites passed, transport check OK, smoke 3/3, both self-checks passed, E2E 0.",
   "evidence_paths": [
     "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty",
-    "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty"
+    "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty",
+    "evidence/logs/restored/manifest.json"
   ],
   "result": "PASSED",
-  "errors": "None. The run is marked dirty because the changed scripts were not yet committed; the C++ code under test equals 22ffed1.",
+  "errors": "None. The run is marked dirty because the changed scripts were not yet committed; the C++ code under test equals 22ffed1. Per-invocation GNS evidence (build-gns-iter-1/) of the cited run(s) was not committed with the run: .gitignore's unanchored build-*/ hid it. It was restored unmodified from disk in 2fb595a; provenance and SHA-256 digests are in evidence/logs/restored/manifest.json (review #22 FB-22-02).",
   "confidence": "high",
   "follow_up": "KI-35: GNS establishment and session phases with predeclared comparisons.",
   "related": [

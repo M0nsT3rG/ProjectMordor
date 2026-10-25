@@ -44,6 +44,18 @@ Snapshot sample_snapshot() {
 }  // namespace
 
 // Test 4 (unit part): transforms survive the wire bit-exactly, including -0 and limits.
+TEST(json_escape_handles_quotes_backslashes_and_control_characters) {
+    // FB-22-01: the runner's results file must stay valid JSON whatever --suite or an error message contains.
+    using test::json_escape;
+    CHECK(json_escape("plain_name") == "plain_name");
+    CHECK(json_escape("a\"b") == "a\\\"b");
+    CHECK(json_escape("C:\\dir\\file") == "C:\\\\dir\\\\file");
+    CHECK(json_escape("line1\nline2\r\tend") == "line1\\nline2\\r\\tend");
+    CHECK(json_escape(std::string_view("\x01\x1f", 2)) == "\\u0001\\u001f");
+    CHECK(json_escape(std::string_view("nul\0x", 5)) == "nul\\u0000x");
+    CHECK(json_escape("M\xC3\xBAsica") == "M\xC3\xBAsica");  // UTF-8 passes through unchanged
+}
+
 TEST(transform_snapshot_roundtrip) {
     const auto s = sample_snapshot();
     const auto out = roundtrip(s);

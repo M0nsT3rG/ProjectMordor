@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #22 follow-up (`feature/review22-escaping`, stacked on #22)
+
+- **Input:** [PR #22 review](https://github.com/M0nsT3rG/ProjectMordor/pull/22); the owner asked for all of it. Record: EXP-034.
+- **Owner actions:** PRs #1–#21 closed without merging; PR #22 retargeted to `main` as the consolidated PR; branches kept.
+- **Changes:**
+  - The runner escapes every JSON string field. An exception message with a newline used to break the file.
+  - Unit test, plus an end-to-end check with the real binary.
+  - Restoration manifest with SHA-256 digests: 6 runs restored, 0 missing. EXP-030/031/032 annotated; digest test added.
+- **Tests:** rebuilt; full run passed; all self-tests pass; Codex found no regression.
+- **Remaining:** D-008 and G0; KI-35, KI-42, KI-41, KI-28b, KI-32.
+
 ## 2026-10-25: Review #21 follow-up (`feature/review21-identity`, stacked on #21)
 
 - **Input:** [PR #21 review](https://github.com/M0nsT3rG/ProjectMordor/pull/21); the owner asked for all of it. Record: EXP-033.
