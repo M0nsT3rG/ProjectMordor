@@ -10,10 +10,10 @@ A research project into whether two legitimate owners of *Middle-earth: Shadow o
 
 *Last updated 2026-10-25.*
 
-**Overall: about 12% (a rough estimate).**
+**Overall: about 14% (a rough estimate).**
 
 ```
-[██░░░░░░░░░░░░░░░░░░]  ~12%
+[███░░░░░░░░░░░░░░░░░]  ~14%
 ```
 
 - **This is not a forecast that co-op will work.** The [feasibility matrix](docs/feasibility-matrix.md) deliberately gives no odds of success. Every game-side milestone is unverified, and none may start before gate G0.
@@ -28,7 +28,7 @@ A research project into whether two legitimate owners of *Middle-earth: Shadow o
 
 **How the number is computed:**
 
-- 5% × 100% + 15% × 60% + 5% × 0% + 75% × 0% = 14%, rounded down to about 12%. The rounding reflects that "60%" of the networking work is itself a judgement.
+- 5% × 100% + 15% × 60% + 5% × 0% + 75% × 0% = 14%. The "60%" for the networking work is itself a judgement, so read this as "between 10% and 15%".
 - The weights say where most of the unknown work lies: inside the game. They are an estimate, not a measurement.
 
 **Where the newer work is:**
