@@ -2,6 +2,18 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #20 follow-up (`feature/review20-validation`, stacked on #20)
+
+- **Input:** [PR #20 review](https://github.com/M0nsT3rG/ProjectMordor/pull/20); the owner asked for all of it. Record: EXP-032.
+- **Changes:**
+  - A run stopped by an error ends as `infrastructure_failure` with a path-free `reason`.
+  - Result files are validated; invalid ones are kept apart and fail the run.
+  - Recent-run lines show commit, clean or dirty, `INVALID` and the reason; `-GnsBuildDir`.
+- **Defect found while testing:** PowerShell 5.1 `@($x | ConvertFrom-Json)` wraps an array as one element. Fixed before any real run used it; the stand-in ctest now writes two cases per suite.
+- **Also today:** the README on `main` has a progress section (about 14%, read as 10–15%; in-game co-op 0%, blocked by G0).
+- **Tests:** harness all passed; report 12/12; full `-GnsBuild -Repeat 2 -E2E` passed.
+- **Remaining:** KI-35 (GNS phases), KI-42, KI-41, KI-28b, KI-32.
+
 ## 2026-10-25: Review #19 follow-up (`feature/review19-freshness`, stacked on #19)
 
 - **Input:** [PR #19 review](https://github.com/M0nsT3rG/ProjectMordor/pull/19); the owner asked for all of it. Record: EXP-031.

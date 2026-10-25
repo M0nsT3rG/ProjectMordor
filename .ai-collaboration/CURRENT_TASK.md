@@ -1,6 +1,9 @@
 # Current task
 
-**Last completed:** review #19 follow-up on `feature/review19-freshness`. Record: EXP-031.
+**Last completed:** review #20 follow-up on `feature/review20-validation`. Record: EXP-032.
+- Failure reasons persisted; result files validated; commit and clean/dirty on recent runs.
+
+**Before that:** review #19 follow-up on `feature/review19-freshness`. Record: EXP-031.
 - Result freshness without timestamps; missing suites fail the run; recent-runs history in the report.
 
 **Before that:** review #18 follow-up on `feature/review18-repeat`. Record: EXP-030.
@@ -67,7 +70,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#17](https://github.com/M0nsT3rG/ProjectMordor/pull/17) | `feature/review16-followup` | #16 | Review #16: bounded diagnostics, comparator refuses empty/non-finite cohorts, GNS shutdown on every exit path |
 | [#18](https://github.com/M0nsT3rG/ProjectMordor/pull/18) | `feature/review17-evidence` | #17 | Review #17: immutable per-run test evidence, recovery of overwritten evidence, validator rule |
 | [#19](https://github.com/M0nsT3rG/ProjectMordor/pull/19) | `feature/review18-repeat` | #18 | Review #18: every repeat invocation kept with exit codes, run status in the report, budget and snapshot wording |
-| #20 | `feature/review19-freshness` | #19 | Review #19: results deleted before each invocation, missing suites fail the run, recent-runs history |
+| [#20](https://github.com/M0nsT3rG/ProjectMordor/pull/20) | `feature/review19-freshness` | #19 | Review #19: results deleted before each invocation, missing suites fail the run, recent-runs history |
+| #21 | `feature/review20-validation` | #20 | Review #20: failure reasons in run.json, result-file validation, commit and dirty on recent runs |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 

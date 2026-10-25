@@ -13,6 +13,7 @@ param(
     [string]$BuildDir = 'build',
     [switch]$E2E,
     [switch]$GnsBuild,  # also run build-gns (MORDOR_WITH_GNS) suites, incl. integration/network on the GNS adapter
+    [string]$GnsBuildDir = 'build-gns',
     [int]$Repeat = 1,
     # Test hooks only (FB-18-01 harness, scripts/test-repeat-capture.ps1): a stand-in for ctest, another evidence root,
     # and no nested self-checks. Never needed for a real run.
@@ -38,7 +39,25 @@ try {
     $ctestRuns = New-Object System.Collections.ArrayList  # FB-18-01: every ctest invocation, its exit code and its files
     # Runs ctest once and keeps what THAT invocation wrote in <runDir>/<Label>/, before the next one can replace it,
     # failed invocations included. The top-level <suite>.json files hold the latest invocation's copy.
-    # Returns $true only if ctest exited 0 AND every expected suite wrote its results (FB-19-02).
+    # FB-20-02: presence is not enough. A results file must be a non-empty JSON array of cases, each with a name and
+    # a result of PASSED, FAILED or SKIPPED. Returns $null when valid, or the reason. (Suite identity cannot be checked:
+    # the runner does not write its suite name.)
+    function Test-ResultsFile([string]$Path) {
+        $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction SilentlyContinue
+        if (-not $raw -or -not $raw.Trim().StartsWith('[')) { return 'not a JSON array' }
+        # Two steps on purpose: in PowerShell 5.1, @($raw | ConvertFrom-Json) wraps the whole array as ONE element.
+        try { $parsed = $raw | ConvertFrom-Json } catch { return 'not valid JSON' }
+        $cases = @($parsed)
+        if ($cases.Count -eq 0) { return 'no test cases' }
+        foreach ($c in $cases) {
+            # Each case must be a JSON object: on a nested array, PowerShell's member enumeration would present the
+            # inner array's name and result as if they were the case's own (Codex review).
+            if ($c -isnot [System.Management.Automation.PSCustomObject]) { return 'a case that is not a JSON object' }
+            if (-not ($c.name -is [string]) -or $c.result -notin 'PASSED', 'FAILED', 'SKIPPED') { return 'a case without a name or a known result' }
+        }
+        return $null
+    }
+    # Returns $true only if ctest exited 0 AND every expected suite wrote valid results (FB-19-02, FB-20-02).
     function Invoke-Suites([string]$Dir, [string]$Label, [int]$Iteration, $Map) {
         # FB-19-02: remove the expected result files first, so whatever exists afterwards was written by THIS
         # invocation. No timestamp comparison: its precision and fast repeats made "fresh" ambiguous.
@@ -54,29 +73,43 @@ try {
         $ErrorActionPreference = $eap
         $iterDir = Join-Path $runDir $Label
         New-Item -ItemType Directory $iterDir | Out-Null
-        $files = @(); $missing = @()
+        $files = @(); $missing = @(); $invalid = [ordered]@{}
         foreach ($k in $Map) {  # ctest result name, recorded name, transport the suite is registered for (FB-13-03)
             $src = Join-Path $Dir "test-results/$($k[0]).json"
-            if (Test-Path $src) {
-                Copy-Item $src (Join-Path $iterDir "$($k[1]).json")
-                Copy-Item $src (Join-Path $runDir "$($k[1]).json") -Force  # latest invocation, for the report
+            if (Test-Path -LiteralPath $src) {
+                $bad = Test-ResultsFile $src
+                if ($bad) {
+                    # Kept for the record, but never shown as this run's latest result for the suite; an earlier
+                    # invocation's valid copy is no longer the latest either (Codex review of PR #21 work).
+                    Copy-Item -LiteralPath $src (Join-Path $iterDir "$($k[1]).invalid.json")
+                    Remove-Item -LiteralPath (Join-Path $runDir "$($k[1]).json") -ErrorAction SilentlyContinue
+                    $invalid[$k[1]] = $bad
+                    Write-Host "INVALID RESULTS: $($k[1]) in ${Label}: $bad"
+                    continue
+                }
+                Copy-Item -LiteralPath $src (Join-Path $iterDir "$($k[1]).json")
+                Copy-Item -LiteralPath $src (Join-Path $runDir "$($k[1]).json") -Force  # latest invocation, for the report
                 $suites[$k[1]] = $k[2]
                 $files += "$Label/$($k[1]).json"
             } else {
                 $missing += $k[1]  # exit code 0 does not prove a suite wrote its results
+                Remove-Item -LiteralPath (Join-Path $runDir "$($k[1]).json") -ErrorAction SilentlyContinue  # not the latest any more
                 Write-Host "MISSING RESULTS: $($k[1]) wrote no $($k[0]).json in $Label"
             }
         }
-        [void]$ctestRuns.Add([ordered]@{ build = $Dir; iteration = $Iteration; dir = $Label; exit_code = $code; files = $files; missing = $missing })
+        [void]$ctestRuns.Add([ordered]@{ build = (Hide-LocalPaths $Dir $root); iteration = $Iteration; dir = $Label; exit_code = $code; files = $files
+                                         missing = $missing; invalid = $invalid })
         Write-RunJson 'incomplete'  # on disk now: a run that stops later (E2E throw, Ctrl+C) keeps this history
-        return ($code -eq 0 -and $missing.Count -eq 0)
+        return ($code -eq 0 -and $missing.Count -eq 0 -and $invalid.Count -eq 0)
     }
-    function Write-RunJson([string]$Result, $E2EExit = $null) {
+    . (Join-Path $PSScriptRoot 'local-paths.ps1')  # Hide-LocalPaths: no absolute local path reaches run.json
+    function Write-RunJson([string]$Result, $E2EExit = $null, [string]$Reason = $null) {
         $run = [ordered]@{
             run_id = $runId; started_utc = $started.ToUniversalTime().ToString('o'); commit = $commit; dirty = $dirty
-            config = $Config; builds = @($BuildDir) + $(if ($GnsBuild) { @('build-gns') } else { @() }); repeat = $Repeat
+            config = $Config; builds = @(@($BuildDir) + $(if ($GnsBuild) { @($GnsBuildDir) } else { @() }) | ForEach-Object { Hide-LocalPaths $_ $root }); repeat = $Repeat
             suites = $suites; ctest_runs = @($ctestRuns); e2e = [bool]$E2E; e2e_exit_codes = $E2EExit; result = $Result
         }
+        if ($Reason) { $run.reason = Hide-LocalPaths $Reason $root }
         # UTF-8 without BOM: Python's json reader rejects a BOM.
         [IO.File]::WriteAllText((Join-Path $runDirFull 'run.json'), ($run | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding $false))
     }
@@ -92,14 +125,14 @@ try {
     if ($GnsBuild) {
         $gnsSuites = @(@('integration-gns', 'integration-gns', 'gns'), @('network-gns', 'network-gns', 'gns'),
                        @('transport', 'transport-both', 'udp'), @('gns', 'gns', 'udp'), @('dtls', 'dtls', 'udp'))
-        if (-not (Invoke-Suites 'build-gns' 'build-gns-iter-1' 1 $gnsSuites)) { $failed = $true }
+        if (-not (Invoke-Suites $GnsBuildDir 'build-gns-iter-1' 1 $gnsSuites)) { $failed = $true }
         # FB-16-03 (KI-40): a GNS host whose start fails after GNS is initialised (192.0.2.1 is a documentation
         # address that is not on this machine, so the listen socket cannot bind) must still shut GNS down and exit.
         $tmp = Join-Path $env:TEMP "mordor-startfail-$PID"
         New-Item -ItemType Directory -Force $tmp | Out-Null
         . (Join-Path $PSScriptRoot 'wait-bounded.ps1')
         $env:MORDOR_GNS_TRACE = '1'
-        $hostExe = Join-Path "build-gns/$Config" 'mordor-host.exe'
+        $hostExe = Join-Path (Join-Path $GnsBuildDir $Config) 'mordor-host.exe'
         $smoke = if (Test-Path -LiteralPath $hostExe) { 1..3 } else { Write-Host "start-failure smoke: no $hostExe"; $failed = $true; @() }
         try {
             foreach ($i in $smoke) {
@@ -159,9 +192,17 @@ try {
         $e2eExit = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode }
     }
     Write-RunJson $(if ($failed) { 'failed' } else { 'passed' }) $e2eExit
+    $recorded = $true  # the final result is on disk: errors from here on (the failure report below) are not infrastructure
     Write-Host "results: $runDir"
     if ($failed) { Write-Error 'One or more test steps failed.' }
     Write-Host 'All test steps passed.'
+} catch {
+    # FB-20-01: the run stopped on an error (a stale file that cannot be removed, a missing executable, E2E start-up).
+    # Keep the original reason in run.json as an infrastructure failure, then fail as before.
+    if (-not $recorded -and $runDirFull -and (Get-Command Write-RunJson -ErrorAction SilentlyContinue)) {
+        Write-RunJson 'infrastructure_failure' $e2eExit $_.Exception.Message
+    }
+    throw
 } finally {
     Pop-Location
 }

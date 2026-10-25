@@ -105,6 +105,26 @@ class ReportTests(unittest.TestCase):
             self.assertIn("before per-invocation records", lines[1])
             self.assertFalse(any("notacommit" in x for x in lines))
 
+    def test_recent_runs_show_commit_state_invalid_and_reason(self):
+        # FB-20-01/02/03: commit and clean/dirty as fields, invalid suites apart from missing, the failure reason.
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            runs = {"tests-2026-01-01-000000-abcdef1": {"result": "passed", "commit": "abcdef1234", "dirty": False, "ctest_runs": [{"dir": "iter-1", "exit_code": 0}]},
+                    "tests-2026-01-02-000000-abcdef1-dirty": {"result": "failed", "commit": "abcdef1234", "dirty": True, "ctest_runs": [
+                        {"dir": "iter-1", "exit_code": 0, "missing": [], "invalid": {"unit": "no test cases"}}]},
+                    "tests-2026-01-03-000000-abcdef1": {"result": "infrastructure_failure", "commit": "abcdef1234", "dirty": False,
+                                                        "reason": "cannot remove stale results x|y", "ctest_runs": []}}
+            for name, run in runs.items():
+                (logs / name).mkdir()
+                (logs / name / "run.json").write_text(json.dumps(run))
+            infra, failed, ok = report.recent_runs(logs)
+            self.assertIn("passed at abcdef1, clean", ok)
+            self.assertIn("**failed** at abcdef1, dirty", failed)
+            self.assertIn("INVALID unit", failed)
+            self.assertIn("**infrastructure_failure**", infra)
+            self.assertIn("reason: cannot remove stale results x/y", infra)  # a table-safe reason
+            self.assertIn("**no ctest invocation recorded**", infra)
+
     def test_unreadable_or_null_run_records_never_crash(self):
         with tempfile.TemporaryDirectory() as d:
             logs = Path(d)

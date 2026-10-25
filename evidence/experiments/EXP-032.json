@@ -1,0 +1,23 @@
+{
+  "id": "EXP-032",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; PowerShell 5.1, Python 3",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #20 on feature/review20-validation: persist the failure reason of a run stopped by an error (FB-20-01), validate result files beyond their presence (FB-20-02), and show commit and clean/dirty on recent-run lines (FB-20-03).",
+  "hypothesis": "A catch in test.ps1 can record infrastructure_failure with a path-free reason without overwriting a finished result; a structural check of each result file rejects empty or malformed files while accepting every real suite file.",
+  "procedure": "test.ps1: catch writes result infrastructure_failure and reason (original message, local paths replaced by ., %TEMP%, %USERPROFILE%; also in builds), only if this run's directory exists and the final result was not yet written, then rethrows. -GnsBuildDir parameter (default build-gns). Test-ResultsFile: non-empty JSON array of cases with a string name and result PASSED/FAILED/SKIPPED; invalid files kept as <suite>.invalid.json, listed in ctest_runs[].invalid, never copied to the top level, and failing the run. report.py recent_runs: commit and clean/dirty fields, INVALID, reason, harness-only caveat. Harness: invalid (empty) results file, a results file held open without sharing, -GnsBuild with an absent GNS build, no absolute path in run.json; the stand-in ctest now writes two cases per suite. Ran test.ps1 -GnsBuild -Repeat 2 -E2E on the working tree over 01eceea. Codex reviews (4 passes, the first on the PR #20 branch with this work): path hiding moved to scripts/local-paths.ps1 with generic drive/UNC redaction; per-invocation build sanitized; the top-level copy removed when a later invocation is invalid or missing; each case must be a JSON object. Each fix has a harness case that fails without it. Then the full run again.",
+  "expected_result": "Harness and report tests pass; real suite files validate; the full run passes.",
+  "observed_result": "First harness run exposed a defect in the new validator: in PowerShell 5.1, @($raw | ConvertFrom-Json) wraps the whole array as one element, so '[]' was reported as 'a case without a name' and multi-case real files would have been rejected; the one-case stand-in had hidden it. Fixed by assigning first, then @(); the stand-in now writes two cases per suite. Harness then all passed (invalid recorded as 'no test cases', not missing; locked file gave infrastructure_failure with reason 'cannot remove stale results %TEMP%\\...' and no absolute path; absent GNS build gave failed with all 5 GNS suites missing). Report self-tests 12/12. Full run tests-2026-10-25-171414-01eceea-dirty: iter-1, iter-2 (4 suites each) and build-gns-iter-1 (5 suites) exit 0 with nothing missing or invalid (real multi-case files accepted), transport check OK x4, smoke 3/3, both self-checks passed, E2E 0, builds recorded as relative paths. Codex found 4 real defects in this work over 3 passes (external absolute paths in reason, unsanitized ctest_runs[].build, stale top-level copy after a valid-then-invalid repeat, nested arrays accepted); all fixed with tests proven to fail without the fix; the 4th pass found no regression. Final full run with every fix: tests-2026-10-25-174833-01eceea-dirty, all passed, nothing missing or invalid, builds and per-invocation build fields relative.",
+  "evidence_paths": [
+    "evidence/logs/tests-2026-10-25-171414-01eceea-dirty",
+    "evidence/logs/tests-2026-10-25-174833-01eceea-dirty"
+  ],
+  "result": "PASSED",
+  "errors": "Suite identity is not checked: the runner does not write its suite name. The run is marked dirty because the changed scripts were not yet committed; the C++ code under test equals 01eceea.",
+  "confidence": "high",
+  "follow_up": "Write the suite name into the runner's JSON if identity checks are wanted; KI-35 GNS phases with predeclared comparisons.",
+  "related": [
+    "EXP-031"
+  ]
+}

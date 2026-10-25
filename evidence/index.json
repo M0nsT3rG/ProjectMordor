@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 95,
+  "count": 96,
   "records": [
     {
       "id": "EXP-001",
@@ -342,6 +342,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #19 on feature/review19-freshness: a bounded recent-runs history with every invocation's exit code in the report (FB-19-01), and result freshness without timestamps plus failing missing suites (FB-19-02)."
+    },
+    {
+      "id": "EXP-032",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-032.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #20 on feature/review20-validation: persist the failure reason of a run stopped by an error (FB-20-01), validate result files beyond their presence (FB-20-02), and show commit and clean/dirty on recent-run lines (FB-20-03)."
     },
     {
       "id": "F-COMM-001",

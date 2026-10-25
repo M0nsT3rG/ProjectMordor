@@ -112,10 +112,17 @@ def recent_runs(logs: Path, n: int = RECENT_RUNS) -> list[str]:
     for d in sorted((d for d in logs.glob("tests-*") if d.is_dir() and RUN_DIR.match(d.name)), key=lambda d: d.name)[-n:][::-1]:
         try:
             r = json.loads((d / "run.json").read_text(encoding="utf-8"))
-            calls = ", ".join(f"{c.get('dir')}: exit {c.get('exit_code')}" + (f", MISSING {'/'.join(c['missing'])}" if c.get("missing") else "")
+            calls = ", ".join(f"{c.get('dir')}: exit {c.get('exit_code')}"
+                              + (f", MISSING {'/'.join(c['missing'])}" if c.get("missing") else "")
+                              + (f", INVALID {'/'.join(c['invalid'])}" if c.get("invalid") else "")  # FB-20-02
                               for c in r.get("ctest_runs") or [])
+            if not calls:  # FB-20-03: say plainly that there is no per-invocation record
+                calls = "**no ctest invocation recorded**" if "ctest_runs" in r else "before per-invocation records"
             res = str(r.get("result", "unknown"))
-            lines.append(f"- `{d.name}`: {res if res == 'passed' else f'**{res}**'} ({calls or ('no ctest invocation recorded' if 'ctest_runs' in r else 'before per-invocation records')})")
+            # FB-20-03: commit and clean/dirty as fields, not only inside the directory name.
+            src = f"{str(r.get('commit', '?'))[:7]}, {'dirty' if r.get('dirty') else 'clean'}"
+            why = f"; reason: {md_cell(r['reason'])}" if r.get("reason") else ""  # FB-20-01
+            lines.append(f"- `{d.name}`: {res if res == 'passed' else f'**{res}**'} at {src} ({calls}){why}")
         except (OSError, ValueError, AttributeError, TypeError):  # ValueError covers invalid UTF-8 too
             lines.append(f"- `{d.name}`: **no readable run.json**")
     return lines
@@ -170,7 +177,7 @@ def build(repo: Path) -> dict[str, str]:
         f"{len(exps)} experiments ({', '.join(f'{k} {v}' for k, v in sorted(res.items()))})",
         f"- Latest automated tests: {passed}/{total} passed" + (f"; missing suites: {', '.join(missing)}" if missing else ""),
         *test_lines,
-        f"- Recent test runs (newest first, at most {RECENT_RUNS}):",
+        f"- Recent test runs (newest first, at most {RECENT_RUNS}; test-harness runs only, they say nothing about the network soaks):",
         *(["  " + x for x in recent_runs(ev / "logs")] or ["  - none"]),
         f"- End-to-end runs logged: {', '.join(e2e) if e2e else 'none'}",
     ])
@@ -191,7 +198,8 @@ def build(repo: Path) -> dict[str, str]:
             tr.append(f"| {s} | {CLOCK[s]} | {t['passed']} | {len(t['skipped'])} | {t['total']} | "
                       f"{md_cell(', '.join(t['failed']) or 'none')} | `evidence/logs/{t['file']}`{md_cell(run_note(t))} |")
     tr += ["", "SKIPPED tests are listed with their reason in the JSON log; a skip is never counted as a pass."]
-    tr += ["", f"Recent test runs, newest first (at most {RECENT_RUNS}), with every ctest invocation:", ""] + (recent_runs(ev / "logs") or ["- none"])
+    tr += ["", f"Recent test runs, newest first (at most {RECENT_RUNS}), with every ctest invocation. These are test-harness "
+           "runs: passing ones do not resolve open network-soak failures (KI-35), which are listed separately below.", ""] + (recent_runs(ev / "logs") or ["- none"])
     tr += ["", "**Real-time** results (wall clock, separate processes) come only from end-to-end and soak runs, listed below; "
            "LAN results only from two-PC experiments. Simulated-clock passes do not imply real-time behaviour."]
     tr += ["", "## Real-time soak runs (wall clock, separate processes)", "",

@@ -1,0 +1,40 @@
+{
+    "run_id":  "tests-2026-10-25-174210-01eceea-dirty",
+    "started_utc":  "2026-10-25T16:42:10.4173510Z",
+    "commit":  "01eceeaadb6e4a352277e0ad1b63c251f35dee3b",
+    "dirty":  true,
+    "config":  "Release",
+    "builds":  [
+                   "build"
+               ],
+    "repeat":  1,
+    "suites":  {
+                   "unit":  "udp",
+                   "integration":  "udp",
+                   "network":  "udp",
+                   "transport":  "udp"
+               },
+    "ctest_runs":  [
+                       {
+                           "build":  "build",
+                           "iteration":  1,
+                           "dir":  "iter-1",
+                           "exit_code":  0,
+                           "files":  [
+                                         "iter-1/unit.json",
+                                         "iter-1/integration.json",
+                                         "iter-1/network.json",
+                                         "iter-1/transport.json"
+                                     ],
+                           "missing":  [
+
+                                       ],
+                           "invalid":  {
+
+                                       }
+                       }
+                   ],
+    "e2e":  false,
+    "e2e_exit_codes":  null,
+    "result":  "passed"
+}

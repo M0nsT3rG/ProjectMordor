@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #20 (PR #20: review #19 follow-up)
+
+- **Status:** implemented (2026-10-25) on `feature/review20-validation` (stacked on PR #20); the owner asked for all of it.
+- **Source:** [PR #20 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/20) at `01eceea`. Source review only, no Windows execution.
+- **Verdict:** conditional GO for lab work; not merge or release approval. Harness reliability is not networking readiness.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-20-01** (minor) Persist failure reasons; test the locked-file and absent-GNS-build paths | **Yes.** A run stopped by an error (an undeletable stale file, a missing executable, E2E start-up) left `run.json` at `incomplete`, with no reason. Neither path had a test. | **Accepted** | A `catch` in `test.ps1` writes `result: infrastructure_failure` with `reason` (the original message), then rethrows. It never writes into another run's directory, and never after the final result is recorded. Local paths in the reason and in `builds` are replaced by `.`, `%TEMP%` and `%USERPROFILE%` (project rule: no absolute paths in evidence). `-GnsBuildDir` (default `build-gns`) replaces the hard-coded path, so the harness can point at an absent build. Harness: a results file held open with no sharing → `infrastructure_failure`, reason `cannot remove stale results %TEMP%\…`, no absolute path; `-GnsBuild` without a GNS build → `failed` with all 5 GNS suites missing. |
+| **FB-20-02** (minor) A present file is not a complete suite | **Yes.** Any file was accepted, including `[]` or truncated JSON. | **Accepted** | `Test-ResultsFile`: a non-empty JSON array of cases, each with a string `name` and a result of PASSED, FAILED or SKIPPED. An invalid file goes to `ctest_runs[].invalid` (with the reason), separate from `missing`. It is kept as `<suite>.invalid.json` in the invocation directory, never shown as the latest result, and fails the run. **Suite identity cannot be checked:** the runner does not write its suite name. Writing the first version of this exposed a PowerShell 5.1 trap: `@($raw \| ConvertFrom-Json)` wraps the whole array as one element, so real multi-case files would have been rejected. The one-case fake hid it. Now parsed in two steps, and the fake writes two cases per suite. |
+| **FB-20-03** (minor) Commit and dirty on recent-run lines | **Yes.** They were only inside the directory name. | **Accepted** | Each line reads `passed at 01006cf, dirty (…)`; `INVALID` and `MISSING` per invocation; the `reason`; a bold `no ctest invocation recorded`. Both blocks state that these are test-harness runs that do not resolve network-soak failures (KI-35). Report tests 12/12. |
+| Codex reviews of PR #20 and of this change (4 passes) | Pass 1, PR #20 branch plus this work: `Hide-LocalPaths` knew only 3 prefixes, so a build directory elsewhere (`D:\external-build`) leaked into `reason`. Pass 2: `ctest_runs[].build` was not sanitized; a valid-then-invalid repeat left invocation 1's file as the "latest". Pass 3: a nested array `[[{…}]]` passed validation through PowerShell member enumeration, and would then crash `check_test_transport.py` and `report.py`. Pass 4: no regression. | **Accepted, all fixed** | `scripts/local-paths.ps1`: known prefixes, then any remaining drive or UNC path becomes `<abs-path>`; 5 direct tests. `build` sanitized per invocation; a whole-record check that is proven to catch a leak (it fails with the sanitizing removed). The top-level copy is removed when a later invocation is invalid or missing; valid-then-invalid test. Each case must be a JSON object; nested-array test, which fails without the check. |
+| Answers 1 and 2 | **Agreed.** | — | The hard stop stays, now with the reason persisted. 5 recent runs stays; full history in the immutable run directories. |
+| Carry-forward | **Agreed.** | — | KI-35, KI-42 and KI-28b remain unresolved. No protocol or default changes without a separate review. |
+
+---
+
 ## Feedback on review #19 (PR #19: review #18 follow-up)
 
 - **Status:** implemented (2026-10-25) on `feature/review19-freshness` (stacked on PR #19); the owner asked for all of it.
