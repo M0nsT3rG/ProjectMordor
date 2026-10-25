@@ -600,6 +600,31 @@ or gate change.
     Among the slowest 10% of totals, count which phase was the largest.
   - No result here changes a gate, a default or the protocol, nor closes KI-35.
 
+**EXP-037 result (`ki35-secure-2026-10-25-222913-b4d584f-dirty`, 600/600 joins connected).**
+
+| Mechanism (predeclared) | Model | UDP, 95% Wilson | GNS, 95% Wilson | Rule |
+|---|---|---|---|---|
+| DTLS without a client retransmission | 0.377-0.394 | 0.363 [0.311, 0.419] | 0.413 [0.359, 0.470] | **supported** (both) |
+| Session with exactly one ConnectRequest | 0.614-0.628 (2-pkt 0.723-0.733) | 0.353 [0.301, 0.409] | 0.543 [0.487, 0.599] | **not supported** (both; neither model) |
+| GNS inner within its first cycle | 0.522-0.538 | - | 0.590 [0.534, 0.644] | **supported** |
+
+- The batches are consistent for every proportion: UDP seeds 3701–3703 and the GNS repetitions.
+- **Latency per connection** (ms, p50 / p90 / p95 / p99):
+
+  | Phase | UDP | GNS |
+  |---|---|---|
+  | establish | 0.6 / 0.8 / 0.9 / 3.7 | 408 / 1443 / 2124 / 3644 |
+  | DTLS | 857 / 1926 / 2593 / 4231 | 835 / 1812 / 2266 / 3657 |
+  | session | 445 / 718 / 949 / 1431 | 235 / 722 / 956 / 1271 |
+  | total | 1312 / 2542 / 3215 / 4672 | 1955 / 3397 / 4186 / 6066 |
+
+- **The slowest 10% of connections:** DTLS is the largest phase in 29 of 30 on UDP, and in 16 of 30 on GNS (establishment in the other 14).
+- **Post-hoc, not a rule:**
+  - The client sends a ConnectRequest at the instant of authentication, then every **250 ms**: the initial-connect interval, `connect_retry_us`, which is close to one harsh round trip.
+  - A first request that succeeds is often followed by a redundant second one before its ConnectAccept arrives. So "exactly one request" undercounts first-try successes: the metric was mis-specified.
+  - These are fresh joins. KI-35 concerns reconnects, which retry every 500 ms.
+- **For KI-35:** DTLS dominates the slow tail and behaves as its loss model predicts. Its timing is the next candidate: the retransmission back-off (250 ms initial, doubling, capped at 1 s), and the cookie round trip (EXP-027). The session phase should be re-measured on the reconnect path, counting the request whose accept completed the session.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

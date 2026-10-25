@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #25 (PR #25: KI-35 investigation, EXP-036)
+
+- **Status:** implemented (2026-10-25) on `feature/ki35-gns-establishment`; the owner asked for all of it.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25). Source and evidence review only.
+- **Verdict:** the research direction is approved; merging and network readiness are not. KI-35 and D-008/G0 stay open.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **Correction** "our path adds about 37 ms" | **Yes, the claim overreached.** It compared medians of different samples (the probe and earlier soak reconnects): it is not a paired estimate and not a bound. | **Accepted** | Reworded wherever it appeared (soak-testing.md, KNOWN_ISSUES, the triage, the dev log, EXP-036 `follow_up`, marked "corrected after review #25"). No claim that establishment is entirely outside our control. |
+| **FB-25-01** Methodology | **Agreed.** | **Accepted** | EXP-037 judges per-attempt proportions with 95% Wilson intervals against model intervals [without, with duplicates]. Duplicates are modelled (an independent copy). The cycle distribution is reported. Fixed seeds on UDP; GNS loss cannot be seeded, so its batches are repetitions. |
+| **FB-25-02** DTLS and session per reconnection | **Agreed.** | **Accepted** | `tools/ki35/secure_probe.cpp`: phases per connection (establish, DTLS, session, total) with n, failures and p50/p90/p95/p99; the largest phase among the slowest 10%. Fresh joins, which have no notice phase and no token; stated. Reuse or overlap of connections is not tested here. |
+| **FB-25-03** Reproducibility | **Agreed.** | **Accepted** | UDP seeds 3701–3703 and 3 GNS repetitions, 100 trials each; per-batch intervals and a predeclared consistency check. Source-level conclusions (F-GNS-003) are kept apart from timing results. |
+| **FB-25-04** Separation | **Agreed.** | **Accepted** | This branch is not part of the PR #24 candidate. |
+| Answers 1–3 | **Agreed.** | — | DTLS and session first; no GNS patch (it would be an owner-approved dependency change); per-attempt proportions with intervals, with end-to-end tail latency as the user-facing criterion. |
+
+---
+
 ## Feedback on review #24 (PR #24: the integration candidate)
 
 - **Status:** triaged (2026-10-25). Recorded on `feature/ki35-gns-establishment`, so that the candidate branch stays unchanged while its consecutive Codex reviews run.

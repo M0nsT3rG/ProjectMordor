@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #25 follow-up, EXP-037 (`feature/ki35-gns-establishment`, off the candidate)
+
+- **Input:** [PR #25 review](https://github.com/M0nsT3rG/ProjectMordor/pull/25); the owner asked for all of it. Triaged in CHATGPT_FEEDBACK.md.
+- **Correction:** the "~37 ms" was an unpaired comparison of medians, not a bound on our path (`79f2418`).
+- **EXP-037:** predeclared (`79f2418`) and tooled (`b4d584f`) before any run. Fresh secure joins, harsh profile, 600 trials, 0 failures. UDP seeds 3701–3703 and 3 GNS repetitions.
+  - **Supported:** DTLS without a client retransmission (UDP 0.363, GNS 0.413; model 0.377–0.394) and GNS first cycle (0.590; model 0.522–0.538).
+  - **Not supported:** session with exactly one ConnectRequest (UDP 0.353, GNS 0.543). Post-hoc, fresh joins retry every 250 ms, about one harsh RTT, so the metric counted redundant requests.
+  - **Slowest 10%:** DTLS is the largest phase (UDP 29/30, GNS 16/30; establishment 14/30).
+- **Next for KI-35:** DTLS timing (retransmission timer, cookie round trip), and the session phase on the reconnect path with a corrected metric. Each needs its own predeclaration.
+- **Candidate:** Codex passes 6 and 7 found 3 P2 defects, so the candidate is not clean yet. They are not fixed on this branch.
+
 ## 2026-10-25: KI-35 investigation, EXP-036 (`feature/ki35-gns-establishment`, off the candidate)
 
 - **Input:** the owner asked to advance KI-35 and to read PR #24 (review #24, triaged).

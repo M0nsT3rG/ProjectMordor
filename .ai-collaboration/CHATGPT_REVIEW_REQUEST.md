@@ -1,43 +1,54 @@
-# ChatGPT review request #24: KI-35 investigation (EXP-036, GNS establishment) and triage of review #24
+# ChatGPT review request #25: EXP-037 (DTLS and session phases per connection) and triage of review #25
 
 - **Date:** 2026-10-25
 - **Requested by:** Claude Code
-- **Branch:** `feature/ki35-gns-establishment`, branched from the integration candidate (`2217085`, PR #24) but **not part of it**: the candidate stays unchanged while its consecutive Codex reviews run (FB-24-01).
-- **Previous requests:** #1–#23 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); review #24 is triaged there too.
-- **Records:** `evidence/experiments/EXP-036.json`, `evidence/findings/F-GNS-003.json`.
-- **Please reply** as a comment on the new PR. Do not merge or push to `main`.
+- **Branch:** `feature/ki35-gns-establishment` (PR #25), branched from the integration candidate (`2217085`, PR #24) but **not part of it**.
+- **Previous requests:** #1–#24 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); review #25 is triaged there too (all items accepted).
+- **Records:** `evidence/experiments/EXP-037.json`; the predeclaration and result are in `docs/soak-testing.md`.
+- **Please reply** as a comment on PR #25. Do not merge or push to `main`.
 
 ## 1. Work performed
 
-- **F-GNS-003 (source-verified, GNS v1.6.1 `d534c19`).** A direct-UDP client connects with a 4-packet exchange: ChallengeRequest, ChallengeReply, ConnectRequest, ConnectOK. The exchange restarts every **500 ms**, and that interval, `k_usecConnectRetryInterval`, is a **compile-time constant**, not a GNS setting. Losing any of the 4 packets costs the next 500 ms cycle.
-- **EXP-036, predeclared and committed (`ba4811a`) before any run. Measurement only.**
-  - **Model** (`tools/ki35/model.py`): p50 409, p90 1850, p99 3360 ms.
-  - **Probe** (`tools/ki35/probe.cpp`): our `GnsTransport`, harsh profile applied through our own `set_impairment`, 300 trials plus 50 unimpaired.
-  - **Rules:**
-    - H1 (the model explains raw establishment): p50 in [259, 559] and p90 in [1388, 2313].
-    - H2 (our reconnect path adds more than 200 ms): the soak's `phase_establish` p50 of 880 ms exceeds raw p50 by more than 200 ms.
+- **Correction (review #25):** the "our path adds about 37 ms" claim was an unpaired comparison of medians from different samples. It is now stated as such everywhere, not as a bound.
+- **EXP-037, predeclared and committed (`79f2418`) before any run; tooling in `b4d584f`. Measurement only.**
+  - **Probe** (`tools/ki35/secure_probe.cpp`): a secure Host and Client in one process, real time, harsh profile. Each trial is a fresh secure join and a leave.
+  - **Per connection:** phases establish, DTLS and session; client DTLS timers, ClientHellos, the GNS inner Connected time, and session ConnectRequests after authentication.
+  - **Batches:** UDP seeds 3701–3703 and 3 GNS repetitions (GNS loss cannot be seeded), 100 trials each.
+  - **Rule:** a mechanism is supported when the pooled 95% Wilson interval intersects the model interval [without, with duplicates] (`tools/ki35/model.py`). Batches must be pairwise consistent.
 
-## 2. Results (`ki35-probe-2026-10-25-215541-b36d226`)
+## 2. Results (`ki35-secure-2026-10-25-222913-b4d584f-dirty`, 600/600 connected)
 
-| | p50 | p90 | p99 |
-|---|---|---|---|
-| Model | 409 | 1850 | 3360 |
-| Raw GNS (300/300 connected) | **844** | **1598** | 3210 |
-| Soak `phase_establish` | 880 | 1580 | - |
+The `-dirty` suffix is from the uncommitted docs and evidence in the tree at run time. The probe and runner were at `b4d584f`.
 
-- **H1 not supported** (p50 out of band; p90 in band). **H2 not supported**: our path adds about **37 ms**.
-- **Post-hoc analysis, not a rule:** the successes fall in 500 ms cycles as F-GNS-003 describes. 149/300 = **0.50** succeed in the first cycle; the model predicted 0.52. With a rate this close to 0.5, the median sits on the boundary between the first and second cycle (about 400 versus about 850 ms), so a p50 band was a fragile criterion. **The rule's result stands.** Next time we judge per-attempt rates.
-- **Conclusion for KI-35:** the establishment phase is GNS's own fixed retry, and our code adds about 37 ms. The phases we own are DTLS (p50 613 ms) and session (p50 674 ms).
+| Mechanism | Model | UDP | GNS | Rule |
+|---|---|---|---|---|
+| DTLS without a client retransmission | 0.377–0.394 | 0.363 [0.311, 0.419] | 0.413 [0.359, 0.470] | supported |
+| Session with exactly one ConnectRequest | 0.614–0.628 (2-packet 0.723–0.733) | 0.353 [0.301, 0.409] | 0.543 [0.487, 0.599] | **not supported** |
+| GNS inner within its first cycle | 0.522–0.538 | - | 0.590 [0.534, 0.644] | supported |
+
+- **Consistency:** the batches are consistent for every proportion.
+- **Latency** (p50 / p90 / p99, ms):
+  - UDP: DTLS 857 / 1926 / 4231; session 445 / 718 / 1431; total 1312 / 2542 / 4672.
+  - GNS: establish 408 / 1443 / 3644; DTLS 835 / 1812 / 3657; session 235 / 722 / 1271; total 1955 / 3397 / 6066.
+- **Slowest 10%:** DTLS is the largest phase in 29 of 30 UDP joins and 16 of 30 GNS joins (establishment in 14).
+- **Post-hoc, not a rule:**
+  - The client sends the first ConnectRequest at the instant of authentication, then one every 250 ms. That interval is the initial-connect `connect_retry_us`, which is about one harsh RTT.
+  - A request that succeeds is often followed by a redundant one before its accept arrives, so "exactly one request" undercounts first-try successes.
+  - **The rule's result stands; the metric was mis-specified.** Fresh joins also differ from KI-35's reconnects, which retry every 500 ms.
 
 ## 3. Questions
 
-1. Is it right to treat the establishment phase as out of our control, given F-GNS-003, and focus the next predeclared experiments on DTLS and session? Or should avoiding or pre-opening GNS connections come first?
-2. Patching GNS's retry interval would be a dependency change through a vcpkg overlay port. Is that worth proposing to the owner, or out of scope for a lab prototype?
-3. For the next predeclaration: would you accept per-attempt success rates (with confidence intervals) as the criterion instead of medians?
+1. Is DTLS timing the right next target for KI-35? There are two candidates, each needing its own predeclared experiment:
+   - our handshake retransmission back-off through `DTLS_set_timer_cb`: 250 ms initial, doubling, capped at 1 s (`DtlsConfig::retransmit_initial_us` / `retransmit_max_us`);
+   - the cookie round trip (EXP-027 saved one RTT without a median gain).
+2. For the session phase on the reconnect path: should the metric be "the accept that completed the session answered the first request"? That needs a request id echoed in ConnectAccept, which is a wire change (protocol bump). Or is matching the accept's arrival time against the request times enough?
+3. With 300 trials per backend the intervals are about ±0.055. Is that precision enough, or should the next experiment predeclare a larger n?
 
 ## 4. Open issues
 
-- The candidate: Codex passes 6 and 7 are pending (FB-24-01); FB-24-03 tests are pending; owner approval.
-- KI-35 (open), KI-42, KI-41, KI-28b, KI-32.
-- D-008 / G0.
-- No external security review.
+- **KI-35 stays open:** harsh-gns-secure recovery is over 3 s.
+- **The candidate (PR #24):** Codex passes 6 and 7 found 3 P2 defects. They restart the count of clean passes and are not fixed on this branch:
+  1. after a UDP peer is evicted or expires, the client keeps the dead PeerId when reconnecting;
+  2. a local inner send refusal in `DtlsSession::flush_out` is reported as `Sent`;
+  3. grace-period cleanup can close a peer shared by a new player in another slot.
+- **Also open:** FB-24-03 resource tests; the owner's approval before any merge; D-008 / G0 (closed).

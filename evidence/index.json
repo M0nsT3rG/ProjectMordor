@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 101,
+  "count": 102,
   "records": [
     {
       "id": "EXP-001",
@@ -397,6 +397,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "KI-35: find what sets the GNS establishment phase of a secure reconnect under the harsh profile, the largest phase (p50 880 ms in 39 recorded harsh-gns-secure reconnects)."
+    },
+    {
+      "id": "EXP-037",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-037.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #25: do the DTLS and session phases (ours) behave as their packet-level mechanisms predict, per connection, with uncertainty and across seeds; which phase makes slow connections slow."
     },
     {
       "id": "F-COMM-001",
