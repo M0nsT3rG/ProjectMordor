@@ -82,6 +82,10 @@ int main(int argc, char** argv) {
             return 2;
         }
         std::FILE* clog = cli::open_log(argv[4]);
+        if (!clog) {  // without it every session_requests would read as 0 (Codex, PR #25)
+            std::fprintf(stderr, "client log: cannot open\n");
+            return 2;
+        }
         const auto log_start = real_us();  // the client log's t_ms counts from here: maps each trial onto it
         Logger client_log("client", clog);
         for (int i = 0; i < trials; ++i) {

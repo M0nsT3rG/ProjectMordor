@@ -50,7 +50,9 @@ def load_trials(d: Path) -> list[dict]:
 def load_batch(d: Path) -> list[dict]:
     trials = load_trials(d)
     log = d / "client.log"
-    reqs = [json.loads(l)["t_ms"] for l in (log.read_text(encoding="utf-8").splitlines() if log.exists() else [])
+    if not log.exists():  # unavailable, not zero requests: session_first then has n = 0 and no interval
+        return trials
+    reqs = [json.loads(l)["t_ms"] for l in log.read_text(encoding="utf-8").splitlines()
             if l.strip() and '"evt":"connect_request"' in l]
     for t in trials:  # ConnectRequests after authentication, up to Connected (log t_ms has 1 ms resolution)
         if t["ok"] and t["auth"] >= 0:
@@ -97,7 +99,8 @@ def judge(out: Path) -> dict:
         rules = {}
         for name, pr in s["proportions"].items():
             ci = pr["wilson95"]
-            rules[name] = {"wilson95": ci, "model": MODEL[name], "supported": bool(ci and overlaps(ci, MODEL[name]))}
+            rules[name] = {"wilson95": ci, "model": MODEL[name], "available": ci is not None,
+                           "supported": bool(ci and overlaps(ci, MODEL[name]))}
             if name == "session_first":
                 rules[name]["intersects_3leg"] = bool(ci and overlaps(ci, MODEL["session_first"]))
                 rules[name]["intersects_2leg"] = bool(ci and overlaps(ci, MODEL["session_first_2leg"]))

@@ -1,4 +1,5 @@
 """Self-checks for the EXP-037 decision arithmetic: python -I tools/ki35/test_run_secure_probe.py"""
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -22,6 +23,22 @@ class Arithmetic(unittest.TestCase):
         ci = r.wilson(70, 100)  # about [0.604, 0.781]
         self.assertTrue(r.overlaps(ci, r.MODEL["session_first"]))
         self.assertFalse(r.overlaps(ci, r.MODEL["dtls_no_timer"]))
+
+
+class MissingLog(unittest.TestCase):
+    def test_a_missing_client_log_makes_session_first_unavailable_not_zero(self):
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "udp-1"
+            d.mkdir()
+            t = {"trial": 0, "log_ms": 0, "ok": True, "inner": -1, "first_hello": 1, "auth": 500, "connected": 700,
+                 "hellos": 2, "timers": 0}
+            (d / "trials.jsonl").write_text(json.dumps(t) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertEqual(v["pooled"]["udp"]["proportions"]["session_first"]["n"], 0)
+            self.assertFalse(v["rules"]["udp"]["session_first"]["available"])
+            (d / "client.log").write_text('{"t_ms":500,"evt":"connect_request"}\n', encoding="utf-8")
+            self.assertEqual(r.judge(Path(tmp))["pooled"]["udp"]["proportions"]["session_first"]["k"], 1)
 
 
 class Bounded(unittest.TestCase):

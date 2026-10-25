@@ -43,6 +43,7 @@ The `-dirty` suffix is from the uncommitted docs and evidence in the tree at run
 - **Codex pass 2:** a hung probe lost its finished trials and was killed without a dump. Both runners are now bounded (`tools/ki35/bounded.py`):
   - stdout is streamed to the evidence file, and `run.json` is written per batch;
   - a hung probe is dumped locally, killed, and recorded as `hung`.
+- **Codex pass 3:** if the client log failed to open, every session would have counted as 0 requests. The probe now refuses to start, and the analyser marks a missing log as unavailable. Every EXP-037 batch has its log.
 
 ## 3. Questions
 
