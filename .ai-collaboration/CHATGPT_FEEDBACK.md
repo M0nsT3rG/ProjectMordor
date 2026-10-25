@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #21 (PR #21: review #20 follow-up)
+
+- **Status:** implemented (2026-10-25) on `feature/review21-identity` (stacked on PR #21); the owner asked for all of it.
+- **Source:** [PR #21 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/21) at `3bdfeac`. Source review only.
+- **Verdict:** FB-20-01..03 substantially implemented; lab scope only; no merge or `main` changes.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-21-01** (major) FAILED cases with ctest exit 0 | **Yes, from source** (`Invoke-Suites` looked only at exit code, missing and invalid). Reproduced: without the fix, the harness run with a FAILED case and exit 0 ended `passed`. | **Accepted** | `Get-FailedCases`: every FAILED case in a valid file is recorded in `ctest_runs[].failed_cases` (suite → names), printed (`FAILED CASES`) and fails the run, whatever ctest's exit code. It is kept apart from `invalid`: the file stays valid evidence and the latest result. Regression: a stand-in ctest writes a FAILED case and exits 0, so the run must be `failed` with `failed_cases.unit = unit-case` and nothing invalid. It fails without the fix. |
+| **FB-21-02** (minor) Suite identity | **Yes.** The runner wrote no suite name, so two valid files could be swapped. | **Accepted** | `tests/test_main.cpp` takes `--suite NAME` and writes `"suite"` in every case. CMake passes the ctest name (`unit`, `integration-gns`, `dtls`, …). `Test-ResultsFile` requires every case's suite to equal the suite the file is filed under; otherwise the file is invalid (`a case of suite 'unit', expected 'integration'`). Regression: a valid unit file filed as `integration` is invalid. Committed evidence without the field is still read by the report and the validator; only new runs must carry it. No separate schema version: the field itself is the change. |
+| **FB-21-03** (minor) Redaction | **Yes, a real leak confirmed.** `D:\Outra Pasta\sub dir\unit.json` became `<abs-path> Pasta\sub dir\unit.json`. | **Accepted** | `local-paths.ps1`: a quoted path is hidden up to its closing quote. An unquoted path is hidden up to its last separator plus the file name. Our own messages quote their paths. Tests: spaces, non-ASCII (`Música`, `Árvore\índice`), a quoted path in single or double quotes, and a UNC share with spaces. Limit, marked `shortcut:` in the code: an unquoted path also swallows plain words up to a later `\` or `/` on the same line, which over-hides and never leaks. `<abs-path>` stays; no path hash (an unsalted hash of a guessable path could reveal it, as you note). |
+| Codex review of this change (2 passes) | Pass 1: the unanchored `build-*/` in `.gitignore` also ignored `evidence/logs/tests-*/build-gns-iter-1/`. **Every GNS invocation copy since review #18 was never committed** (6 earlier runs, plus this one). The files were still on disk. Pass 2: no regression. | **Accepted, fixed** | The build ignores are anchored to the root (`/build/`, `/build-*/`, `/build-*.log`); root build directories stay ignored. The 7 missing `build-gns-iter-1/` directories are committed now, from the files on disk; they were never modified. `test_evidence.py` checks with `git check-ignore` that evidence paths are never ignored; it fails with the old `.gitignore`. |
+| Carry-forward | **Agreed.** | — | KI-35 and KI-42 stay open; a green harness proves nothing about harsh reconnects or disconnects. |
+| **Owner decision in the same session (not ChatGPT feedback): D-007** | — | **Recorded** | The owner decided D-007: proceed with interoperability work under Directive 2009/24/EC, accepting the legal risk personally, without qualified advice. Entry in `docs/decisions.md`. **D-008 is still pending, so G0 stays closed** and no game-side work starts. |
+
+---
+
 ## Feedback on review #20 (PR #20: review #19 follow-up)
 
 - **Status:** implemented (2026-10-25) on `feature/review20-validation` (stacked on PR #20); the owner asked for all of it.

@@ -1,4 +1,6 @@
-// Shared runner: `<suite> [name-filter] [--json results.json]`. Exit code 1 if any test fails.
+// Shared runner: `<suite> [name-filter] [--json results.json] [--suite NAME]`. Exit code 1 if any test fails.
+// FB-21-02: --suite (set by CMake to the ctest name) is written into every case, so scripts/test.ps1 can check that a
+// results file belongs to the suite it is filed under.
 #include <chrono>
 #include <cstdlib>
 #include <cstdio>
@@ -34,10 +36,11 @@ int main(int argc, char** argv) {
     lifecycle("main_started");
     std::atexit([] { lifecycle("atexit", false); });
 #endif
-    std::string filter, json_path;
+    std::string filter, json_path, suite;
     for (int i = 1; i < argc; ++i) {
         std::string a = argv[i];
         if (a == "--json" && i + 1 < argc) json_path = argv[++i];
+        else if (a == "--suite" && i + 1 < argc) suite = argv[++i];
         else filter = a;
     }
     int passed = 0, failed = 0, skipped = 0;
@@ -64,7 +67,7 @@ int main(int argc, char** argv) {
         std::cout << std::endl;
         std::string esc;
         for (char c : (error.empty() ? skip_reason : error)) esc += (c == '"' || c == '\\') ? std::string("\\") + c : std::string(1, c);
-        json += std::string(json.size() > 1 ? "," : "") + "\n  {\"name\":\"" + t.name + "\",\"result\":\"" + result +
+        json += std::string(json.size() > 1 ? "," : "") + "\n  {\"suite\":\"" + suite + "\",\"name\":\"" + t.name + "\",\"result\":\"" + result +
                 "\",\"transport\":\"" + mordor::net::to_string(mordor::test::test_transport()) + "\",\"ms\":" + std::to_string(ms) +
                 ",\"error\":\"" + esc + "\"}";
     }

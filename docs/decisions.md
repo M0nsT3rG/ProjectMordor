@@ -2,6 +2,21 @@
 
 Each entry gives the context, the decision, the alternatives considered and how to revisit it.
 
+## D-007: Legal position for interoperability work, owner accepts the risk (2026-10-25, owner decision)
+
+- **Context.**
+  - The EULA forbids reverse engineering, client modification and third-party programs that interact with the client (F-COMM-015).
+  - EU Directive 2009/24/EC, Articles 6 and 8, may allow limited interoperability work and void contrary contract terms.
+  - Whether a co-op mod qualifies is a legal question. Claude Code cannot give legal advice.
+- **Decision (the owner's, in chat, 2026-10-25).** The owner decides to proceed with interoperability work and **personally accepts the legal risk, without qualified legal advice**. The work is limited to the minimum necessary for interoperability.
+- **Unchanged by this decision.** All non-negotiable rules stay in force, in particular:
+  - never bypass, analyse, unpack or dump any protection (rule 2);
+  - never touch official online services (rule 3);
+  - never modify game files or saves (rule 1);
+  - never redistribute anything (rule 4).
+- **Gate G0 is still closed.** It also needs D-008, a target and method that require no circumvention. D-008 is pending, so M1–M10 remain NO-GO.
+- **Revisit** if qualified legal advice is obtained, if the work would go beyond what interoperability needs, or before anything is published outside the private repository.
+
 ## D-001: Networking prototype on raw Winsock2 UDP, no third-party dependency (2026-10-23)
 
 - **Context.** Phase 1 needs an auditable two-player prototype. Candidate transports: ENet, Valve GameNetworkingSockets, Steam relay (`ISteamNetworkingMessages`), raw Winsock2.

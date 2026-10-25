@@ -42,7 +42,9 @@ try {
     # FB-20-02: presence is not enough. A results file must be a non-empty JSON array of cases, each with a name and
     # a result of PASSED, FAILED or SKIPPED. Returns $null when valid, or the reason. (Suite identity cannot be checked:
     # the runner does not write its suite name.)
-    function Test-ResultsFile([string]$Path) {
+    # FB-21-02: every case must also carry the suite it was run as (runner --suite, set by CMake to the ctest name),
+    # so a file filed under the wrong suite is invalid. Old evidence without the field is read by the report, never here.
+    function Test-ResultsFile([string]$Path, [string]$Suite) {
         $raw = Get-Content -LiteralPath $Path -Raw -ErrorAction SilentlyContinue
         if (-not $raw -or -not $raw.Trim().StartsWith('[')) { return 'not a JSON array' }
         # Two steps on purpose: in PowerShell 5.1, @($raw | ConvertFrom-Json) wraps the whole array as ONE element.
@@ -54,10 +56,17 @@ try {
             # inner array's name and result as if they were the case's own (Codex review).
             if ($c -isnot [System.Management.Automation.PSCustomObject]) { return 'a case that is not a JSON object' }
             if (-not ($c.name -is [string]) -or $c.result -notin 'PASSED', 'FAILED', 'SKIPPED') { return 'a case without a name or a known result' }
+            if ($c.suite -ne $Suite) { return "a case of suite '$($c.suite)', expected '$Suite'" }
         }
         return $null
     }
-    # Returns $true only if ctest exited 0 AND every expected suite wrote valid results (FB-19-02, FB-20-02).
+    # FB-21-01: names of FAILED cases in a valid results file. A FAILED case fails the run even if ctest exited 0.
+    function Get-FailedCases([string]$Path) {
+        $parsed = Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json  # assign first: see Test-ResultsFile
+        return @(@($parsed) | Where-Object { $_.result -eq 'FAILED' } | ForEach-Object { $_.name })
+    }
+    # Returns $true only if ctest exited 0 AND every expected suite wrote valid results AND no case FAILED
+    # (FB-19-02, FB-20-02, FB-21-01).
     function Invoke-Suites([string]$Dir, [string]$Label, [int]$Iteration, $Map) {
         # FB-19-02: remove the expected result files first, so whatever exists afterwards was written by THIS
         # invocation. No timestamp comparison: its precision and fast repeats made "fresh" ambiguous.
@@ -65,7 +74,7 @@ try {
             $old = Join-Path $Dir "test-results/$($k[0]).json"
             Remove-Item -LiteralPath $old -ErrorAction SilentlyContinue
             # A file that cannot be removed (locked by a stuck test process, KI-40) would be taken as fresh: stop.
-            if (Test-Path -LiteralPath $old) { throw "cannot remove stale results $old" }
+            if (Test-Path -LiteralPath $old) { throw "cannot remove stale results '$old'" }  # quoted: see local-paths.ps1
         }
         $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'  # a failing ctest writes to stderr (EXP-023)
         & $CtestCommand --test-dir $Dir -C $Config --output-on-failure 2>&1 | Out-Host
@@ -73,11 +82,11 @@ try {
         $ErrorActionPreference = $eap
         $iterDir = Join-Path $runDir $Label
         New-Item -ItemType Directory $iterDir | Out-Null
-        $files = @(); $missing = @(); $invalid = [ordered]@{}
+        $files = @(); $missing = @(); $invalid = [ordered]@{}; $failedCases = [ordered]@{}
         foreach ($k in $Map) {  # ctest result name, recorded name, transport the suite is registered for (FB-13-03)
             $src = Join-Path $Dir "test-results/$($k[0]).json"
             if (Test-Path -LiteralPath $src) {
-                $bad = Test-ResultsFile $src
+                $bad = Test-ResultsFile $src $k[0]
                 if ($bad) {
                     # Kept for the record, but never shown as this run's latest result for the suite; an earlier
                     # invocation's valid copy is no longer the latest either (Codex review of PR #21 work).
@@ -91,6 +100,11 @@ try {
                 Copy-Item -LiteralPath $src (Join-Path $runDir "$($k[1]).json") -Force  # latest invocation, for the report
                 $suites[$k[1]] = $k[2]
                 $files += "$Label/$($k[1]).json"
+                $fc = @(Get-FailedCases $src)  # @(): a one-element return is unrolled to a scalar
+                if ($fc.Count) {  # a genuine test failure: valid evidence, reported apart from invalid files
+                    $failedCases[$k[1]] = $fc
+                    Write-Host "FAILED CASES: $($k[1]) in ${Label}: $($fc -join ', ')"
+                }
             } else {
                 $missing += $k[1]  # exit code 0 does not prove a suite wrote its results
                 Remove-Item -LiteralPath (Join-Path $runDir "$($k[1]).json") -ErrorAction SilentlyContinue  # not the latest any more
@@ -98,9 +112,9 @@ try {
             }
         }
         [void]$ctestRuns.Add([ordered]@{ build = (Hide-LocalPaths $Dir $root); iteration = $Iteration; dir = $Label; exit_code = $code; files = $files
-                                         missing = $missing; invalid = $invalid })
+                                         missing = $missing; invalid = $invalid; failed_cases = $failedCases })
         Write-RunJson 'incomplete'  # on disk now: a run that stops later (E2E throw, Ctrl+C) keeps this history
-        return ($code -eq 0 -and $missing.Count -eq 0 -and $invalid.Count -eq 0)
+        return ($code -eq 0 -and $missing.Count -eq 0 -and $invalid.Count -eq 0 -and $failedCases.Count -eq 0)
     }
     . (Join-Path $PSScriptRoot 'local-paths.ps1')  # Hide-LocalPaths: no absolute local path reaches run.json
     function Write-RunJson([string]$Result, $E2EExit = $null, [string]$Reason = $null) {

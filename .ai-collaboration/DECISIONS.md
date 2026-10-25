@@ -15,11 +15,11 @@ The authoritative log is [docs/decisions.md](../docs/decisions.md).
 | D-012 | GameNetworkingSockets behind a `Transport` interface, optional build (user decision) |
 | D-014 | On connection-oriented transports the transport owns connection establishment; reconnect opens a new connection (EXP-016) |
 | D-009 | GitHub as the shared channel with ChatGPT; work on feature branches; no auto-merge; ChatGPT feedback is advice, not authorisation (2026-10-23) |
+| D-007 | Legal position: the owner proceeds with interoperability work and personally accepts the legal risk, without qualified legal advice; minimum necessary, no circumvention; all rules unchanged (2026-10-25). G0 still needs D-008. |
 
 ## Pending: owned by the user
 
 | ID | Question | Why it matters |
 |---|---|---|
-| D-007 | Legal position: the EULA prohibits reverse engineering; EU Directive 2009/24/EC Articles 6 and 8 may permit interoperability work. Needs qualified legal advice. | Gate G0 for M1–M10 |
 | D-013 | Crypto for authenticated peers. Recommended: DTLS 1.2 (OpenSSL) with pinned RFC 7250 raw public keys; fallback Noise via snow ([evaluation](../docs/d013-evaluation.md)) | Required before any untrusted LAN/WAN use |
 | D-008 | Target platform: Steam (protected) or a DRM-free release (GOG, reportedly DRM-free; unverified; both players would need it) | Gate G0 for M1–M10 |

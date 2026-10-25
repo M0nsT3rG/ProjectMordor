@@ -29,6 +29,17 @@ class PathRules(unittest.TestCase):
                   "evidence/logs/tests-integration-gns-first-run-2026-10-23.json"):
             self.assertFalse(any("date-named" in e for e in ev.validate(exp([p]))), p)
 
+    def test_evidence_is_never_git_ignored(self):
+        # An unanchored build-*/ in .gitignore once hid every evidence/logs/tests-*/build-gns-iter-1/ (Codex review).
+        import subprocess
+        probes = ["evidence/logs/tests-2026-01-01-000000-abcdef1/build-gns-iter-1/dtls.json",
+                  "evidence/logs/tests-2026-01-01-000000-abcdef1/iter-1/unit.json",
+                  "evidence/logs/soak-2026-01-01-000000-harsh-gns-sec-g6/host.log",
+                  "evidence/logs/recovered/EXP-001/abcdef1/tests-unit-2026-01-01.json"]
+        r = subprocess.run(["git", "check-ignore", "--no-index", *probes], cwd=ev.ROOT, capture_output=True, text=True)
+        self.assertEqual(r.stdout.strip(), "", f"git ignores evidence paths: {r.stdout}")
+        self.assertEqual(subprocess.run(["git", "check-ignore", "-q", "--no-index", "build-gns/Release/x.json"], cwd=ev.ROOT).returncode, 0)
+
     def test_repository_records_pass(self):
         recs, errs = ev.load_records()
         self.assertEqual(errs + ev.validate(recs), [])

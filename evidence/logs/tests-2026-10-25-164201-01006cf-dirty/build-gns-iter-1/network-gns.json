@@ -1,0 +1,19 @@
+[
+  {"name":"impairment_loss_is_deterministic_and_close_to_configured_rate","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: tests ImpairedSender, the UDP backend's impairment"},
+  {"name":"impairment_delays_until_due","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: tests ImpairedSender, the UDP backend's impairment"},
+  {"name":"latency_is_measured","result":"PASSED","transport":"gns","ms":3488,"error":""},
+  {"name":"delayed_and_reordered_packets_converge","result":"PASSED","transport":"gns","ms":5857,"error":""},
+  {"name":"packet_loss_does_not_break_session","result":"PASSED","transport":"gns","ms":10979,"error":""},
+  {"name":"heavy_loss_and_duplication_never_crash","result":"PASSED","transport":"gns","ms":6121,"error":""},
+  {"name":"timed_out_client_reconnects_with_same_identity","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: asymmetric between clients (b keeps reaching the host while a is cut); GNS fake loss is process-global and cuts both (see symmetric_outage_recovers_fast_with_same_identity)"},
+  {"name":"reconnect_gives_up_after_window","result":"PASSED","transport":"gns","ms":5643,"error":""},
+  {"name":"silent_host_loss_ends_in_failed_state","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS"},
+  {"name":"connect_to_absent_host_fails_within_deadline","result":"PASSED","transport":"gns","ms":10005,"error":""},
+  {"name":"black_holed_connect_hits_overall_deadline","result":"PASSED","transport":"gns","ms":3069,"error":""},
+  {"name":"host_gone_during_handshake_fails_within_deadline","result":"PASSED","transport":"gns","ms":10003,"error":""},
+  {"name":"repeated_outages_reconnect_each_time_with_same_identity","result":"PASSED","transport":"gns","ms":10887,"error":""},
+  {"name":"expired_grace_period_removes_entity","result":"PASSED","transport":"gns","ms":4145,"error":""},
+  {"name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","transport":"gns","ms":7595,"error":""},
+  {"name":"timeout_notice_recovery_under_jitter_reconnects_once","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: asymmetric (host jitter + client-only uplink cut); GNS fake impairment is process-global"},
+  {"name":"events_are_exactly_once_and_in_order_under_impairment","result":"PASSED","transport":"gns","ms":1049,"error":""}
+]

@@ -2,6 +2,18 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #21 follow-up (`feature/review21-identity`, stacked on #21)
+
+- **Input:** [PR #21 review](https://github.com/M0nsT3rG/ProjectMordor/pull/21); the owner asked for all of it. Record: EXP-033.
+- **Changes:**
+  - FAILED cases fail the run even with ctest exit 0.
+  - The runner writes `"suite"` (`--suite`) and `test.ps1` checks it.
+  - Quoted and spaced or non-ASCII paths are redacted.
+- **Codex found a lost-evidence bug:** `.gitignore`'s `build-*/` hid every `build-gns-iter-1/`, so no GNS invocation copy since review #18 had been committed. The ignore is now anchored, the 7 directories are committed from disk, and a regression test was added.
+- **Owner decision:** D-007 recorded (risk accepted by the owner, no legal advice). D-008 is pending; G0 is closed.
+- **Tests:** rebuilt; full run passed; all self-tests pass.
+- **Remaining:** D-008, then G0; KI-35, KI-42, KI-41, KI-28b, KI-32.
+
 ## 2026-10-25: Review #20 follow-up (`feature/review20-validation`, stacked on #20)
 
 - **Input:** [PR #20 review](https://github.com/M0nsT3rG/ProjectMordor/pull/20); the owner asked for all of it. Record: EXP-032.

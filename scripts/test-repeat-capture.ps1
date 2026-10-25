@@ -20,15 +20,17 @@ $n = 1 + [int](Get-Content (Join-Path $dir 'count.txt') -ErrorAction SilentlyCon
 Set-Content (Join-Path $dir 'count.txt') $n
 $mode = Get-Content (Join-Path $dir 'mode.txt') -ErrorAction SilentlyContinue
 if ($mode -eq 'empty-unit' -or ($mode -eq 'invalid-second' -and $n -ge 2)) { $emptyUnit = $true }
-if ($mode -eq 'invalid-second') { $n = 2 }  # every invocation exits 0; only the content differs
+if ($mode -in 'invalid-second', 'swap-integration', 'failed-exit0') { $n = 2 }  # these exit 0; only the content differs
 foreach ($s in 'unit', 'integration', 'network', 'transport') {
     if ($mode -eq 'skip-transport' -and $s -eq 'transport') { continue }
     if ($emptyUnit -and $s -eq 'unit') { Set-Content (Join-Path $dir "test-results/$s.json") -Encoding ascii -Value '[]'; continue }
     if ($mode -eq 'nested-unit' -and $s -eq 'unit') {
-        Set-Content (Join-Path $dir "test-results/$s.json") -Encoding ascii -Value '[[{"name":"x","result":"PASSED","transport":"udp"}]]'; continue }
+        Set-Content (Join-Path $dir "test-results/$s.json") -Encoding ascii -Value '[[{"suite":"unit","name":"x","result":"PASSED","transport":"udp"}]]'; continue }
     $res = if ($s -eq 'unit' -and $n -eq 1 -and $mode -ne 'skip-transport') { 'FAILED' } else { 'PASSED' }
     # Two cases per suite, like a real runner: a validator that only works on one-case files must fail here.
-    Set-Content (Join-Path $dir "test-results/$s.json") -Encoding ascii -Value "[{`"name`":`"$s-case`",`"result`":`"$res`",`"transport`":`"udp`",`"ms`":1,`"error`":`"`"},{`"name`":`"$s-other`",`"result`":`"PASSED`",`"transport`":`"udp`",`"ms`":1,`"error`":`"`"}]"
+    $id = if ($mode -eq 'swap-integration' -and $s -eq 'integration') { 'unit' } else { $s }
+    if ($mode -eq 'failed-exit0' -and $s -eq 'unit') { $res = 'FAILED' }
+    Set-Content (Join-Path $dir "test-results/$s.json") -Encoding ascii -Value "[{`"suite`":`"$id`",`"name`":`"$s-case`",`"result`":`"$res`",`"transport`":`"udp`",`"ms`":1,`"error`":`"`"},{`"suite`":`"$id`",`"name`":`"$s-other`",`"result`":`"PASSED`",`"transport`":`"udp`",`"ms`":1,`"error`":`"`"}]"
 }
 Write-Host "fake ctest invocation $n ($mode)"
 exit $(if ($n -eq 1 -and $mode -notin 'skip-transport', 'nested-unit' -and -not $emptyUnit) { 1 } else { 0 })
@@ -160,6 +162,30 @@ exit $(if ($n -eq 1 -and $mode -notin 'skip-transport', 'nested-unit' -and -not 
         Check (-not (Test-Path (Join-Path $runs[0].FullName 'unit.json'))) 'and is never published as the latest result'
     } else { Check $false "nested-array run directory ($($runs.Count))" }
 
+    # FB-21-01: a well-formed file with a FAILED case fails the run even when ctest exits 0, and the case is named,
+    # apart from invalid files. FB-21-02: a valid file filed under another suite is invalid.
+    foreach ($m in @(@('failed-exit0', 'logs11'), @('swap-integration', 'logs12'))) {
+        $lg = Join-Path $tmp $m[1]
+        New-Item -ItemType Directory $lg | Out-Null
+        Remove-Item (Join-Path $build 'count.txt') -ErrorAction SilentlyContinue
+        Set-Content (Join-Path $build 'mode.txt') $m[0]
+        $threw = $false
+        try { & (Join-Path $PSScriptRoot 'test.ps1') -BuildDir $build -LogsDir $lg -CtestCommand $fake -NoSelfCheck *>&1 | Out-Null }
+        catch { $threw = $true }
+        Remove-Item (Join-Path $build 'mode.txt')
+        $runs = @(Get-ChildItem $lg -Directory)
+        if ($runs.Count -ne 1) { Check $false "$($m[0]) run directory ($($runs.Count))"; continue }
+        $run = Get-Content (Join-Path $runs[0].FullName 'run.json') -Raw | ConvertFrom-Json
+        $c0 = $run.ctest_runs[0]
+        if ($m[0] -eq 'failed-exit0') {
+            Check ($threw -and $run.result -eq 'failed' -and $c0.exit_code -eq 0) "FAILED cases with ctest exit 0 fail the run ($($run.result), exit $($c0.exit_code))"
+            Check ((@($c0.failed_cases.unit) -join ',') -eq 'unit-case' -and @($c0.invalid.PSObject.Properties).Count -eq 0) "the failed case is named, not marked invalid ($(@($c0.failed_cases.unit) -join ','))"
+            Check (Test-Path (Join-Path $runs[0].FullName 'unit.json')) 'and the file stays valid evidence (it is the latest result)'
+        } else {
+            Check ($threw -and $run.result -eq 'failed' -and $c0.invalid.integration -match "suite 'unit', expected 'integration'") "a file filed under another suite is invalid ($($c0.invalid.integration))"
+        }
+    }
+
     # FB-20-01: a stale results file that cannot be removed (held open, as by a stuck test process) stops the run,
     # and run.json says why: an infrastructure failure, not just "incomplete".
     $logs7 = Join-Path $tmp 'logs7'
@@ -211,7 +237,15 @@ exit $(if ($n -eq 1 -and $mode -notin 'skip-transport', 'nested-unit' -and -not 
         @('no host at \\buildbox\share\Release\mordor-host.exe here', 'no host at <abs-path> here'),
         @("stale $env:TEMP\x\unit.json", 'stale %TEMP%\x\unit.json'),
         @('see https://example.com/a and 3:4 ratio', 'see https://example.com/a and 3:4 ratio'),
-        @('E:/forward/slash.json', '<abs-path>'))
+        @('E:/forward/slash.json', '<abs-path>'),
+        # FB-21-03: spaces, non-ASCII (built with [char]: PowerShell 5.1 reads a BOM-less script as ANSI), quoted and
+        # unquoted. A UNC host name has no spaces; a share name may.
+        @('cannot read D:\Outra Pasta\sub dir\unit.json now', 'cannot read <abs-path> now'),
+        @("cannot remove stale results 'D:\Dados do Jogo\M$([char]0xFA)sica $([char]0xE7)$([char]0xE3)o\unit.json'", "cannot remove stale results '<abs-path>'"),
+        @("the term ""D:\Pasta com espa$([char]0xE7)os\Release\mordor-host.exe"" is not recognized", 'the term "<abs-path>" is not recognized'),
+        @("host \\buildbox\partilha com espa$([char]0xE7)o\x.json missing", 'host <abs-path> missing'),
+        @("F:\$([char]0xC1)rvore\$([char]0xED)ndice.json", '<abs-path>'),
+        @("stale '$env:TEMP\a b\u.json' left", "stale '%TEMP%\a b\u.json' left"))
     foreach ($c in $cases) {
         $got = Hide-LocalPaths $c[0] 'D:\repo'
         Check ($got -eq $c[1]) "Hide-LocalPaths: '$($c[0])' -> '$got'"
