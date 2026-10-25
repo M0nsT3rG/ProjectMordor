@@ -41,14 +41,25 @@ class PathRules(unittest.TestCase):
         self.assertEqual(subprocess.run(["git", "check-ignore", "-q", "--no-index", "build-gns/Release/x.json"], cwd=ev.ROOT).returncode, 0)
 
     def test_restored_evidence_matches_its_digests(self):
-        # FB-22-02: restored per-invocation files must still be exactly what the manifest recorded.
+        # FB-22-02 / FB-23-01: restored per-invocation files must still be exactly what both manifests recorded.
         import hashlib, json
-        m = json.loads((ev.ROOT / "evidence/logs/restored/manifest.json").read_text(encoding="utf-8"))
-        files = [f for r in m["runs"] for i in r["invocations"] for f in i["files"]]
-        self.assertTrue(files)
-        for f in files:
-            data = (ev.ROOT / f["path"]).read_bytes()
-            self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (f["bytes"], f["sha256"]), f["path"])
+        for name in ("manifest.json", "manifest-v2.json"):
+            m = json.loads((ev.ROOT / "evidence/logs/restored" / name).read_text(encoding="utf-8"))
+            files = [f for r in m["runs"] for i in r["invocations"] for f in i["files"] if "sha256" in f]
+            self.assertTrue(files, name)
+            for f in files:
+                data = (ev.ROOT / f["path"]).read_bytes()
+                self.assertEqual((len(data), hashlib.sha256(data).hexdigest()), (f["bytes"], f["sha256"]), f"{name}: {f['path']}")
+
+    def test_manifest_v2_states_completeness_per_file(self):
+        # FB-23-01: every recorded invocation is complete file by file; only build-gns-iter-* files were restored.
+        import json
+        m = json.loads((ev.ROOT / "evidence/logs/restored/manifest-v2.json").read_text(encoding="utf-8"))
+        invs = [i for r in m["runs"] for i in r["invocations"]]
+        self.assertTrue(invs)
+        self.assertEqual({i["status"] for i in invs}, {"complete"})
+        restored = [f["path"] for i in invs for f in i["files"] if f.get("restored")]
+        self.assertTrue(restored and all("/build-gns-iter-" in p for p in restored))
 
     def test_repository_records_pass(self):
         recs, errs = ev.load_records()
