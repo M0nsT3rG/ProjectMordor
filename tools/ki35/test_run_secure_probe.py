@@ -37,7 +37,9 @@ class MissingLog(unittest.TestCase):
             v = r.judge(Path(tmp))
             self.assertEqual(v["pooled"]["udp"]["proportions"]["session_first"]["n"], 0)
             self.assertFalse(v["rules"]["udp"]["session_first"]["available"])
-            (d / "client.log").write_text('{"t_ms":500,"evt":"connect_request"}\n', encoding="utf-8")
+            # an unsent pre-authentication attempt inside the 2 ms tolerance is not a session request
+            (d / "client.log").write_text('{"t_ms":499,"evt":"connect_request","sent":false}\n'
+                                          '{"t_ms":500,"evt":"connect_request","sent":true}\n', encoding="utf-8")
             self.assertEqual(r.judge(Path(tmp))["pooled"]["udp"]["proportions"]["session_first"]["k"], 1)
 
 

@@ -52,8 +52,10 @@ def load_batch(d: Path) -> list[dict]:
     log = d / "client.log"
     if not log.exists():  # unavailable, not zero requests: session_first then has n = 0 and no interval
         return trials
-    reqs = [json.loads(l)["t_ms"] for l in log.read_text(encoding="utf-8").splitlines()
-            if l.strip() and '"evt":"connect_request"' in l]
+    # Only requests actually sent: before authentication the client logs its unsent attempts too (sent: false,
+    # transport_up: false), and one can fall inside the 2 ms tolerance (Codex, PR #25).
+    reqs = [j["t_ms"] for j in (json.loads(l) for l in log.read_text(encoding="utf-8").splitlines()
+                                if l.strip() and '"evt":"connect_request"' in l) if j.get("sent") is True]
     for t in trials:  # ConnectRequests after authentication, up to Connected or the probe's 20 s deadline (1 ms log resolution)
         if t["auth"] >= 0:
             lo, hi = t["log_ms"] + t["auth"] - 2, t["log_ms"] + (t["connected"] if t["ok"] else 20_000) + 1
