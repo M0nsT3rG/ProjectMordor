@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 93,
+  "count": 94,
   "records": [
     {
       "id": "EXP-001",
@@ -320,6 +320,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #17 (FB-17-01/02) on feature/review17-evidence: document the dump limit, make test evidence immutable per run, recover the evidence that date-named files lost, and enforce the rule."
+    },
+    {
+      "id": "EXP-030",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-030.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #18 on feature/review18-repeat: keep every test.ps1 -Repeat invocation with its exit code (FB-18-01), show each suite's run status in the report (FB-18-02), and qualify the wait budget (FB-18-03) and the meaning of a creation snapshot (FB-18-04)."
     },
     {
       "id": "F-COMM-001",

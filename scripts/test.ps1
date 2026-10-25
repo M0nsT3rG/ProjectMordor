@@ -12,7 +12,12 @@ param(
     [string]$BuildDir = 'build',
     [switch]$E2E,
     [switch]$GnsBuild,  # also run build-gns (MORDOR_WITH_GNS) suites, incl. integration/network on the GNS adapter
-    [int]$Repeat = 1
+    [int]$Repeat = 1,
+    # Test hooks only (FB-18-01 harness, scripts/test-repeat-capture.ps1): a stand-in for ctest, another evidence root,
+    # and no nested self-checks. Never needed for a real run.
+    [string]$CtestCommand = 'ctest',
+    [string]$LogsDir = (Join-Path 'evidence' 'logs'),
+    [switch]$NoSelfCheck
 )
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
@@ -24,50 +29,58 @@ try {
     $commit = (git rev-parse HEAD).Trim()
     $dirty = [bool](git status --porcelain -- . ':(exclude)evidence')  # source changes not in the commit
     $runId = "tests-$($started.ToString('yyyy-MM-dd-HHmmss'))-$($commit.Substring(0, 7))$(if ($dirty) { '-dirty' })"
-    $runDir = Join-Path (Join-Path 'evidence' 'logs') $runId
+    $runDir = Join-Path $LogsDir $runId
     if (Test-Path $runDir) { throw "$runDir already exists: test evidence is never overwritten" }
     New-Item -ItemType Directory $runDir | Out-Null
+    $runDirFull = (Resolve-Path $runDir).Path
     $suites = [ordered]@{}  # recorded suite -> expected transport (the FB-13-03 check below)
-    function Save-Results([string]$Src, [string]$Name, [string]$Transport) {
-        # Only results this run wrote: a suite that did not run must not bring in a previous run's file.
-        if ((Test-Path $Src) -and (Get-Item $Src).LastWriteTime -ge $started) {
-            Copy-Item $Src (Join-Path $runDir "$Name.json")
-            $suites[$Name] = $Transport
+    $ctestRuns = New-Object System.Collections.ArrayList  # FB-18-01: every ctest invocation, its exit code and its files
+    # Runs ctest once and keeps what THAT invocation wrote in <runDir>/<Label>/, before the next one can replace it,
+    # failed invocations included. The top-level <suite>.json files hold the latest invocation's copy.
+    function Invoke-Suites([string]$Dir, [string]$Label, [int]$Iteration, $Map) {
+        $since = Get-Date
+        $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'  # a failing ctest writes to stderr (EXP-023)
+        & $CtestCommand --test-dir $Dir -C $Config --output-on-failure 2>&1 | Out-Host
+        $code = $LASTEXITCODE
+        $ErrorActionPreference = $eap
+        $iterDir = Join-Path $runDir $Label
+        New-Item -ItemType Directory $iterDir | Out-Null
+        $files = @()
+        foreach ($k in $Map) {  # ctest result name, recorded name, transport the suite is registered for (FB-13-03)
+            $src = Join-Path $Dir "test-results/$($k[0]).json"
+            # Only results this invocation wrote: a suite that did not run must not bring in an older file.
+            if ((Test-Path $src) -and (Get-Item $src).LastWriteTime -ge $since) {
+                Copy-Item $src (Join-Path $iterDir "$($k[1]).json")
+                Copy-Item $src (Join-Path $runDir "$($k[1]).json") -Force  # latest invocation, for the report
+                $suites[$k[1]] = $k[2]
+                $files += "$Label/$($k[1]).json"
+            }
         }
+        [void]$ctestRuns.Add([ordered]@{ build = $Dir; iteration = $Iteration; dir = $Label; exit_code = $code; files = $files })
+        return $code
     }
     function Write-RunJson([string]$Result, $E2EExit = $null) {
         $run = [ordered]@{
             run_id = $runId; started_utc = $started.ToUniversalTime().ToString('o'); commit = $commit; dirty = $dirty
             config = $Config; builds = @($BuildDir) + $(if ($GnsBuild) { @('build-gns') } else { @() }); repeat = $Repeat
-            suites = $suites; e2e = [bool]$E2E; e2e_exit_codes = $E2EExit; result = $Result
+            suites = $suites; ctest_runs = @($ctestRuns); e2e = [bool]$E2E; e2e_exit_codes = $E2EExit; result = $Result
         }
         # UTF-8 without BOM: Python's json reader rejects a BOM.
-        [IO.File]::WriteAllText((Join-Path (Get-Location) "$runDir/run.json"), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))
+        [IO.File]::WriteAllText((Join-Path $runDirFull 'run.json'), ($run | ConvertTo-Json -Depth 5), (New-Object Text.UTF8Encoding $false))
     }
     Write-RunJson 'incomplete'  # replaced at the end; a run that stops early keeps this
     $failed = $false
     $e2eExit = $null
+    $udpSuites = @(@('unit', 'unit', 'udp'), @('integration', 'integration', 'udp'), @('network', 'network', 'udp'), @('transport', 'transport', 'udp'))
     for ($i = 1; $i -le $Repeat; $i++) {
-        $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'  # see the build-gns block below
-        ctest --test-dir $BuildDir -C $Config --output-on-failure 2>&1 | Out-Host
-        $ErrorActionPreference = $eap
-        if ($LASTEXITCODE -ne 0) { $failed = $true }
+        if ((Invoke-Suites $BuildDir "iter-$i" $i $udpSuites) -ne 0) { $failed = $true }
     }
-    foreach ($suite in 'unit', 'integration', 'network', 'transport') { Save-Results (Join-Path $BuildDir "test-results/$suite.json") $suite 'udp' }
     # Optional GNS build: per-transport results are recorded separately (review #4 next steps).
     $gnsResults = Join-Path 'build-gns' 'test-results'
     if ($GnsBuild -and (Test-Path $gnsResults)) {
-        # A failing ctest writes to stderr, which throws under ErrorActionPreference=Stop on PowerShell 5.1 and used
-        # to skip the copy below, leaving the previous run's results in evidence (EXP-023). Record failures too.
-        $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-        ctest --test-dir build-gns -C $Config --output-on-failure 2>&1 | Out-Host
-        $ErrorActionPreference = $eap
-        if ($LASTEXITCODE -ne 0) { $failed = $true }
-        # ctest result name -> recorded name and the transport the suite is registered for (FB-13-03)
-        foreach ($k in @(@('integration-gns', 'integration-gns', 'gns'), @('network-gns', 'network-gns', 'gns'),
-                        @('transport', 'transport-both', 'udp'), @('gns', 'gns', 'udp'), @('dtls', 'dtls', 'udp'))) {
-            Save-Results (Join-Path $gnsResults "$($k[0]).json") $k[1] $k[2]
-        }
+        $gnsSuites = @(@('integration-gns', 'integration-gns', 'gns'), @('network-gns', 'network-gns', 'gns'),
+                       @('transport', 'transport-both', 'udp'), @('gns', 'gns', 'udp'), @('dtls', 'dtls', 'udp'))
+        if ((Invoke-Suites 'build-gns' 'build-gns-iter-1' 1 $gnsSuites) -ne 0) { $failed = $true }
         # FB-16-03 (KI-40): a GNS host whose start fails after GNS is initialised (192.0.2.1 is a documentation
         # address that is not on this machine, so the listen socket cannot bind) must still shut GNS down and exit.
         $tmp = Join-Path $env:TEMP "mordor-startfail-$PID"
@@ -90,13 +103,21 @@ try {
         }
     }
     # FB-13-03: every recorded suite must have run on the transport it is registered for (no leaked MORDOR_TRANSPORT).
-    python -I tools/collab/check_test_transport.py --dir $runDir @($suites.Keys | ForEach-Object { "$_=$($suites[$_])" })
-    if ($LASTEXITCODE -ne 0) { $failed = $true }
-    # FB-16-01: the bounded wait stays bounded even when its diagnostic never returns.
-    $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
-    powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'test-wait-bounded.ps1') 2>&1 | Out-Host
-    $ErrorActionPreference = $eap
-    if ($LASTEXITCODE -ne 0) { $failed = $true }
+    # Every invocation's copy is checked, not only the latest (a suite missing from a directory is skipped).
+    foreach ($d in @($runDir) + @($ctestRuns | ForEach-Object { Join-Path $runDir $_.dir })) {
+        python -I tools/collab/check_test_transport.py --dir $d @($suites.Keys | ForEach-Object { "$_=$($suites[$_])" })
+        if ($LASTEXITCODE -ne 0) { $failed = $true }
+    }
+    if (-not $NoSelfCheck) {
+        # FB-16-01: the bounded wait stays bounded even when its diagnostic never returns.
+        # FB-18-01: a fail-then-pass repeat keeps both invocations and the aggregate failure.
+        foreach ($check in 'test-wait-bounded.ps1', 'test-repeat-capture.ps1') {
+            $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+            powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot $check) 2>&1 | Out-Host
+            $ErrorActionPreference = $eap
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+        }
+    }
     if ($E2E) {
         $bin = Join-Path $BuildDir $Config
         $out = Join-Path $runDir 'e2e'  # fresh per run: no stale host_started line to match

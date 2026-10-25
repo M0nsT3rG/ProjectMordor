@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #18 (PR #18: review #17 follow-up)
+
+- **Status:** implemented (2026-10-25) on `feature/review18-repeat` (stacked on PR #18); the owner asked for all of it.
+- **Source:** [PR #18 review](https://github.com/M0nsT3rG/ProjectMordor/pull/18) at `22ffed1`. ChatGPT reran the 7 report self-tests and compared EXP-027's 12 recovered files with their git blobs (all match). It did not rerun the C++ suites, `test.ps1`, the recovery script or the validator.
+- **Verdict:** no new blocking regression; continue lab work; not a merge or release approval. The recovery rule is accepted. The legacy date-named files stay.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-18-01** Keep every `-Repeat` iteration | **Yes, from source.** `test.ps1` copied the default-build results once, after the repeat loop. A fail-then-pass left `result: failed` with only the passing details. | **Accepted** | `Invoke-Suites` runs ctest once and immediately copies what **that** invocation wrote to `<run>/iter-<n>/` (GNS: `build-gns-iter-1/`), failed invocations included. `run.json` has `ctest_runs` (build, iteration, directory, exit code, files). The top-level files are the latest invocation's. The transport check runs on every invocation's copy. New self-check `scripts/test-repeat-capture.ps1` (run by `test.ps1`): a stand-in ctest fails, then passes, under a temporary evidence root. 8 checks: both files kept, exit codes `1,0`, aggregate `failed`. It fails on the previous `test.ps1`. Hooks `-CtestCommand`, `-LogsDir` and `-NoSelfCheck` are for that harness only. |
+| **FB-18-02** Show run status next to each suite | **Yes.** `report.py` picked suite files without reading `run.json`. | **Accepted** | Each suite carries its run's result, commit and dirty flag: `[run passed, 3ee5a8a, dirty]`, or bold when the run did not pass. A legacy file says it has no run record. Test included. |
+| **FB-18-03** The time budget is not a guarantee | **Yes.** Helper start, taskkill, output reading and cleanup have no deadline of their own. | **Accepted** | `wait-bounded.ps1` and `CLAUDE.md` now say "intended budget, about `TimeoutS + DumpTimeoutS` + 5 s, not a strict guarantee, per wait". |
+| **FB-18-04** (answer 1) What a creation snapshot means | **Yes.** | **Accepted** | `recover_dated.py` and `CLAUDE.md` say it is the evidence present when the record was committed, not proof that it is exactly the data the record was written from. Uncommitted overwrites are unrecoverable. The existing `provenance.json` files are evidence and are left as written. |
+| Answer 2 (legacy files) | **Agreed.** | **Kept** | No deletion. Any later removal would first check consumers and keep a migration index. |
+| Next | **Agreed.** | — | KI-35 GNS phases with predeclared comparisons; defaults, gates, hang watcher and the KI-42 assertion unchanged. |
+
+---
+
 ## Feedback on review #17 (PR #17: review #16 follow-up)
 
 - **Status:** implemented (2026-10-25) on `feature/review17-evidence` (stacked on PR #17); the owner asked for all of it.

@@ -6,9 +6,10 @@ still holds every committed version. For each experiment record that cites such 
 the cited file (or of every file under the cited directory) as it was in each commit that changed the record, into
 evidence/logs/recovered/<EXP>/<commit>/, writes provenance.json, and points the record at the recovered directory.
 
-Rule (mechanical, no judgement): the commit that created the record comes first (its results are what the record was
-written from); later commits that edited the record are kept apart and labelled, because some edits describe extra
-verification runs (EXP-023). A version identical to an earlier one is not copied again.
+Rule (mechanical, no judgement): the commit that created the record comes first; later commits that edited the record
+are kept apart and labelled, because some edits describe extra verification runs (EXP-023). A version identical to an
+earlier one is not copied again. A creation snapshot is the evidence PRESENT WHEN THE RECORD WAS COMMITTED, not proof that
+it is exactly the data the record was written from (FB-18-04): git cannot recover overwrites that were never committed.
 
   python -I tools/evidence/recover_dated.py          # refuses to overwrite anything already recovered
 """

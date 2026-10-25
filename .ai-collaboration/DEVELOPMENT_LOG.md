@@ -2,6 +2,18 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #18 follow-up (`feature/review18-repeat`, stacked on #18)
+
+- **Input:** [PR #18 review](https://github.com/M0nsT3rG/ProjectMordor/pull/18); the owner asked for all of it. Record: EXP-030.
+- **Changes:**
+  - Every `-Repeat` invocation is kept in `iter-<n>/` with its exit code (`ctest_runs`); fail-then-pass self-check `scripts/test-repeat-capture.ps1`.
+  - `report.py` shows each suite's run result, commit and dirty flag.
+  - The wait budget is qualified as a budget; a creation snapshot is the evidence present at commit.
+- **Review:** Codex, no regression.
+- **Tests:** `test.ps1 -GnsBuild -Repeat 2 -E2E`: all passed; both self-checks pass; report self-tests 8/8.
+- **Incident:** the red-before check ran the old `test.ps1`, which ignored `-LogsDir` and wrote an empty run directory into `evidence/logs`. It was deleted as an artifact of the check.
+- **Remaining:** KI-35 (GNS phases), KI-42, KI-41, KI-28b, LAN test, external review.
+
 ## 2026-10-25: Review #17 follow-up (`feature/review17-evidence`, stacked on #17)
 
 - **Input:** [PR #17 review](https://github.com/M0nsT3rG/ProjectMordor/pull/17), FB-17-01/02; the owner asked for all of it. Record: EXP-029.

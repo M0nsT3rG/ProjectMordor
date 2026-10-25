@@ -87,9 +87,29 @@ def latest_test_logs(logs: Path, suites=SUITES) -> dict[str, dict]:
             continue
         failed = [c["name"] for c in cases if c.get("result") not in ("PASSED", "SKIPPED")]
         skipped = [c["name"] for c in cases if c.get("result") == "SKIPPED"]
-        found[suite] = {"file": rel, "date": ts, "total": len(cases),
+        found[suite] = {"file": rel, "date": ts, "total": len(cases), "run": run_info(logs, rel),
                         "passed": len(cases) - len(failed) - len(skipped), "failed": failed, "skipped": skipped}
     return found
+
+
+def run_info(logs: Path, rel: str) -> dict | None:
+    """FB-18-02: the run a suite file came from (result, commit, dirty), so a passing suite from a failed or
+    incomplete run is never shown as a clean pass. None for a legacy date-named file, which has no run record."""
+    if "/" not in rel:
+        return None
+    try:
+        r = json.loads((logs / rel.split("/")[0] / "run.json").read_text(encoding="utf-8"))
+        return {"result": str(r.get("result", "unknown")), "commit": str(r.get("commit", ""))[:7], "dirty": bool(r.get("dirty"))}
+    except (OSError, json.JSONDecodeError, AttributeError):
+        return {"result": "unknown (no readable run.json)", "commit": "", "dirty": False}
+
+
+def run_note(t: dict) -> str:
+    r = t.get("run")
+    if not r:
+        return " (legacy date-named file, no run record)"
+    s = f"run {r['result']}" + (f", {r['commit']}" if r["commit"] else "") + (", dirty" if r["dirty"] else "")
+    return f" [{s}]" if r["result"] == "passed" else f" [**{s}**]"
 
 
 def replace_auto_block(text: str, body: str) -> str:
@@ -119,7 +139,7 @@ def build(repo: Path) -> dict[str, str]:
     passed = sum(t.get("passed", 0) for t in tests.values())
     missing = [s for s in SUITES if s not in tests]
 
-    test_lines = [f"- {s}: {t['passed']}/{t['total']} passed ({t['file']})" + (f"; FAILED: {', '.join(t['failed'])}" if t.get("failed") else "")
+    test_lines = [f"- {s}: {t['passed']}/{t['total']} passed ({t['file']}){run_note(t)}" + (f"; FAILED: {', '.join(t['failed'])}" if t.get("failed") else "")
                   if "total" in t else f"- {s}: log unreadable ({t['file']})" for s, t in tests.items()]
     test_lines += [f"- {s}: **no test log found**" for s in missing]
 
@@ -150,7 +170,7 @@ def build(repo: Path) -> dict[str, str]:
             tr.append(f"| {s} | {CLOCK[s]} | - | - | - | log unreadable | `{t['file']}` |")
         else:
             tr.append(f"| {s} | {CLOCK[s]} | {t['passed']} | {len(t['skipped'])} | {t['total']} | "
-                      f"{md_cell(', '.join(t['failed']) or 'none')} | `evidence/logs/{t['file']}` |")
+                      f"{md_cell(', '.join(t['failed']) or 'none')} | `evidence/logs/{t['file']}`{md_cell(run_note(t))} |")
     tr += ["", "SKIPPED tests are listed with their reason in the JSON log; a skip is never counted as a pass."]
     tr += ["", "**Real-time** results (wall clock, separate processes) come only from end-to-end and soak runs, listed below; "
            "LAN results only from two-PC experiments. Simulated-clock passes do not imply real-time behaviour."]

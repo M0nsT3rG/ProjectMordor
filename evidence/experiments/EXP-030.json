@@ -1,0 +1,22 @@
+{
+  "id": "EXP-030",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; PowerShell 5.1, Python 3",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #18 on feature/review18-repeat: keep every test.ps1 -Repeat invocation with its exit code (FB-18-01), show each suite's run status in the report (FB-18-02), and qualify the wait budget (FB-18-03) and the meaning of a creation snapshot (FB-18-04).",
+  "hypothesis": "Copying each ctest invocation's results immediately after it runs keeps a fail-then-pass history and the aggregate failure; report.py can read run.json to flag suites from runs that did not pass.",
+  "procedure": "test.ps1: Invoke-Suites runs ctest once and copies what that invocation wrote to <run>/iter-<n>/ (GNS: build-gns-iter-1/), records ctest_runs (build, iteration, dir, exit code, files) in run.json, keeps the latest invocation at top level, and checks transports in every invocation directory. Test-only hooks -CtestCommand, -LogsDir, -NoSelfCheck. scripts/test-repeat-capture.ps1 (run by test.ps1): a stand-in ctest fails then passes under a temporary evidence root; 8 checks. Red-before: against the previous test.ps1 the harness failed (no run directory in its root: the old script ignored -LogsDir and wrote a run directory with no suite results into evidence/logs, which was deleted as an artifact of the check, not evidence). report.py: run_info/run_note from run.json beside each suite (new test). Wording in wait-bounded.ps1, recover_dated.py and CLAUDE.md. Ran test.ps1 -GnsBuild -Repeat 2 -E2E on the working tree over 22ffed1. Codex review of the working tree.",
+  "expected_result": "Harness passes and fails on the old script; the real run keeps both UDP iterations and the GNS invocation with exit codes; all suites, self-checks and E2E pass; Codex finds no regression.",
+  "observed_result": "Harness 8/8 (both result files kept, exit codes 1,0, aggregate failed); 1 check failed against the previous test.ps1. Real run tests-2026-10-25-154155-22ffed1-dirty: iter-1 and iter-2 (4 UDP suites each, exit 0) and build-gns-iter-1 (5 suites, exit 0), all ctest suites passed, transport check OK in all 4 directories, start-failure smoke 3/3, wait-bounded self-check 12/12, repeat-capture self-check 8/8, E2E exit codes 0, run.json result passed. The nested harness wrote nothing under evidence/logs. Report self-tests 8/8; the status block shows e.g. '[run passed, 3ee5a8a, dirty]'. Codex review: no concrete regression (tests that write files not run in its read-only sandbox).",
+  "evidence_paths": [
+    "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty"
+  ],
+  "result": "PASSED",
+  "errors": "None. The run is marked dirty because the changed scripts were not yet committed; the C++ code under test equals 22ffed1.",
+  "confidence": "high",
+  "follow_up": "KI-35: GNS establishment and session phases with predeclared comparisons.",
+  "related": [
+    "EXP-029"
+  ]
+}

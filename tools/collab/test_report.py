@@ -66,6 +66,23 @@ class ReportTests(unittest.TestCase):
             self.assertEqual((t["passed"], t["failed"]), (1, []))
             self.assertNotIn("integration", report.latest_test_logs(logs))  # a run dir without it adds nothing
 
+    def test_run_status_is_shown_with_each_suite(self):
+        # FB-18-02: a passing suite from a failed or incomplete run must not read as a clean pass.
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            run = logs / "tests-2026-01-02-100000-abcdef1"
+            run.mkdir()
+            (run / "unit.json").write_text(json.dumps([{"name": "a", "result": "PASSED"}]))
+            (run / "run.json").write_text(json.dumps({"result": "failed", "commit": "abcdef1234567", "dirty": True}))
+            (logs / "tests-network-2026-01-01.json").write_text(json.dumps([{"name": "n", "result": "PASSED"}]))
+            t = report.latest_test_logs(logs)
+            self.assertEqual(t["unit"]["run"], {"result": "failed", "commit": "abcdef1", "dirty": True})
+            self.assertEqual(report.run_note(t["unit"]), " [**run failed, abcdef1, dirty**]")
+            self.assertIsNone(t["network"]["run"])
+            self.assertIn("legacy", report.run_note(t["network"]))
+            (run / "run.json").write_text("{broken")
+            self.assertIn("unknown", report.latest_test_logs(logs)["unit"]["run"]["result"])
+
     def test_e2e_logs_inside_run_directories_are_listed(self):
         with tempfile.TemporaryDirectory() as d:
             repo = Path(d)
