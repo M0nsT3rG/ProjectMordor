@@ -1,0 +1,71 @@
+{
+  "experiment": "EXP-024",
+  "record": "evidence/experiments/EXP-024.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "5a1ec740b2ef59864879f6e2c9a67b372d1883e8",
+      "role": "created",
+      "subject": "Review #11 part 3: EXP-024, full v6 battery at HEAD (12/12) with seeded harsh repeats, KI-35/38/40, docs, review request #11",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "5d1619450226548c6837a95a7fb5bb5cb43174a1",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "183c1d5f9bc359e681d1973f1106033f55499ae5",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "45ecf290a053ba31afe1a474b1b92ce3777234ee",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "0f2ea199aeb5a959b4735c907ecd71e2b845dccc",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "1f6e05f28aafef6f65807f2fc86a3e053e32e318",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "461351f8b4602b23e7fbe7e3d3c03fed833bc376",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "d9d58b46b5f5cb836b09d44d2961560f180b6722",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "30e88b4dba4449796ee9cb1e7a9b3b846c121ab5",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "33128ec30beed905771309229d4ebf91a1d511f7",
+          "recovered_path": "evidence/logs/recovered/EXP-024/5a1ec74/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

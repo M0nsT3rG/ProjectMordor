@@ -1,0 +1,87 @@
+{
+  "experiment": "EXP-028",
+  "record": "evidence/experiments/EXP-028.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-25.json",
+    "evidence/logs/tests-integration-2026-10-25.json",
+    "evidence/logs/tests-network-2026-10-25.json",
+    "evidence/logs/tests-transport-2026-10-25.json",
+    "evidence/logs/tests-transport-both-2026-10-25.json",
+    "evidence/logs/tests-integration-gns-2026-10-25.json",
+    "evidence/logs/tests-network-gns-2026-10-25.json",
+    "evidence/logs/tests-gns-2026-10-25.json",
+    "evidence/logs/tests-dtls-2026-10-25.json",
+    "evidence/logs/e2e-2026-10-25"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "d60f31f22603838a19286decae81ea3745e6ba79",
+      "role": "created",
+      "subject": "Review #16: bounded diagnostic inside Wait-Bounded and hang-watch (own process, tree kill, hung_dump_timeout) with a never-returning-helper self-check (FB-16-01",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-25.json",
+          "blob": "3784cd1d5fbf75303bb2ec1a0e2e206bf6813808",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-unit-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-25.json",
+          "blob": "abc19b4a3dae6dc7ac5c3042af1d8415621c5a78",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-integration-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-25.json",
+          "blob": "729f587ec3387edd636ca910fbfbee4a30500172",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-network-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-25.json",
+          "blob": "0cec4acd025aec192d07e61bca6089810134653b",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-transport-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-25.json",
+          "blob": "6040df78a414f95af5bd3e3c99cbbbb202e34002",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-transport-both-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-25.json",
+          "blob": "474523d0521f31e1fb205f118a0ac341a4db7613",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-integration-gns-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-25.json",
+          "blob": "7594b3aab3c1e438a20931dfb3c421b070888581",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-network-gns-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-25.json",
+          "blob": "45d357bb064f57b11316b42590c9fb99585e12ed",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-gns-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-25.json",
+          "blob": "61e0f66d7da381191f3acea749b98258b02d723b",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/tests-dtls-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-25/client1.log",
+          "blob": "cd4addab1677f16d5cd3d2bebf85f5daa79cc3f3",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/e2e-2026-10-25/client1.log"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-25/client2.log",
+          "blob": "79f72ba4b7288b0a1ec5ba005d83a188174d0b0b",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/e2e-2026-10-25/client2.log"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-25/host.log",
+          "blob": "435b0b4fac6582db3d40d8525d20bfeb1bbc971d",
+          "recovered_path": "evidence/logs/recovered/EXP-028/d60f31f/e2e-2026-10-25/host.log"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

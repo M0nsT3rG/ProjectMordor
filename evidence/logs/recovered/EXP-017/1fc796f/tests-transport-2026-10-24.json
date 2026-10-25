@@ -1,0 +1,19 @@
+[
+  {"name":"contract_closed_transport_refuses_sends","result":"PASSED","transport":"udp","ms":1,"error":""},
+  {"name":"contract_connected_precedes_first_message_and_bytes_roundtrip","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_reliable_delivery_is_provided_or_explicitly_unsupported","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_oversized_send_is_refused","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_unknown_peer_is_not_connected","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_endpoint_reuse_gets_new_peer_generation","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_two_simultaneous_peers_are_routed_separately","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_oversized_inbound_is_reported_not_delivered","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_simulated_loss_is_sent_and_counted","result":"PASSED","transport":"udp","ms":1574,"error":""},
+  {"name":"contract_queued_data_discarded_on_close_is_counted","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_reliable_ordered_exact_under_loss_both_directions","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_interleaved_reliable_events_and_unreliable_snapshots","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_backpressure_is_reported_and_accepted_reliable_is_delivered","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_disconnect_with_pending_reliable_is_reported","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_close_peer_with_unacked_reliable_is_counted","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_mid_backlog_disconnect_then_reconnect_is_clean","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"contract_process_global_impairment_is_guarded_and_never_leaks","result":"PASSED","transport":"udp","ms":0,"error":""}
+]

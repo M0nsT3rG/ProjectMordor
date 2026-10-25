@@ -12,9 +12,7 @@
   "expected_result": "All tests pass on repeated runs.",
   "observed_result": "38 tests across 3 suites (unit 15, integration 13, network 10) passed on 5 consecutive ctest runs after the review fixes of EXP-008, and again via scripts/test.ps1. The first network-suite run failed one test (timed_out_client_reconnects_with_same_identity) because the test wrongly expected the host to time out a client that was still sending; the expectation was corrected, not the code. See the per-suite JSON logs.",
   "evidence_paths": [
-    "evidence/logs/tests-unit-2026-10-23.json",
-    "evidence/logs/tests-integration-2026-10-23.json",
-    "evidence/logs/tests-network-2026-10-23.json"
+    "evidence/logs/recovered/EXP-004"
   ],
   "result": "PASSED",
   "confidence": "high",

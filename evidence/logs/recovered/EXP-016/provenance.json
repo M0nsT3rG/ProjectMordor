@@ -1,0 +1,83 @@
+{
+  "experiment": "EXP-016",
+  "record": "evidence/experiments/EXP-016.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-transport-gns-first-run-2026-10-23.json",
+    "evidence/logs/tests-integration-gns-first-run-2026-10-23.json",
+    "evidence/logs/tests-network-gns-first-run-2026-10-23.json",
+    "evidence/logs/tests-transport-2026-10-23.json",
+    "evidence/logs/tests-transport-both-2026-10-23.json",
+    "evidence/logs/tests-integration-2026-10-23.json",
+    "evidence/logs/tests-integration-gns-2026-10-23.json",
+    "evidence/logs/tests-network-2026-10-23.json",
+    "evidence/logs/tests-network-gns-2026-10-23.json",
+    "evidence/logs/tests-gns-2026-10-23.json",
+    "evidence/logs/tests-unit-2026-10-23.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "9ae2b2aedf156528a6a3ad434961e47667fb949e",
+      "role": "created",
+      "subject": "GameNetworkingSockets adapter behind Transport v2; per-transport tests, soak gate v4, D-013 evaluation",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-transport-gns-first-run-2026-10-23.json",
+          "blob": "8ea8b1470398c96f380a8214099a572eee8440b9",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-transport-gns-first-run-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-first-run-2026-10-23.json",
+          "blob": "d7f418777007bee723317cc53dffea1a9f28615c",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-integration-gns-first-run-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-first-run-2026-10-23.json",
+          "blob": "a75da113f91ba225ef6d3660f16992a632f1bb5e",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-network-gns-first-run-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-23.json",
+          "blob": "caebb70255ceee9ef8ac09d46e6b71b8c6438b4c",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-transport-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-23.json",
+          "blob": "807ccef28250ab31633abf1182e5cced59431da3",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-transport-both-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-23.json",
+          "blob": "e7ca790ba2d15da8581c4d477e6a90900a21ec39",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-integration-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-23.json",
+          "blob": "dab9c776f1cb7014cb4b02678348a85228121307",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-integration-gns-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-23.json",
+          "blob": "4c586d773cce786aa7f88d0f36b85b9fe0f619e5",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-network-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-23.json",
+          "blob": "efd5a7a9d999d4c846fb644040b181a5b1164fc1",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-network-gns-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-23.json",
+          "blob": "1e98123968df5a730e6ef2251e4af16ba4bec856",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-gns-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-23.json",
+          "blob": "9bda5daff59c341a032623e57df44fd05380f7c0",
+          "recovered_path": "evidence/logs/recovered/EXP-016/9ae2b2a/tests-unit-2026-10-23.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

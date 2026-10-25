@@ -10,7 +10,7 @@
   "expected_result": "Spike tests pass; security flags recorded as observed.",
   "observed_result": "Resolved: GameNetworkingSockets 1.6.1, OpenSSL 3.6.5, protobuf 7.36.2 (protoc 36.2.0), abseil 20260107.1; dependency build took ~12 min (configure 737.7 s). First run: all 3 GNS tests FAILED - GNS refused CreateListenSocketIP with port 0 (debug output: 'Cannot create listen socket. Must specify local port.'); fixed by probing a free loopback port. Then 3/3 passed on 3 ctest runs (with all 52 prototype tests): 2000 reliable messages each way exact and in order; 1000 each way exact and in order under GNS fake 15% loss, 40 ms lag, 5% reorder (ping reported 80 ms). Default security flags on a plain IP connection: unencrypted=0 (encrypted), unauthenticated=1 (NOT authenticated). So GNS alone does not satisfy the WAN authentication prerequisite (KI-04/KI-17) without certificate/identity setup.",
   "evidence_paths": [
-    "evidence/logs/tests-gns-2026-10-23.json"
+    "evidence/logs/recovered/EXP-013"
   ],
   "result": "PASSED",
   "errors": "First attempt: 'Cannot create listen socket. Must specify local port.' (test bug, fixed)",

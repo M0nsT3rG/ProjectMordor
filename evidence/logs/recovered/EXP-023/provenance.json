@@ -1,0 +1,147 @@
+{
+  "experiment": "EXP-023",
+  "record": "evidence/experiments/EXP-023.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "b3219e1312a67850cfd9883d02d2b16cc26d0d4c",
+      "role": "created",
+      "subject": "Review #10 part 5: EXP-023, gate v6 soak battery (11/12), docs, known issues, review request #10",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "dc1cf67b54ffcfa1395b7a98225b4cf83380085f",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "a23c55e38c63bc70950be7315ca0ab348c0e9dd4",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "49694c8a027425fcf5bbcab78630853387d79515",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "ac49cf273f460673e70b5b4c68a2d08c59abae52",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "956e60daf45f8aaefc8e62d6f57e50e3542e22a0",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "394765ed0f9dc220843154eb222325d72d74a5d8",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "73bf25df37a53cc154bfd2be4fd9ddc8057bc1a3",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "21c6142b399f01e9cd762af229f88be5f1185665",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "972249b8f5d1299572c05cfce22336d983b0e81d",
+          "recovered_path": "evidence/logs/recovered/EXP-023/b3219e1/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    },
+    {
+      "commit": "77f9cb866dde3905a26b826dd8833186b63a2ea5",
+      "role": "edited",
+      "subject": "Review #10 part 6: independent-review fixes (cookie expiry and budgets, in-order event sends, scoped leave acks, bounded leave loop), test runner timer resoluti",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "f70b31179d228c985be4cab907a5024f6e97a6c6",
+          "recovered_path": "evidence/logs/recovered/EXP-023/77f9cb8/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "99355ca0343a3e5bf62e10aff03b79f70628263f",
+          "recovered_path": "evidence/logs/recovered/EXP-023/77f9cb8/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "9e2c57356ffe360ccb4a2a070f3bd9cda03a6d4f",
+          "recovered_path": "evidence/logs/recovered/EXP-023/77f9cb8/tests-transport-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    },
+    {
+      "commit": "a341969a58c9c271e63faa45d459ea06c9ea3989",
+      "role": "edited",
+      "subject": "Review #10 part 7: KI-39 resolved (test runner opts out of Windows timer-resolution throttling), test.ps1 records GNS results on failure, final suite results",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "0e8470dae86b1243abe937127ef8ee61540a25fb",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "48a18da5a428360ede4baabdb078e18248a34836",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "2111a858b5dad3ed76f4825aca228a76ce072a68",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "d95ec9a6fb6dee1b32d0feb8a659b5515b8deba3",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "8031f04a64f32ab88fe86ce75d7c344f79dc7c04",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "99b3796faa2a70ee97db4c182e0c66cff1530260",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "99480a873674d610f27b97fea9c662fa5edf7d32",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "3223edb73ebd92dd5d2e76a2144f2df74028ff9e",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "de8f305fc7ea2e61614c833e711f93f63a4f1a02",
+          "recovered_path": "evidence/logs/recovered/EXP-023/a341969/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

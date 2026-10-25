@@ -1,0 +1,20 @@
+{
+    "run_id":  "tests-2026-10-25-150313-3ee5a8a-dirty",
+    "started_utc":  "2026-10-25T14:03:13.6918960Z",
+    "commit":  "3ee5a8a183cb1e7c2cea5c761141fc22be82332c",
+    "dirty":  true,
+    "config":  "Release",
+    "builds":  [
+                   "build"
+               ],
+    "repeat":  1,
+    "suites":  {
+                   "unit":  "udp",
+                   "integration":  "udp",
+                   "network":  "udp",
+                   "transport":  "udp"
+               },
+    "e2e":  false,
+    "e2e_exit_codes":  null,
+    "result":  "passed"
+}

@@ -24,6 +24,9 @@ function Invoke-BoundedDump([int]$ProcessId, [int]$TimeoutS = 180, [string]$Scri
 
 # Returns 'exited', 'hung' (dumped or dump failed, then killed) or 'hung_dump_timeout' (the dump did not finish in
 # -DumpTimeoutS; killed anyway). The target is killed in every case, even if the diagnostic throws.
+# Time bound (FB-17-01): -DumpTimeoutS (default 180 s, room for a cold symbol download) comes ON TOP of -TimeoutS,
+# plus up to 5 s for the helper tree to die and the target kill. So one hung process costs at most about
+# TimeoutS + DumpTimeoutS + 5 s. That bounds each wait; it is not a deadline for a whole battery.
 function Wait-Bounded([System.Diagnostics.Process]$Proc, [string]$Name, [int]$TimeoutS, [int]$DumpTimeoutS = 180,
                       [string]$DumpScript = (Join-Path $PSScriptRoot 'dump-stacks.ps1')) {
     if ($Proc.WaitForExit($TimeoutS * 1000)) { return 'exited' }

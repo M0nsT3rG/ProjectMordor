@@ -1,0 +1,23 @@
+{
+  "experiment": "EXP-011",
+  "record": "evidence/experiments/EXP-011.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-integration-2026-10-23.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "0d3dec4de3f8243f1f4d6aff3fab3dba0ce6d83e",
+      "role": "created",
+      "subject": "Triage ChatGPT review #2; manifest-validated soak gates v2, stale-notice guard",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-23.json",
+          "blob": "22e7ce1a8f4b1c461dcdcbaa10100ee33271a73d",
+          "recovered_path": "evidence/logs/recovered/EXP-011/0d3dec4/tests-integration-2026-10-23.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

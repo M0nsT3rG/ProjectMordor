@@ -28,6 +28,10 @@ EXP_KEYS = ["id", "type", "date", "objective", "hypothesis", "environment", "gam
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 # Absolute local paths must never be committed (rule 15).
 ABS_PATH = re.compile(r"(?i)\b[a-z]:[\\/]|\\\\Users\\\\|/Users/|/home/")
+# FB-17-02: one name per day, rewritten by every later run that day, so a record citing it loses its evidence.
+# Cite the per-run directory test.ps1 writes (tests-<time>-<commit>/) or a recovered copy instead.
+MUTABLE_DATED = re.compile(r"^evidence/logs/(tests-(unit|integration|network|transport|transport-both|integration-gns|network-gns|gns|dtls)"
+                           r"-\d{4}-\d{2}-\d{2}\.json|e2e-\d{4}-\d{2}-\d{2}(/.*)?)/?$")  # e2e: the dir or a file in it
 
 
 def load_records() -> tuple[dict[str, dict], list[str]]:
@@ -96,6 +100,8 @@ def validate(recs: dict[str, dict]) -> list[str]:
             if r.get("result") not in EXP_RESULTS:
                 errs.append(f"{where}: result must be one of {sorted(EXP_RESULTS)}")
             for ep in r.get("evidence_paths", []):
+                if MUTABLE_DATED.match(ep):
+                    errs.append(f"{where}: evidence path '{ep}' is a date-named file later runs overwrite; cite a per-run directory")
                 if not (ROOT / ep).exists():
                     errs.append(f"{where}: evidence path '{ep}' not found")
     return errs

@@ -1,0 +1,23 @@
+{
+  "experiment": "EXP-015",
+  "record": "evidence/experiments/EXP-015.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-transport-2026-10-23.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "6598c207239b486a63777c48d4c4662d2e86c323",
+      "role": "created",
+      "subject": "Transport contract v2 (identity, lifecycle, delivery, errors); review #4",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-23.json",
+          "blob": "cbd469414f898ad14f9c494ed3281547c159f564",
+          "recovered_path": "evidence/logs/recovered/EXP-015/6598c20/tests-transport-2026-10-23.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

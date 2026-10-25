@@ -1,0 +1,10 @@
+[
+  {"name":"dtls12_with_pinned_raw_public_keys_succeeds","result":"FAILED","transport":"udp","ms":4,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls12_wrong_host_key_is_rejected_by_client","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls12_wrong_client_key_is_rejected_by_host","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls12_peer_without_raw_public_key_is_rejected","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls_older_protocol_version_is_rejected","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls12_non_aead_cipher_suite_is_rejected","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls12_exporter_binds_invitation_and_is_fresh_per_handshake","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"},
+  {"name":"dtls12_replayed_and_tampered_records_are_dropped","result":"FAILED","transport":"udp","ms":0,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\dtls\\dtls_proof_tests.cpp:91: CHECK(SSL_add_expected_rpk(ssl, expected_peer) == 1)"}
+]

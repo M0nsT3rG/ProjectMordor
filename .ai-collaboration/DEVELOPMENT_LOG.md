@@ -2,6 +2,18 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #17 follow-up (`feature/review17-evidence`, stacked on #17)
+
+- **Input:** [PR #17 review](https://github.com/M0nsT3rG/ProjectMordor/pull/17), FB-17-01/02; the owner asked for all of it. Record: EXP-029.
+- **Changes:**
+  - The dump limit is documented as additional to each wait.
+  - `test.ps1` writes an immutable per-run directory with `run.json` and `e2e/`. `check_test_transport.py --dir`; `report.py` reads run directories.
+  - `tools/evidence/recover_dated.py` recovered 156 overwritten files for 20 records from git into `evidence/logs/recovered/`, with provenance, and repointed the records.
+  - The validator rejects date-named paths.
+- **Review:** Codex, first review since KI-09 was fixed. Pass 1 found 2 P2: E2E files were missed by the recovery and the rule, and `report.py` did not list the new E2E directories. Both fixed. Pass 2: clean.
+- **Tests:** full run (12 suites, E2E, smoke, self-check) and a quick UDP run, each in its own directory; tool self-tests pass.
+- **Remaining:** KI-35 (GNS phases), KI-42, KI-41, KI-28b, LAN test, external review.
+
 ## 2026-10-25: Review #16 follow-up (`feature/review16-followup`, stacked on #16)
 
 - **Input:** [PR #16 review](https://github.com/M0nsT3rG/ProjectMordor/pull/16), FB-16-01 to FB-16-03; the owner asked for all of it. Record: EXP-028.

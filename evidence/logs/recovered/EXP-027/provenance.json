@@ -1,0 +1,87 @@
+{
+  "experiment": "EXP-027",
+  "record": "evidence/experiments/EXP-027.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-25.json",
+    "evidence/logs/tests-integration-2026-10-25.json",
+    "evidence/logs/tests-network-2026-10-25.json",
+    "evidence/logs/tests-transport-2026-10-25.json",
+    "evidence/logs/tests-transport-both-2026-10-25.json",
+    "evidence/logs/tests-integration-gns-2026-10-25.json",
+    "evidence/logs/tests-network-gns-2026-10-25.json",
+    "evidence/logs/tests-gns-2026-10-25.json",
+    "evidence/logs/tests-dtls-2026-10-25.json",
+    "evidence/logs/e2e-2026-10-25"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "b7405d96606a5c3dac750e1b8aff30e1c724b2a0",
+      "role": "created",
+      "subject": "Review #15 part 2: EXP-027 GNS-only DTLS cookie skip not adopted by the predeclared rule (DTLS phase -1 RTT, median recovery 1992 -> 2274 ms, failures 3 -> 1), ",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-25.json",
+          "blob": "dc1cf67b54ffcfa1395b7a98225b4cf83380085f",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-unit-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-25.json",
+          "blob": "2714316b071d1d44a933c92218aeab8a7297b0cf",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-integration-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-25.json",
+          "blob": "0b63123ab504d94f5382d99d8a3362d533d1859f",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-network-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-25.json",
+          "blob": "6e3f5512784fa649d27759bee02b778c25811655",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-transport-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-25.json",
+          "blob": "7d8721eb41af4fee5e0c5884589c9e8291922212",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-transport-both-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-25.json",
+          "blob": "0e11dc43060e20f77e3d858f0a60c70af23ae1ea",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-integration-gns-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-25.json",
+          "blob": "7ae225e0115dab2ba874ebb46fa205dda5374471",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-network-gns-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-25.json",
+          "blob": "1d0db91fcc68491745246c773d413421e6e07378",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-gns-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-25.json",
+          "blob": "4d4ae99c106ffb19122233182df0cfa74d829160",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/tests-dtls-2026-10-25.json"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-25/client1.log",
+          "blob": "15e9c7b3801b53f89d3708dbec3118786db53769",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/e2e-2026-10-25/client1.log"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-25/client2.log",
+          "blob": "93ad24e0d3ac582d16a9aa9578250c8d62040cb7",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/e2e-2026-10-25/client2.log"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-25/host.log",
+          "blob": "a9f6eae609e9a4f69330d0baaf55ae178df6d44b",
+          "recovered_path": "evidence/logs/recovered/EXP-027/b7405d9/e2e-2026-10-25/host.log"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

@@ -14,9 +14,7 @@
   "expected_result": "Exit codes 0; host log shows two player_joined and two player_left; zero invalid packets.",
   "observed_result": "Final run passed: both players joined, both left with reason ClientQuit, invalid=0, clients reported 1 remote entity, 0 stale snapshots, 0 prediction corrections. Measured RTT was about 140 ms against about 100 ms of configured delay; the extra is attributed to the 1 ms Sleep main loop (Windows timer granularity), not yet measured separately. Two earlier runs exposed bugs that were then fixed: (1) log fields given a const char* printed 'true' (overload resolution picked bool); (2) a single Disconnect packet could be lost at 10% loss, so the host only noticed the departure by timeout. Disconnect notices are now sent 3 times.",
   "evidence_paths": [
-    "evidence/logs/e2e-2026-10-23/host.log",
-    "evidence/logs/e2e-2026-10-23/client1.log",
-    "evidence/logs/e2e-2026-10-23/client2.log"
+    "evidence/logs/recovered/EXP-005"
   ],
   "result": "PASSED",
   "confidence": "medium",

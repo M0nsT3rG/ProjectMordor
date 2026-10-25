@@ -1,0 +1,23 @@
+{
+  "experiment": "EXP-014",
+  "record": "evidence/experiments/EXP-014.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-gns-2026-10-23.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "c68197718d9f8bc0ea8e884db2be94a46567e19b",
+      "role": "created",
+      "subject": "Transport interface with UDP backend; triage review #3; auth design",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-23.json",
+          "blob": "52f9eb7c8be9a2f769eafb2428bb37b3c9455578",
+          "recovered_path": "evidence/logs/recovered/EXP-014/c681977/tests-gns-2026-10-23.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

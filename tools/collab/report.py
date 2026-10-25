@@ -65,23 +65,29 @@ def load_json_dir(d: Path) -> list[dict]:
 
 
 def latest_test_logs(logs: Path, suites=SUITES) -> dict[str, dict]:
-    """Per suite: newest tests-<suite>-YYYY-MM-DD.json (exact name, so 'integration' never matches
-    'integration-gns' or '*-first-run'), parsed into passed / failed / skipped. SKIPPED is never PASSED."""
+    """Per suite: the newest result, parsed into passed / failed / skipped. SKIPPED is never PASSED.
+    Newest of: <suite>.json in a per-run directory tests-YYYY-MM-DD-HHMMSS-<commit>[-dirty]/ (FB-17-02), or a legacy
+    tests-<suite>-YYYY-MM-DD.json (exact name, so 'integration' never matches 'integration-gns' or '*-first-run').
+    Ordered by the timestamp in the name; a legacy day sorts before any run directory of that day."""
     found = {}
+    run_dir = re.compile(r"^tests-(\d{4}-\d{2}-\d{2}-\d{6})-[0-9a-f]{7}(-dirty)?$")
+    runs = [(m.group(1), d) for d in logs.glob("tests-*") if d.is_dir() and (m := run_dir.match(d.name))]
     for suite in suites:
-        pat = re.compile(rf"^tests-{re.escape(suite)}-\d{{4}}-\d{{2}}-\d{{2}}\.json$")
-        files = sorted(p for p in logs.glob("tests-*.json") if pat.match(p.name))
-        if not files:
+        pat = re.compile(rf"^tests-{re.escape(suite)}-(\d{{4}}-\d{{2}}-\d{{2}})\.json$")
+        cands = [(m.group(1), p) for p in logs.glob("tests-*.json") if (m := pat.match(p.name))]
+        cands += [(ts, d / f"{suite}.json") for ts, d in runs if (d / f"{suite}.json").is_file()]
+        if not cands:
             continue
-        p = files[-1]
+        ts, p = max(cands, key=lambda c: c[0])
+        rel = p.relative_to(logs).as_posix()  # a run directory's file is <run>/<suite>.json
         try:
             cases = json.loads(p.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
-            found[suite] = {"file": p.name, "error": "unreadable"}
+            found[suite] = {"file": rel, "error": "unreadable"}
             continue
         failed = [c["name"] for c in cases if c.get("result") not in ("PASSED", "SKIPPED")]
         skipped = [c["name"] for c in cases if c.get("result") == "SKIPPED"]
-        found[suite] = {"file": p.name, "date": p.stem.rsplit("-", 3)[-3:], "total": len(cases),
+        found[suite] = {"file": rel, "date": ts, "total": len(cases),
                         "passed": len(cases) - len(failed) - len(skipped), "failed": failed, "skipped": skipped}
     return found
 
@@ -104,7 +110,8 @@ def build(repo: Path) -> dict[str, str]:
     findings = [f for f in load_json_dir(ev / "findings") if f.get("type") == "finding"]
     exps = [e for e in load_json_dir(ev / "experiments") if e.get("type") == "experiment"]
     tests = latest_test_logs(ev / "logs")
-    e2e = sorted(p.name for p in (ev / "logs").glob("e2e-*") if p.is_dir())
+    # Legacy e2e-<date>/ plus, since FB-17-02, the e2e/ inside each per-run test directory (Codex review).
+    e2e = sorted(p.name for p in (ev / "logs").glob("e2e-*") if p.is_dir()) +         sorted(f"{d.name}/e2e" for d in (ev / "logs").glob("tests-*") if (d / "e2e").is_dir())
 
     cls = Counter(f.get("classification", "?") for f in findings)
     res = Counter(e.get("result", "?") for e in exps)

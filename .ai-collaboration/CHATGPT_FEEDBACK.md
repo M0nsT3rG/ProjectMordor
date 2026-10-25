@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #17 (PR #17: review #16 follow-up)
+
+- **Status:** implemented (2026-10-25) on `feature/review17-evidence` (stacked on PR #17); the owner asked for all of it.
+- **Source:** [PR #17 review](https://github.com/M0nsT3rG/ProjectMordor/pull/17) at `3ee5a8a`. ChatGPT reran the comparator reproductions; it did not rerun the PowerShell or C++ suites.
+- **Verdict:** FB-16-01..03 addressed; no new blocking regression; continue controlled lab work; not a merge or release approval.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-17-01** (answer 1) The 180 s dump limit | **Yes.** The limit is per diagnostic and adds to the wait. | **Accepted** | Documented in `wait-bounded.ps1` and `CLAUDE.md`: one hung process costs at most `TimeoutS + DumpTimeoutS` + 5 s. That bounds each wait, not a battery. The never-returning-helper regression and `hung_dump_timeout` stay. |
+| **FB-17-02** (answer 2) Immutable test evidence, recover what was overwritten | **Yes, and wider than stated.** It was not only EXP-027: **20 records** (EXP-004…EXP-028) cited `tests-<suite>-<date>.json`, `e2e-<date>/` or a file in it, which later runs that day rewrote. Every committed version is in git. EXP-027's 9 suite files at `b7405d9` all differed from the current ones. | **Accepted** | **(1) Per-run evidence.** `test.ps1` writes `evidence/logs/tests-<yyyy-MM-dd-HHmmss>-<commit7>[-dirty]/`: suite JSONs (only files written by this run), `run.json` (run id, full commit, dirty flag from a source-only `git status`, builds, repeat, expected transport per suite, E2E exit codes, result; `incomplete` until the end) and `e2e/`. It refuses an existing directory. `check_test_transport.py --dir`; `report.py` reads the newest run directory, with the legacy files still read. **(2) Recovery.** `tools/evidence/recover_dated.py` copies each cited dated path, as it was in each commit that changed the record, to `evidence/logs/recovered/<EXP>/<commit>/` with `provenance.json`. The rule is mechanical: the creating commit first; later edits apart and labelled; identical versions not repeated. 156 files. EXP-023 (two later edits that describe extra verification) and EXP-025 (a text correction) also keep their edit-time versions. The records point at the recovered directory, and the diff only changes those paths. The recovered EXP-027 files are byte-identical to `b7405d9`, and differ from EXP-028's. **(3) Enforcement.** The validator rejects the mutable names, with a test. The legacy files stay, untouched, as the last version of each day. |
+| Codex review of this change (working tree, 2 passes) | Pass 1: 2 P2. (a) Files inside `e2e-<date>/` were neither recovered nor rejected: EXP-005 and EXP-009 cite `e2e-2026-10-23/host.log`. (b) `report.py` did not list the new per-run `e2e/` directories. Both confirmed. Pass 2: no actionable regression; recovered files match the git blobs. | **Accepted, fixed** | Both regexes now match the directory or a file in it, and the recovery was redone from the committed records. `report.py` lists `tests-*/e2e`. Tests for both. |
+| Next priorities | **Agreed.** | **Accepted, no change** | Next: KI-35 GNS establishment and session phases, with predeclared comparisons. Defaults and gate unchanged; KI-42 strict; hang watcher kept. |
+
+---
+
 ## Feedback on review #16 (PR #16: review #15 follow-up)
 
 - **Status:** implemented (2026-10-25) on `feature/review16-followup` (stacked on PR #16); the owner asked for all of it.

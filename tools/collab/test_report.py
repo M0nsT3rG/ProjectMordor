@@ -51,6 +51,31 @@ class ReportTests(unittest.TestCase):
             g = report.latest_test_logs(logs, ("integration-gns",))["integration-gns"]
             self.assertEqual(g["file"], "tests-integration-gns-2026-01-02.json")
 
+    def test_per_run_directory_beats_legacy_dated_files(self):
+        # FB-17-02: test.ps1 now writes tests-<time>-<commit>[-dirty]/<suite>.json; the newest timestamp wins.
+        with tempfile.TemporaryDirectory() as d:
+            logs = Path(d)
+            (logs / "tests-unit-2026-01-02.json").write_text(json.dumps([{"name": "a", "result": "FAILED"}]))
+            for run, res in (("tests-2026-01-02-090000-abcdef1", "FAILED"), ("tests-2026-01-02-100000-abcdef1-dirty", "PASSED")):
+                (logs / run).mkdir()
+                (logs / run / "unit.json").write_text(json.dumps([{"name": "a", "result": res}]))
+            (logs / "tests-2026-01-03-000000-notacommit").mkdir()  # not a run directory name: ignored
+            (logs / "tests-2026-01-03-000000-notacommit" / "unit.json").write_text("[]")
+            t = report.latest_test_logs(logs)["unit"]
+            self.assertEqual(t["file"], "tests-2026-01-02-100000-abcdef1-dirty/unit.json")
+            self.assertEqual((t["passed"], t["failed"]), (1, []))
+            self.assertNotIn("integration", report.latest_test_logs(logs))  # a run dir without it adds nothing
+
+    def test_e2e_logs_inside_run_directories_are_listed(self):
+        with tempfile.TemporaryDirectory() as d:
+            repo = Path(d)
+            for sub in ("evidence/findings", "evidence/experiments", "evidence/logs/e2e-2026-01-01",
+                        "evidence/logs/tests-2026-01-02-100000-abcdef1/e2e"):
+                (repo / sub).mkdir(parents=True)
+            text = "\n".join(report.build(repo).values())
+            self.assertIn("e2e-2026-01-01", text)
+            self.assertIn("tests-2026-01-02-100000-abcdef1/e2e", text)
+
     def test_build_reports_missing_suites_in_summary(self):
         with tempfile.TemporaryDirectory() as d:
             repo = Path(d)

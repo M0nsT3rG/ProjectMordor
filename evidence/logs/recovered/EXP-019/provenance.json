@@ -1,0 +1,71 @@
+{
+  "experiment": "EXP-019",
+  "record": "evidence/experiments/EXP-019.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "6551ab02b1fb3ab8c49692b715e5b641a3357f52",
+      "role": "created",
+      "subject": "Review #7: secure transport decorator (Host/Client over DTLS), bounded pre-auth state, timer policy, KI-27 reproducer",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "9e3a71a57b212f60899b5a069c633b353e7e2b49",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "5af1416b4e85291391b5315bb3fcd8d3331ee8a5",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "84b8c50a0578140c4df0a27a6bcdfa229da3dc0b",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "0df916c10e35bf4bf0fa5e1fa29939ec79bc04ca",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "68a1cb1ef0e1117b763e37245ba69e6fcbcc9d4b",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "0fb70e26106e3f352a56e60dc3d85c1ec685968a",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "8a1b548f95ced5722e1587516ec774fa339acba3",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "fc2cfbce7a7fb5dc4d40cb37ff60bffb50d3eb68",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "7e2ed9514f51f2d8bd6aebc292fd8a423de55806",
+          "recovered_path": "evidence/logs/recovered/EXP-019/6551ab0/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

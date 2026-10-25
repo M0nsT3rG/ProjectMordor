@@ -13,7 +13,7 @@
     "evidence/logs/soak-2026-10-23-204617-lan-g2/summary.json",
     "evidence/logs/soak-2026-10-23-204825-moderate-g2/summary.json",
     "evidence/logs/soak-2026-10-23-205033-harsh-g2/summary.json",
-    "evidence/logs/tests-integration-2026-10-23.json"
+    "evidence/logs/recovered/EXP-011"
   ],
   "result": "PASSED",
   "errors": "",

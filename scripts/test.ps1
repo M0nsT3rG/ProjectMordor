@@ -18,19 +18,42 @@ $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 Push-Location $root
 try {
-    $logs = Join-Path 'evidence' 'logs'
-    $stamp = Get-Date -Format 'yyyy-MM-dd'
+    # FB-17-02: every run writes its own directory and never touches another run's evidence. The old
+    # tests-<suite>-<date>.json names were rewritten by every later run that day (see tools/evidence/recover_dated.py).
+    $started = Get-Date
+    $commit = (git rev-parse HEAD).Trim()
+    $dirty = [bool](git status --porcelain -- . ':(exclude)evidence')  # source changes not in the commit
+    $runId = "tests-$($started.ToString('yyyy-MM-dd-HHmmss'))-$($commit.Substring(0, 7))$(if ($dirty) { '-dirty' })"
+    $runDir = Join-Path (Join-Path 'evidence' 'logs') $runId
+    if (Test-Path $runDir) { throw "$runDir already exists: test evidence is never overwritten" }
+    New-Item -ItemType Directory $runDir | Out-Null
+    $suites = [ordered]@{}  # recorded suite -> expected transport (the FB-13-03 check below)
+    function Save-Results([string]$Src, [string]$Name, [string]$Transport) {
+        # Only results this run wrote: a suite that did not run must not bring in a previous run's file.
+        if ((Test-Path $Src) -and (Get-Item $Src).LastWriteTime -ge $started) {
+            Copy-Item $Src (Join-Path $runDir "$Name.json")
+            $suites[$Name] = $Transport
+        }
+    }
+    function Write-RunJson([string]$Result, $E2EExit = $null) {
+        $run = [ordered]@{
+            run_id = $runId; started_utc = $started.ToUniversalTime().ToString('o'); commit = $commit; dirty = $dirty
+            config = $Config; builds = @($BuildDir) + $(if ($GnsBuild) { @('build-gns') } else { @() }); repeat = $Repeat
+            suites = $suites; e2e = [bool]$E2E; e2e_exit_codes = $E2EExit; result = $Result
+        }
+        # UTF-8 without BOM: Python's json reader rejects a BOM.
+        [IO.File]::WriteAllText((Join-Path (Get-Location) "$runDir/run.json"), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))
+    }
+    Write-RunJson 'incomplete'  # replaced at the end; a run that stops early keeps this
     $failed = $false
+    $e2eExit = $null
     for ($i = 1; $i -le $Repeat; $i++) {
         $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'  # see the build-gns block below
         ctest --test-dir $BuildDir -C $Config --output-on-failure 2>&1 | Out-Host
         $ErrorActionPreference = $eap
         if ($LASTEXITCODE -ne 0) { $failed = $true }
     }
-    foreach ($suite in 'unit', 'integration', 'network', 'transport') {
-        $src = Join-Path $BuildDir "test-results/$suite.json"
-        if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$suite-$stamp.json") -Force }
-    }
+    foreach ($suite in 'unit', 'integration', 'network', 'transport') { Save-Results (Join-Path $BuildDir "test-results/$suite.json") $suite 'udp' }
     # Optional GNS build: per-transport results are recorded separately (review #4 next steps).
     $gnsResults = Join-Path 'build-gns' 'test-results'
     if ($GnsBuild -and (Test-Path $gnsResults)) {
@@ -40,10 +63,10 @@ try {
         ctest --test-dir build-gns -C $Config --output-on-failure 2>&1 | Out-Host
         $ErrorActionPreference = $eap
         if ($LASTEXITCODE -ne 0) { $failed = $true }
-        $map = @{ 'integration-gns' = 'integration-gns'; 'network-gns' = 'network-gns'; 'transport' = 'transport-both'; 'gns' = 'gns'; 'dtls' = 'dtls' }
-        foreach ($k in $map.Keys) {
-            $src = Join-Path $gnsResults "$k.json"
-            if (Test-Path $src) { Copy-Item $src (Join-Path $logs "tests-$($map[$k])-$stamp.json") -Force }
+        # ctest result name -> recorded name and the transport the suite is registered for (FB-13-03)
+        foreach ($k in @(@('integration-gns', 'integration-gns', 'gns'), @('network-gns', 'network-gns', 'gns'),
+                        @('transport', 'transport-both', 'udp'), @('gns', 'gns', 'udp'), @('dtls', 'dtls', 'udp'))) {
+            Save-Results (Join-Path $gnsResults "$($k[0]).json") $k[1] $k[2]
         }
         # FB-16-03 (KI-40): a GNS host whose start fails after GNS is initialised (192.0.2.1 is a documentation
         # address that is not on this machine, so the listen socket cannot bind) must still shut GNS down and exit.
@@ -67,8 +90,7 @@ try {
         }
     }
     # FB-13-03: every recorded suite must have run on the transport it is registered for (no leaked MORDOR_TRANSPORT).
-    python -I tools/collab/check_test_transport.py --date $stamp unit=udp integration=udp network=udp transport=udp `
-        integration-gns=gns network-gns=gns transport-both=udp gns=udp dtls=udp
+    python -I tools/collab/check_test_transport.py --dir $runDir @($suites.Keys | ForEach-Object { "$_=$($suites[$_])" })
     if ($LASTEXITCODE -ne 0) { $failed = $true }
     # FB-16-01: the bounded wait stays bounded even when its diagnostic never returns.
     $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
@@ -77,10 +99,8 @@ try {
     if ($LASTEXITCODE -ne 0) { $failed = $true }
     if ($E2E) {
         $bin = Join-Path $BuildDir $Config
-        $out = Join-Path $logs "e2e-$stamp"
-        New-Item -ItemType Directory -Force $out | Out-Null
-        # Remove the previous run's logs; otherwise the wait below matches a stale host_started line.
-        Remove-Item "$out/*.log" -ErrorAction SilentlyContinue
+        $out = Join-Path $runDir 'e2e'  # fresh per run: no stale host_started line to match
+        New-Item -ItemType Directory $out | Out-Null
         # Workaround (EXP-006, cause unknown): right after a relink, the first run of the binaries
         # exchanged no packets at all. A short warm-up run of each binary avoided it.
         & (Join-Path $bin 'mordor-host.exe') --port 47812 --duration-s 1 --log "$out/warmup-host.log"
@@ -101,7 +121,10 @@ try {
         $c1.WaitForExit(); $c2.WaitForExit(); $h.WaitForExit()
         Write-Host "E2E exit codes: host=$($h.ExitCode) client1=$($c1.ExitCode) client2=$($c2.ExitCode)"
         if ($h.ExitCode -ne 0 -or $c1.ExitCode -ne 0 -or $c2.ExitCode -ne 0) { $failed = $true }
+        $e2eExit = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode }
     }
+    Write-RunJson $(if ($failed) { 'failed' } else { 'passed' }) $e2eExit
+    Write-Host "results: $runDir"
     if ($failed) { Write-Error 'One or more test steps failed.' }
     Write-Host 'All test steps passed.'
 } finally {

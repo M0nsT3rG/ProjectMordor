@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 92,
+  "count": 93,
   "records": [
     {
       "id": "EXP-001",
@@ -309,6 +309,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Implement ChatGPT review #16 (FB-16-01..03) on feature/review16-followup: bound the stack-dump diagnostic inside Wait-Bounded and hang-watch, make compare_arms.py refuse a verdict on empty or non-finite cohorts, and shut GNS down on every exit path of mordor-host and mordor-client."
+    },
+    {
+      "id": "EXP-029",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-029.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Implement ChatGPT review #17 (FB-17-01/02) on feature/review17-evidence: document the dump limit, make test evidence immutable per run, recover the evidence that date-named files lost, and enforce the rule."
     },
     {
       "id": "F-COMM-001",
