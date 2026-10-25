@@ -41,6 +41,22 @@ class MissingLog(unittest.TestCase):
             self.assertEqual(r.judge(Path(tmp))["pooled"]["udp"]["proportions"]["session_first"]["k"], 1)
 
 
+class NoSuccessConditioning(unittest.TestCase):
+    def test_a_failed_join_still_counts_in_the_phases_it_reached(self):
+        base = {"trial": 0, "log_ms": 0, "hellos": 2, "loop_ms": 1.5}
+        trials = [
+            {**base, "ok": True, "inner": 300, "first_hello": 300, "auth": 900, "connected": 1100, "timers": 0, "session_requests": 1},
+            # DTLS done without a timer, then the session never connected: counts for DTLS and as a session miss
+            {**base, "ok": False, "inner": 1300, "first_hello": 1300, "auth": 2000, "connected": -1, "timers": 0, "session_requests": 40},
+            # GNS never connected: no DTLS, no session, but an observed first-cycle miss
+            {**base, "ok": False, "inner": -1, "first_hello": -1, "auth": -1, "connected": -1, "timers": 0},
+        ]
+        p = r.summarize(trials, "gns")["proportions"]
+        self.assertEqual((p["dtls_no_timer"]["k"], p["dtls_no_timer"]["n"]), (2, 2))
+        self.assertEqual((p["session_first"]["k"], p["session_first"]["n"]), (1, 2))
+        self.assertEqual((p["gns_first_cycle"]["k"], p["gns_first_cycle"]["n"]), (1, 3))
+
+
 class Bounded(unittest.TestCase):
     def test_a_hung_probe_keeps_its_output_and_is_dumped_then_killed(self):
         import tempfile

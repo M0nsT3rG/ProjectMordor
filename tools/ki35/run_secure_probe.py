@@ -54,9 +54,9 @@ def load_batch(d: Path) -> list[dict]:
         return trials
     reqs = [json.loads(l)["t_ms"] for l in log.read_text(encoding="utf-8").splitlines()
             if l.strip() and '"evt":"connect_request"' in l]
-    for t in trials:  # ConnectRequests after authentication, up to Connected (log t_ms has 1 ms resolution)
-        if t["ok"] and t["auth"] >= 0:
-            lo, hi = t["log_ms"] + t["auth"] - 2, t["log_ms"] + t["connected"] + 1
+    for t in trials:  # ConnectRequests after authentication, up to Connected or the probe's 20 s deadline (1 ms log resolution)
+        if t["auth"] >= 0:
+            lo, hi = t["log_ms"] + t["auth"] - 2, t["log_ms"] + (t["connected"] if t["ok"] else 20_000) + 1
             t["session_requests"] = sum(lo <= x <= hi for x in reqs)
     return trials
 
@@ -66,10 +66,13 @@ def summarize(trials: list[dict], backend: str) -> dict:
     phases = {"establish": [t["first_hello"] for t in ok], "dtls": [t["auth"] - t["first_hello"] for t in ok],
               "session": [t["connected"] - t["auth"] for t in ok], "total": [t["connected"] for t in ok]}
     lat = {k: {"n": len(v), **{f"p{p}": pct(v, p) for p in (50, 90, 95, 99)}} for k, v in phases.items()}
-    props = {"dtls_no_timer": (sum(t["timers"] == 0 for t in ok), len(ok)),
-             "session_first": (sum(t.get("session_requests") == 1 for t in ok), sum("session_requests" in t for t in ok))}
+    # Each proportion counts every trial that reached its phase, whatever happened after (no conditioning on success).
+    dtls = [t for t in trials if t["first_hello"] >= 0]
+    session = [t for t in trials if "session_requests" in t]
+    props = {"dtls_no_timer": (sum(t["auth"] >= 0 and t["timers"] == 0 for t in dtls), len(dtls)),
+             "session_first": (sum(t["ok"] and t["session_requests"] == 1 for t in session), len(session))}
     if backend == "gns":
-        props["gns_first_cycle"] = (sum(0 <= t["inner"] < GNS_FIRST_CYCLE_MS for t in ok), len(ok))
+        props["gns_first_cycle"] = (sum(0 <= t["inner"] < GNS_FIRST_CYCLE_MS for t in trials), len(trials))
     slow = sorted(ok, key=lambda t: t["connected"])[-max(1, len(ok) // 10):]
     largest = {}
     for t in slow:
