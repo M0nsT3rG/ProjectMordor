@@ -14,6 +14,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bounded import run_bounded  # noqa: E402
 # Fixed in the predeclaration (tools/ki35/model.py proportions()); never tuned to results.
 MODEL = {"dtls_no_timer": [0.3771, 0.3944], "session_first": [0.6141, 0.628], "session_first_2leg": [0.7225, 0.7334],
          "gns_first_cycle": [0.522, 0.5378]}
@@ -40,9 +42,15 @@ def pct(xs: list[float], p: int) -> float | None:
     return round(s[min(len(s) - 1, int(p / 100 * len(s)))], 1) if s else None
 
 
+def load_trials(d: Path) -> list[dict]:
+    lines = (d / "trials.jsonl").read_text(encoding="utf-8").splitlines()
+    return [json.loads(l) for l in lines if l.strip().endswith("}")]  # a hung probe's last line may be cut
+
+
 def load_batch(d: Path) -> list[dict]:
-    trials = [json.loads(l) for l in (d / "trials.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
-    reqs = [json.loads(l)["t_ms"] for l in (d / "client.log").read_text(encoding="utf-8").splitlines()
+    trials = load_trials(d)
+    log = d / "client.log"
+    reqs = [json.loads(l)["t_ms"] for l in (log.read_text(encoding="utf-8").splitlines() if log.exists() else [])
             if l.strip() and '"evt":"connect_request"' in l]
     for t in trials:  # ConnectRequests after authentication, up to Connected (log t_ms has 1 ms resolution)
         if t["ok"] and t["auth"] >= 0:
@@ -119,13 +127,12 @@ def main(argv: list[str]) -> int:
     for backend, seed in BATCHES:
         d = out / f"{backend}-{seed}"
         d.mkdir()
-        r = subprocess.run([exe, backend, trials, str(seed), str(d / "client.log")], capture_output=True, text=True, timeout=7200)
-        (d / "trials.jsonl").write_text(r.stdout, encoding="utf-8")
-        codes[d.name] = r.returncode
-        print(f"{d.name}: exit {r.returncode}, {len(r.stdout.splitlines())} trials", flush=True)
-    (out / "run.json").write_text(json.dumps({"started": started.isoformat(timespec="seconds"), "commit": commit, "dirty": dirty,
-                                              "trials_per_batch": int(trials), "batches": BATCHES, "exit_codes": codes}, indent=2) + "\n",
-                                  encoding="utf-8")
+        codes[d.name] = run_bounded([exe, backend, trials, str(seed), str(d / "client.log")], d / "trials.jsonl", 7200)
+        print(f"{d.name}: exit {codes[d.name]}, {len(load_trials(d))} trials", flush=True)
+        # rewritten after every batch, so an interrupted battery keeps its provenance
+        (out / "run.json").write_text(json.dumps({"started": started.isoformat(timespec="seconds"), "commit": commit, "dirty": dirty,
+                                                  "trials_per_batch": int(trials), "batches": BATCHES, "exit_codes": codes}, indent=2) + "\n",
+                                      encoding="utf-8")
     verdict = judge(out)
     (out / "verdict.json").write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(verdict["rules"], indent=2))

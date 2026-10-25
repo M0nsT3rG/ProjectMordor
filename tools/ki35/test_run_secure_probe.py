@@ -24,5 +24,26 @@ class Arithmetic(unittest.TestCase):
         self.assertFalse(r.overlaps(ci, r.MODEL["dtls_no_timer"]))
 
 
+class Bounded(unittest.TestCase):
+    def test_a_hung_probe_keeps_its_output_and_is_dumped_then_killed(self):
+        import tempfile
+        from bounded import run_bounded
+        dumped = []
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "trials.jsonl"
+            child = 'import time; print("{\\"trial\\":0}", flush=True); print("{\\"tri", end="", flush=True); time.sleep(60)'
+            code = run_bounded([sys.executable, "-I", "-c", child], out, timeout_s=2, dump=lambda pid, t: dumped.append(pid))
+            self.assertEqual(code, "hung")
+            self.assertEqual(len(dumped), 1)
+            d = Path(tmp)
+            self.assertEqual(r.load_trials(d), [{"trial": 0}])  # the cut last line is dropped, the finished one kept
+
+    def test_a_normal_exit_returns_its_code(self):
+        import tempfile
+        from bounded import run_bounded
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(run_bounded([sys.executable, "-I", "-c", "raise SystemExit(3)"], Path(tmp) / "o", 30), 3)
+
+
 if __name__ == "__main__":
     unittest.main()

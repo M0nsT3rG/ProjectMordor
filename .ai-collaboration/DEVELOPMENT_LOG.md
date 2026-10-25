@@ -11,6 +11,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - **Not supported:** session with exactly one ConnectRequest (UDP 0.353, GNS 0.543). Post-hoc, fresh joins retry every 250 ms, about one harsh RTT, so the metric counted redundant requests.
   - **Slowest 10%:** DTLS is the largest phase (UDP 29/30, GNS 16/30; establishment 14/30).
 - **Codex (branch review):** 3 P2 probe defects, all fixed: the ClientHello match, the timer-throttling opt-out, and the GNS exit guard. None changes a result; the polling was checked on the recorded logs.
+- **Codex pass 2:** a hung probe lost its trials and was killed without a dump. Both runners now use `tools/ki35/bounded.py`: stdout goes straight to the evidence file and `run.json` is written after every batch. A hung probe is dumped (`dump-stacks.ps1`, which now also accepts `ki35*`), then killed, and recorded as `hung`. There is a self-check, plus a manual test on a real probe: dump written, trials kept, no process left.
 - **Next for KI-35:** DTLS timing (retransmission timer, cookie round trip), and the session phase on the reconnect path with a corrected metric. Each needs its own predeclaration.
 - **Candidate:** Codex passes 6 and 7 found 3 P2 defects, so the candidate is not clean yet. They are not fixed on this branch.
 

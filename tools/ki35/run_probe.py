@@ -12,6 +12,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from bounded import run_bounded  # noqa: E402
 # Fixed in the predeclaration (model.py output and the 39 recorded soak reconnects); never tuned to results.
 MODEL = {"p50": 409.2, "p90": 1850.0, "p99": 3359.8}
 SOAK_ESTABLISH_P50 = 880.0
@@ -39,8 +41,14 @@ def main(argv: list[str]) -> int:
     run_id = f"ki35-probe-{started:%Y-%m-%d-%H%M%S}-{commit[:7]}{'-dirty' if dirty else ''}"
     out = ROOT / "evidence" / "logs" / run_id
     out.mkdir(parents=True)  # raises if it exists: evidence is never overwritten
-    r = subprocess.run([str(Path(argv[0]).resolve()), *argv[1:]], capture_output=True, text=True, timeout=3600)
-    results = json.loads(r.stdout)
+    code = run_bounded([str(Path(argv[0]).resolve()), *argv[1:]], out / "results.json", 3600)
+    (out / "run.json").write_text(json.dumps({"run_id": run_id, "started": started.isoformat(timespec="seconds"),
+                                              "commit": commit, "dirty": dirty, "probe_exit": code,
+                                              "args": argv[1:]}, indent=2) + "\n", encoding="utf-8")
+    if code != 0:  # hung or failed: the evidence stays as recorded, with no verdict
+        print(f"probe exit {code}; recorded: {out.relative_to(ROOT).as_posix()}")
+        return 1
+    results = json.loads((out / "results.json").read_text(encoding="utf-8"))
     h, c = results["harsh"]["ms"], results["clean"]["ms"]
     measured = {"harsh": {k: pct(h, p) for k, p in (("p50", 50), ("p90", 90), ("p99", 99))},
                 "clean": {k: pct(c, p) for k, p in (("p50", 50), ("p90", 90))},
@@ -54,14 +62,10 @@ def main(argv: list[str]) -> int:
                "H1_gns_model_explains_raw_establishment": h1,
                "H2_our_path_adds_over_200ms": h2, "soak_establish_p50": SOAK_ESTABLISH_P50,
                "gap_ms": None if m50 is None else round(SOAK_ESTABLISH_P50 - m50, 1)}
-    (out / "run.json").write_text(json.dumps({"run_id": run_id, "started": started.isoformat(timespec="seconds"),
-                                              "commit": commit, "dirty": dirty, "probe_exit": r.returncode,
-                                              "args": argv[1:]}, indent=2) + "\n", encoding="utf-8")
-    (out / "results.json").write_text(json.dumps(results) + "\n", encoding="utf-8")
     (out / "verdict.json").write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(verdict, indent=2))
     print(f"recorded: {out.relative_to(ROOT).as_posix()}")
-    return 0 if r.returncode == 0 else 1
+    return 0
 
 
 if __name__ == "__main__":

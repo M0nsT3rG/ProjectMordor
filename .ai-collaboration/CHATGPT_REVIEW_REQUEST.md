@@ -40,6 +40,9 @@ The `-dirty` suffix is from the uncommitted docs and evidence in the tree at run
   - the ClientHello count also matched records 11 and 16 (it is not used by any rule);
   - the power-throttling opt-out for the 1 ms timer was missing. The recorded retry gaps are 250–253 ms, so polling held at about 1–2 ms. The probe now records `loop_ms`;
   - there was no GNS shutdown guard on early exits (none happened).
+- **Codex pass 2:** a hung probe lost its finished trials and was killed without a dump. Both runners are now bounded (`tools/ki35/bounded.py`):
+  - stdout is streamed to the evidence file, and `run.json` is written per batch;
+  - a hung probe is dumped locally, killed, and recorded as `hung`.
 
 ## 3. Questions
 
