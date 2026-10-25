@@ -54,6 +54,7 @@ struct ClientStats {
     std::uint64_t bytes_in = 0, bytes_out = 0;  // UDP payload bytes (headers included, IP/UDP overhead excluded)
     std::uint64_t stale_notices = 0;  // Disconnect packets older than the accept of the current connection
     std::uint64_t send_errors = 0, transport_disconnects = 0;  // non-Sent SendResults; backend-detected host loss
+    std::uint64_t transport_connects = 0;  // every transport connect() the client made (none from a terminal state)
     std::uint64_t last_reconnect_ms = 0, max_reconnect_ms = 0;  // timeout detection -> accepted again
     float max_correction = 0;
     std::uint64_t leave_disconnects_sent = 0, leave_disconnects_refused = 0;  // explicit leave (FB-10-04)

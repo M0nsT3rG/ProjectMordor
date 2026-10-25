@@ -67,7 +67,10 @@ void Client::set_state(ClientState s, std::string_view why) {
 }
 
 void Client::connect(std::uint64_t now_us) {
-    if (transport_) server_peer_ = transport_->connect(cfg_.host);
+    if (transport_) {
+        server_peer_ = transport_->connect(cfg_.host);
+        ++stats_.transport_connects;
+    }
     do nonce_ = rng_(); while (nonce_ == 0);
     token_ = 0;
     session_ = 0;
@@ -219,10 +222,15 @@ void Client::receive(std::uint64_t now_us) {
                 // A connection-oriented backend lost the host: always open a new transport connection, in ANY state.
                 // (If our own timeout already moved us to Reconnecting, ignoring this left us sending reconnect
                 // requests on a dead PeerId forever; found by the first GNS run, EXP-016.)
+                // Codex review of the combined diff (P2): only while the session is still wanted. A terminal state
+                // (Disconnected after leave(), Failed, Rejected) never opens a new connection; only connect() does.
                 if (from_host) {
                     ++stats_.transport_disconnects;
-                    server_peer_ = transport_->connect(cfg_.host);
-                    if (state_ == ClientState::Connected) begin_reconnect(now_us, "transport_disconnected");
+                    if (state_ == ClientState::Connecting || state_ == ClientState::Connected || state_ == ClientState::Reconnecting) {
+                        server_peer_ = transport_->connect(cfg_.host);
+                        ++stats_.transport_connects;
+                        if (state_ == ClientState::Connected) begin_reconnect(now_us, "transport_disconnected");
+                    }
                 }
                 break;
             case TransportEvent::Kind::DroppedInbound:
@@ -393,6 +401,7 @@ void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
     if (transport_ && transport_->capabilities().reports_disconnects && server_peer_) {
         transport_->close_peer(*server_peer_);
         server_peer_ = transport_->connect(cfg_.host);
+        ++stats_.transport_connects;
         transport_up_ = false;
     }
     phase_started_us_ = reconnect_started_us_ = now_us;

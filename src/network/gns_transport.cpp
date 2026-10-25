@@ -3,6 +3,7 @@
 #include <steam/isteamnetworkingutils.h>
 #include <steam/steamnetworkingsockets.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -293,7 +294,14 @@ void GnsTransport::close() {
     open_ = false;
 }
 
-PeerId GnsTransport::new_peer(const Endpoint& remote) { return {next_id_++, generations_[remote]++}; }
+PeerId GnsTransport::new_peer(const Endpoint& remote) {
+    if (!generations_.contains(remote) && generations_.size() >= limits_.max_incoming) generations_.erase(generations_.begin());
+    return {next_id_++, generations_[remote]++};
+}
+
+std::size_t GnsTransport::incoming_count() const {
+    return static_cast<std::size_t>(std::count_if(conns_.begin(), conns_.end(), [](const auto& kv) { return !kv.second.outgoing; }));
+}
 
 bool GnsTransport::has_unacked_reliable(std::uint32_t conn) const {
     SteamNetConnectionRealTimeStatus_t st{};
@@ -317,6 +325,12 @@ void GnsTransport::on_status(SteamNetConnectionStatusChangedCallback_t* info) {
     switch (info->m_info.m_eState) {
         case k_ESteamNetworkingConnectionState_Connecting:
             if (listen_ != k_HSteamListenSocket_Invalid && info->m_info.m_hListenSocket == listen_ && !conns_.contains(conn)) {
+                if (incoming_count() >= limits_.max_incoming) {  // bounded before any authentication (Codex review)
+                    s->CloseConnection(conn, 0, "connection table full", false);
+                    pending_.push_back({TransportEvent::Kind::DroppedInbound, PeerId{}, to_endpoint(info->m_info.m_addrRemote),
+                                        Delivery::Unreliable, {}, "connection_table_full"});
+                    return;
+                }
                 if (s->AcceptConnection(conn) != k_EResultOK) {
                     s->CloseConnection(conn, 0, "accept failed", false);
                     return;
@@ -327,6 +341,7 @@ void GnsTransport::on_status(SteamNetConnectionStatusChangedCallback_t* info) {
                                                        conn, k_ESteamNetworkingConfig_Int32, &timeout);
                 const auto remote = to_endpoint(info->m_info.m_addrRemote);
                 conns_[conn] = Conn{new_peer(remote), remote, false, false};
+                conns_[conn].last_msg_us = now_us_;
                 by_peer_id_[conns_[conn].peer.id] = conn;
                 rt().conn_owner[conn] = this;
             }
@@ -408,8 +423,9 @@ SendResult GnsTransport::send(PeerId peer, std::span<const std::uint8_t> bytes, 
     }
 }
 
-void GnsTransport::poll(std::uint64_t, std::vector<TransportEvent>& out) {
+void GnsTransport::poll(std::uint64_t now_us, std::vector<TransportEvent>& out) {
     if (!runtime_acquired_) return;
+    now_us_ = std::max(now_us_, now_us);
     auto* s = SteamNetworkingSockets();
     s->RunCallbacks();  // dispatches status changes for ALL GNS transports in the process into their pending_
     out.insert(out.end(), std::make_move_iterator(pending_.begin()), std::make_move_iterator(pending_.end()));
@@ -425,10 +441,27 @@ void GnsTransport::poll(std::uint64_t, std::vector<TransportEvent>& out) {
         for (int i = 0; i < got; ++i) {
             auto* m = msgs[i];
             auto it = conns_.find(m->m_conn);
-            if (it != conns_.end()) deliver(it->second, m, out);
+            if (it != conns_.end()) {
+                it->second.last_msg_us = now_us_;
+                deliver(it->second, m, out);
+            }
             m->Release();
         }
     }
+    // Codex review: an incoming connection that delivers nothing is closed after idle_expiry_us (GNS keepalives
+    // alone would hold it forever). Accepted before the first poll's clock: stamped now, never expired for it.
+    std::vector<std::uint32_t> idle;
+    for (auto& [conn, c] : conns_) {
+        if (c.outgoing) continue;
+        if (c.last_msg_us == 0) c.last_msg_us = now_us_;
+        if (now_us_ - c.last_msg_us > limits_.idle_expiry_us) idle.push_back(conn);
+    }
+    for (const auto conn : idle) {
+        s->CloseConnection(conn, 0, "idle", false);
+        forget(conn, "idle_expired", true);
+    }
+    out.insert(out.end(), std::make_move_iterator(pending_.begin()), std::make_move_iterator(pending_.end()));
+    pending_.clear();
 }
 
 void GnsTransport::deliver(Conn& c, SteamNetworkingMessage_t* m, std::vector<TransportEvent>& out) {

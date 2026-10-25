@@ -749,6 +749,52 @@ TEST(gns_close_is_always_reported_to_the_other_side) {
 }
 
 // Registered last in this file: no GNS internal assertion anywhere in this process's contract run.
+// Codex review of the combined diff (P2): incoming GNS connections are accepted before any authentication, so they are
+// bounded (more than max_incoming are refused) and a connection that delivers no message expires. Before this, a peer
+// could hold any number of silent connections open on GNS keepalives alone.
+TEST(gns_incoming_connections_are_bounded_and_silent_ones_expire) {
+    std::string err;
+    GnsTransport host(ImpairmentConfig{});
+    CHECK(host.open(Endpoint::loopback(0), true, &err));
+    host.set_peer_limits({.max_incoming = 2, .idle_expiry_us = 1'000'000});
+    std::vector<std::unique_ptr<Transport>> clients;
+    std::vector<TransportEvent> hev;
+    std::size_t max_incoming = 0;
+    auto pump = [&](int ms) {
+        for (int i = 0; i < ms; ++i) {
+            std::vector<TransportEvent> e;
+            host.poll(now_us(), e);
+            hev.insert(hev.end(), e.begin(), e.end());
+            for (auto& c : clients) {
+                std::vector<TransportEvent> ce;
+                c->poll(now_us(), ce);
+            }
+            max_incoming = std::max(max_incoming, host.incoming_count());
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    };
+    for (int i = 0; i < 4; ++i) {
+        clients.push_back(make_open(TransportKind::Gns, false));
+        CHECK(clients.back()->connect(Endpoint::loopback(host.local_endpoint().port)).has_value());
+        pump(150);
+    }
+    const auto refused = std::count_if(hev.begin(), hev.end(), [](const auto& e) {
+        return e.kind == TransportEvent::Kind::DroppedInbound && e.reason == "connection_table_full";
+    });
+    CHECK(max_incoming <= 2);
+    CHECK(refused >= 2);
+    pump(1800);  // nobody sends a message: the accepted ones expire after 1 s
+    const auto expired = std::count_if(hev.begin(), hev.end(), [](const auto& e) {
+        return e.kind == TransportEvent::Kind::Disconnected && e.reason == "idle_expired";
+    });
+    CHECK(expired >= 1);
+    CHECK(host.incoming_count() == 0);
+    std::printf("       max incoming %zu of 2, refused %lld, expired %lld\n", max_incoming, static_cast<long long>(refused),
+                static_cast<long long>(expired));
+    clients.clear();
+    host.close();
+}
+
 TEST(gns_reported_no_internal_assertions_in_this_run) {
     std::printf("       GNS internal assertions in this process: %llu\n", static_cast<unsigned long long>(gns_internal_assertions()));
     CHECK(gns_internal_assertions() == 0);

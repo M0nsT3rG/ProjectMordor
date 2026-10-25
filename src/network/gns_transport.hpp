@@ -34,6 +34,18 @@ std::uint64_t gns_unrouted_status_callbacks();
 // can be opened in this process (no re-initialisation, KI-27). Returns false (and does nothing) while any is open.
 bool gns_shutdown_for_exit();
 
+// Codex review of the combined diff (P2): incoming connections are accepted before any DTLS or session handshake, so
+// they are bounded like the UDP peer table: at most max_incoming at once (more are refused), and an incoming connection
+// that delivers no message for idle_expiry_us is closed ("idle_expired"); GNS's own keepalives no longer hold it open.
+// The per-address generation history has the same bound.
+// shortcut: a peer that keeps a connection busy with junk messages still holds a slot until the application closes
+// it (the session layer never adopts it); a pre-authentication deadline in SecureTransport would close it sooner.
+// Upgrade before any untrusted network.
+struct GnsPeerLimits {
+    std::size_t max_incoming = 1024;
+    std::uint64_t idle_expiry_us = 120'000'000;
+};
+
 class GnsTransport final : public Transport {
 public:
     explicit GnsTransport(const ImpairmentConfig& impairment);
@@ -55,6 +67,8 @@ public:
     bool set_impairment(const ImpairmentConfig& c) override;
     TransportKind kind() const override { return TransportKind::Gns; }
     const TransportStats& stats() const override { return stats_; }
+    void set_peer_limits(const GnsPeerLimits& l) { limits_ = l; }
+    std::size_t incoming_count() const;
 
     // Internal: called from the process-wide status callback.
     void on_status(SteamNetConnectionStatusChangedCallback_t* info);
@@ -68,6 +82,7 @@ private:
         // Set when reliable data is accepted; cleared once GNS reports nothing pending or unacknowledged.
         // GNS's own counters are no longer reliable after the connection fails, so we keep this ourselves.
         bool reliable_outstanding = false;
+        std::uint64_t last_msg_us = 0;  // incoming only: accept time, then the latest message (idle expiry)
     };
     PeerId new_peer(const Endpoint& remote);
     void deliver(Conn& c, SteamNetworkingMessage_t* m, std::vector<TransportEvent>& out);
@@ -86,6 +101,8 @@ private:
     std::vector<TransportEvent> pending_;
     std::uint32_t next_id_ = 1;
     TransportStats stats_;
+    GnsPeerLimits limits_;
+    std::uint64_t now_us_ = 0;  // the latest poll() time
 };
 
 }  // namespace mordor::net

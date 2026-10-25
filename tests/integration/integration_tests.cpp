@@ -1179,6 +1179,25 @@ TEST(a_rejoin_as_a_new_player_in_the_same_session_starts_a_new_event_stream) {
                 static_cast<unsigned>(c.player_id()));
 }
 
+// Codex review of the combined diff (P2): a terminal state never opens a new transport connection by itself. After a
+// confirmed leave the host closes the lingering peer (1.5 s, KI-37); on a backend that reports that close (GNS) the
+// client used to answer it with a fresh connection although it was already Disconnected.
+TEST(a_client_that_left_never_reconnects_on_its_own) {
+    test::Session s;
+    client::Client& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    c.leave(s.clk.now);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Disconnected; }, 3 * kSec));
+    const auto connects = c.stats().transport_connects;
+    s.pump_until([] { return false; }, 4 * kSec);  // the host closes the lingering peer meanwhile
+    CHECK(c.state() == ClientState::Disconnected);
+    CHECK(c.stats().transport_connects == connects);
+    CHECK(s.host.connected_count() == 0);
+    std::printf("       transport disconnects seen after leaving: %llu, new connects: %llu\n",
+                static_cast<unsigned long long>(c.stats().transport_disconnects),
+                static_cast<unsigned long long>(c.stats().transport_connects - connects));
+}
+
 // EXP-022 regression: the host resends an unapplied event on EVERY transport, including reliable ones. (The soak
 // found a client that discarded an event which overtook its ConnectAccept; on a reliable transport the host had
 // never resent it, so the stream stalled behind that gap for the whole run.)

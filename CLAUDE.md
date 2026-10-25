@@ -118,6 +118,8 @@ python -I tools/collab/test_report.py
 - Paused work: local branch `feature/reliable-events` (not pushed) holds the in-house reliable-channel WIP (parked as a possible test oracle; the user chose GNS, D-012).
 - Codex works again (KI-09 fixed 2026-10-25). Its elevated Windows sandbox stores the passwords of the local `CodexSandboxOffline`/`CodexSandboxOnline` accounts DPAPI-encrypted in `~/.codex/.sandbox-secrets/sandbox_users.json`. The blobs from the first setup no longer decrypted (0x8009000B), so every shell call failed. Fix: remove that file and `~/.codex/.sandbox/setup_marker.json`, then run Codex once and accept the UAC prompt; setup then recreates both. The sandbox accounts cannot read the user profile, so give Codex paths in the repository, not `%TEMP%`. In its read-only sandbox, tests that write temporary files cannot run.
 - MSVC: a `const char*` argument prefers a `bool` overload over `string_view`.
+- Red-before checks: restoring a source file with `Copy-Item` keeps its OLD timestamp, so MSBuild skips the rebuild and the stale binary runs. Restore with `git stash pop` or touch the file (`(Get-Item f).LastWriteTime = Get-Date`).
+- Every executable embeds `cmake/utf8-codepage.manifest` (UTF-8 active code page): non-ASCII command-line paths work. Quote paths in `Start-Process -ArgumentList` strings.
 
 ## Collaboration with ChatGPT (via GitHub; see `.ai-collaboration/README.md`)
 
