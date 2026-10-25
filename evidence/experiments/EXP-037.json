@@ -16,7 +16,7 @@
     "tools/ki35/run_secure_probe.py"
   ],
   "result": "PARTIAL",
-  "errors": "session_first rejected by its rule; post-hoc the metric was mis-specified (it ignores the 250 ms initial-connect retry, about one harsh RTT). Fresh joins are not stall reconnects (no notice phase, no token, 250 ms instead of 500 ms retry).",
+  "errors": "session_first rejected by its rule; post-hoc the metric was mis-specified (it ignores the 250 ms initial-connect retry, about one harsh RTT). Fresh joins are not stall reconnects (no notice phase, no token, 250 ms instead of 500 ms retry). Tooling defects found by Codex after the run (PR #25), fixed in the probe, none affecting a rule: (1) the ClientHello count also matched 22/0/11 and 22/0/16 records; hellos was not used by any rule or reported figure (first_hello is the first handshake record, always a ClientHello); (2) no Windows 11 power-throttling opt-out for the 1 ms timer request; checked post-hoc on the recorded client logs: consecutive 250 ms ConnectRequests are 250-253 ms apart, so the loop polled at about 1-2 ms, not 15.6 ms; the fixed probe also records loop_ms; (3) no GNS shutdown guard on startup-error exits; every batch exited 0, so none was taken.",
   "confidence": "medium",
   "follow_up": "DTLS is the largest phase in the slow tail on both backends and its loss mechanism matches the model: candidates are the DTLS retransmission timing (DtlsConfig back-off: 250 ms initial, doubling, capped at 1 s) and the cookie round trip (EXP-027 showed one RTT saved without a median gain), each in its own predeclared experiment. Re-measure the session phase on the reconnect path (500 ms retry) with a metric that counts the request whose accept completed the session, not the number of requests.",
   "related": [

@@ -10,15 +10,7 @@
 #include <thread>
 #include <vector>
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <timeapi.h>
-#pragma comment(lib, "winmm.lib")
+#include "timer_resolution.hpp"
 
 #include "network/gns_transport.hpp"
 #include "network/transport.hpp"
@@ -91,7 +83,7 @@ void print(const char* name, const Series& s, bool last) {
 int main(int argc, char** argv) {
     const int harsh_n = argc > 1 ? std::atoi(argv[1]) : 300;
     const int clean_n = argc > 2 ? std::atoi(argv[2]) : 50;
-    timeBeginPeriod(1);
+    request_1ms_timer_resolution();
     ImpairmentConfig harsh;  // scripts/soak.ps1 profile 'harsh'
     harsh.latency_ms = 80;
     harsh.jitter_ms = 40;

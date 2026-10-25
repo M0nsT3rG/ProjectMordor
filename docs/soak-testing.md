@@ -623,6 +623,10 @@ or gate change.
   - The client sends a ConnectRequest at the instant of authentication, then every **250 ms**: the initial-connect interval, `connect_retry_us`, which is close to one harsh round trip.
   - A first request that succeeds is often followed by a redundant second one before its ConnectAccept arrives. So "exactly one request" undercounts first-try successes: the metric was mis-specified.
   - These are fresh joins. KI-35 concerns reconnects, which retry every 500 ms.
+- **Probe defects found after the run** (Codex, PR #25). All are fixed, and none affects a rule:
+  - The ClientHello count also matched Certificate and ClientKeyExchange records. No rule or figure above uses it.
+  - The probe lacked the Windows 11 power-throttling opt-out for its 1 ms timer (KI-39). Checked on the recorded client logs: the 250 ms ConnectRequests are 250–253 ms apart, so polling held at about 1–2 ms. The fixed probe records `loop_ms`. The EXP-036 probe got the same fix.
+  - There was no GNS shutdown guard on startup-error exits. Every batch exited 0, so none was taken.
 - **For KI-35:** DTLS dominates the slow tail and behaves as its loss model predicts. Its timing is the next candidate: the retransmission back-off (250 ms initial, doubling, capped at 1 s), and the cookie round trip (EXP-027). The session phase should be re-measured on the reconnect path, counting the request whose accept completed the session.
 
 ## What the soak found, and what was fixed

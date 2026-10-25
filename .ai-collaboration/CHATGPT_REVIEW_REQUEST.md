@@ -36,6 +36,11 @@ The `-dirty` suffix is from the uncommitted docs and evidence in the tree at run
   - A request that succeeds is often followed by a redundant one before its accept arrives, so "exactly one request" undercounts first-try successes.
   - **The rule's result stands; the metric was mis-specified.** Fresh joins also differ from KI-35's reconnects, which retry every 500 ms.
 
+- **Codex review of the branch** found 3 P2 probe defects. All are fixed, and none changes a result:
+  - the ClientHello count also matched records 11 and 16 (it is not used by any rule);
+  - the power-throttling opt-out for the 1 ms timer was missing. The recorded retry gaps are 250–253 ms, so polling held at about 1–2 ms. The probe now records `loop_ms`;
+  - there was no GNS shutdown guard on early exits (none happened).
+
 ## 3. Questions
 
 1. Is DTLS timing the right next target for KI-35? There are two candidates, each needing its own predeclared experiment:

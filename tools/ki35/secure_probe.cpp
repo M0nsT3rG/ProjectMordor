@@ -14,15 +14,7 @@
 #include <string>
 #include <thread>
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN
-#endif
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
-#include <timeapi.h>
-#pragma comment(lib, "winmm.lib")
+#include "timer_resolution.hpp"
 
 #include "client/client.hpp"
 #include "common/cli.hpp"
@@ -45,6 +37,7 @@ std::uint64_t real_us() {
 struct Trace {
     double first_hello = -1, inner = -1, auth = -1;
     int hellos = 0, timers = 0;
+    std::uint64_t loops = 0;  // connect-loop iterations: loop_ms checks the 1 ms polling actually held
 };
 
 }  // namespace
@@ -57,10 +50,14 @@ int main(int argc, char** argv) {
     const TransportKind kind = std::string(argv[1]) == "gns" ? TransportKind::Gns : TransportKind::Udp;
     const int trials = std::atoi(argv[2]);
     const std::uint64_t seed = std::strtoull(argv[3], nullptr, 10);
-    timeBeginPeriod(1);
+    request_1ms_timer_resolution();
     EVP_PKEY* host_key = EVP_PKEY_Q_keygen(nullptr, nullptr, "EC", "P-256");
     EVP_PKEY* client_key = EVP_PKEY_Q_keygen(nullptr, nullptr, "EC", "P-256");
     if (!host_key || !client_key) return 2;
+    struct GnsExit {  // KI-40: GNS shut down after every transport is gone, on every exit path
+        bool done = false;
+        ~GnsExit() { if (!done) gns_shutdown_for_exit(); }
+    } gns_exit;
     const Invitation inv{"exp037", kProtocolVersion, static_cast<std::uint64_t>(std::time(nullptr)) + 3600};
     ImpairmentConfig harsh;  // scripts/soak.ps1 profile 'harsh'
     harsh.latency_ms = 80;
@@ -97,7 +94,7 @@ int main(int argc, char** argv) {
             cs->trace = [&tr, t0](const char* ev, std::uint64_t now, std::uint32_t, std::string_view detail) {
                 const double ms = static_cast<double>(now - t0) / 1000.0;
                 const std::string_view e(ev);
-                if (e == "tx" && detail.substr(0, 6) == "22/0/1") {
+                if (e == "tx" && (detail == "22/0/1" || detail.starts_with("22/0/1,"))) {  // not 22/0/11 or 22/0/16
                     ++tr.hellos;
                     if (tr.first_hello < 0) tr.first_hello = ms;
                 } else if (e == "timer") {
@@ -115,7 +112,7 @@ int main(int argc, char** argv) {
             ci.seed = seed * 1000 + static_cast<std::uint64_t>(i);  // UDP: per-trial client stream; GNS ignores seeds
             cc.impairment = ci;
             cc.secure = cs;
-            double connected = -1;
+            double connected = -1, loop_ms = -1;
             {
                 client::Client c(cc, client_log);
                 if (!c.start(&err)) {
@@ -127,12 +124,14 @@ int main(int argc, char** argv) {
                     const auto now = real_us();
                     h.update(now);
                     c.update(now);
+                    ++tr.loops;
                     if (c.state() == client::ClientState::Connected) {
                         connected = static_cast<double>(now - t0) / 1000.0;
                         break;
                     }
                     std::this_thread::sleep_for(std::chrono::milliseconds(1));
                 }
+                loop_ms = static_cast<double>(real_us() - t0) / 1000.0 / static_cast<double>(tr.loops);
                 if (connected >= 0) c.leave(real_us());
                 const auto t1 = real_us();
                 while (c.leaving() && real_us() - t1 < 2'000'000) {
@@ -148,8 +147,9 @@ int main(int argc, char** argv) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             std::printf("{\"trial\":%d,\"log_ms\":%.1f,\"ok\":%s,\"inner\":%.1f,\"first_hello\":%.1f,\"auth\":%.1f,\"connected\":%.1f,"
-                        "\"hellos\":%d,\"timers\":%d}\n",
-                        i, static_cast<double>(t0 - log_start) / 1000.0, connected >= 0 ? "true" : "false", tr.inner, tr.first_hello, tr.auth, connected, tr.hellos, tr.timers);
+                        "\"hellos\":%d,\"timers\":%d,\"loop_ms\":%.2f}\n",
+                        i, static_cast<double>(t0 - log_start) / 1000.0, connected >= 0 ? "true" : "false", tr.inner, tr.first_hello, tr.auth, connected, tr.hellos, tr.timers,
+                        loop_ms);
             std::fflush(stdout);
         }
         h.shutdown();
@@ -157,5 +157,6 @@ int main(int argc, char** argv) {
     }
     EVP_PKEY_free(host_key);
     EVP_PKEY_free(client_key);
+    gns_exit.done = true;
     return gns_shutdown_for_exit() ? 0 : 3;  // KI-40: last
 }

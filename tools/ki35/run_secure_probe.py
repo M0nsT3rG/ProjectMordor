@@ -66,7 +66,9 @@ def summarize(trials: list[dict], backend: str) -> dict:
         parts = {"establish": t["first_hello"], "dtls": t["auth"] - t["first_hello"], "session": t["connected"] - t["auth"]}
         k = max(parts, key=parts.get)
         largest[k] = largest.get(k, 0) + 1
+    loops = [t["loop_ms"] for t in ok if t.get("loop_ms", -1) > 0]  # absent before the timer fix (Codex, PR #25)
     return {"n": len(trials), "failures": len(trials) - len(ok), "latency_ms": lat,
+            "loop_ms": {"n": len(loops), "p50": pct(loops, 50), "p99": pct(loops, 99)},
             "proportions": {k: {"k": a, "n": b, "p": round(a / b, 4) if b else None, "wilson95": wilson(a, b)} for k, (a, b) in props.items()},
             "slowest_10pct_largest_phase": largest}
 

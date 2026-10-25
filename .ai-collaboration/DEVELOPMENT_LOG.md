@@ -10,6 +10,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - **Supported:** DTLS without a client retransmission (UDP 0.363, GNS 0.413; model 0.377–0.394) and GNS first cycle (0.590; model 0.522–0.538).
   - **Not supported:** session with exactly one ConnectRequest (UDP 0.353, GNS 0.543). Post-hoc, fresh joins retry every 250 ms, about one harsh RTT, so the metric counted redundant requests.
   - **Slowest 10%:** DTLS is the largest phase (UDP 29/30, GNS 16/30; establishment 14/30).
+- **Codex (branch review):** 3 P2 probe defects, all fixed: the ClientHello match, the timer-throttling opt-out, and the GNS exit guard. None changes a result; the polling was checked on the recorded logs.
 - **Next for KI-35:** DTLS timing (retransmission timer, cookie round trip), and the session phase on the reconnect path with a corrected metric. Each needs its own predeclaration.
 - **Candidate:** Codex passes 6 and 7 found 3 P2 defects, so the candidate is not clean yet. They are not fixed on this branch.
 
