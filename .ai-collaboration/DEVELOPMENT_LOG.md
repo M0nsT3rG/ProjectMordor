@@ -8,12 +8,13 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Correction:** the "~37 ms" was an unpaired comparison of medians, not a bound on our path (`79f2418`).
 - **EXP-037:** predeclared (`79f2418`) and tooled (`b4d584f`) before any run. Fresh secure joins, harsh profile, 600 trials, 0 failures. UDP seeds 3701–3703 and 3 GNS repetitions.
   - **Supported:** DTLS without a client retransmission (UDP 0.363, GNS 0.413; model 0.377–0.394) and GNS first cycle (0.590; model 0.522–0.538).
-  - **Not supported:** session with exactly one ConnectRequest (UDP 0.353, GNS 0.543). Post-hoc, fresh joins retry every 250 ms, about one harsh RTT, so the metric counted redundant requests.
+  - **Not supported:** session with exactly one ConnectRequest (UDP 0.353, GNS 0.547 after the pass-5 correction). Post-hoc, fresh joins retry every 250 ms, about one harsh RTT, so the metric counted redundant requests.
   - **Slowest 10%:** DTLS is the largest phase (UDP 29/30, GNS 16/30; establishment 14/30).
 - **Codex (branch review):** 3 P2 probe defects, all fixed: the ClientHello match, the timer-throttling opt-out, and the GNS exit guard. None changes a result; the polling was checked on the recorded logs.
 - **Codex pass 2:** a hung probe lost its trials and was killed without a dump. Both runners now use `tools/ki35/bounded.py`: stdout goes straight to the evidence file and `run.json` is written after every batch. A hung probe is dumped (`dump-stacks.ps1`, which now also accepts `ki35*`), then killed, and recorded as `hung`. There is a self-check, plus a manual test on a real probe: dump written, trials kept, no process left.
 - **Codex pass 3:** a client log that failed to open would have counted every session as 0 requests. The probe now exits 2 before any trial, and the analyser reports a missing log as unavailable (`available: false`, n = 0), with a self-check. Every EXP-037 batch has its client log.
 - **Codex pass 4:** the proportions were conditioned on a successful join. Each now counts every trial that reached its phase: DTLS from the first ClientHello, session from authentication, and the GNS cycle over all trials. This has a self-check. EXP-037 had no failed join, and its rules re-analyse unchanged.
+- **Codex pass 5:** the session count included one unsent pre-authentication attempt (`sent: false`). Only sent requests are counted now. The corrected re-analysis is in its own directory (`…-reanalysis-6b116e2`): GNS session_first goes from 163 to 164 of 300, and no rule outcome changes. The original run and its verdict are kept unchanged.
 - **Next for KI-35:** DTLS timing (retransmission timer, cookie round trip), and the session phase on the reconnect path with a corrected metric. Each needs its own predeclaration.
 - **Candidate:** Codex passes 6 and 7 found 3 P2 defects, so the candidate is not clean yet. They are not fixed on this branch.
 

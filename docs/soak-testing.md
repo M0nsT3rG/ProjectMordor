@@ -605,8 +605,10 @@ or gate change.
 | Mechanism (predeclared) | Model | UDP, 95% Wilson | GNS, 95% Wilson | Rule |
 |---|---|---|---|---|
 | DTLS without a client retransmission | 0.377-0.394 | 0.363 [0.311, 0.419] | 0.413 [0.359, 0.470] | **supported** (both) |
-| Session with exactly one ConnectRequest | 0.614-0.628 (2-pkt 0.723-0.733) | 0.353 [0.301, 0.409] | 0.543 [0.487, 0.599] | **not supported** (both; neither model) |
+| Session with exactly one ConnectRequest | 0.614-0.628 (2-pkt 0.723-0.733) | 0.353 [0.301, 0.409] | 0.547 [0.490, 0.602]* | **not supported** (both; neither model) |
 | GNS inner within its first cycle | 0.522-0.538 | - | 0.590 [0.534, 0.644] | **supported** |
+
+\* From the corrected re-analysis (`ki35-secure-...-reanalysis-6b116e2`). The original verdict counted one unsent pre-authentication request (`sent: false`), giving 163/300 = 0.543 [0.487, 0.599]. No rule outcome changes, and the run and its verdict are unchanged.
 
 - The batches are consistent for every proportion: UDP seeds 3701–3703 and the GNS repetitions.
 - **Latency per connection** (ms, p50 / p90 / p95 / p99):
