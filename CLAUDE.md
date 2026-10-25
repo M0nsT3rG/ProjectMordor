@@ -99,6 +99,10 @@ python -I tools/collab/test_report.py
 - `soak.ps1 -SeedBase N` varies the per-process UDP impairment seeds (recorded in `run.json`); GNS fake loss is not seedable. `-ReconnectRetryMs N` sets the clients' session reconnect retry (EXP-025 kept the 500 ms default). Compare experiment arms only with `tools/soak/compare_arms.py`, whose decision rule is fixed before the runs.
 - ctest pins `MORDOR_TRANSPORT` per suite, and `test.ps1` fails if a recorded suite ran on another transport (`tools/collab/check_test_transport.py`).
 - `scripts/hang-watch.ps1 -UntilFile F -Log L` runs alongside long batteries: a stuck test process is dumped (`dump-stacks.ps1`) before it is killed.
+- KI-40 is fixed: every process that used GNS calls `net::gns_shutdown_for_exit()` last, after all transports are closed. Otherwise GNS's own atexit handler can deadlock on a lock held by the terminated service thread. Never open a GNS transport after it.
+- `MORDOR_GNS_TRACE=1` traces GNS connection lifecycles to stderr (KI-42); `gns_unrouted_status_callbacks()` counts callbacks no transport claimed.
+- `scripts/wait-bounded.ps1` (`Wait-Bounded`): scripts never wait on a process forever; a hung one is dumped, killed and recorded as `exit_status: hung`.
+- `--dtls-skip-cookie-if-routable` (host, experiment, off by default) skips our DTLS cookie only on transports with `proves_return_routability` (GNS; F-GNS-001/002). Identity and the binding are unchanged. EXP-027 did not adopt it (one RTT saved in DTLS, no median gain): the cookie stays on.
 - `secure-e2e.ps1` waits for both clients to be connected (`-BarrierS`, gate `participants_ready`) and stops the host with `--stop-file` when they are done: no fixed host lifetime.
 - `timeline.py --summary <runs>` prints per-transport phase distributions (notice, establish, dtls_auth, session).
 - Run every step of a long battery in its own PowerShell process: an environment variable left by one step (`MORDOR_TRANSPORT`) silently changes what later ctest suites run (EXP-025).

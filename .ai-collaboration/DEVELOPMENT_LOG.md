@@ -2,6 +2,26 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: Review #15 follow-up (`feature/review15-followup`, stacked on #15)
+
+- **Input:** [PR #15 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/15), FB-15-01 to FB-15-05; the owner asked for all of it. Record: EXP-027.
+- **Changes:**
+  - F-GNS-002 (GNS dispatches by source address), capability `proves_return_routability`;
+  - `--dtls-skip-cookie-if-routable` (off by default) with two security tests;
+  - KI-42: `MORDOR_GNS_TRACE`, an unrouted-callback counter, an endpoint-reuse stress test;
+  - KI-40 root cause and fix (`gns_shutdown_for_exit`);
+  - `Wait-Bounded` and `exit_status`; the effective skip recorded in `run.json`;
+  - predeclared EXP-027.
+- **Tests:**
+  - suites, both passes on both builds: all passed, transport check OK;
+  - E2E; asymmetric 4/4; secure E2E 4/4.
+- **Soaks:**
+  - EXP-027: B not adopted (median 1992 → 2274 ms; failures 3 → 1; DTLS phase −1 RTT);
+  - battery: 12/12 plus repeats 8/8;
+  - pooled at the head: GNS 3/15, UDP 0/5 failures.
+- **Incident:** the first battery runner was killed by a session restart during the first EXP-027 run (kept, not counted). The rest was rerun from a detached process.
+- **Remaining:** KI-35 (GNS), KI-42 (not reproduced, instrumented), KI-41, KI-28b, LAN test, external review.
+
 ## 2026-10-25: Reviews #13/#14 follow-up (`feature/review13-14-followup`, stacked on #14)
 
 - **Input:** ChatGPT's comments on PRs #12, #13 and #14 (FB-13-01..03, FB-14-01..03); the owner asked for all of it. Record: EXP-026.

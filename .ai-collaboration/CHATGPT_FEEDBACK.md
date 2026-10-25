@@ -6,6 +6,27 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #15 (PR #15: cross-PR status and next experiment)
+
+- **Status:** implemented (2026-10-25) on `feature/review15-followup` (stacked on PR #15); the owner asked for all of it.
+- **Source:** [PR #15 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/15). ChatGPT reviewed the source and the evidence only.
+- **Verdict:** conditional GO for lab research; NO-GO for merge, release or untrusted networks.
+
+| ID | Assumptions verified? | Decision | Plan / done |
+|---|---|---|---|
+| **FB-15-01** (major) KI-35: GNS-only cookie A/B | **Yes, from source.** F-GNS-001: GNS requires an address-bound stateless challenge before a connection exists. **F-GNS-002 (new):** a shared listen socket dispatches packets by source address, so an established connection receives only from the address that answered. We use direct UDP only (`ConnectByIPAddress` / `CreateListenSocketIP`): no relay, no P2P. | **Accepted** | `--dtls-skip-cookie-if-routable` (default off) skips **our** cookie only where the inner transport declares `proves_return_routability` (GNS). Pinning, the invitation binding, budgets and the pending cap are unchanged; UDP always keeps the cookie. Security tests on both backends: UDP still uses the cookie; an unpinned key and a wrong invitation are refused; pending stays capped. A predeclared A/B, EXP-027 (10 + 10 GNS runs): **B not adopted** by the rule. The skip worked (no HelloVerifyRequest; the DTLS phase p50 fell by one RTT, 613 to 413 ms), but the median recovery rose (1992 to 2274 ms) instead of falling 10%; failures were 3 (A) against 1 (B). The cookie stays on; the flag stays off by default. |
+| **FB-15-02** (major) KI-42 | **Partly.** A status callback no transport claimed used to vanish silently; the miss itself did not reproduce. | **Accepted** | `MORDOR_GNS_TRACE=1` lifecycle trace (connect, close, forget, every status change, routed or not) and a counter of unclaimed callbacks. A stress test: 180 rounds of endpoint reuse with 3 teardown orders, run 3 times, **0 misses**. All unclaimed callbacks were explained and benign: post-close `→ None` transitions, and the peer's close arriving after our own close in the "both close" order. 5 full-suite runs with the trace: no KI-42. The test is not weakened. |
+| **FB-15-03** (major) KI-40 | **Yes.** | **Accepted, root cause found** | Reproduced twice during the KI-42 runs and **dumped** (cdb non-invasive attach). The only thread was in `ExitProcess` → GNS DLL detach → GNS's own `atexit` handler (installed "if static destruction is triggered without cleaning up the library properly") → waiting forever on the GNS global lock, which the already-terminated service thread held. **Fix:** `gns_shutdown_for_exit()` (`GameNetworkingSockets_Kill` when no transport is open, never re-initialised afterwards, KI-27) at the end of the test runner, `mordor-host` and `mordor-client`. 15/15 full transport-suite runs then exited (before: 2 hangs in 6). Regression test for the refusal and no-re-init semantics. Also: the watcher records whether the results were written before the hang, and scripts bound every process wait. |
+| **FB-15-04** (minor) KI-41 | **Yes.** | **Accepted** | The contract stays. The 1 failure in 37 is kept in the evidence (KI-41), and success is tested separately at less extreme profiles. |
+| **FB-15-05** (minor) test infrastructure | **Yes.** | **Accepted** | `Wait-Bounded`: a process that does not exit is dumped, killed and recorded as `exit_status: hung` (infrastructure), apart from gate failures. Secure E2E has the gate `all_processes_exited` next to `participants_ready`. `run.json` records the *effective* experiment variable. |
+
+**Answers received:**
+1. Prefer the GNS-only cookie skip, conditional on the source guarantee and identity staying end to end.
+2. The KI-41 contract is right.
+3. Investigate KI-42 now.
+
+---
+
 ## Reviews of PRs #12–#14 (ChatGPT, 2026-10-24 21:05)
 
 - **Status:** triaged and **implemented** (2026-10-24/25) on `feature/review13-14-followup` (stacked on PR #14), on the owner's go-ahead. Record: EXP-026. Review request #14.

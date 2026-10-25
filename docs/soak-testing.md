@@ -463,6 +463,68 @@ Written and committed **before** its first run.
 
   Aborted runs are reported apart. Otherwise the cookie stays everywhere. **The 3000 ms gate does not change either way.**
 
+**EXP-027 result (`compare_arms.py --arm skip_cookie_if_routable`, on `bd052d6`): the rule keeps A. B is not adopted.**
+
+| Arm | n | Recovery median / max | Over 3000 ms |
+|---|---|---|---|
+| A cookie | 10 | 1992 / 4407 ms | 3 |
+| B no cookie on GNS | 10 | 2274 / 3057 ms | 1 |
+
+- Conditions 1, 3 and 4 held. Condition 2 failed: B's median was **14% higher**, not 10% lower.
+- **The skip did what it should, and only that.**
+  - Every B host logged `hello_verify_sent 0` and `cookie_skipped 3`; every A host sent HelloVerifyRequests.
+  - The DTLS authentication phase fell by about one RTT (`timeline.py --summary`, 10 reconnects per arm):
+
+    | Phase | A p50 / p90 | B p50 / p90 |
+    |---|---|---|
+    | notice | 198 / 517 ms | 195 / 437 ms |
+    | establish | 842 / 1628 ms | 873 / 1369 ms |
+    | DTLS authentication | 613 / 822 ms | 413 / 631 ms |
+    | session | 213 / 702 ms | 221 / 711 ms |
+    | total | 1859 / 3666 ms | 2194 / 2529 ms |
+
+  - The total did not follow. GNS establishment and the session phase vary by far more than the 200 ms saved, so 10 runs per arm cannot show a 200 ms effect.
+- B's lower failure count (1 against 3) and lower p90 are **not** a basis for adoption. The rule requires all four conditions, and it is not reinterpreted after the results.
+- No run was aborted. Realized delivery (0.833–0.860) and RTT p50 (188–193 ms) were the same in both arms.
+- The flag stays, off by default, as an experiment switch. The cookie stays on everywhere.
+- The first EXP-027 attempt (`023741`) was cut at 1.5 s when the battery runner was killed by a session restart. It has no summary, is kept, and is not counted.
+
+## Gate v6 at the head of review #15 (2026-10-25, EXP-027)
+
+On `bd052d6`, with the default policy (cookie on, 500 ms retry). The gates are unchanged. Every process of every run exited by itself (`exit_status` all `exited`).
+
+| Run (120 s, `bd052d6`) | Gates | RTT p50 / p99 (client1) | Recovery | client2 delivery | Host seed |
+|---|---|---|---|---|---|
+| 035016-lan-udp | 59/59 | 10.1 / 12.1 ms | 20 ms | 0.9806 | 101 |
+| 035224-moderate-udp | 59/59 | 103.7 / 121.6 ms | 160 ms | 0.9591 | 101 |
+| 035433-harsh-udp | 59/59 | 204.9 / 239.1 ms | 279 ms | 0.8828 | 101 |
+| 035641-lan-gns | 59/59 | 9.1 / 12.1 ms | 35 ms | 0.9838 | 101 |
+| 035849-moderate-gns | 59/59 | 95.9 / 117.6 ms | 383 ms | 0.9409 | 101 |
+| 040058-harsh-gns | 59/59 | 189.5 / 235.9 ms | 1260 ms | 0.846 | 101 |
+| 040306-lan-udp-sec | 59/59 | 10.1 / 12.1 ms | 547 ms | 0.9861 | 101 |
+| 040514-moderate-udp-sec | 59/59 | 103.3 / 121.7 ms | 480 ms | 0.9452 | 101 |
+| 040722-harsh-udp-sec | 59/59 | 204.1 / 236.9 ms | 1443 ms | 0.8365 | 101 |
+| 040931-lan-gns-sec | 59/59 | 9.1 / 12.1 ms | 63 ms | 0.9857 | 101 |
+| 041139-moderate-gns-sec | 59/59 | 95.8 / 115.9 ms | 1904 ms | 0.9451 | 101 |
+| 041348-harsh-gns-sec | 59/59 | 190.5 / 234.3 ms | 2532 ms | 0.8398 | 101 |
+| 041556-harsh-gns-sec | 59/59 | 190.5 / 225.4 ms | 2080 ms | 0.8505 | 711 |
+| 041804-harsh-udp-sec | 59/59 | 203.4 / 238.1 ms | 926 ms | 0.8354 | 711 |
+| 042013-harsh-gns-sec | 59/59 | 191.5 / 225.4 ms | 1369 ms | 0.844 | 721 |
+| 042221-harsh-udp-sec | 59/59 | 203.7 / 237.8 ms | 2896 ms | 0.8552 | 721 |
+| 042429-harsh-gns-sec | 59/59 | 187.5 / 228.8 ms | 1301 ms | 0.8451 | 731 |
+| 042638-harsh-udp-sec | 59/59 | 202.9 / 237.0 ms | 1396 ms | 0.8454 | 731 |
+| 042846-harsh-gns-sec | 59/59 | 189.0 / 223.4 ms | 2898 ms | 0.8389 | 741 |
+| 043054-harsh-udp-sec | 59/59 | 203.4 / 236.5 ms | 2535 ms | 0.853 | 741 |
+
+- **12 scenarios: 12/12. Seeded repeats: 8/8.** No gate failed. Two repeats came close to the limit: harsh-gns-secure 2898 ms and harsh-udp-secure 2896 ms.
+- **Pooled at this head, default policy only** (EXP-027 arm A, the battery and its repeats):
+  - harsh-gns-secure: **3 of 15** over 3000 ms (all three in EXP-027 arm A);
+  - harsh-udp-secure: **0 of 5**.
+
+  At `8d553a3` it was 5 of 13 and 1 of 13. These samples are small, and no change since then targets the recovery path for the default policy, so this is **not** read as an improvement.
+- **GNS phases** of the 5 battery harsh-gns-secure reconnects (`timeline.py --summary`): p50 notice 185, establish 436, DTLS 560, session 674, total 2080 ms (p90 total 2898 ms).
+- Test suites, both passes on both builds: all passed, with the transport check OK. E2E, asymmetric 4/4 and secure E2E 4/4 also passed. The hang watcher recorded no stuck process.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

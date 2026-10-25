@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 89,
+  "count": 91,
   "records": [
     {
       "id": "EXP-001",
@@ -287,6 +287,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Implement ChatGPT reviews #13/#14 (FB-13-01..03, FB-14-01..03) on feature/review13-14-followup and validate the final head of the #12-#15 stack: harness hardening, KI-41 contract, secure E2E barrier, a predeclared UDP-only retry experiment, GNS phase distributions, full v6 battery with seeded repeats."
+    },
+    {
+      "id": "EXP-027",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-027.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Implement ChatGPT review #15 (FB-15-01..05) on feature/review15-followup: verify GNS return routability from source, investigate KI-42 and KI-40, run the predeclared GNS-only DTLS cookie A/B with negative security tests, and validate the head with the full v6 battery."
     },
     {
       "id": "F-COMM-001",
@@ -782,6 +793,17 @@
       "scope": "source_verified",
       "confidence": "high",
       "summary": "In GameNetworkingSockets v1.6.1 a direct-UDP listen socket accepts a ConnectRequest only if it echoes a stateless challenge, a SipHash of (time slot, sender IP, sender port) under a per-socket secret, at most about 4 s old. A GNS connection therefore proves return routability for its address before it is created."
+    },
+    {
+      "id": "F-GNS-002",
+      "type": "finding",
+      "path": "evidence/findings/F-GNS-002.json",
+      "date": "2026-10-25",
+      "subsystem": "networking",
+      "status": "CONFIRMED",
+      "scope": "source_verified",
+      "confidence": "high",
+      "summary": "In GameNetworkingSockets v1.6.1, packets arriving on a shared direct-UDP listen socket are dispatched by source address: an accepted connection is registered under its remote address (CSharedSocket::AddRemoteHost) and receives only packets from that address; any other source goes to the listen socket's unknown-address handler (challenge / connect / close messages). Together with F-GNS-001, data on an established GNS connection comes only from the address that answered the stateless challenge."
     },
     {
       "id": "F-SOWM-001",

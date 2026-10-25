@@ -1,6 +1,11 @@
 # Current task
 
-**Last completed:** reviews #13/#14 follow-up on `feature/review13-14-followup`. Record: EXP-026.
+**Last completed:** review #15 follow-up on `feature/review15-followup`. Record: EXP-027.
+- KI-40 root-caused and fixed; KI-42 instrumented (not reproduced).
+- The GNS-only cookie skip saved one RTT but was not adopted by the predeclared rule.
+- At the head, the battery passed 20/20; pooled harsh-gns-secure 3/15 (KI-35).
+
+**Before that:** reviews #13/#14 follow-up on `feature/review13-14-followup`. Record: EXP-026.
 - Harness hardened (transport pinning, barrier, hang watcher); KI-41 contract explicit.
 - The UDP retry gain did not replicate (500 ms kept).
 - At the head, harsh-gns-secure still fails 5/13 (KI-35).
@@ -45,7 +50,8 @@ v5 soaks passed 10 of 12: KI-35 and KI-37 are open. See EXP-022 and [CHATGPT_FEE
 | [#12](https://github.com/M0nsT3rG/ProjectMordor/pull/12) | `feature/review11-gns-readiness` | #11 | Review #11: DTLS on inner Connected, departure edge cases, coalescing option, full battery with seeded repeats |
 | [#13](https://github.com/M0nsT3rG/ProjectMordor/pull/13) | `feature/review12-retry-experiment` | #12 | Review #12: predeclared retry experiment (500 ms kept), KI-40 lifecycle trace and repro, GNS challenge finding, departure tests, battery 20/20 |
 | [#14](https://github.com/M0nsT3rG/ProjectMordor/pull/14) | `fix/linger-eviction-rejoin` | #13 | PR #12 review P2: linger eviction must not close a rejoined player |
-| #15 | `feature/review13-14-followup` | #14 | Reviews #13/#14: harness hardening, KI-41 contract, E2E barrier, EXP-026, battery at the final head |
+| [#15](https://github.com/M0nsT3rG/ProjectMordor/pull/15) | `feature/review13-14-followup` | #14 | Reviews #13/#14: harness hardening, KI-41 contract, E2E barrier, EXP-026, battery at the final head |
+| #16 | `feature/review15-followup` | #15 | Review #15: GNS cookie-skip A/B (not adopted), KI-40 root cause and fix, KI-42 tracing, bounded waits, battery 20/20 |
 
 Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed).
 
