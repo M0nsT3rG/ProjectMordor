@@ -293,6 +293,49 @@ TEST(secure_client_reports_a_failed_inner_connect) {
     }
 }
 
+// Codex review of the combined diff (P2): when our own DTLS handshake fails, the inner peer is closed too. A plain
+// (non-DTLS) listener accepts the inner connection but never answers, so the handshake times out. On a backend that
+// reports disconnects (GNS) the listener must then see the connection closed, and a second connect() must open a NEW
+// inner connection (GNS's connect() returns a live one, whose Connected was already consumed, so a handshake on it
+// never started).
+TEST(secure_failed_handshake_closes_the_inner_peer) {
+    for (auto k : backends()) {
+        std::string err;
+        auto plain = make_transport(k, {}, &err);
+        CHECK(plain && plain->open(Endpoint::loopback(0), true, &err));
+        if (!plain->capabilities().reports_disconnects) {
+            std::printf("       %s: no inner disconnect to observe; the UDP peer table is bounded instead\n", to_string(k));
+            continue;
+        }
+        Key host_key, player;
+        auto ccfg = *secure(player, {host_key.spki()}, invite());
+        ccfg.pending_lifetime_us = 1'000'000;
+        auto c = open_secure(k, ccfg, false);
+        std::vector<TransportEvent> cev, hev;
+        auto pump = [&](auto done, int max_ms) {
+            for (int i = 0; i < max_ms && !done(); ++i) {
+                std::vector<TransportEvent> e;
+                c->poll(real_us(), e);
+                cev.insert(cev.end(), e.begin(), e.end());
+                e.clear();
+                plain->poll(real_us(), e);
+                hev.insert(hev.end(), e.begin(), e.end());
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        };
+        const auto to = Endpoint::loopback(plain->local_endpoint().port);
+        CHECK(c->connect(to).has_value());
+        pump([&] { return count(cev, TransportEvent::Kind::Disconnected) == 1; }, 10000);
+        CHECK(count(cev, TransportEvent::Kind::Disconnected) == 1);
+        pump([&] { return count(hev, TransportEvent::Kind::Disconnected) >= 1; }, 5000);
+        CHECK(count(hev, TransportEvent::Kind::Disconnected) >= 1);  // the listener saw the inner connection closed
+        CHECK(c->connect(to).has_value());
+        pump([&] { return count(hev, TransportEvent::Kind::Connected) >= 2; }, 5000);
+        CHECK(count(hev, TransportEvent::Kind::Connected) >= 2);  // a new inner connection, not the stale one
+        std::printf("       %s: failed handshake closed the inner connection; the retry opened a new one\n", to_string(k));
+    }
+}
+
 // Pre-authentication state is bounded: more unpinned handshakes than max_pending_total are refused, each pending
 // session expires, and afterwards a legitimate player still gets in.
 TEST(secure_pending_sessions_are_capped_and_expire) {

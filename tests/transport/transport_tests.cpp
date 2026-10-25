@@ -1,10 +1,14 @@
 // Backend-independent Transport contract tests (review #4 FB-4-01/02/04). Every test runs against every backend
 // available in this build (net::transport_available), so the GNS adapter must pass the same contract.
+#include <algorithm>
 #include <chrono>
 #include <cstring>
+#include <optional>
 #include <set>
+#include <thread>
 
 #include "network/transport.hpp"
+#include "network/udp_transport.hpp"
 #include "test_support.hpp"
 
 using namespace mordor;
@@ -177,6 +181,58 @@ TEST(contract_endpoint_reuse_gets_new_peer_generation) {
         CHECK(second.generation == (must_message(ev).remote == first_remote ? first.generation + 1 : 0u));
         CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
     }
+}
+
+// Codex review of the combined diff (P1): datagrams from many new addresses must not grow the UDP backend's
+// per-source state without bound. The table never exceeds max_peers, a peer that keeps sending is never evicted,
+// idle peers expire, and the generation history stays bounded. (UDP-backend specific: GNS owns its connections.)
+TEST(udp_peer_table_is_bounded_and_idle_peers_expire) {
+    UdpTransport host(ImpairmentConfig{});
+    std::string err;
+    CHECK(host.open(Endpoint::loopback(0), true, &err));
+    host.set_peer_limits({.max_peers = 8, .idle_expiry_us = 2'000'000});
+    const auto to = Endpoint::loopback(host.local_endpoint().port);
+    auto active = make_open(TransportKind::Udp, false);
+    const auto active_peer = active->connect(to);
+    std::vector<std::unique_ptr<Transport>> strangers;
+    for (int i = 0; i < 20; ++i) strangers.push_back(make_open(TransportKind::Udp, false));
+    std::uint64_t t = 1'000'000;
+    std::vector<TransportEvent> seen;
+    std::size_t max_table = 0;
+    auto tick = [&](bool strangers_send, int n) {
+        for (int i = 0; i < n; ++i) {
+            CHECK(active->send(*active_peer, payload(1), Delivery::Unreliable, t) == SendResult::Sent);
+            if (strangers_send && i == 0)
+                for (auto& s : strangers) s->send(*s->connect(to), payload(2), Delivery::Unreliable, t);
+            std::this_thread::sleep_for(std::chrono::milliseconds(2));
+            std::vector<TransportEvent> ev;
+            host.poll(t, ev);
+            seen.insert(seen.end(), ev.begin(), ev.end());
+            max_table = std::max(max_table, host.peer_count());
+            t += 50'000;
+        }
+    };
+    tick(false, 10);  // the player is established first (many datagrams), as players are before a flood
+    tick(true, 10);   // then 20 strangers, one datagram each, against a table of 8
+    CHECK(max_table <= 8);
+    std::optional<PeerId> player;
+    for (const auto& e : seen)
+        if (e.kind == TransportEvent::Kind::Message && e.bytes == payload(1)) player = e.peer;
+    CHECK(player.has_value());
+    auto disconnected = [&](std::string_view why, std::optional<PeerId> who = std::nullopt) {
+        return std::count_if(seen.begin(), seen.end(), [&](const auto& e) {
+            return e.kind == TransportEvent::Kind::Disconnected && e.reason == why && (!who || e.peer == *who);
+        });
+    };
+    CHECK(disconnected("evicted_table_full") >= 13);
+    CHECK(disconnected("evicted_table_full", player) == 0);  // most datagrams exchanged: never the one evicted
+    tick(false, 60);  // 3 s more: only the player keeps sending, everyone else goes idle past 2 s
+    CHECK(disconnected("idle_expired") >= 1 && disconnected("idle_expired", player) == 0);
+    CHECK(host.peer_count() == 1);
+    CHECK(host.generation_entries() <= 8);
+    std::printf("       table max %zu of 8, evicted %lld, expired %lld, generation entries %zu\n", max_table,
+                static_cast<long long>(disconnected("evicted_table_full")), static_cast<long long>(disconnected("idle_expired")),
+                host.generation_entries());
 }
 
 TEST(contract_two_simultaneous_peers_are_routed_separately) {

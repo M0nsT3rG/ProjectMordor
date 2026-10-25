@@ -216,6 +216,10 @@ public:
             }
             if (!s.established && !s.pending) {
                 if (!listen_) out.push_back(disconnected(s, "dtls_handshake_failed"));  // our own connect failed
+                // Codex review of the combined diff (P2): close the inner peer too. Otherwise a GNS connection stays
+                // open, the next connect() gets that same connection back with no new inner Connected, and its
+                // handshake never starts; on UDP the inner peer would linger in the peer table.
+                inner_->close_peer(s.inner);
                 it = erase(it);
                 continue;
             }

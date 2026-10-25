@@ -1147,6 +1147,38 @@ TEST(a_host_restart_starts_a_new_event_stream) {
     CHECK(c.events_applied_through() == 0);  // the new session starts with nothing applied
 }
 
+// Codex review of the combined diff (P2): the same Client leaves and joins the SAME host session again as a new
+// player. The host starts that player's events at id 1; the client must take them, not drop them as duplicates of
+// the previous player's stream (and then acknowledge them as applied without applying them).
+TEST(a_rejoin_as_a_new_player_in_the_same_session_starts_a_new_event_stream) {
+    test::Session s;
+    client::Client& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    const auto first_player = c.player_id();
+    for (std::uint32_t i = 1; i <= 3; ++i) CHECK(s.host.send_event(first_player, 1, ev_payload(100 + i), s.clk.now));
+    std::size_t old_events = 0;
+    CHECK(s.pump_until([&] {
+        old_events += c.take_events().size();
+        return old_events == 3;
+    }, 2 * kSec));
+    c.ack_events_applied(3, s.clk.now);
+    c.leave(s.clk.now);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Disconnected; }, 3 * kSec));
+    c.connect(s.clk.now);
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    CHECK(c.player_id() != 0);
+    CHECK(s.host.send_event(c.player_id(), 2, ev_payload(7), s.clk.now));
+    std::vector<client::ReceivedEvent> fresh;
+    CHECK(s.pump_until([&] {
+        for (auto& e : c.take_events()) fresh.push_back(e);
+        return !fresh.empty();
+    }, 2 * kSec));
+    CHECK(fresh.size() == 1 && fresh[0].id == 1 && ev_value(fresh[0]) == 7);  // id 1 again: accepted, not a duplicate
+    CHECK(c.events_applied_through() == 0);
+    std::printf("       first player %u, then player %u in the same host session\n", static_cast<unsigned>(first_player),
+                static_cast<unsigned>(c.player_id()));
+}
+
 // EXP-022 regression: the host resends an unapplied event on EVERY transport, including reliable ones. (The soak
 // found a client that discarded an event which overtook its ConnectAccept; on a reliable transport the host had
 // never resent it, so the stream stalled behind that gap for the whole run.)

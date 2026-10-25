@@ -270,6 +270,9 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         log_.info("connect_accept_received", {kv("attempts", connect_attempts_), kv("since_phase_ms", (now_us - phase_started_us_) / 1000)});
         connect_attempts_ = 0;
         const bool same_session = reconnect && p.header.session == session_;
+        // A token reconnect to the same player keeps its event stream (replay). Anything else (a fresh join after
+        // leave(), a new player after the grace period) is a new stream from id 1, even in the same host session.
+        const bool same_player = same_session && acc->player_id == player_id_;
         session_ = p.header.session;
         player_id_ = acc->player_id;
         entity_id_ = acc->entity_id;
@@ -282,7 +285,7 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         authoritative_.reset();
         remotes_.clear();
         if (!same_session) latest_tick_.reset();
-        if (event_session_ != session_) {  // a new host session (e.g. host restart): its event ids start again at 1
+        if (event_session_ != session_ || !same_player) {  // a new host session or a new player: ids start again at 1
             stats_.events_discarded_new_session += event_inbox_.size();
             event_inbox_.clear();
             event_session_ = session_;
