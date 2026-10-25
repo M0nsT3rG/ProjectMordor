@@ -7,6 +7,7 @@
   ./scripts/test.ps1
   ./scripts/test.ps1 -E2E
 #>
+[CmdletBinding()]  # an unknown or misspelled parameter is an error, never silently ignored (it once wrote into evidence/logs)
 param(
     [string]$Config = 'Release',
     [string]$BuildDir = 'build',
@@ -57,6 +58,7 @@ try {
             }
         }
         [void]$ctestRuns.Add([ordered]@{ build = $Dir; iteration = $Iteration; dir = $Label; exit_code = $code; files = $files })
+        Write-RunJson 'incomplete'  # on disk now: a run that stops later (E2E throw, Ctrl+C) keeps this history
         return $code
     }
     function Write-RunJson([string]$Result, $E2EExit = $null) {

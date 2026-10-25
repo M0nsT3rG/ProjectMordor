@@ -38,6 +38,30 @@ exit $(if ($n -eq 1) { 1 } else { 0 })
         Check ((Get-Content (Join-Path $d 'unit.json') -Raw) -eq $r2) 'the top-level file is the latest invocation'
         Check ((@($run.ctest_runs | ForEach-Object { $_.files }) -join ',') -eq 'iter-1/unit.json,iter-2/unit.json') 'each invocation lists its files'
     }
+
+    # A run that stops after its suites (here: E2E asked for a build with no executables) keeps the invocation
+    # history in run.json, marked incomplete (review of PR #19, finding 1).
+    $logs2 = Join-Path $tmp 'logs2'
+    New-Item -ItemType Directory $logs2 | Out-Null
+    Remove-Item (Join-Path $build 'count.txt')
+    $threw = $false
+    try { & (Join-Path $PSScriptRoot 'test.ps1') -BuildDir $build -LogsDir $logs2 -CtestCommand $fake -NoSelfCheck -E2E *>&1 | Out-Null }
+    catch { $threw = $true }
+    $runs = @(Get-ChildItem $logs2 -Directory)
+    Check ($threw -and $runs.Count -eq 1) 'a run that stops early still leaves its directory'
+    if ($runs.Count -eq 1) {
+        $run = Get-Content (Join-Path $runs[0].FullName 'run.json') -Raw | ConvertFrom-Json
+        Check ($run.result -eq 'incomplete') "and run.json says incomplete ($($run.result))"
+        Check ((@($run.ctest_runs | ForEach-Object { "$($_.dir):$($_.exit_code)" }) -join ',') -eq 'iter-1:1') "with the invocation and its exit code ($(@($run.ctest_runs | ForEach-Object { "$($_.dir):$($_.exit_code)" }) -join ','))"
+    }
+
+    # A misspelled parameter is an error before anything is written (review of PR #19, finding 2).
+    $logs3 = Join-Path $tmp 'logs3'
+    $threw = $false
+    try { & (Join-Path $PSScriptRoot 'test.ps1') -BuildDir $build -LogDir $logs3 -CtestCommand $fake -NoSelfCheck *>&1 | Out-Null }
+    catch { $threw = $_.Exception.Message -match 'LogDir' }
+    Check $threw 'a misspelled parameter (-LogDir) is refused by name'
+    Check (-not (Test-Path $logs3)) 'and nothing is written'
 } finally {
     Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 }

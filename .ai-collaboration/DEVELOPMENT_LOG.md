@@ -9,8 +9,8 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - Every `-Repeat` invocation is kept in `iter-<n>/` with its exit code (`ctest_runs`); fail-then-pass self-check `scripts/test-repeat-capture.ps1`.
   - `report.py` shows each suite's run result, commit and dirty flag.
   - The wait budget is qualified as a budget; a creation snapshot is the evidence present at commit.
-- **Review:** Codex, no regression.
-- **Tests:** `test.ps1 -GnsBuild -Repeat 2 -E2E`: all passed; both self-checks pass; report self-tests 8/8.
+- **Review:** Codex, no regression. A later code review of PR #19 found 2 more: `run.json` is now written after each invocation, and `[CmdletBinding()]` refuses misspelled parameters. 5 harness checks were added.
+- **Tests:** `test.ps1 -GnsBuild -Repeat 2 -E2E`, then `-GnsBuild -E2E` after the review fixes: all passed; both self-checks pass; report self-tests 8/8.
 - **Incident:** the red-before check ran the old `test.ps1`, which ignored `-LogsDir` and wrote an empty run directory into `evidence/logs`. It was deleted as an artifact of the check.
 - **Remaining:** KI-35 (GNS phases), KI-42, KI-41, KI-28b, LAN test, external review.
 
