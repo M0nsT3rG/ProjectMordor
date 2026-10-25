@@ -549,6 +549,20 @@ Written and committed **before** its first run. Measurement only: no product, de
     `reconnecting`, the GNS `connect()` call and the inner `Connected`. Instrumentation only.
   - Neither result changes a gate, a default or the protocol.
 
+**EXP-036 result (`run_probe.py` on `b36d226`): H1 not supported, H2 not supported.**
+
+| | p50 | p90 | p99 |
+|---|---|---|---|
+| Model (F-GNS-003) | 409 ms | 1850 ms | 3360 ms |
+| Raw GNS, measured (300 harsh trials, 0 failures) | **844 ms** | **1598 ms** | 3210 ms |
+| Soak `phase_establish` (39 reconnects) | 880 ms | 1580 ms | - |
+
+- **By the rules:**
+  - H1 fails on its p50 band; its p90 is inside the band.
+  - H2 fails: our path adds only about **37 ms** to raw GNS.
+- **Post-hoc, not a rule:** the successes fall in 500 ms retry cycles as F-GNS-003 describes. In the first cycle 149/300 = 0.50 succeed; the model predicted 0.52. With a first-attempt rate this close to 0.5, the median sits on the boundary between cycle 1 (about 400 ms) and cycle 2 (about 850 ms). So the p50 band was a fragile criterion. The rule's result stands; future predeclarations judge per-attempt rates, not a median near such a boundary.
+- **What it means for KI-35:** the establishment phase is GNS's own fixed 500 ms retry, a compile-time constant. Our code adds about 37 ms of it. Remedies would avoid or overlap new GNS connections, or patch GNS (a dependency change, owner approval). Each would need its own predeclared experiment. The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and are not yet decomposed.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

@@ -1,0 +1,36 @@
+{
+  "model": {
+    "p50": 409.2,
+    "p90": 1850.0,
+    "p99": 3359.8
+  },
+  "h1_bands": {
+    "p50": [
+      259.2,
+      559.2
+    ],
+    "p90": [
+      1387.5,
+      2312.5
+    ]
+  },
+  "measured": {
+    "harsh": {
+      "p50": 843.5,
+      "p90": 1598.1,
+      "p99": 3209.6
+    },
+    "clean": {
+      "p50": 3.0,
+      "p90": 3.5
+    },
+    "harsh_n": 300,
+    "harsh_failed": 0,
+    "clean_n": 50,
+    "clean_failed": 0
+  },
+  "H1_gns_model_explains_raw_establishment": false,
+  "H2_our_path_adds_over_200ms": false,
+  "soak_establish_p50": 880.0,
+  "gap_ms": 36.5
+}

@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 100,
+  "count": 101,
   "records": [
     {
       "id": "EXP-001",
@@ -386,6 +386,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Run the integration gate (docs/integration-gate.md, review #23 FB-23-02) on an exact candidate head that contains the whole stack (PR #22) and its follow-ups (#23 and this branch), and record what a merge into main would and would not establish."
+    },
+    {
+      "id": "EXP-036",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-036.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35: find what sets the GNS establishment phase of a secure reconnect under the harsh profile, the largest phase (p50 880 ms in 39 recorded harsh-gns-secure reconnects)."
     },
     {
       "id": "F-COMM-001",

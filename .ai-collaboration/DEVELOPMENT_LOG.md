@@ -2,6 +2,16 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-25: KI-35 investigation, EXP-036 (`feature/ki35-gns-establishment`, off the candidate)
+
+- **Input:** the owner asked to advance KI-35 and to read PR #24 (review #24, triaged).
+- **F-GNS-003:** GNS connects with a 4-packet exchange restarted every 500 ms (a compile-time constant).
+- **EXP-036, predeclared before running:**
+  - raw GNS establishment under harsh: p50 844, p90 1598 ms; our path adds about 37 ms;
+  - H1 rejected on its median band (post-hoc, first-attempt success 0.50 against the model's 0.52); H2 rejected.
+- **Conclusion:** the establishment phase is GNS's own retry; next, the DTLS and session phases (ours).
+- **Candidate:** Codex passes 6 and 7 are scheduled on the unchanged candidate.
+
 ## 2026-10-25: Review #23 follow-up and the first integration-gate run (`feature/review23-integration`, stacked on #23)
 
 - **Input:** [PR #23 review](https://github.com/M0nsT3rG/ProjectMordor/pull/23); the owner asked for all of it. Record: EXP-035.
