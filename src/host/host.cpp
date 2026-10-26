@@ -379,7 +379,10 @@ void Host::remove_slot(std::uint16_t player_id, bool close_transport_peer) {
     auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
     if (it == slots_.end()) return;
     log_.info("player_stats", {kv("player", player_id), kv("packets_in", it->packets_in)});
-    if (close_transport_peer && it->peer.valid()) transport_->close_peer(it->peer);
+    // Same guard as the lingers: never close a peer a connected player is using. On UDP a new player from the same
+    // address during this slot's grace period shares its PeerId (Codex pass 6, PR #24).
+    if (const Slot* user = find_by_peer(it->peer); close_transport_peer && it->peer.valid() && (!user || user == &*it))
+        transport_->close_peer(it->peer);
     world_.despawn(it->entity_id);
     slots_.erase(it);
 }

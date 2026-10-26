@@ -113,6 +113,7 @@ public:
     const std::vector<float>& rtt_samples_ms() const { return rtt_samples_ms_; }  // raw samples for percentiles
     const std::vector<float>& correction_samples() const { return correction_samples_; }  // each correction's size
     std::uint16_t local_port() const { return transport_ ? transport_->local_endpoint().port : 0; }
+    net::Transport* transport_for_test() { return transport_.get(); }
     bool set_impairment(const net::ImpairmentConfig& c) {  // false: refused by the transport (FB-5-03)
         if (transport_ && !transport_->set_impairment(c)) return false;
         cfg_.impairment = c;
@@ -126,7 +127,8 @@ private:
     void produce_input(std::uint64_t now_us);
     bool send(const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void set_state(ClientState s, std::string_view why);
-    void begin_reconnect(std::uint64_t now_us, std::string_view why);
+    // peer_lost: the transport explicitly reported server_peer_ gone (any backend, e.g. UDP eviction or expiry).
+    void begin_reconnect(std::uint64_t now_us, std::string_view why, bool peer_lost = false);
     net::Delivery ack_delivery() const;
 
     ClientConfig cfg_;

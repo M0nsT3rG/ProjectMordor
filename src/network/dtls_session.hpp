@@ -88,9 +88,11 @@ public:
     // now_unix_s is wall-clock seconds, used only for the invitation expiry check.
     void on_datagram(std::span<const std::uint8_t> bytes, std::uint64_t now_us, std::uint64_t now_unix_s);
     void service(std::uint64_t now_us, std::uint64_t now_unix_s);  // timers, retransmits, binding resends
-    // false unless Authenticated. now_us (0 = the last time seen) reaches the transport: a backend that simulates
-    // latency in our code (UDP ImpairedSender) schedules by it (EXP-021: passing 0 disabled latency and jitter).
-    bool send(std::span<const std::uint8_t> bytes, std::uint64_t now_us = 0);
+    // Failed unless Authenticated; otherwise the inner transport's own result for the datagram(s) (Codex pass 6,
+    // PR #24: a local refusal such as Backpressure or NotConnected is reported, never hidden as Sent).
+    // now_us (0 = the last time seen) reaches the transport: a backend that simulates latency in our code (UDP
+    // ImpairedSender) schedules by it (EXP-021: passing 0 disabled latency and jitter).
+    SendResult send(std::span<const std::uint8_t> bytes, std::uint64_t now_us = 0);
     std::vector<std::vector<std::uint8_t>> take_received();
 
     DtlsState state() const { return state_; }
@@ -113,7 +115,7 @@ private:
     void read_records(std::uint64_t now_us, std::uint64_t now_unix_s);
     void on_binding(std::span<const std::uint8_t> msg, std::uint64_t now_unix_s);
     void send_binding(std::uint64_t now_us);
-    void flush_out();
+    SendResult flush_out();  // Sent, or the first local refusal of a datagram
     void reject(std::string why);
     bool make_cookie(unsigned char* out, unsigned int* len, unsigned slots_back = 0) const;
 

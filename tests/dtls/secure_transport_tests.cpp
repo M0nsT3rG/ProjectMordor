@@ -454,6 +454,7 @@ struct Tap final : Transport {
         return p;
     }
     SendResult send(PeerId p, std::span<const std::uint8_t> b, Delivery d, std::uint64_t n) override {
+        if (refuse) return *refuse;  // a local refusal by the inner backend; nothing leaves
         sent_first_bytes.push_back(b.empty() ? 0 : b[0]);
         sent_tail.emplace_back(b.begin(), b.end());
         if (sent_tail.size() > 16) sent_tail.erase(sent_tail.begin());
@@ -468,6 +469,7 @@ struct Tap final : Transport {
     const TransportStats& stats() const override { return t->stats(); }
     std::vector<std::uint8_t> sent_first_bytes;  // what the decorator put on the wire (record content types)
     std::vector<std::vector<std::uint8_t>> sent_tail;  // the last datagrams sent (for replay tests)
+    std::optional<SendResult> refuse;  // when set, every send is refused with it
 };
 // Records what a DTLS client would send, without a network: a source of realistic forged ClientHellos.
 struct Capture final : Transport {
@@ -600,6 +602,41 @@ TEST(secure_replayed_cookie_from_another_address_allocates_nothing) {
                 static_cast<unsigned long long>(hs->hello_verify_sent - verify), static_cast<unsigned long long>(hs->pending_opened - opened));
     CHECK(hs->pending_opened == opened);
     CHECK(hs->hello_verify_sent - verify == 5);
+}
+
+// Codex pass 6 (PR #24): a local refusal by the inner backend on an established session reaches the caller with its
+// own result (Backpressure, NotConnected, Failed), never Sent; a refused reliable message is not queued.
+TEST(secure_send_reports_the_inner_refusal) {
+    for (auto k : backends()) {
+        Key host_key, player;
+        auto hcfg = *secure(host_key, {player.spki()}, invite());
+        auto host = open_secure(k, hcfg, true);
+        std::string err;
+        std::shared_ptr<Transport> shared = make_transport(k, {}, &err);
+        auto tap_owned = std::make_unique<Tap>(shared);
+        Tap* tap = tap_owned.get();
+        auto c = make_secure_transport(std::move(tap_owned), *secure(player, {host_key.spki()}, hcfg.invitation), &err);
+        CHECK(c && c->open(Endpoint::loopback(0), false, &err));
+        const auto to_host = c->connect(Endpoint::loopback(host->local_endpoint().port)).value();
+        auto ev = run({host.get(), c.get()}, c.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 10000);
+        CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
+        const std::vector<std::uint8_t> m{9};
+        for (auto r : {SendResult::Backpressure, SendResult::NotConnected, SendResult::Failed}) {
+            tap->refuse = r;
+            CHECK(c->send(to_host, m, Delivery::Unreliable, real_us()) == r);
+            CHECK(c->send(to_host, m, Delivery::ReliableOrdered, real_us()) == r);
+        }
+        tap->refuse.reset();
+        const auto sent_before = c->stats().sent;
+        CHECK(c->send(to_host, m, Delivery::ReliableOrdered, real_us()) == SendResult::Sent);
+        CHECK(c->stats().sent == sent_before + 1);
+        // Only the message sent after the refusals arrives: the refused reliable ones were never queued.
+        std::size_t got = count(run({host.get(), c.get()}, host.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Message) >= 1; }, 3000),
+                                TransportEvent::Kind::Message);
+        got += count(run({host.get(), c.get()}, host.get(), [](const auto&) { return false; }, 300), TransportEvent::Kind::Message);
+        std::printf("       %s: refusals reported as themselves; %zu message(s) delivered after them\n", to_string(k), got);
+        CHECK(got == 1);
+    }
 }
 
 TEST(secure_forged_client_hellos_cannot_starve_a_players_reconnect) {

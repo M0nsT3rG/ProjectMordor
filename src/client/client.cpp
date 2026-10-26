@@ -229,7 +229,7 @@ void Client::receive(std::uint64_t now_us) {
                     // Connected: begin_reconnect() opens the one new connection (opening one here as well made a second,
                     // immediately cancelled attempt; Codex review). Connecting/Reconnecting: open it here.
                     if (state_ == ClientState::Connected) {
-                        begin_reconnect(now_us, "transport_disconnected");
+                        begin_reconnect(now_us, "transport_disconnected", true);
                     } else if (state_ == ClientState::Connecting || state_ == ClientState::Reconnecting) {
                         server_peer_ = transport_->connect(cfg_.host);
                         ++stats_.transport_connects;
@@ -398,10 +398,12 @@ void Client::ack_events_applied(std::uint32_t through_id, std::uint64_t now_us) 
 // drain ended (head-of-line blocking; the secure moderate GNS soak timed the player out, EXP-022).
 Delivery Client::ack_delivery() const { return Delivery::Unreliable; }
 
-void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
+void Client::begin_reconnect(std::uint64_t now_us, std::string_view why, bool peer_lost) {
     // Connection-oriented transport: a reconnect always uses a NEW transport connection (review #3 answer 2).
     // Reusing the old one fails when the host restarted: the new host does not know that connection (EXP-016).
-    if (transport_ && transport_->capabilities().reports_disconnects && server_peer_) {
+    // Any backend that explicitly reported the peer gone gets a new one too: UDP forgets an evicted or expired peer,
+    // and the old PeerId never sends or matches again (Codex pass 6, PR #24).
+    if (transport_ && (peer_lost || transport_->capabilities().reports_disconnects) && server_peer_) {
         transport_->close_peer(*server_peer_);
         server_peer_ = transport_->connect(cfg_.host);
         ++stats_.transport_connects;

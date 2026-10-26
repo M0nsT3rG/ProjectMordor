@@ -1,6 +1,7 @@
 // Integration tests: real UDP sockets on 127.0.0.1, no impairment.
 #include <array>
 
+#include "network/udp_transport.hpp"
 #include "test_support.hpp"
 
 using namespace mordor;
@@ -450,6 +451,34 @@ TEST(reconnect_token_migrates_slot_to_new_endpoint) {
     CHECK(s.host.stats().unknown_peer == unknown_before + 1);
 }
 
+// Codex pass 6 (PR #24): a timed-out player's slot keeps its transport peer for the grace period. A NEW player from
+// the same UDP address shares that PeerId; the old slot's expiry must not close the peer the new player uses.
+TEST(grace_expiry_never_closes_a_peer_a_new_player_reuses) {
+    UDP_ONLY("a new player from the address of a timed-out one shares its UDP PeerId; GNS gives each connection its own");
+    host::HostConfig hc;
+    hc.reconnect_grace_us = 2 * kSec;
+    test::Session s(hc);
+    FakeClient a(s.host.port());
+    a.join(s, 1);
+    const auto first = a.accept.player_id;
+    CHECK(s.pump_until([&] { return s.host.stats().timeouts == 1; }, 5 * kSec));  // silent: timed out, grace starts
+    a.join(s, 2);  // the same address joins as a new player during the grace period
+    CHECK(a.accept.player_id != first);
+    CHECK(s.host.slot_count() == 2);
+    const auto unknown = s.host.stats().unknown_peer;
+    CHECK(s.pump_until([&] {  // the new player stays active until the old slot expires
+        a.send(Heartbeat{s.clk.now});
+        return s.host.slot_count() == 1;
+    }, 4 * kSec));
+    for (int i = 0; i < 20; ++i) {
+        a.send(Heartbeat{s.clk.now});
+        s.run(50'000);
+    }
+    CHECK(s.host.stats().unknown_peer == unknown);  // its datagrams still map to its own, open peer
+    CHECK(s.host.slot_count() == 1);
+    CHECK(s.host.stats().timeouts == 1);
+}
+
 // FB-1-07: a token whose grace period expired is unknown, so the client re-joins as a new player.
 TEST(reconnect_after_grace_expiry_gets_new_identity) {
     host::HostConfig hc;
@@ -468,6 +497,26 @@ TEST(reconnect_after_grace_expiry_gets_new_identity) {
     CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == 1; }, 8 * kSec));
     CHECK(c.player_id() != old_player);
     CHECK(c.stats().reconnects == 1);
+}
+
+// Codex pass 6 (PR #24): a UDP transport that explicitly reports the host peer gone (here: evicted from a full peer
+// table) has forgotten that PeerId; the client must open a new one, not retry on the dead one until it fails.
+TEST(client_renews_udp_peer_the_transport_reported_gone) {
+    UDP_ONLY("forces the client's own UDP peer table to evict the host (UdpTransport::set_peer_limits)");
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 2 * kSec));
+    const auto player = c.player_id();
+    auto* udp = dynamic_cast<UdpTransport*>(c.transport_for_test());
+    CHECK(udp != nullptr);
+    udp->set_peer_limits({.max_peers = 1});
+    UdpSocket stranger;  // one datagram from a new source evicts the only peer: the host ("evicted_table_full")
+    CHECK(stranger.open(Endpoint::loopback(0)));
+    const std::vector<std::uint8_t> junk{1, 2, 3};
+    stranger.send_to(Endpoint::loopback(c.local_port()), junk);
+    CHECK(s.pump_until([&] { return c.stats().transport_disconnects == 1; }, kSec));
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected && c.stats().reconnects == 1; }, 5 * kSec));
+    CHECK(c.player_id() == player);  // the same session, resumed with its token
 }
 
 // FB-1-07: host restart on the same port: the client's old token is unknown to the new session.
