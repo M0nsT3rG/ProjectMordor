@@ -1,0 +1,28 @@
+{
+  "id": "F-ENV-011",
+  "type": "finding",
+  "date": "2026-10-27",
+  "subsystem": "platform",
+  "claim": "The GOG release starts and is playable with no Steam client and no GOG Galaxy client running.",
+  "evidence": "The owner launched the installed GOG copy (F-ENV-009) with Steam and GOG Galaxy closed and reported that it starts and plays (in chat, 2026-10-27).",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory-gog.json",
+      "location": "store_metadata"
+    }
+  ],
+  "game_build_compatibility": "GOG release: exe SHA-256 8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722 (FileVersion 1.0.2445.0).",
+  "verification_method": "Owner's manual launch test on the dev machine, reported in chat. Not observed or automated by Claude Code (no game process is started by the project).",
+  "classification": "CONFIRMED",
+  "verification_scope": "locally_measured",
+  "confidence": "medium",
+  "limitations": "A single manual test by the owner on one machine; online features (which the project never touches, rule 3) were not part of it. The second player's copy is not yet checked.",
+  "next_experiment": "D-008 (owner decision). The second player's copy gets the same read-only check.",
+  "related": [
+    "F-ENV-009",
+    "F-ENV-010",
+    "F-COMM-017"
+  ]
+}

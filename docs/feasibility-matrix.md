@@ -14,7 +14,7 @@ All of M1–M10 depend on interacting with the running game or analysing its cod
 
 - The user records a decision in `docs/decisions.md` covering points 2 and 3.
 - A target and method exist that require no circumvention of any protection. One candidate is a DRM-free release: third parties say the GOG version has no DRM (F-COMM-017), and both players would need such copies.
-  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. Still to confirm: that it runs with no store client (the owner's launch test). D-008 is not decided.
+  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011). D-008 is not decided.
 
 **Until G0 passes, M1–M10 are NO-GO, and no game-side experiment is designed.**
 
@@ -44,4 +44,4 @@ All of M1–M10 depend on interacting with the running game or analysing its cod
 - A data-integrity manifest (E-DATA-2).
 - LAN and real-internet runs of the prototype (EXP-007, needs firewall approval).
 - Desync-digest tooling and puppet-interpolation tuning in the prototype.
-- Verifying, by checking a purchased GOG copy's files, whether it is in fact DRM-free (user decision). **Done read-only on 2026-10-27 (F-ENV-009, F-ENV-010); the launch test without a store client is the owner's.**
+- Verifying, by checking a purchased GOG copy's files, whether it is in fact DRM-free (user decision). **Done on 2026-10-27: read-only check (F-ENV-009, F-ENV-010) and the owner's launch test with no store client (F-ENV-011).**

@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 104,
+  "count": 105,
   "records": [
     {
       "id": "EXP-001",
@@ -925,6 +925,17 @@
       "scope": "locally_measured",
       "confidence": "high",
       "summary": "The GOG executable shows none of the Steam build's wrapper indicators: its entry point is in .text and its sections are a conventional MSVC layout, with no .bind section, whereas the Steam build enters in .bind (entropy 7.947, F-ENV-003)."
+    },
+    {
+      "id": "F-ENV-011",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-011.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "medium",
+      "summary": "The GOG release starts and is playable with no Steam client and no GOG Galaxy client running."
     },
     {
       "id": "F-GNS-001",
