@@ -38,8 +38,8 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ```powershell
 ./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
-./scripts/test.ps1 -Repeat 3   # ctest (unit 17, integration 40, network 17, transport 18 contract tests)
-./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (20), gns spike, dtls (48)
+./scripts/test.ps1 -Repeat 3   # ctest (unit 19, integration 60, network 17, transport 19 contract tests)
+./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (25), gns spike (7), dtls (61)
 ./scripts/asymmetric.ps1 -Scenario uplink-outage -Transport gns   # separate-process asymmetric impairment
 ./scripts/secure-e2e.ps1 -Transport gns                           # secure host + 2 clients + negative cases (keys in %TEMP%, deleted)
 ./scripts/soak.ps1 -Profile moderate -Transport gns -Secure       # soak over DTLS (GNS build for both transports)

@@ -42,6 +42,26 @@ The candidate head must include every stacked follow-up (#23 and later): the int
 |---|---|---|---|
 | 2026-10-25 | `508ae40` (branch `feature/review23-integration`: PR #22 + #23 + gate fixes) | **Not yet passed.** Items 1, 3, 4, 6, 7, 8 pass. Item 5 passes except harsh-gns-secure (3432 ms, KI-35, accepted as open). Item 2: 5 Codex passes found and fixed 12 defects; pass 6 is pending (usage limit). Item 9: owner. | `evidence/experiments/EXP-035.json` |
 
+| 2026-10-26 | `9904293` (the same branch, with 4 more fixes) | **Not yet passed.** Items 1 and 3–7 pass, and item 5 is 12/12. Item 2: Codex passes 6 and 7 on `2217085` found 3 P2 defects, and the combined pass on the fixed head found 1 more. All 4 are fixed with regressions. Two consecutive clean passes on the final head are pending. Item 9: owner. | `evidence/experiments/EXP-038.json` |
+
+### Item details for `9904293`
+
+1. **Candidate:** `9904293`. No uncommitted source. Commits after it change only documents and evidence.
+2. **Combined review:** the four fixes, each with a regression that fails without it:
+   - the client renews a transport peer that the backend reported gone (UDP eviction or expiry);
+   - the secure decorator returns the inner backend's own `SendResult` (refusals were reported as `Sent`);
+   - grace expiry never closes a peer that a connected player uses (a new UDP player from the same address);
+   - `mordor-client`'s event-order check follows the event stream (a host restart counted false order errors).
+
+   **The two consecutive clean passes are pending.**
+3. **Suites:** `tests-2026-10-26-010843-9904293` passed, with `dirty: false` and nothing missing, invalid or failed. A run on `951fd77` was stopped on purpose when the combined pass found the fourth defect; it is kept and recorded as `incomplete`.
+4. **Real time:** asymmetric 4/4, secure E2E 4/4.
+5. **Soak v6:** 12/12. harsh-gns-secure recovered in 1853 ms. That is one sample of a stochastic tail, so KI-35 is **not** shown fixed: the previous run measured 3432 ms.
+6. **Dependencies:** `vcpkg.json`, `CMakeLists.txt` and `docs/third-party.md` are unchanged since `508ae40`.
+7. **Mergeability:** `git merge-tree` against `origin/main` is clean.
+8. **Scope:** unchanged (see below).
+9. **Owner approval:** not given, and nothing is merged.
+
 ### Item details for `508ae40`
 
 1. **Candidate:** `508ae4088b2540cb40b9b57a7035419c97e53d83`; no uncommitted source; contains every closed PR's head and #23.

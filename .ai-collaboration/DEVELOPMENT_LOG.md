@@ -2,6 +2,18 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)
+
+- **Input:** the owner asked to fix Codex's 3 P2 findings on the candidate (passes 6 and 7 on `2217085`), with regressions, and then to get two consecutive clean Codex passes. Record: EXP-038.
+- **Fixes**, each with a regression that fails without it (red-before checked by restoring the old code and rebuilding):
+  - **Client:** after the transport explicitly reported the host peer gone, the client reconnects on a new transport peer, on any backend (`client_renews_udp_peer_the_transport_reported_gone`).
+  - **Secure transport:** `DtlsSession::send` returns the inner `SendResult`, and the decorator passes it on. A refused reliable frame is not queued (`secure_send_reports_the_inner_refusal`, both backends).
+  - **Host:** grace expiry never closes a peer that a connected player uses (`grace_expiry_never_closes_a_peer_a_new_player_reuses`).
+  - **mordor-client:** the event-order check follows the stream (`client/event_order.hpp`, `event_order_check_follows_the_stream`). The combined pass on `951fd77` found this one.
+- **Gate run on `9904293`:** suites passed (clean); asymmetric 4/4; secure E2E 4/4; soak v6 12/12; dependencies unchanged; merges cleanly.
+  - harsh-gns-secure passed with a 1853 ms recovery. That is one sample, and KI-35 stays open.
+- **Pending:** the Codex usage limit stopped the combined pass on `9904293`. Two consecutive clean passes on the final head are still needed, and then the owner's decision.
+
 ## 2026-10-25: Review #23 follow-up and the first integration-gate run (`feature/review23-integration`, stacked on #23)
 
 - **Input:** [PR #23 review](https://github.com/M0nsT3rG/ProjectMordor/pull/23); the owner asked for all of it. Record: EXP-035.

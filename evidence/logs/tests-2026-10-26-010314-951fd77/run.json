@@ -1,0 +1,65 @@
+{
+    "run_id":  "tests-2026-10-26-010314-951fd77",
+    "started_utc":  "2026-10-26T00:03:14.8217665Z",
+    "commit":  "951fd778b7ca19b20e5d90be1853c810afcd66e8",
+    "dirty":  false,
+    "config":  "Release",
+    "builds":  [
+                   "build",
+                   "build-gns"
+               ],
+    "repeat":  2,
+    "suites":  {
+                   "unit":  "udp",
+                   "integration":  "udp",
+                   "network":  "udp",
+                   "transport":  "udp"
+               },
+    "ctest_runs":  [
+                       {
+                           "build":  "build",
+                           "iteration":  1,
+                           "dir":  "iter-1",
+                           "exit_code":  0,
+                           "files":  [
+                                         "iter-1/unit.json",
+                                         "iter-1/integration.json",
+                                         "iter-1/network.json",
+                                         "iter-1/transport.json"
+                                     ],
+                           "missing":  [
+
+                                       ],
+                           "invalid":  {
+
+                                       },
+                           "failed_cases":  {
+
+                                            }
+                       },
+                       {
+                           "build":  "build",
+                           "iteration":  2,
+                           "dir":  "iter-2",
+                           "exit_code":  0,
+                           "files":  [
+                                         "iter-2/unit.json",
+                                         "iter-2/integration.json",
+                                         "iter-2/network.json",
+                                         "iter-2/transport.json"
+                                     ],
+                           "missing":  [
+
+                                       ],
+                           "invalid":  {
+
+                                       },
+                           "failed_cases":  {
+
+                                            }
+                       }
+                   ],
+    "e2e":  true,
+    "e2e_exit_codes":  null,
+    "result":  "incomplete"
+}

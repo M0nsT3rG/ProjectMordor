@@ -1,0 +1,9 @@
+[
+  {"suite":"gns","name":"gns_concurrent_bidirectional_reliable_ordered","result":"PASSED","transport":"udp","ms":130,"error":""},
+  {"suite":"gns","name":"gns_two_simultaneous_clients","result":"PASSED","transport":"udp","ms":103,"error":""},
+  {"suite":"gns","name":"gns_interleaved_reliable_and_unreliable_under_loss","result":"PASSED","transport":"udp","ms":358,"error":""},
+  {"suite":"gns","name":"gns_send_queue_pressure","result":"PASSED","transport":"udp","ms":2890,"error":""},
+  {"suite":"gns","name":"gns_default_connection_security_flags","result":"PASSED","transport":"udp","ms":24,"error":""},
+  {"suite":"gns","name":"gns_opensource_build_accepts_unauthenticated_peers_by_default","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"suite":"gns","name":"gns_reliable_exact_under_simulated_loss_and_lag","result":"PASSED","transport":"udp","ms":2361,"error":""}
+]
