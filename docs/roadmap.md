@@ -27,7 +27,7 @@ Phase 2 is split by gate G0 (see [feasibility-matrix.md](feasibility-matrix.md))
 5. Read-only data-file header statistics and an integrity manifest (E-DATA-1/2).
 6. Write the save-protection procedure (hash-manifest tooling) before any launch-based experiment.
 
-**2B. Only if G0 passes:** M1, then M2, then M3, each with explicit go/no-go criteria.
+**2B. Only if G0 passes:** M1, then M2, then M3, each with explicit go/no-go criteria. **G0 passed on 2026-10-27 (D-008: the GOG build).**
 
 ## Later phases (conditional)
 

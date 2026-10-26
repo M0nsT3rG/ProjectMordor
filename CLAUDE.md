@@ -18,10 +18,10 @@ Research toward 2-player co-op for *Middle-earth: Shadow of War* (Steam app 3561
 
 ## Gate G0: read before proposing any game-side work
 
-M1–M10 are **NO-GO** until the user records both (D-007 is recorded; D-008 is pending, so G0 is still closed):
+**G0 is open since 2026-10-27** (D-007 and D-008 recorded). Game-side milestones M1–M10 may be designed one at a time, M1 first, each with its own go/no-go criteria, on the **GOG build only** (exe 1.0.2445.0, SHA-256 `8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722`). Every rule above still applies. The Steam build stays out of scope (rule 2).
 
 - **D-007: decided 2026-10-25** (`docs/decisions.md`). The owner proceeds with interoperability work under EU Directive 2009/24/EC and personally accepts the legal risk, without qualified advice. Minimum necessary; every rule above still applies.
-- **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The owner's GOG copy was checked read-only on 2026-10-27 (F-ENV-009/010): it is the GOG release, its executable has none of the Steam wrapper's indicators, and it is a different build (1.0.2445.0, SHA-256 `8F84F4A6…`) from the Steam one. The owner reports that it runs with Steam and GOG Galaxy closed (F-ENV-011). D-008 is not decided.
+- **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The owner's GOG copy was checked read-only on 2026-10-27 (F-ENV-009/010): it is the GOG release, its executable has none of the Steam wrapper's indicators, and it is a different build (1.0.2445.0, SHA-256 `8F84F4A6…`) from the Steam one. The owner reports that it runs with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided 2026-10-27: the target is this GOG build.** Both players need it; the second copy gets the same read-only check.
 
 Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 

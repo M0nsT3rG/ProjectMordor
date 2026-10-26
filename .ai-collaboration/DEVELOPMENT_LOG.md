@@ -11,7 +11,8 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - Valve's signed `steam_api64.dll` is shipped.
 - **F-ENV-010:** the Phase 1 header tool (`pe_inventory.py`, as for F-ENV-003) finds the entry point in `.text`, a conventional layout and no `.bind`. The Steam build enters in `.bind`. That is the absence of wrapper indicators, not a proof that no protection exists.
 - **F-ENV-011:** the owner reports that the GOG copy starts and plays with Steam and GOG Galaxy closed.
-- **Open:** D-008 (the owner's decision; G0 stays closed until then); the second player's copy. Any later game-side work targets one build: offsets and layouts do not carry across.
+- **D-008 recorded (owner, 2026-10-27):** the target platform is the GOG release, exe 1.0.2445.0, SHA-256 `8F84F4A6…`. With D-007, **G0 is open**: CLAUDE.md, the feasibility matrix, the roadmap, KI-01 and CURRENT_TASK are updated. All rules are unchanged, and the Steam build stays out of scope.
+- **Open:** designing M1 (read-only observation) with go/no-go criteria; the second player's GOG copy. Any later game-side work targets one build: offsets and layouts do not carry across.
 
 ## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)
 

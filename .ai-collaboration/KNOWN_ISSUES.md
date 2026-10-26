@@ -2,7 +2,7 @@
 
 | ID | Issue | Severity | Source | Status |
 |---|---|---|---|---|
-| KI-01 | Gate G0: Steam-build protection plus the EULA block every game-side milestone | Blocker | risk R-01, R-02 | Waiting on user decisions D-007 and D-008 |
+| KI-01 | ~~Gate G0: Steam-build protection plus the EULA block every game-side milestone~~. D-007 (2026-10-25) and D-008 (2026-10-27: the GOG release, exe 1.0.2445.0, which needs no circumvention) are recorded, so G0 is open. The Steam build stays out of scope | — | risk R-01, R-02; F-ENV-009/010/011 | **Resolved 2026-10-27** |
 | KI-02 | ~~Real-time RTT inflated by the 1 ms `Sleep` main loop~~ (measured about 50 ms on lan). Fixed with a per-thread high-resolution waitable timer; lan p50 went from 55.7 to 9.8 ms | — | EXP-005, EXP-010 | **Resolved 2026-10-23** |
 | KI-03 | ~~No test covers the host input-backlog drain~~. Fixed: the backlog is now shed, not simulated, with 3 regression tests | — | EXP-008, EXP-009, FB-1-01 | **Resolved 2026-10-23** |
 | KI-04 | No authentication or encryption. The reconnect token is a 64-bit non-cryptographic value: whoever holds it can take over the slot from any address (tested: `reconnect_token_migrates_slot_to_new_endpoint`). No rate limiting. | Medium (if exposed) | docs/protocol.md, R-12, FB-1-02 | Accepted for loopback/LAN; must be resolved before any WAN use |

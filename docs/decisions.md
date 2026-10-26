@@ -15,7 +15,33 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - never modify game files or saves (rule 1);
   - never redistribute anything (rule 4).
 - **Gate G0 is still closed.** It also needs D-008, a target and method that require no circumvention. D-008 is pending, so M1–M10 remain NO-GO.
+  - **Update 2026-10-27:** D-008 is recorded (the GOG release), so G0 is open. See D-008.
 - **Revisit** if qualified legal advice is obtained, if the work would go beyond what interoperability needs, or before anything is published outside the private repository.
+
+## D-008: Target platform is the GOG release; gate G0 opens (2026-10-27, owner decision)
+
+- **Context.**
+  - The Steam build is protected: a SteamStub-like wrapper (F-ENV-003/004), and Denuvo declared and reported (F-COMM-014/017). Working on it would need circumvention, which rule 2 forbids.
+  - The owner bought and installed the GOG release. A read-only check found:
+    - GOG store metadata, and no crack or emulator files (F-ENV-009);
+    - none of the Steam wrapper's indicators in its executable (F-ENV-010).
+  - The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011).
+- **Decision (the owner's, in chat, 2026-10-27).** The target platform is the **GOG release**: `ShadowOfWar.exe` FileVersion **1.0.2445.0**, SHA-256 `8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722` (GOG gameId 1324471032, buildId 55823353107546309). With D-007, **gate G0 is open**.
+- **What this does and does not allow.**
+  - Game-side work may now be designed, milestone by milestone (M1 first), each with its own go/no-go criteria. It targets this exact GOG build only: offsets, layouts and behaviour from the Steam build or from other builds do not carry over, and stay HYPOTHESIS (D-005).
+  - Every non-negotiable rule still applies:
+    - never modify, replace or delete game files or saves (rule 1);
+    - never bypass, analyse or dump any protection: the Steam build stays out of scope (rule 2);
+    - never touch WB online services (rule 3);
+    - never redistribute or commit game files, extracted assets, code or dumps (rule 4);
+    - never upload the owner's executables, saves or traces (rule 7).
+  - D-007 limits the work to the minimum necessary for interoperability.
+  - Both players need the GOG release. The second player's copy gets the same read-only check before any two-player game-side test.
+- **Alternatives.**
+  - The Steam build was rejected: protected.
+  - A third-party "DRM-free" copy offered earlier was not an official release and was not used.
+  - Waiting for qualified legal advice remains the owner's option (D-007).
+- **Revisit** if the GOG build changes (an update: re-run the read-only check and record the new hash), if a protection is found in it, or if the owner's legal position changes.
 
 ## D-001: Networking prototype on raw Winsock2 UDP, no third-party dependency (2026-10-23)
 

@@ -14,9 +14,11 @@ All of M1–M10 depend on interacting with the running game or analysing its cod
 
 - The user records a decision in `docs/decisions.md` covering points 2 and 3.
 - A target and method exist that require no circumvention of any protection. One candidate is a DRM-free release: third parties say the GOG version has no DRM (F-COMM-017), and both players would need such copies.
-  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011). D-008 is not decided.
+  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided on 2026-10-27: this GOG build is the target.**
 
 **Until G0 passes, M1–M10 are NO-GO, and no game-side experiment is designed.**
+
+**Status, 2026-10-27: G0 has passed for the GOG build.** D-007 (2026-10-25) covers points 2 and 3. D-008 (2026-10-27) sets the target to the GOG release (exe 1.0.2445.0), which needs no circumvention. Each milestone is still designed and decided on its own, M1 first. The Steam build remains out of scope.
 
 ## Matrix
 
