@@ -70,21 +70,41 @@ def total_ms(c: dict) -> float:
     return c["connected"] if c["connected"] >= 0 else rc.CYCLE_LIMIT_MS  # never connected: censored at the limit
 
 
-def requests_after_auth(c: dict, sent: list[float]) -> int | None:
+FIRST_REQUEST_MS = (-2.0, 50.0)  # the client sends it in the update that authenticates it (log time vs auth)
+STALL_MS = 5000.0                # the next cycle's stall: no request can be sent during it
+
+
+def window_end(c: dict, next_log_ms: float | None) -> float:
+    """The latest log time a request of this reconnect can have: Connected, or (never connected) the cycle limit,
+    never past the start of the next cycle's stall (Codex: a later cycle's request must not stand in)."""
+    end = c["log_ms"] + (c["connected"] if c["connected"] >= 0 else rc.CYCLE_LIMIT_MS) + 1
+    return end if next_log_ms is None else min(end, next_log_ms - STALL_MS)
+
+
+def classify(c: dict, reqs: list[float], next_log_ms: float | None) -> dict:
+    """EXP-043's own D1: the reconnect's first request must be present at authentication, or D1 is unknown."""
     if c["auth"] < 0:
-        return None
-    lo = c["log_ms"] + c["auth"] - 2
-    hi = c["log_ms"] + (c["connected"] if c["connected"] >= 0 else rc.CYCLE_LIMIT_MS) + 1
-    return sum(lo <= t <= hi for t in sent)
+        return {"eligible": False}
+    a = c["log_ms"] + c["auth"]
+    first = [t for t in reqs if a + FIRST_REQUEST_MS[0] <= t <= min(a + FIRST_REQUEST_MS[1], window_end(c, next_log_ms))]
+    if not first:
+        return {"eligible": False}  # missing evidence: unknown, never "no drop"
+    t1 = first[0]
+    drops = [c["log_ms"] + d for d in c["host_drops"]]
+    return {"eligible": True, "d1": any(rr.D1_WINDOW_MS[0] <= d - t1 <= rr.D1_WINDOW_MS[1] for d in drops)}
 
 
 def load(d: Path) -> list[dict]:
-    cycles = rr.load(d)  # attribution (EXP-041) and D1 (EXP-042)
+    cycles = rc.load_batch(d)
     log = d / "client.log"
-    sent = [e["t_ms"] for e in (rc.read_log(log) if log.exists() else [])
-            if e.get("evt") == "connect_request" and e.get("sent") is True]
-    for c in cycles:
-        c["requests"] = requests_after_auth(c, sent)
+    # Only reconnect requests actually sent: a fresh rejoin between cycles logs reconnecting: false.
+    reqs = sorted(e["t_ms"] for e in (rc.read_log(log) if log.exists() else [])
+                  if e.get("evt") == "connect_request" and e.get("sent") is True and e.get("reconnecting") is True)
+    for i, c in enumerate(cycles):
+        nxt = cycles[i + 1]["log_ms"] if i + 1 < len(cycles) else None
+        c["reorder"] = classify(c, reqs, nxt) if "host_drops" in c else {"eligible": False}
+        c["requests"] = (None if c["auth"] < 0 else
+                         sum(c["log_ms"] + c["auth"] - 2 <= t <= window_end(c, nxt) for t in reqs))
     return cycles
 
 

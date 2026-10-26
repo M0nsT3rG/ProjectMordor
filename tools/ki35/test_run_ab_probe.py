@@ -31,7 +31,8 @@ def write_run(root: Path, slow_on: int = 10, slow_off: int = 30, defect: bool = 
             c = cycle(j, a, p, connected=4000.0 if j < slow else 1500.0,
                       drops=[1495.0] if (defect and a == "on" and j == 0) else [])
             lines.append(json.dumps(c))
-            log.append(json.dumps({"t_ms": c["log_ms"] + 1400.0, "evt": "connect_request", "sent": True}))
+            log.append(json.dumps({"t_ms": c["log_ms"] + 1400.0, "evt": "connect_request", "sent": True, "reconnecting": True}))
+            log.append(json.dumps({"t_ms": c["log_ms"] + 1900.0, "evt": "connect_request", "sent": True, "reconnecting": True}))
             log.append(json.dumps({"t_ms": c["log_ms"] + c["connected"] - 10.0, "evt": "connect_accept_received"}))
         (d / "cycles.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
         (d / "client.log").write_text("\n".join(log) + "\n", encoding="utf-8")
@@ -98,6 +99,25 @@ class Rules(unittest.TestCase):
                 self.assertNotEqual(v["rules"]["recommendation"], "recommend", damage)
                 if damage != "missing":
                     self.assertGreater(v["rules"]["O4_unassessable_reconnects"], 0, damage)
+
+    def test_a_later_request_never_stands_in_for_a_missing_first_one(self):  # Codex
+        for keep_retry in (True, False):
+            with tempfile.TemporaryDirectory() as tmp:
+                write_run(Path(tmp), slow_on=5, slow_off=40, defect=True)  # cycle 0 of udp-4301-on-harsh: a D1
+                log = Path(tmp) / "udp-4301-on-harsh" / "client.log"
+                lines = [json.loads(l) for l in log.read_text(encoding="utf-8").splitlines() if l.strip()]
+                # drop cycle 0's first request (and, unless keep_retry, its retry); later cycles keep theirs
+                kept = [e for e in lines if not (e["evt"] == "connect_request" and e["t_ms"] < 10_000.0 and
+                                                  (e["t_ms"] == 1400.0 or not keep_retry))]
+                log.write_text("\n".join(json.dumps(e) for e in kept) + "\n", encoding="utf-8")
+                v = r.judge(Path(tmp))
+                self.assertEqual(v["rules"]["O4_unassessable_reconnects"], 1, keep_retry)
+                self.assertEqual(v["rules"]["recommendation"], "o4_unassessable", keep_retry)
+
+    def test_a_fresh_rejoin_request_is_not_a_reconnect_request(self):
+        c = {"cycle": 0, "log_ms": 0.0, "auth": 1400.0, "connected": 1500.0, "host_drops": [1495.0]}
+        self.assertFalse(r.classify(c, [], None)["eligible"])           # no reconnect request: unknown
+        self.assertTrue(r.classify(c, [1400.0], None)["d1"])            # present at authentication: D1 judged
 
     def test_an_incomplete_run_gets_no_verdict(self):
         with tempfile.TemporaryDirectory() as tmp:
