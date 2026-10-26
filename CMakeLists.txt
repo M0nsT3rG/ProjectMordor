@@ -6,6 +6,10 @@ cmake_minimum_required(VERSION 3.25)
 option(MORDOR_WITH_GNS "Build the GameNetworkingSockets transport and its tests" OFF)
 if(NOT MORDOR_WITH_GNS)
   set(VCPKG_MANIFEST_INSTALL OFF CACHE BOOL "" FORCE)
+else()
+  # The pinned manifest is the GNS build's dependency source: restore it in a directory first configured without GNS,
+  # where the OFF above stayed in the cache (Codex, PR #24).
+  set(VCPKG_MANIFEST_INSTALL ON CACHE BOOL "" FORCE)
 endif()
 project(ProjectMordor VERSION 0.1.0 LANGUAGES CXX)
 
