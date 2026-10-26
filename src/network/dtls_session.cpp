@@ -278,17 +278,19 @@ void DtlsSession::reject(std::string why) {
     if (cfg_.trace) cfg_.trace("rejected", now_us_, peer_.id, reason_);
 }
 
-void DtlsSession::flush_out() {
-    if (!out_) return;
+SendResult DtlsSession::flush_out() {
+    if (!out_) return SendResult::Sent;
     // KI-35: OpenSSL packs a flight's first transmission into one datagram but RETRANSMITS it one datagram per
     // record, so a 5-record flight then needs 5 datagrams to all survive (0.85^5 = 44% per round at 15% loss).
     // Consecutive BIO datagrams are coalesced up to the MTU; several records per datagram is valid DTLS
     // (RFC 6347 4.1.1), and each BIO datagram holds whole records.
     const std::size_t mtu = std::min(cfg_.mtu, transport_.capabilities().max_payload);
     std::vector<std::uint8_t> pack;
+    SendResult result = SendResult::Sent;
     auto send_pack = [&] {
         if (pack.empty()) return;
         const auto r = transport_.send(peer_, pack, Delivery::Unreliable, now_us_);
+        if (result == SendResult::Sent) result = r;
         if (cfg_.trace && state_ != DtlsState::Authenticated)
             cfg_.trace(r == SendResult::Sent ? "tx" : "tx_failed", now_us_, peer_.id, describe_records(pack));
         stats_.max_datagram_out = std::max(stats_.max_datagram_out, pack.size());
@@ -301,6 +303,7 @@ void DtlsSession::flush_out() {
          n = BIO_read(out_, buf.data(), static_cast<int>(buf.size()))) {
         if (static_cast<std::size_t>(n) >= buf.size()) {  // BIO datagram reads truncate silently: never send one
             ++stats_.send_failures;
+            if (result == SendResult::Sent) result = SendResult::Failed;
             continue;
         }
         if (!pack.empty() && (!cfg_.coalesce_records || pack.size() + static_cast<std::size_t>(n) > mtu)) send_pack();
@@ -308,6 +311,7 @@ void DtlsSession::flush_out() {
         pack.insert(pack.end(), buf.data(), buf.data() + n);
     }
     send_pack();
+    return result;
 }
 
 bool DtlsSession::listen_offer(std::span<const std::uint8_t> datagram, PeerId peer, Endpoint remote, std::uint64_t now_us) {
@@ -460,16 +464,15 @@ void DtlsSession::send_binding(std::uint64_t now_us) {
     flush_out();
 }
 
-bool DtlsSession::send(std::span<const std::uint8_t> bytes, std::uint64_t now_us) {
+SendResult DtlsSession::send(std::span<const std::uint8_t> bytes, std::uint64_t now_us) {
     if (now_us != 0) now_us_ = now_us;
-    if (state_ != DtlsState::Authenticated) return false;
+    if (state_ != DtlsState::Authenticated) return SendResult::Failed;
     std::vector<std::uint8_t> m{kTypeApp};
     m.insert(m.end(), bytes.begin(), bytes.end());
     ERR_clear_error();
-    if (SSL_write(ssl_, m.data(), static_cast<int>(m.size())) <= 0) return false;
+    if (SSL_write(ssl_, m.data(), static_cast<int>(m.size())) <= 0) return SendResult::Failed;
     ++stats_.app_out;
-    flush_out();
-    return true;
+    return flush_out();
 }
 
 std::vector<std::vector<std::uint8_t>> DtlsSession::take_received() { return std::exchange(received_, {}); }

@@ -134,9 +134,11 @@ public:
             frame.push_back(kFrameUnreliable);
             frame.insert(frame.end(), bytes.begin(), bytes.end());
         }
-        if (!s->established->send(frame, now_us_)) {
-            ++stats_.send_failed;
-            return SendResult::Failed;
+        // The inner transport's own refusal is the caller's answer (Codex pass 6, PR #24): never Sent for a datagram
+        // that did not leave. A reliable frame that was refused is not queued: the caller saw the refusal.
+        if (const auto r = s->established->send(frame, now_us_); r != SendResult::Sent) {
+            ++(r == SendResult::Backpressure ? stats_.backpressure : stats_.send_failed);
+            return r;
         }
         s->last_tx_us = now_us_;
         if (d == Delivery::ReliableOrdered) s->unacked.push_back({s->next_seq++, std::move(frame), now_us_, kRtoInitialUs, true});
@@ -421,7 +423,7 @@ private:
         s.reset_channel();
     }
     void send_frame(Slot& s, const std::vector<std::uint8_t>& frame) {
-        if (!s.established->send(frame, now_us_)) ++stats_.send_failed;
+        if (s.established->send(frame, now_us_) != SendResult::Sent) ++stats_.send_failed;
         s.last_tx_us = now_us_;
     }
     void on_frame(Slot& s, const std::vector<std::uint8_t>& f, std::vector<TransportEvent>& out) {

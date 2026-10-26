@@ -63,13 +63,18 @@ def check(run_dir: Path) -> dict:
     gate("host_no_plaintext_datagrams", ss.get("dropped_not_dtls") == 0, ss.get("dropped_not_dtls"))
     gate("host_no_timeouts", last(logs["host"], "host_stopped").get("timeouts") == 0, last(logs["host"], "host_stopped").get("timeouts"))
     neg = run["negative_exit_codes"]
+    alive = run.get("host2_alive_after") or {}
     for n in ("plaintext", "stranger", "wrong_invitation"):
         gate(f"negative_{n}_cannot_connect", neg.get(n) == 1, neg.get(n))
+        # Exit 1 proves a refusal only while the host was there to refuse (Codex, PR #24).
+        gate(f"negative_{n}_against_live_host", alive.get(n) is True, alive.get(n))
     for n, reason in (("expired_invitation", "expired"), ("missing_key", "key file not found")):
         err = (run_dir / f"{n}.stderr.txt").read_text(encoding="utf-8", errors="replace") if (run_dir / f"{n}.stderr.txt").exists() else ""
         gate(f"negative_{n}_refused_at_startup", neg.get(n) == 2 and reason in err, [neg.get(n), err.strip()[:120]])
     ss2 = last(logs["host2"], "secure_stats")
     gate("host2_authenticated_nobody", ss2.get("authenticated") == 0, ss2.get("authenticated"))
+    # The stranger and the wrong invitation each reached host2 with a cookie-proven handshake that it opened.
+    gate("host2_saw_both_secure_handshakes", (ss2.get("pending_opened") or 0) >= 2, ss2.get("pending_opened"))
     gate("host2_dropped_plaintext", (ss2.get("dropped_not_dtls") or 0) >= 1, ss2.get("dropped_not_dtls"))
     leaked = [p.name for p in run_dir.iterdir() if p.is_file() and p.suffix in (".log", ".txt")
               and any(s in p.read_text(encoding="utf-8", errors="replace") for s in ("MRDRKEY1", "mordor-secure-e2e-"))]

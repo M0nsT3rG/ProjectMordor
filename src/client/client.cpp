@@ -50,6 +50,9 @@ bool Client::start(std::string* error) {
     }
     // Bind to loopback when talking to a loopback host so tests never open a LAN-facing port.
     const Endpoint bind_to = cfg_.host.is_loopback() ? Endpoint::loopback(0) : Endpoint{0, 0};
+    // A new transport knows nothing of the old one: a reused Client must wait for it again (D-014; Codex, PR #24).
+    transport_up_ = false;
+    server_peer_.reset();
     transport_ = make_transport(cfg_.transport, cfg_.impairment, error);
     if (transport_ && cfg_.secure) transport_ = make_secure_transport(std::move(transport_), *cfg_.secure, error);
     if (!transport_ || !transport_->open(bind_to, false, error)) {
@@ -160,7 +163,7 @@ void Client::update(std::uint64_t now_us) {
                 send(Heartbeat{now_us}, now_us);
                 // Re-confirm what the application applied: covers a lost ack (unreliable transport) and tells a
                 // host that replayed after a reconnect what it can forget (FB-9-02).
-                if (applied_through_ > 0) send(EventAck{applied_through_}, now_us, ack_delivery());
+                if (applied_through_ > 0) send(EventAck{applied_through_, player_id_}, now_us, ack_delivery());
             }
             break;
         }
@@ -176,7 +179,7 @@ void Client::update(std::uint64_t now_us) {
             if (now_us - last_leave_send_us_ >= cfg_.leave_resend_us) {
                 last_leave_send_us_ = now_us;
                 ++stats_.leave_disconnects_sent;
-                if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us)) ++stats_.leave_disconnects_refused;
+                if (!send(Disconnect{DisconnectReason::ClientQuit, player_id_}, now_us)) ++stats_.leave_disconnects_refused;
             }
             break;
         }
@@ -229,7 +232,7 @@ void Client::receive(std::uint64_t now_us) {
                     // Connected: begin_reconnect() opens the one new connection (opening one here as well made a second,
                     // immediately cancelled attempt; Codex review). Connecting/Reconnecting: open it here.
                     if (state_ == ClientState::Connected) {
-                        begin_reconnect(now_us, "transport_disconnected");
+                        begin_reconnect(now_us, "transport_disconnected", true);
                     } else if (state_ == ClientState::Connecting || state_ == ClientState::Reconnecting) {
                         server_peer_ = transport_->connect(cfg_.host);
                         ++stats_.transport_connects;
@@ -315,6 +318,16 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
         set_state(ClientState::Connected, "connect_accept");
         return;
     }
+    // v4: only this player's leave is confirmed, and only this player is told to go: after a leave and a fresh join
+    // in the same session, a delayed DisconnectAck or Disconnect of the earlier player reaches the same peer.
+    if (const auto* ack = std::get_if<DisconnectAck>(&p.message); ack && ack->player != player_id_) {
+        ++stats_.stale_notices;
+        return;
+    }
+    if (const auto* d = std::get_if<Disconnect>(&p.message); d && d->player != player_id_) {
+        ++stats_.stale_notices;
+        return;
+    }
     if (state_ == ClientState::Leaving && p.header.session == session_ && std::holds_alternative<DisconnectAck>(p.message)) {
         stats_.leave_confirmed = true;
         stats_.leave_ms = (now_us - leave_started_us_) / 1000;
@@ -367,9 +380,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
             set_state(ClientState::Disconnected, "host_disconnect");
         },
         [&](const GameEvent& ev) {
+            if (ev.player != player_id_) {  // a delayed event of an earlier player's stream on this session (v4)
+                ++stats_.events_foreign;
+                return;
+            }
             if (ev.event_id < next_event_) {  // already delivered (retransmit or replay): drop, re-confirm what is applied
                 ++stats_.events_duplicate;
-                if (applied_through_ > 0) send(EventAck{applied_through_}, now_us, ack_delivery());
+                if (applied_through_ > 0) send(EventAck{applied_through_, player_id_}, now_us, ack_delivery());
                 return;
             }
             if (ev.event_id != next_event_) {  // a gap: the host resends in order, never deliver out of order
@@ -390,7 +407,7 @@ void Client::ack_events_applied(std::uint32_t through_id, std::uint64_t now_us) 
     // Only what has been delivered can have been applied; acks never move backwards.
     if (through_id >= next_event_ || through_id <= applied_through_) return;
     applied_through_ = through_id;
-    if (state_ == ClientState::Connected) send(EventAck{applied_through_}, now_us, ack_delivery());
+    if (state_ == ClientState::Connected) send(EventAck{applied_through_, player_id_}, now_us, ack_delivery());
 }
 
 // EventAck is cumulative and idempotent, and re-sent with every heartbeat: Unreliable. Sending it ReliableOrdered
@@ -398,10 +415,12 @@ void Client::ack_events_applied(std::uint32_t through_id, std::uint64_t now_us) 
 // drain ended (head-of-line blocking; the secure moderate GNS soak timed the player out, EXP-022).
 Delivery Client::ack_delivery() const { return Delivery::Unreliable; }
 
-void Client::begin_reconnect(std::uint64_t now_us, std::string_view why) {
+void Client::begin_reconnect(std::uint64_t now_us, std::string_view why, bool peer_lost) {
     // Connection-oriented transport: a reconnect always uses a NEW transport connection (review #3 answer 2).
     // Reusing the old one fails when the host restarted: the new host does not know that connection (EXP-016).
-    if (transport_ && transport_->capabilities().reports_disconnects && server_peer_) {
+    // Any backend that explicitly reported the peer gone gets a new one too: UDP forgets an evicted or expired peer,
+    // and the old PeerId never sends or matches again (Codex pass 6, PR #24).
+    if (transport_ && (peer_lost || transport_->capabilities().reports_disconnects) && server_peer_) {
         transport_->close_peer(*server_peer_);
         server_peer_ = transport_->connect(cfg_.host);
         ++stats_.transport_connects;
@@ -500,7 +519,7 @@ void Client::leave(std::uint64_t now_us) {
     stats_.leave_ms = stats_.leave_disconnects_sent = stats_.leave_disconnects_refused = 0;
     auto send_disconnect = [&](Delivery d) {
         ++stats_.leave_disconnects_sent;
-        if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us, d)) ++stats_.leave_disconnects_refused;
+        if (!send(Disconnect{DisconnectReason::ClientQuit, player_id_}, now_us, d)) ++stats_.leave_disconnects_refused;
     };
     if (transport_->capabilities().reliable_ordered) send_disconnect(Delivery::ReliableOrdered);
     send_disconnect(Delivery::Unreliable);
@@ -513,8 +532,8 @@ void Client::disconnect() {
     if (state_ == ClientState::Connected && transport_) {
         // Best effort on both paths: reliably where offered (survives loss while the connection lingers) AND a few
         // unreliable copies (not stuck behind earlier reliable data). The host ignores repeats (EXP-022).
-        if (transport_->capabilities().reliable_ordered) send(Disconnect{DisconnectReason::ClientQuit}, 0, Delivery::ReliableOrdered);
-        for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
+        if (transport_->capabilities().reliable_ordered) send(Disconnect{DisconnectReason::ClientQuit, player_id_}, 0, Delivery::ReliableOrdered);
+        for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit, player_id_}, 0);
     }
     if (transport_) transport_->flush_all();
     disconnect_reason_ = DisconnectReason::ClientQuit;

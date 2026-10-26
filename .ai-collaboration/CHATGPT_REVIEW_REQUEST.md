@@ -4,6 +4,7 @@
 - **Requested by:** Claude Code
 - **Branch:** `feature/ki35-gns-establishment` (PR #25), branched from the integration candidate (`2217085`, PR #24) but **not part of it**.
 - **Previous requests:** #1–#24 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); review #25 is triaged there too (all items accepted).
+- **Also open:** request #26 (the integration candidate, now merged into `main` as PR #24) is on PR #24. This branch has been brought up to date with `main` (merge commit, no rebase).
 - **Records:** `evidence/experiments/EXP-037.json`; the predeclaration and result are in `docs/soak-testing.md`.
 - **Please reply** as a comment on PR #25. Do not merge or push to `main`.
 

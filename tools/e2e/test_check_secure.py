@@ -15,13 +15,19 @@ def lines(*evts):
 
 def write_good(d: Path, **over):
     run = {"transport": "gns", "exit_codes": {"host": 0, "client1": 0, "client2": 0, "host2": 0},
-           "negative_exit_codes": {"plaintext": 1, "stranger": 1, "wrong_invitation": 1, "expired_invitation": 2, "missing_key": 2}}
+           "negative_exit_codes": {"plaintext": 1, "stranger": 1, "wrong_invitation": 1, "expired_invitation": 2, "missing_key": 2},
+           "host2_alive_after": {"plaintext": True, "stranger": True, "wrong_invitation": True,
+                                 "expired_invitation": True, "missing_key": True},
+           "barrier": {"ready": True, "limit_s": 30},
+           "exit_status": {n: "exited" for n in ("client1", "client2", "host", "plaintext", "stranger", "wrong_invitation",
+                                                  "expired_invitation", "missing_key", "host2")}}
     run.update(over.get("run", {}))
     (d / "run.json").write_text(json.dumps(run))
     sec = {"evt": "security", "mode": "dtls"}
     (d / "host.log").write_text(lines(sec, {"evt": "host_stopped", "timeouts": over.get("timeouts", 0)},
                                       {"evt": "secure_stats", "authenticated": 2, "dropped_not_dtls": over.get("dropped", 0)}))
-    (d / "host2.log").write_text(lines(sec, {"evt": "secure_stats", "authenticated": 0, "dropped_not_dtls": 3}))
+    (d / "host2.log").write_text(lines(sec, {"evt": "secure_stats", "authenticated": 0, "dropped_not_dtls": 3,
+                                             "pending_opened": over.get("pending_opened", 2)}))
     for n in ("client1", "client2"):
         (d / f"{n}.log").write_text(lines(over.get("client_sec", sec), {"evt": "summary", "final_state": "connected", "snapshots": 200}))
     (d / "expired_invitation.stderr.txt").write_text("error: secure mode: the invitation has expired\n")
@@ -48,6 +54,10 @@ class SecureCheckTests(unittest.TestCase):
         self.assertIn("negative_plaintext_cannot_connect", self.failed(run={"negative_exit_codes": {
             "plaintext": 0, "stranger": 1, "wrong_invitation": 1, "expired_invitation": 2, "missing_key": 2}}))
         self.assertIn("no_key_material_or_key_paths_in_logs", self.failed(leak=True))
+        # A negative that ran after host2 stopped proves nothing (Codex, PR #24).
+        self.assertIn("negative_wrong_invitation_against_live_host", self.failed(run={"host2_alive_after": {
+            "plaintext": True, "stranger": True, "wrong_invitation": False}}))
+        self.assertIn("host2_saw_both_secure_handshakes", self.failed(pending_opened=1))
 
 
 if __name__ == "__main__":

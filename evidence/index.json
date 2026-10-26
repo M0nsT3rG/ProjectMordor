@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 102,
+  "count": 105,
   "records": [
     {
       "id": "EXP-001",
@@ -408,6 +408,39 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "KI-35, review #25: do the DTLS and session phases (ours) behave as their packet-level mechanisms predict, per connection, with uncertainty and across seeds; which phase makes slow connections slow."
+    },
+    {
+      "id": "EXP-038",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-038.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Second run of the integration gate (docs/integration-gate.md) after Codex passes 6 and 7 on candidate 2217085 found 3 P2 defects, plus 1 more found by the combined pass on the fixed head; record what it establishes before the two consecutive clean Codex passes (FB-24-01)."
+    },
+    {
+      "id": "EXP-039",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-039.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Third run of the integration gate items 3-5, on 3607613: the candidate after the fixes found by the combined Codex passes on 9904293..40b02c5 (peer sharing on token migration, a reused client, protocol v4 per-player event and leave messages, the CMake manifest cache, E2E log quoting and bounded E2E waits)."
+    },
+    {
+      "id": "EXP-040",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-040.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Fourth run of the integration gate, on the candidate head 3c618d9, after item 2 reached two consecutive clean Codex passes on that unchanged head (FB-24-01)."
     },
     {
       "id": "F-COMM-001",

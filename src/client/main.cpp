@@ -18,6 +18,7 @@
 #include <windows.h>
 
 #include "client/client.hpp"
+#include "client/event_order.hpp"
 #ifdef MORDOR_HAVE_GNS
 #include "network/gns_transport.hpp"
 #endif
@@ -101,8 +102,8 @@ int main(int argc, char** argv) {
         const double outage_at_s = args.num<double>("outage-at-s", -1.0);
         const double outage_s = args.num<double>("outage-s", 5.0);
         enum class Outage { Before, During, After } outage = Outage::Before;
-        std::uint32_t last_event_id = 0;
-        std::uint64_t events_applied = 0, event_order_errors = 0;
+        client::EventOrderCheck event_order;
+        std::uint64_t events_applied = 0;
 
         client::Client c(cfg, log);
         std::string err;
@@ -143,8 +144,7 @@ int main(int argc, char** argv) {
             c.update(t);
             // Application side of FB-9-02: apply each event (here: check the stream is contiguous) and only then ack.
             for (const auto& e : c.take_events()) {
-                if (e.id != last_event_id + 1) ++event_order_errors;  // a gap or repeat visible to the application
-                last_event_id = e.id;
+                event_order.apply(c.session_id(), c.player_id(), e.id);
                 ++events_applied;
                 c.ack_events_applied(e.id, t);
             }
@@ -183,7 +183,7 @@ int main(int argc, char** argv) {
                                  kv("rtt_samples", rtt.size()), kv("rtt_p5_ms", pct(5)), kv("rtt_p50_ms", pct(50)), kv("rtt_p95_ms", pct(95)),
                                  kv("rtt_p99_ms", pct(99)), kv("rtt_max_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.back())),
                                  kv("rtt_min_ms", rtt.empty() ? -1.0 : static_cast<double>(rtt.front())),
-                                 kv("events_applied", events_applied), kv("event_order_errors", event_order_errors),
+                                 kv("events_applied", events_applied), kv("event_order_errors", event_order.errors),
                                  kv("events_duplicate", s.events_duplicate), kv("events_out_of_order", s.events_out_of_order),
                                  kv("snapshots", s.snapshots_applied), kv("stale", s.stale_snapshots),
                                  kv("corrections", s.corrections), kv("max_correction", s.max_correction),

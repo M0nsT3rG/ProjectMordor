@@ -80,12 +80,16 @@ try {
     $exitStatus.host = Wait-Bounded $h 'host' 60
 
     # --- Negatives against a second secure host (only client1 is invited). ---
+    # It runs until every negative is done (stop file), never on a fixed lifetime: a slow start must not leave a case
+    # facing a host that already stopped, whose exit 1 would then look like a rejection (Codex, PR #24).
     $p2 = $Port + 2
+    $stop2 = Join-Path $out 'host2.stop'
     $h2 = Start-Process (Join-Path $bin 'mordor-host.exe') -PassThru -NoNewWindow -ArgumentList `
-        "--port $p2 --duration-s 14 $common --secure-key `"$hostKey`" --invitation $inv --allow-peer $pub1 --log $out/host2.log"
+        "--port $p2 --duration-s 120 --stop-file `"$stop2`" $common --secure-key `"$hostKey`" --invitation $inv --allow-peer $pub1 --log $out/host2.log"
     $null = $h2.Handle
     Wait-HostStarted "$out/host2.log" $h2
     $neg = [ordered]@{}
+    $alive = [ordered]@{}  # host2 still running when each negative ended
     $cases = [ordered]@{
         plaintext          = "--connect-deadline-s 4"
         stranger           = "--connect-deadline-s 4 --secure-key `"$(Join-Path $keys 'stranger.key')`" --invitation $inv"
@@ -99,7 +103,9 @@ try {
         $null = $p.Handle
         $exitStatus[$name] = Wait-Bounded $p $name 60
         $neg[$name] = $p.ExitCode
+        $alive[$name] = -not $h2.HasExited
     }
+    New-Item -ItemType File $stop2 | Out-Null  # every negative is done: host2 may stop now
     $exitStatus.host2 = Wait-Bounded $h2 'host2' 60
     $run = [ordered]@{
         transport  = $Transport
@@ -110,6 +116,7 @@ try {
         barrier    = $barrier
         exit_status = $exitStatus  # exited | hung | hung_dump_timeout (infrastructure failure, not a gate result)
         negative_exit_codes = $neg
+        host2_alive_after = $alive
     }
     [IO.File]::WriteAllText((Join-Path (Resolve-Path $out) 'run.json'), ($run | ConvertTo-Json -Depth 4), (New-Object Text.UTF8Encoding $false))
     python -I tools/e2e/check_secure.py $out

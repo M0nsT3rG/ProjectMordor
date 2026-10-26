@@ -1,0 +1,98 @@
+{
+    "run_id":  "tests-2026-10-26-044154-3607613",
+    "started_utc":  "2026-10-26T03:41:54.7478328Z",
+    "commit":  "3607613287aa7871e5c6e4091fba6921c068072d",
+    "dirty":  false,
+    "config":  "Release",
+    "builds":  [
+                   "build",
+                   "build-gns"
+               ],
+    "repeat":  2,
+    "suites":  {
+                   "unit":  "udp",
+                   "integration":  "udp",
+                   "network":  "udp",
+                   "transport":  "udp",
+                   "integration-gns":  "gns",
+                   "network-gns":  "gns",
+                   "transport-both":  "udp",
+                   "gns":  "udp",
+                   "dtls":  "udp"
+               },
+    "ctest_runs":  [
+                       {
+                           "build":  "build",
+                           "iteration":  1,
+                           "dir":  "iter-1",
+                           "exit_code":  0,
+                           "files":  [
+                                         "iter-1/unit.json",
+                                         "iter-1/integration.json",
+                                         "iter-1/network.json",
+                                         "iter-1/transport.json"
+                                     ],
+                           "missing":  [
+
+                                       ],
+                           "invalid":  {
+
+                                       },
+                           "failed_cases":  {
+
+                                            }
+                       },
+                       {
+                           "build":  "build",
+                           "iteration":  2,
+                           "dir":  "iter-2",
+                           "exit_code":  0,
+                           "files":  [
+                                         "iter-2/unit.json",
+                                         "iter-2/integration.json",
+                                         "iter-2/network.json",
+                                         "iter-2/transport.json"
+                                     ],
+                           "missing":  [
+
+                                       ],
+                           "invalid":  {
+
+                                       },
+                           "failed_cases":  {
+
+                                            }
+                       },
+                       {
+                           "build":  "build-gns",
+                           "iteration":  1,
+                           "dir":  "build-gns-iter-1",
+                           "exit_code":  8,
+                           "files":  [
+                                         "build-gns-iter-1/integration-gns.json",
+                                         "build-gns-iter-1/network-gns.json",
+                                         "build-gns-iter-1/transport-both.json",
+                                         "build-gns-iter-1/gns.json",
+                                         "build-gns-iter-1/dtls.json"
+                                     ],
+                           "missing":  [
+
+                                       ],
+                           "invalid":  {
+
+                                       },
+                           "failed_cases":  {
+                                                "network-gns":  [
+                                                                    "packet_loss_does_not_break_session"
+                                                                ]
+                                            }
+                       }
+                   ],
+    "e2e":  true,
+    "e2e_exit_codes":  {
+                           "host":  0,
+                           "client1":  0,
+                           "client2":  0
+                       },
+    "result":  "failed"
+}

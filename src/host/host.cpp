@@ -67,6 +67,12 @@ Host::Slot* Host::find_by_peer(PeerId p) {
     return it == slots_.end() ? nullptr : &*it;
 }
 
+void Host::close_unshared_peer(PeerId p, const Slot* owner) {
+    if (!p.valid()) return;
+    const Slot* user = find_by_peer(p);
+    if (!user || user == owner) transport_->close_peer(p);
+}
+
 void Host::update(std::uint64_t now_us) {
     if (!running_) return;
     const std::uint64_t tick_us = 1'000'000 / cfg_.tick_rate_hz;
@@ -78,7 +84,7 @@ void Host::update(std::uint64_t now_us) {
     receive(now_us);
     for (auto it = closing_.begin(); it != closing_.end();) {
         if (now_us < it->close_at_us) { ++it; continue; }
-        if (!find_by_peer(it->peer)) transport_->close_peer(it->peer);  // unless a new join reused the peer
+        close_unshared_peer(it->peer, nullptr);  // unless a new join reused the peer
         it = closing_.erase(it);
     }
     // shortcut: after a stall longer than 5 ticks we skip ahead instead of catching up; revisit for real gameplay.
@@ -104,7 +110,7 @@ bool Host::send_event(std::uint16_t player_id, std::uint16_t kind, std::span<con
             ++stats_.events_backpressure;
             return false;
         }
-        s.events.push_back({GameEvent{s.next_event_id++, kind, {payload.begin(), payload.end()}}, 0});
+        s.events.push_back({GameEvent{s.next_event_id++, kind, {payload.begin(), payload.end()}, s.player_id}, 0});
         ++stats_.events_queued;
         service_events(now_us);  // send now if the player is connected
         return true;
@@ -215,12 +221,13 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
     if (!s || p.header.session != session_) {
         // A repeated Disconnect after we already released the slot (our first DisconnectAck was lost): confirm again.
         // Only for this session and only as a reply to that peer, so it cannot be used for reflection.
-        if (!s && p.header.session == session_ && std::holds_alternative<Disconnect>(p.message)) {
-            // Only a peer still in its leave window, at most once per 100 ms: no amplification for spoofed sources.
+        if (const auto* d = std::get_if<Disconnect>(&p.message); !s && p.header.session == session_ && d) {
+            // Only a peer still in its leave window, for that player, at most once per 100 ms: no amplification for
+            // spoofed sources.
             for (auto& c : closing_)
-                if (c.peer == from && now_us - c.last_ack_us >= 100'000) {
+                if (c.peer == from && c.player == d->player && now_us - c.last_ack_us >= 100'000) {
                     c.last_ack_us = now_us;
-                    ack_leave(from, now_us);
+                    ack_leave(from, c.player, now_us);
                     ++stats_.leave_acks_repeated;
                 }
             return;
@@ -253,8 +260,12 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             }
         },
         [&](const Disconnect& d) {
+            if (d.player != s->player_id) {  // v4: a delayed leave of an earlier player on this peer, not this one
+                ++stats_.leaves_foreign;
+                return;
+            }
             log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
-            ack_leave(from, now_us);  // FB-10-04: confirm before the slot goes away
+            ack_leave(from, s->player_id, now_us);  // FB-10-04: confirm before the slot goes away
             ++stats_.clean_leaves;
             // Keep the transport peer open for the client's leave window: closing it at once let the GNS close
             // notice overtake our (delayed, unreliable) DisconnectAcks, so the client never saw them (KI-37), and
@@ -262,13 +273,17 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             remove_slot(s->player_id, false);
             if (closing_.size() >= kMaxLingering) {  // bounded (FB-11-03): the oldest linger ends early, counted
                 // Same guard as normal expiry: never close a peer a player is using (PR #12 review, P2).
-                if (!find_by_peer(closing_.front().peer)) transport_->close_peer(closing_.front().peer);
+                close_unshared_peer(closing_.front().peer, nullptr);
                 closing_.erase(closing_.begin());
                 ++stats_.leave_lingers_cut;
             }
-            closing_.push_back({from, now_us + kLeaveLingerUs, now_us});
+            closing_.push_back({from, d.player, now_us + kLeaveLingerUs, now_us});
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
+            if (a.player != s->player_id) {  // a delayed ack of an earlier player on this peer (v4): not this stream
+                ++stats_.event_acks_foreign;
+                return;
+            }
             // Review #10 FB-10-01: an ack can only cover events this host actually sent in this session. Anything
             // beyond (a forged, corrupted or confused ack) is refused WHOLE, so it can never erase an event that
             // was never delivered (e.g. one queued while the player was away).
@@ -297,7 +312,7 @@ void Host::notify_timed_out(PeerId from, std::uint64_t now_us) {
         if (s.last_notice_us != 0 && now_us - s.last_notice_us < kNoticeIntervalUs) return;
         s.last_notice_us = now_us;
         ++stats_.timeout_notices;
-        send(s, Disconnect{DisconnectReason::Timeout}, now_us);
+        send(s, Disconnect{DisconnectReason::Timeout, s.player_id}, now_us);
         return;
     }
 }
@@ -311,7 +326,7 @@ void Host::on_connect(PeerId from, const ConnectRequest& req, std::uint64_t now_
             Slot* slot = nullptr;  // remove_slot may have moved elements
             for (auto& t : slots_)
                 if (t.token == req.reconnect_token) slot = &t;
-            if (slot->peer != from && slot->peer.valid()) transport_->close_peer(slot->peer);  // migrate identity
+            if (slot->peer != from) close_unshared_peer(slot->peer, slot);  // migrate identity
             slot->peer = from;
             slot->connected = true;
             slot->nonce = req.client_nonce;
@@ -379,7 +394,7 @@ void Host::remove_slot(std::uint16_t player_id, bool close_transport_peer) {
     auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
     if (it == slots_.end()) return;
     log_.info("player_stats", {kv("player", player_id), kv("packets_in", it->packets_in)});
-    if (close_transport_peer && it->peer.valid()) transport_->close_peer(it->peer);
+    if (close_transport_peer) close_unshared_peer(it->peer, &*it);
     world_.despawn(it->entity_id);
     slots_.erase(it);
 }
@@ -468,10 +483,10 @@ SendResult Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery 
 }
 
 // Two unreliable copies plus a reliable one where offered; sent before the slot and its transport peer are released.
-void Host::ack_leave(PeerId to, std::uint64_t now_us) {
+void Host::ack_leave(PeerId to, std::uint16_t player, std::uint64_t now_us) {
     Header h;
     h.session = session_;
-    const auto bytes = encode(h, DisconnectAck{});
+    const auto bytes = encode(h, DisconnectAck{player});
     for (int i = 0; i < 2; ++i) transmit(to, bytes, now_us, Delivery::Unreliable);
     if (transport_->capabilities().reliable_ordered) transmit(to, bytes, now_us, Delivery::ReliableOrdered);
     transport_->flush(now_us);
@@ -488,9 +503,9 @@ void Host::shutdown() {
     const bool reliable = transport_->capabilities().reliable_ordered;
     for (auto& s : slots_)
         if (s.connected) {
-            if (reliable) send(s, Disconnect{DisconnectReason::HostShutdown}, 0, Delivery::ReliableOrdered);
+            if (reliable) send(s, Disconnect{DisconnectReason::HostShutdown, s.player_id}, 0, Delivery::ReliableOrdered);
             else
-                for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
+                for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown, s.player_id}, 0);
         }
     transport_->flush_all();
     for (const auto& s : slots_) log_.info("player_stats", {kv("player", s.player_id), kv("packets_in", s.packets_in)});
@@ -518,6 +533,7 @@ void Host::shutdown() {
                                kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
                                kv("events_dropped_with_slot", stats_.events_dropped_with_slot),
                                kv("events_send_refused", stats_.events_send_refused), kv("event_acks_invalid", stats_.event_acks_invalid),
+                               kv("event_acks_foreign", stats_.event_acks_foreign),
                                kv("clean_leaves", stats_.clean_leaves), kv("leave_acks_repeated", stats_.leave_acks_repeated),
                                kv("leave_lingers_cut", stats_.leave_lingers_cut)});
     if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets

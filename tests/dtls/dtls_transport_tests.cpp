@@ -180,8 +180,8 @@ TEST(dtls_over_transport_authenticates_with_pinned_keys_and_binding) {
         CHECK(l.host_s->confirmation() == l.client_s->confirmation());
         CHECK(l.host_s->stats().cookies_verified >= 1);  // HelloVerifyRequest exchange happened
         const std::vector<std::uint8_t> a{1, 2, 3}, b{4, 5};
-        CHECK(l.client_s->send(a));
-        CHECK(l.host_s->send(b));
+        CHECK(l.client_s->send(a) == SendResult::Sent);
+        CHECK(l.host_s->send(b) == SendResult::Sent);
         std::vector<std::vector<std::uint8_t>> at_host, at_client;
         CHECK(l.pump([&] {
             for (auto& m : l.host_s->take_received()) at_host.push_back(m);
@@ -205,7 +205,7 @@ TEST(dtls_over_transport_survives_loss_jitter_reorder_and_duplication) {
         std::printf("       %s: %llu retransmission timeouts handled\n", to_string(k), static_cast<unsigned long long>(retransmits));
         if (k == TransportKind::Udp) CHECK(retransmits >= 1);  // seeded loss: deterministic; GNS loss is random
         std::multiset<std::uint8_t> got;
-        for (std::uint8_t i = 1; i <= 60; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}));
+        for (std::uint8_t i = 1; i <= 60; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}) == SendResult::Sent);
         l.pump([&] {
             for (auto& m : l.host_s->take_received()) got.insert(m[0]);
             return false;
@@ -265,7 +265,7 @@ TEST(dtls_binding_missing_confirmation_fails_closed) {
         l.host_cfg.binding_timeout_us = 1'500'000;
         l.start_client();
         CHECK(l.pump([&] { return l.client_s->state() == DtlsState::Authenticated; }, 10000));  // it saw OUR binding
-        for (std::uint8_t i = 0; i < 5; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}));
+        for (std::uint8_t i = 0; i < 5; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}) == SendResult::Sent);
         CHECK(l.pump([&] { return l.host_s->state() == DtlsState::Rejected; }, 5000));
         l.report("dtls_binding_missing_confirmation_fails_closed");
         CHECK(l.host_s->reason() == "binding_timeout");
@@ -335,7 +335,7 @@ TEST(dtls_spurious_client_hello_does_not_disturb_an_established_session) {
         CHECK(l.pump([&] { return l.pending_opened == 1 && l.host_pending == nullptr; }, 4000));
         CHECK(l.pending_rejected == 1 && l.promotions == 0);
         CHECK(l.host_s.get() == established && l.host_s->state() == DtlsState::Authenticated);
-        CHECK(l.client_s->send(std::vector<std::uint8_t>{42}));
+        CHECK(l.client_s->send(std::vector<std::uint8_t>{42}) == SendResult::Sent);
         std::vector<std::vector<std::uint8_t>> got;
         CHECK(l.pump([&] {
             for (auto& m : l.host_s->take_received()) got.push_back(m);
