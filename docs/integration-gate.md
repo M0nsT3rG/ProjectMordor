@@ -46,7 +46,7 @@ The candidate head must include every stacked follow-up (#23 and later): the int
 
 | 2026-10-26 | `3607613` (the same branch, after 6 more combined-pass fixes) | **Not yet passed.** Items 4 and 5 pass (soak 12/12). Item 3 failed once on `packet_loss_does_not_break_session` (GNS, 25% loss, 5 s connect window): not reproduced in 40 repetitions, filed as KI-43; a passing suite run on the final head is still needed. Item 2 pending (Codex usage limit). | `evidence/experiments/EXP-039.json` |
 
-| 2026-10-26 | **`3c618d9`** (the same branch) | **Items 1-7 pass.** Item 2: two consecutive clean Codex passes on this unchanged head. Suites passed clean; asymmetric 4/4; secure E2E 4/4; soak 12/12; merges cleanly. Item 9 (owner approval) is open; nothing is merged. | `evidence/experiments/EXP-040.json` |
+| 2026-10-26 | **`3c618d9`** (the same branch) | **Items 1-7 pass.** Item 2: two consecutive clean Codex passes on this unchanged head. Suites passed clean; asymmetric 4/4; secure E2E 4/4; soak 12/12; merges cleanly. **Item 9:** the owner approved in chat on 2026-10-26 ("do the merge"). That reply did not name a commit; it was taken to mean the PR #24 head `f619b4c` (code `3c618d9`), the only candidate under review. Merged into `main` with a merge commit, so every commit the evidence cites stays reachable. | `evidence/experiments/EXP-040.json` |
 
 ### Item details for `9904293`
 
