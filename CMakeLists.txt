@@ -95,6 +95,10 @@ if(MORDOR_WITH_GNS)
   add_executable(ki35_secure_probe tools/ki35/secure_probe.cpp)
   target_include_directories(ki35_secure_probe PRIVATE src)
   target_link_libraries(ki35_secure_probe PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
+  # KI-35 / EXP-041: phases of each stall reconnect of a secure client (tools/ki35/run_reconnect_probe.py).
+  add_executable(ki35_reconnect_probe tools/ki35/reconnect_probe.cpp)
+  target_include_directories(ki35_reconnect_probe PRIVATE src)
+  target_link_libraries(ki35_reconnect_probe PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
   # The same host/client suites, run on the GNS adapter (results recorded per transport).
   foreach(suite integration network)
     add_test(NAME ${suite}-gns COMMAND mordor_${suite}_tests --json ${CMAKE_BINARY_DIR}/test-results/${suite}-gns.json --suite ${suite}-gns)
@@ -105,7 +109,7 @@ endif()
 # Codex review of the combined diff (P2): every executable runs with a UTF-8 ANSI code page (see the manifest), so
 # non-ASCII paths on the command line (keys, logs, %TEMP%) arrive intact whatever the system code page is.
 foreach(exe mordor-host mordor-client mordor_unit_tests mordor_integration_tests mordor_network_tests mordor_transport_tests
-            mordor-keygen mordor_gns_tests mordor_dtls_tests gns_listen_close_repro ki35_probe ki35_secure_probe)
+            mordor-keygen mordor_gns_tests mordor_dtls_tests gns_listen_close_repro ki35_probe ki35_secure_probe ki35_reconnect_probe)
   if(TARGET ${exe})
     target_sources(${exe} PRIVATE ${CMAKE_SOURCE_DIR}/cmake/utf8-codepage.manifest)
   endif()
