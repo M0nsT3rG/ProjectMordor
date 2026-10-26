@@ -35,7 +35,7 @@
 - **Across both backends,** no dropped first request completed: 0 of 201.
 - **Not explained:** D1 runs about 0.04 below the model.
 - **A coincidence, checked:** the three UDP batches each had exactly 45 D1 reconnects, but their per-cycle sequences differ.
-- **Tests:** suites and E2E passed on `7e148ce`.
+- **Tests:** suites and E2E passed on `7e148ce`. The final Codex review of the branch (`b91a352..c728079`) was clean; it re-ran the analysis on the recorded data and reproduced the documented results.
 
 ## 3. Questions
 
