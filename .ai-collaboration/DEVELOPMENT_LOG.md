@@ -17,6 +17,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - DTLS and the GNS first cycle are **equivalent** to their models; the first session request is **different** (UDP 0.36, GNS 0.56).
   - DTLS dominates the slowest 10%. Reconnects over 3 s: UDP 8.3%, GNS 27.7%.
   - **Post-hoc:** the first request leaves right after the client's binding, jitter reorders them, and the host drops records before the binding. This predicts the observed values on both backends and EXP-037's.
+- **Final Codex review:** two analysis failure paths (a cut last log line; a tail verdict for an incomplete run), fixed with regressions; the recorded run's rules are unchanged. Suites and E2E passed on `bdbaf9f`.
 - **Next:** test that explanation, predeclared; then DTLS timers and the cookie (FB-25-07).
 
 ## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)

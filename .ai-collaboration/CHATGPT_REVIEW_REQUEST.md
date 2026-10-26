@@ -31,6 +31,7 @@ They are **not** on `main`. All three were fixed on the candidate (`951fd77`) be
 - **Codex reviewed the tooling three times:**
   - twice before the run, finding eligibility, completeness, same-update snapshot, abort-status and accept-association defects, all fixed with regressions;
   - once during it, finding the tail rule on a 50/50 split. That one is analysis only, so it was applied in a separate re-analysis directory; the run's own verdict is kept.
+- **The final Codex review of the branch** found two analysis failure paths: a cut last client-log line aborted the analysis, and a tail verdict was issued for an incomplete run. Both are fixed with regressions, and they do not change the recorded run's rules. Suites and E2E passed on `bdbaf9f` (`tests-2026-10-26-131207-bdbaf9f`).
 
 ## 3. Results (`ki35-reconnect-2026-10-26-114558-c5cc5f9`; analysis `…-reanalysis-ad7d08b`)
 

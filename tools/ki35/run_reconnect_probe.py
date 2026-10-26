@@ -110,10 +110,23 @@ def attribute(cycle: dict, sent: list[float], accepts: list[float]) -> dict:
     return {"attributed": True, "index": cands[0], "requests": len(reqs)}
 
 
+def read_log(log: Path) -> list[dict]:
+    """JSON lines; only the LAST line may be cut (a probe killed while writing it). Any other bad line raises."""
+    lines = [l for l in log.read_text(encoding="utf-8").splitlines() if l.strip()]
+    out = []
+    for i, l in enumerate(lines):
+        try:
+            out.append(json.loads(l))
+        except json.JSONDecodeError:
+            if i != len(lines) - 1:
+                raise
+    return out
+
+
 def load_batch(d: Path) -> list[dict]:
     cycles = load_cycles(d)
     log = d / "client.log"
-    evts = [json.loads(l) for l in log.read_text(encoding="utf-8").splitlines() if l.strip()] if log.exists() else []
+    evts = read_log(log) if log.exists() else []
     sent = [e["t_ms"] for e in evts if e.get("evt") == "connect_request" and e.get("sent") is True]
     accepts = [e["t_ms"] for e in evts if e.get("evt") == "connect_accept_received"]
     for c in cycles:  # every cycle, whatever its outcome: eligibility comes from the phases reached (Codex)
@@ -232,7 +245,8 @@ def judge(out: Path) -> dict:
         dom = s["slowest_10pct_largest_phase"]
         n_slow = sum(dom.values())
         # Every phase largest in at least half of the slowest 10%: a 50/50 split names both (Codex).
-        rules["tail_dominant_phases"] = sorted(k for k, v in dom.items() if n_slow and v / n_slow >= 0.5)
+        rules["tail_dominant_phases"] = ("incomplete" if problems  # descriptive counts stay in "pooled" (Codex)
+                                         else sorted(k for k, v in dom.items() if n_slow and v / n_slow >= 0.5))
         verdict["rules"][backend] = rules
     return verdict
 

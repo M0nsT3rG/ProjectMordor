@@ -102,6 +102,16 @@ class Completeness(unittest.TestCase):
                 v = r.judge(Path(tmp))
                 self.assertFalse(v["complete"], kw)
                 self.assertEqual(v["rules"]["udp"]["dtls_no_timer"]["verdict"], "incomplete", kw)
+                self.assertEqual(v["rules"]["udp"]["tail_dominant_phases"], "incomplete", kw)
+
+    def test_only_a_cut_last_log_line_is_tolerated(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            log = Path(tmp) / "client.log"
+            log.write_text('{"t_ms":1,"evt":"a"}\n{"t_ms":2,"ev', encoding="utf-8")
+            self.assertEqual(len(r.read_log(log)), 1)
+            log.write_text('{"t_ms":1,"ev\n{"t_ms":2,"evt":"a"}\n', encoding="utf-8")
+            with self.assertRaises(json.JSONDecodeError):
+                r.read_log(log)
 
     def test_a_directory_without_run_json_is_incomplete(self):
         with tempfile.TemporaryDirectory() as tmp:
