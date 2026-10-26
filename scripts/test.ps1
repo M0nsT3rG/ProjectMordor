@@ -179,6 +179,13 @@ try {
         $unitExe = Join-Path (Join-Path $BuildDir $Config) 'mordor_unit_tests.exe'
         python -I tools/collab/check_runner_json.py $unitExe
         if ($LASTEXITCODE -ne 0) { $failed = $true }
+        foreach ($selfTest in 'tools/e2e/test_check_secure.py', 'tools/e2e/test_check_asymmetric.py') {  # gate checkers
+            # unittest reports on stderr: under Stop, PowerShell 5.1 would turn that into a terminating error
+            $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
+            python -I $selfTest 2>&1 | Out-Host
+            $ErrorActionPreference = $eap
+            if ($LASTEXITCODE -ne 0) { $failed = $true }
+        }
         foreach ($check in 'test-wait-bounded.ps1', 'test-repeat-capture.ps1') {
             $eap = $ErrorActionPreference; $ErrorActionPreference = 'Continue'
             powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot $check) 2>&1 | Out-Host
