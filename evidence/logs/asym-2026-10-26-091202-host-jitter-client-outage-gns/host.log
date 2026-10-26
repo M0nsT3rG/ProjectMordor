@@ -1,0 +1,14 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"clock","mono_us":109528990051}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"security","mode":"plaintext","own_fingerprint":"","skip_cookie_if_routable":false,"invitation":""}
+{"t_ms":55,"lvl":"info","comp":"host","evt":"host_started","port":47833,"loopback_only":true,"session":1565773799,"secure":false,"tick_rate_hz":30,"protocol_version":4,"transport":"gns"}
+{"t_ms":231,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":234,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":10174,"lvl":"info","comp":"host","evt":"player_timeout","player":2,"grace_ms":30000}
+{"t_ms":12309,"lvl":"info","comp":"host","evt":"player_reconnected","player":2,"entity":2}
+{"t_ms":24172,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":24172,"lvl":"info","comp":"host","evt":"player_stats","player":1,"packets_in":814}
+{"t_ms":24177,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":24177,"lvl":"info","comp":"host","evt":"player_stats","player":2,"packets_in":638}
+{"t_ms":30056,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":1461,"packets_out":1554,"invalid":0,"bytes_in":62304,"bytes_out":124891,"world_tick":900,"uptime_us":29999306,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":996,"joins":2,"reconnects":1,"timeouts":1,"timeout_notices":1,"unknown_peer":1,"send_errors":0,"transport":"gns","transport_accepted_then_failed":2,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0,"transport_simulated_drops":0,"transport_sent":1554,"transport_received":1461,"events_queued":0,"events_applied":0,"events_retransmitted":0,"events_replayed":0,"events_dropped_with_slot":0,"events_send_refused":0,"event_acks_invalid":0,"event_acks_foreign":0,"clean_leaves":2,"leave_acks_repeated":0,"leave_lingers_cut":0}
+{"t_ms":30056,"lvl":"info","comp":"host","evt":"gns_shutdown","done":true}
