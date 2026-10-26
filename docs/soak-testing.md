@@ -779,6 +779,33 @@ This was written and committed **before** the first run. It tests EXP-041's post
 - **Not explained:** D1 runs about 0.04 below the model. The three UDP batches each had exactly 45 D1 reconnects; their per-cycle sequences differ, so this is a coincidence.
 - **For KI-35:** a lost first request costs a 500 ms retry, in about 45% of harsh UDP reconnects and 22% on GNS. A fix that keeps fail-closed binding is the next step, and an owner decision: either the client waits until its binding is verified before the first request, or the host holds at most one early record unprocessed until the binding verifies.
 
+## Predeclared experiment KI-35: A/B of client-side gating (2026-10-26, EXP-043)
+
+This was written and committed **before** any run, after reviews #27/#28 (FB-28-01/02). The owner authorised the behaviour change behind a flag that is off by default. **No default changes here**: adopting the flag is a later owner decision.
+
+**Arms:** `off` (current behaviour) and `on` (`SecureTransportConfig::confirm_binding` on host and client: the host acks the client's verified binding, and the client authenticates only after that ack; see `docs/protocol.md`).
+
+**Probe:** `tools/ki35/reconnect_probe.cpp` as in EXP-042, plus an arm and a profile argument, recorded in each cycle and in `run.json`. Same 5 s stall cycle and defaults.
+- **harsh:** 15% loss, 5% duplicates, 80 ms + U[0, 40] ms. UDP seeds 4301, 4302 and 4303 and 3 GNS repetitions, **per arm**, 100 cycles each. The arms alternate batch by batch (off, on, off, on …) so drift affects both.
+- **latency:** 80 ms + U[0, 40] ms, no loss, no duplicates; one batch of 50 cycles per arm and backend. This prices the gate's extra round trip on a clean path.
+- The UDP arms share seeds, but their random streams diverge as behaviour differs. They are analysed as independent samples.
+
+**Per reconnect** (as in EXP-041/042):
+- the phases and `total` (stall end to `Connected`); a reconnect that never connects counts as 20,000 ms (the cycle limit), a conservative censoring;
+- sent ConnectRequests after authentication;
+- D1 (the host dropped the first request);
+- client `gate_timeout` events.
+
+**Rules, fixed now** (per backend; harsh unless stated):
+- **Completeness:** all 16 batches, with contiguous cycles, exit 0, the arm and profile recorded, and the host trace present. Otherwise no verdict.
+- **Homogeneity:** each arm's 3 harsh batches are checked by chi-square (df = 2) on P(total > 3 s) and on D1. If p < 0.01, that outcome gets per-batch reporting only.
+- **O1 (primary) P(total > 3000 ms):** the difference on − off with a 95% Newcombe hybrid score interval. **on better** if the upper bound is < 0, **on worse** if the lower bound is > 0, otherwise **no difference shown**.
+- **O2 p95 and p99 of total:** the difference on − off with a seeded bootstrap (seed 43, 4000 resamples, percentile 95% interval). Better, worse or no difference as in O1.
+- **O3 cost:** the difference in p50 of total on − off, bootstrap as in O2, for **both** profiles. On the latency profile this is the gate's price, and it is reported, not judged.
+- **O4 security:** in arm `on`, a reconnect with D1 = 1 and no client gate timeout is a **defect** (the gate let a record through to a host that dropped it). Any defect blocks a recommendation.
+- **Reported:** session-phase p50/p95; ConnectRequests per reconnect; timeouts and failures per arm; gate timeouts.
+- **Recommendation for the owner, not automatic.** Recommend adoption only if O1 or O2-p95 shows **on better** on at least one backend, **on worse** appears on no backend for O1 or O2, and O4 has no defect. Otherwise do not recommend. KI-35 stays open either way until the soak gate says otherwise.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
