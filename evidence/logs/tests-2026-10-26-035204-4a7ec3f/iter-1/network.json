@@ -1,0 +1,19 @@
+[
+  {"suite":"network","name":"impairment_loss_is_deterministic_and_close_to_configured_rate","result":"PASSED","transport":"udp","ms":21,"error":""},
+  {"suite":"network","name":"impairment_delays_until_due","result":"PASSED","transport":"udp","ms":1,"error":""},
+  {"suite":"network","name":"latency_is_measured","result":"PASSED","transport":"udp","ms":3,"error":""},
+  {"suite":"network","name":"delayed_and_reordered_packets_converge","result":"PASSED","transport":"udp","ms":7,"error":""},
+  {"suite":"network","name":"packet_loss_does_not_break_session","result":"PASSED","transport":"udp","ms":7,"error":""},
+  {"suite":"network","name":"heavy_loss_and_duplication_never_crash","result":"PASSED","transport":"udp","ms":4,"error":""},
+  {"suite":"network","name":"timed_out_client_reconnects_with_same_identity","result":"PASSED","transport":"udp","ms":4,"error":""},
+  {"suite":"network","name":"reconnect_gives_up_after_window","result":"PASSED","transport":"udp","ms":2,"error":""},
+  {"suite":"network","name":"silent_host_loss_ends_in_failed_state","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"suite":"network","name":"connect_to_absent_host_fails_within_deadline","result":"PASSED","transport":"udp","ms":1,"error":""},
+  {"suite":"network","name":"black_holed_connect_hits_overall_deadline","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"suite":"network","name":"host_gone_during_handshake_fails_within_deadline","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"suite":"network","name":"repeated_outages_reconnect_each_time_with_same_identity","result":"PASSED","transport":"udp","ms":3,"error":""},
+  {"suite":"network","name":"expired_grace_period_removes_entity","result":"PASSED","transport":"udp","ms":2,"error":""},
+  {"suite":"network","name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","transport":"udp","ms":6,"error":""},
+  {"suite":"network","name":"timeout_notice_recovery_under_jitter_reconnects_once","result":"PASSED","transport":"udp","ms":5,"error":""},
+  {"suite":"network","name":"events_are_exactly_once_and_in_order_under_impairment","result":"PASSED","transport":"udp","ms":8,"error":""}
+]

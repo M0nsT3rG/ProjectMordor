@@ -1,0 +1,198 @@
+{
+  "clock": "real-time (wall clock, separate processes, loopback)",
+  "run": {
+    "profile": "harsh",
+    "clock": "real-time",
+    "started_utc": "2026-10-23T18:24:01.8326984Z",
+    "duration_s": 120,
+    "impairment": {
+      "latency_ms": 80,
+      "loss": 0.15,
+      "jitter_ms": 40,
+      "duplicate": 0.05
+    },
+    "impairment_scope": "every sender (host and both clients), independent seeds",
+    "stalled_clients": [
+      "client2"
+    ],
+    "stall_at_s": 48,
+    "stall_s": 5,
+    "host_timeout_ms": 3000,
+    "exit_codes": {
+      "host": 0,
+      "client1": 0,
+      "client2": 0
+    }
+  },
+  "host": {
+    "world_tick": 3781,
+    "uptime_us": 125999146,
+    "skipped_ticks": 0,
+    "shed_inputs": 72,
+    "stale_inputs": 43055,
+    "joins": 2,
+    "reconnects": 1,
+    "timeouts": 1,
+    "invalid": 0,
+    "unknown_peer": 14,
+    "bytes_in": 771600,
+    "bytes_out": 644531
+  },
+  "host_tick_drift": 0.000271,
+  "clients": {
+    "client1": {
+      "final_state": "connected",
+      "player": 2,
+      "rtt_samples": 371,
+      "rtt_p50_ms": 204.550995,
+      "rtt_p95_ms": 235.651001,
+      "rtt_p99_ms": 239.248993,
+      "rtt_max_ms": 242.570007,
+      "snapshots": 3022,
+      "stale": 177,
+      "corrections": 24,
+      "max_correction": 0.333288,
+      "reconnects": 0,
+      "max_reconnect_ms": 0,
+      "invalid": 0,
+      "bytes_in": 289491,
+      "bytes_out": 441686,
+      "elapsed_ms": 120000,
+      "stalled": false,
+      "recovery_after_stall_ms": null,
+      "kbit_s_in": 19.3,
+      "kbit_s_out": 29.45
+    },
+    "client2": {
+      "final_state": "connected",
+      "player": 1,
+      "rtt_samples": 375,
+      "rtt_p50_ms": 205.733994,
+      "rtt_p95_ms": 232.660004,
+      "rtt_p99_ms": 238.850006,
+      "rtt_max_ms": 5164.256836,
+      "snapshots": 2973,
+      "stale": 154,
+      "corrections": 46,
+      "max_correction": 0.166667,
+      "reconnects": 1,
+      "max_reconnect_ms": 189,
+      "invalid": 0,
+      "bytes_in": 283505,
+      "bytes_out": 421356,
+      "elapsed_ms": 120000,
+      "stalled": true,
+      "recovery_after_stall_ms": 572.0,
+      "kbit_s_in": 18.9,
+      "kbit_s_out": 28.09
+    }
+  },
+  "gates": [
+    {
+      "gate": "host_reported_stop",
+      "passed": true,
+      "detail": "host_stopped event present"
+    },
+    {
+      "gate": "host_exit_code",
+      "passed": true,
+      "detail": "exit 0"
+    },
+    {
+      "gate": "host_invalid_packets_zero",
+      "passed": true,
+      "detail": "invalid=0"
+    },
+    {
+      "gate": "host_tick_drift",
+      "passed": true,
+      "detail": "drift=0.00027 (ticks=3781, expected=3780.0)"
+    },
+    {
+      "gate": "host_never_skipped_ticks",
+      "passed": true,
+      "detail": "skipped_ticks=0"
+    },
+    {
+      "gate": "client1_summary_present",
+      "passed": true,
+      "detail": "summary event present"
+    },
+    {
+      "gate": "client1_exit_code",
+      "passed": true,
+      "detail": "exit 0"
+    },
+    {
+      "gate": "client1_final_connected",
+      "passed": true,
+      "detail": "final_state=connected"
+    },
+    {
+      "gate": "client1_invalid_zero",
+      "passed": true,
+      "detail": "invalid=0"
+    },
+    {
+      "gate": "client1_rtt_p99",
+      "passed": true,
+      "detail": "p99=239.248993 ms, limit=300.0 ms (configured 240.0 + 60.0)"
+    },
+    {
+      "gate": "client1_no_reconnects",
+      "passed": true,
+      "detail": "reconnects=0"
+    },
+    {
+      "gate": "client2_summary_present",
+      "passed": true,
+      "detail": "summary event present"
+    },
+    {
+      "gate": "client2_exit_code",
+      "passed": true,
+      "detail": "exit 0"
+    },
+    {
+      "gate": "client2_final_connected",
+      "passed": true,
+      "detail": "final_state=connected"
+    },
+    {
+      "gate": "client2_invalid_zero",
+      "passed": true,
+      "detail": "invalid=0"
+    },
+    {
+      "gate": "client2_rtt_p99",
+      "passed": true,
+      "detail": "p99=238.850006 ms, limit=300.0 ms (configured 240.0 + 60.0)"
+    },
+    {
+      "gate": "client2_reconnected_once",
+      "passed": true,
+      "detail": "reconnects=1"
+    },
+    {
+      "gate": "client2_recovery_time",
+      "passed": true,
+      "detail": "recovery=572.0 ms, limit=3000.0 ms"
+    },
+    {
+      "gate": "host_timeouts_match_stalls",
+      "passed": true,
+      "detail": "timeouts=1"
+    },
+    {
+      "gate": "host_reconnects_match_stalls",
+      "passed": true,
+      "detail": "reconnects=1"
+    },
+    {
+      "gate": "host_joins_match_clients",
+      "passed": true,
+      "detail": "joins=2, clients=2"
+    }
+  ],
+  "passed": true
+}

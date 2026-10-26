@@ -1,0 +1,19 @@
+[
+  {"name":"transform_snapshot_roundtrip","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"all_message_types_roundtrip","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"event_messages_roundtrip_and_respect_limits","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"header_layout_is_22_bytes_little_endian","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"sequence_newer_handles_wraparound","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"version_mismatch_is_reported","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"connect_reject_is_decodable_across_versions","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"decode_rejects_invalid_sizes_and_payloads","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"decode_rejects_semantically_invalid_values","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"encode_refuses_messages_over_limits","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"decode_fuzz_never_crashes_and_accepted_packets_reencode","result":"PASSED","transport":"udp","ms":45,"error":""},
+  {"name":"apply_input_normalizes_and_clamps","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"simulation_replay_is_deterministic","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"world_assigns_unique_entity_ids","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"interpolation_is_consistent","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"connect_deadline_policy_is_bounded","result":"PASSED","transport":"udp","ms":1,"error":""},
+  {"name":"interpolation_takes_short_path_for_yaw","result":"PASSED","transport":"udp","ms":0,"error":""}
+]

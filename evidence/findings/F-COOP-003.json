@@ -1,32 +1,33 @@
 {
- "id": "F-COOP-003",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "ai",
- "claim": "The repo's NPC/AI model is exactly one owner machine per actor, chosen by the host, with an epoch counter that rejects stale or echoed updates and a handshake-based ownership handoff.",
- "evidence": "actor-ownership.md 'The rules': host decides, prefer host then nearest player, epoch bump on every change, Transfer/Ack/Commit handoff, follower exception.",
- "sources": [
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "playbook/actor-ownership.md",
-   "location": "## The rules; ## The follower exception; ## The bug class"
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "tools/README.md",
-   "location": "ownership row"
-  }
- ],
- "game_build_compatibility": "N/A (methodology)",
- "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "Library (tools/ownership, C++) was not built or run; its tests are claimed, not verified by us.",
- "next_experiment": "Decide for Shadow of War whether all AI stays host-owned (simpler) or whether followers/mounts use the recruiter-owner exception; evaluate license fit (MIT) before reuse.",
- "related": [
-  "F-COOP-002",
-  "F-COOP-012"
- ]
+  "id": "F-COOP-003",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "ai",
+  "claim": "The repo's NPC/AI model is exactly one owner machine per actor, chosen by the host, with an epoch counter that rejects stale or echoed updates and a handshake-based ownership handoff.",
+  "evidence": "actor-ownership.md 'The rules': host decides, prefer host then nearest player, epoch bump on every change, Transfer/Ack/Commit handoff, follower exception.",
+  "sources": [
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "playbook/actor-ownership.md",
+      "location": "## The rules; ## The follower exception; ## The bug class"
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "tools/README.md",
+      "location": "ownership row"
+    }
+  ],
+  "game_build_compatibility": "N/A (methodology)",
+  "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Library (tools/ownership, C++) was not built or run; its tests are claimed, not verified by us.",
+  "next_experiment": "Decide for Shadow of War whether all AI stays host-owned (simpler) or whether followers/mounts use the recruiter-owner exception; evaluate license fit (MIT) before reuse.",
+  "related": [
+    "F-COOP-002",
+    "F-COOP-012"
+  ]
 }

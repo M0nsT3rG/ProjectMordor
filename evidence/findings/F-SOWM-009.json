@@ -1,50 +1,51 @@
 {
- "id": "F-SOWM-009",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "tooling",
- "claim": "The repo's RE workflow is fully manual: Ghidra 12.1.2 headless analysis of a Steamless-unpacked exe with ~25 helper Java scripts (RTTI, VtableDump, FindXrefs, Trace, DumpUI, etc.); no existing community SoW framework is used.",
- "evidence": "README.md: \"no existing modding framework (no SKSE analogue, no CommonLib, no Script Extender, no community loader)\"",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "README.md",
-   "location": "intro and Tech stack"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "tools/ghidra-scripts/RTTI.java",
-   "location": "file"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "tools/ghidra-scripts/VtableDump.java",
-   "location": "file"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "tools/analyze_sow.ps1",
-   "location": "file"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "docs/reverse-engineering.md",
-   "location": "lines 31-57"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001.",
- "verification_method": "Static read of repo.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "Ghidra scripts not run (per Phase 1 rules).",
- "next_experiment": "Consider reading (not running) RTTI.java/VtableDump.java as method references for our own read-only analysis.",
- "related": [
-  "F-SOWM-004",
-  "F-SOWM-008"
- ]
+  "id": "F-SOWM-009",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "tooling",
+  "claim": "The repo's RE workflow is fully manual: Ghidra 12.1.2 headless analysis of a Steamless-unpacked exe with ~25 helper Java scripts (RTTI, VtableDump, FindXrefs, Trace, DumpUI, etc.); no existing community SoW framework is used.",
+  "evidence": "README.md: \"no existing modding framework (no SKSE analogue, no CommonLib, no Script Extender, no community loader)\"",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "README.md",
+      "location": "intro and Tech stack"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "tools/ghidra-scripts/RTTI.java",
+      "location": "file"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "tools/ghidra-scripts/VtableDump.java",
+      "location": "file"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "tools/analyze_sow.ps1",
+      "location": "file"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "docs/reverse-engineering.md",
+      "location": "lines 31-57"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001.",
+  "verification_method": "Static read of repo.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Ghidra scripts not run (per Phase 1 rules).",
+  "next_experiment": "Consider reading (not running) RTTI.java/VtableDump.java as method references for our own read-only analysis.",
+  "related": [
+    "F-SOWM-004",
+    "F-SOWM-008"
+  ]
 }

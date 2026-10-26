@@ -1,0 +1,124 @@
+{
+  "experiment": "EXP-025",
+  "record": "evidence/experiments/EXP-025.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "1bc8cc44e803de41117110a918a35c3641f47153",
+      "role": "created",
+      "subject": "Review #12 part 3: EXP-025 (retry experiment kept 500 ms; battery 20/20; KI-40 not reproduced), docs, review request #12",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "f2c88a2fd230a210b518f67e25e2e3224f1650e0",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "1f649eca32d48d60f77a4ff497e35ec5f2a22a33",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "2a8c3bc68f33ab22e1d3b12b9329fbe407914b64",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "d95ec9a6fb6dee1b32d0feb8a659b5515b8deba3",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "ce730ebc1010e7138fedb2a9da6bc7e102b29935",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "4116979b157d0024c63b625f054b4d7968f8a62e",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "6e58b0d236f1e42c9a8f83a4a89388048759df70",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "24c2d326244627b978d33238a8bc33caa9ece384",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "b3a51795dd7e1946e55ce7d9219a3abb5a92b16f",
+          "recovered_path": "evidence/logs/recovered/EXP-025/1bc8cc4/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    },
+    {
+      "commit": "67868d5688b55fc7eed8d40d96e5a2c3d28d3530",
+      "role": "edited",
+      "subject": "Review fixes: test runner logs no GNS state at atexit (it read destroyed static state); compare_arms counts a never-recovered run as worst instead of crashing, ",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "3784cd1d5fbf75303bb2ec1a0e2e206bf6813808",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "bb7cf88ee16bf04ee649eeb77bcb8d5eb94b0692",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "f5d43a039c02a677c3138b7903df3678a2177c18",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "90ed71bbd5e32e1d4264001e220057c3addb2733",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "cf4f5225f969adb30ee46bcfa87d97c677607523",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "6c73392952c583f0fb015fdad3063afab1cb001d",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "b61dcedaad132986235eeb4cdde731ab10865a66",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "8fa62fa3da29aeb423a749d6b4ec54ba6c2c445c",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "627e29be83980ad068f1efd2d4834b4896367821",
+          "recovered_path": "evidence/logs/recovered/EXP-025/67868d5/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

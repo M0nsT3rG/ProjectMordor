@@ -1,25 +1,26 @@
 {
- "id": "F-SOWM-014",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "game-loop",
- "claim": "Repo claims a time-scale request system: the pause menu OnActivate (0x141961068) pushes a SimulationTimeScale request via 0x14046bdec, with a time-scale manager at 0x1426ffb08+0x70, and that the game does not pause on focus loss.",
- "evidence": "GameOffsets.h:70 \"The real sim-freeze is the SimulationTimeScale request the pause menu's OnActivate (FUN_141961068) pushes\"",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/GameOffsets.h",
-   "location": "lines 60-78"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
- "verification_method": "Static read of repo comments; author marks parts unverified/open TODO.",
- "classification": "HYPOTHESIS",
- "confidence": "low",
- "limitations": "Unresolved by the author. Relevant to co-op because pause/time-scale (menus, slow-mo, executions) must be synchronized or suppressed across players.",
- "next_experiment": "Statically locate 'SimulationTimeScale' string xrefs in our exe.",
- "related": [
-  "F-SOWM-013"
- ]
+  "id": "F-SOWM-014",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "game-loop",
+  "claim": "Repo claims a time-scale request system: the pause menu OnActivate (0x141961068) pushes a SimulationTimeScale request via 0x14046bdec, with a time-scale manager at 0x1426ffb08+0x70, and that the game does not pause on focus loss.",
+  "evidence": "GameOffsets.h:70 \"The real sim-freeze is the SimulationTimeScale request the pause menu's OnActivate (FUN_141961068) pushes\"",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/GameOffsets.h",
+      "location": "lines 60-78"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
+  "verification_method": "Static read of repo comments; author marks parts unverified/open TODO.",
+  "classification": "HYPOTHESIS",
+  "verification_scope": "third_party_claim",
+  "confidence": "low",
+  "limitations": "Unresolved by the author. Relevant to co-op because pause/time-scale (menus, slow-mo, executions) must be synchronized or suppressed across players.",
+  "next_experiment": "Statically locate 'SimulationTimeScale' string xrefs in our exe.",
+  "related": [
+    "F-SOWM-013"
+  ]
 }

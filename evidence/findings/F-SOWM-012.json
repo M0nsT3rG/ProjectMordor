@@ -1,31 +1,32 @@
 {
- "id": "F-SOWM-012",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "input",
- "claim": "The overlay subclasses the game window procedure (SetWindowLongPtrW GWLP_WNDPROC) and swallows WM_INPUT raw input while the hub is open, implying the game uses Win32 Raw Input for mouselook; the repo also claims a global cursor-control gate at 0x1427030c8.",
- "evidence": "Overlay.cpp:356 if (msg == WM_INPUT) return ::DefWindowProcW(h, msg, w, l); :422 SetWindowLongPtrW(gameWnd_, GWLP_WNDPROC, ...)",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/Overlay.cpp",
-   "location": "lines 330-360, 422"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/GameOffsets.h",
-   "location": "lines 50-58 kCursorCtrlDisable"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. The WndProc/raw-input approach is build-independent; the cursor gate RVA is hardcoded.",
- "verification_method": "Static read of repo source. That the game consumes WM_INPUT is an inference (game-side claim = HYPOTHESIS for our build).",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "No game-internal input/action-mapping structures, controller (XInput) or per-player input routing are mapped - a key gap for a second local/remote player.",
- "next_experiment": "Static import/string check of our exe for RegisterRawInputDevices / XInput usage to map the input path.",
- "related": [
-  "F-SOWM-013"
- ]
+  "id": "F-SOWM-012",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "input",
+  "claim": "The overlay subclasses the game window procedure (SetWindowLongPtrW GWLP_WNDPROC) and swallows WM_INPUT raw input while the hub is open, implying the game uses Win32 Raw Input for mouselook; the repo also claims a global cursor-control gate at 0x1427030c8.",
+  "evidence": "Overlay.cpp:356 if (msg == WM_INPUT) return ::DefWindowProcW(h, msg, w, l); :422 SetWindowLongPtrW(gameWnd_, GWLP_WNDPROC, ...)",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/Overlay.cpp",
+      "location": "lines 330-360, 422"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/GameOffsets.h",
+      "location": "lines 50-58 kCursorCtrlDisable"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. The WndProc/raw-input approach is build-independent; the cursor gate RVA is hardcoded.",
+  "verification_method": "Static read of repo source. That the game consumes WM_INPUT is an inference (game-side claim = HYPOTHESIS for our build).",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "No game-internal input/action-mapping structures, controller (XInput) or per-player input routing are mapped - a key gap for a second local/remote player.",
+  "next_experiment": "Static import/string check of our exe for RegisterRawInputDevices / XInput usage to map the input path.",
+  "related": [
+    "F-SOWM-013"
+  ]
 }

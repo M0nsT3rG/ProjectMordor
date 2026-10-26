@@ -1,0 +1,531 @@
+{
+  "about": "Until 2fb595a, .gitignore's unanchored `build-*/` also matched evidence/logs/tests-*/build-gns-iter-1/, so those directories were written by scripts/test.ps1 during each run but never committed with the rest of the run. They stayed on disk, unmodified, and were committed later. For every per-run test directory this lists each ctest invocation that run.json records: when its files were first committed, whether that was after the rest of the run (restored), their SHA-256 digests, and any invocation whose directory is absent (missing, cannot be reconstructed).",
+  "digest_note": "SHA-256 computed at restoration; there is no earlier digest to compare with.",
+  "runs": [
+    {
+      "run": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty",
+      "run_first_committed": "6fef68d",
+      "invocations": [
+        {
+          "dir": "iter-1",
+          "status": "present",
+          "first_committed": "6fef68d",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-1/integration.json",
+              "bytes": 6188,
+              "sha256": "78407861fe0faf2a0abfcb8889a6b0b75e2479e9a396123af33eef3461e838f7"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-1/network.json",
+              "bytes": 1896,
+              "sha256": "8111b9ac43f4eec460fdf2a51e4ab1e5a01dd90b1f15466dd090943125983fde"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-1/transport.json",
+              "bytes": 2215,
+              "sha256": "47a1c132d4a090f10b7e2cb6c799b80ea601ee7a1195b7c49e862541fb51d404"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-1/unit.json",
+              "bytes": 1807,
+              "sha256": "431e5c3cad28539b92bc5f56f4e9ecd06585495d3cb4918efe43c7e77ca71dcb"
+            }
+          ]
+        },
+        {
+          "dir": "iter-2",
+          "status": "present",
+          "first_committed": "6fef68d",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-2/integration.json",
+              "bytes": 6188,
+              "sha256": "c5c37b3ca6c8b09774982c90b6274f17d2f374ff47e7a36195df47a61d78db92"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-2/network.json",
+              "bytes": 1896,
+              "sha256": "1b2bb53a602d2d126100cc33d628b7635e409dea8aa4a5ff9f86c99bdfc3ce0d"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-2/transport.json",
+              "bytes": 2215,
+              "sha256": "fb90d3b89388b28e990c9f2b05b96ad0709bd670862c8f30c7b20c38e52e5a4e"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/iter-2/unit.json",
+              "bytes": 1807,
+              "sha256": "03d3fa8eb340e550dd3ab5dd581a3cec90e5e1ceecafaa1a9521de7ab9d0e7f2"
+            }
+          ]
+        },
+        {
+          "dir": "build-gns-iter-1",
+          "status": "restored",
+          "first_committed": "2fb595a",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/build-gns-iter-1/dtls.json",
+              "bytes": 7197,
+              "sha256": "560aaa837033e67f7c914b825489eb452069b488e5e92e7facfc538170fa3fce"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/build-gns-iter-1/gns.json",
+              "bytes": 798,
+              "sha256": "97d97c1269b0a742f1f6c226bdb7201a5e7d99337a12294db507936f925f3a2f"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/build-gns-iter-1/integration-gns.json",
+              "bytes": 7602,
+              "sha256": "e50fb62455bb985113b07079a5a29dba07eea4866ff95e5ca198a4421f60e8f8"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/build-gns-iter-1/network-gns.json",
+              "bytes": 2418,
+              "sha256": "3bcd810aa4a1d9ac6581c1d8aacf2a954b01ac72a31c836d9c9f04209fe9db73"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-154155-22ffed1-dirty/build-gns-iter-1/transport-both.json",
+              "bytes": 2841,
+              "sha256": "445df703df6bbd2b8855a9edea62f5e81de4e98cbf68180cd42abdcfb4890fde"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty",
+      "run_first_committed": "01006cf",
+      "invocations": [
+        {
+          "dir": "iter-1",
+          "status": "present",
+          "first_committed": "01006cf",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/iter-1/integration.json",
+              "bytes": 6188,
+              "sha256": "22524e8285a4996ed84944ea35c1a438ca32e55d4562ef1f376f25ec3cd35941"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/iter-1/network.json",
+              "bytes": 1896,
+              "sha256": "c77391720511002832ef7e10028aed912c31f6b4622abd3e194abb1122c85a22"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/iter-1/transport.json",
+              "bytes": 2215,
+              "sha256": "1162036a5040852c0aa0a324baffc6533c0222e70cba7464da51edd2f24862b1"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/iter-1/unit.json",
+              "bytes": 1807,
+              "sha256": "431e5c3cad28539b92bc5f56f4e9ecd06585495d3cb4918efe43c7e77ca71dcb"
+            }
+          ]
+        },
+        {
+          "dir": "build-gns-iter-1",
+          "status": "restored",
+          "first_committed": "2fb595a",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/build-gns-iter-1/dtls.json",
+              "bytes": 7198,
+              "sha256": "57f1fac5fa7c54d9d2a5c9a5f1517fcf4724207c2b1ce4838305d2e6de5e0c91"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/build-gns-iter-1/gns.json",
+              "bytes": 798,
+              "sha256": "681e7d4830e341b22630df5574f2ba5a54304a260eab9889da78df8db0e5dbf8"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/build-gns-iter-1/integration-gns.json",
+              "bytes": 7602,
+              "sha256": "a1525b16b990af19174c7b6970b64ca2b58bdd9cc84aad6836579700ed6343a1"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/build-gns-iter-1/network-gns.json",
+              "bytes": 2419,
+              "sha256": "74c3bb5b779cec7bce592a96d0d89838cfb81ce2ccf58c520c6727dcf1b1d889"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-160027-6fef68d-dirty/build-gns-iter-1/transport-both.json",
+              "bytes": 2839,
+              "sha256": "78db47403f724947f54ea0d5de84c681f2e3af824d8125e6afb54b83403984ff"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty",
+      "run_first_committed": "01eceea",
+      "invocations": [
+        {
+          "dir": "iter-1",
+          "status": "present",
+          "first_committed": "01eceea",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-1/integration.json",
+              "bytes": 6188,
+              "sha256": "1c67c9502a3b7c867a58d9ee404ed2f31d2dfc2f9608feb9d21b45cf11bf04cb"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-1/network.json",
+              "bytes": 1896,
+              "sha256": "972b2d6edbc4165aa2a1567c637f3d954eef9ffca85c8f825ff5beebce5cd808"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-1/transport.json",
+              "bytes": 2215,
+              "sha256": "539dffe01ee66478edaf75fcbf00631020a7b31ed0b8ca1e3e3450984f98d29a"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-1/unit.json",
+              "bytes": 1807,
+              "sha256": "28eaee96e3b1831678f9fc338fad8d8d00eabe2b13c1c6ef2ed2d12fa407bca6"
+            }
+          ]
+        },
+        {
+          "dir": "iter-2",
+          "status": "present",
+          "first_committed": "01eceea",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-2/integration.json",
+              "bytes": 6188,
+              "sha256": "462c8b3c3afa9608e51b899a48c21b56246b5da7821246bee5b04f4df93b8428"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-2/network.json",
+              "bytes": 1896,
+              "sha256": "2acb0e5da66d6c774d3a71f5501a8092fc4f10afa9fb4652981537b5abfca268"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-2/transport.json",
+              "bytes": 2215,
+              "sha256": "658fac350bd6a147d8c509ff0266263aaa6f2700d389ec32cf2324f837698ad5"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/iter-2/unit.json",
+              "bytes": 1807,
+              "sha256": "7da517e61458ebb27274800bc49eaccd7a13538d3e8e33e5844aa78cb42ff2b6"
+            }
+          ]
+        },
+        {
+          "dir": "build-gns-iter-1",
+          "status": "restored",
+          "first_committed": "2fb595a",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/build-gns-iter-1/dtls.json",
+              "bytes": 7199,
+              "sha256": "bca484dddcd33c3fbae6e66dc13d2588fd3d9d83acf934a7947df5cd92b49a57"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/build-gns-iter-1/gns.json",
+              "bytes": 798,
+              "sha256": "567336f05b5a0772214853d3e2b49ee959dfd08560d6c9539e2f8c194e55d265"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/build-gns-iter-1/integration-gns.json",
+              "bytes": 7603,
+              "sha256": "390e40ca2d590d81822ff248ce31b6503fe9833b7b7910fc452985460394b3c2"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/build-gns-iter-1/network-gns.json",
+              "bytes": 2418,
+              "sha256": "9c1ca699b9fff25286553905a76e2b064b522c6a248de2b323d065f3fc81cc2b"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-162657-01006cf-dirty/build-gns-iter-1/transport-both.json",
+              "bytes": 2841,
+              "sha256": "b30a6bc3b7abb9c3b38c6a6c84a4e31970590117e848acb58085e6cc820c066d"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty",
+      "run_first_committed": "01eceea",
+      "invocations": [
+        {
+          "dir": "iter-1",
+          "status": "present",
+          "first_committed": "01eceea",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-1/integration.json",
+              "bytes": 6188,
+              "sha256": "e26913f769c9d6209d7f9dcf1c35eab7f7ef1fee11a3e39dee0938e7e143756c"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-1/network.json",
+              "bytes": 1896,
+              "sha256": "a6c9f0ed9b9cdbf317ce4be82a8de2b13afc155c8033250093d362e0de24ab28"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-1/transport.json",
+              "bytes": 2215,
+              "sha256": "539dffe01ee66478edaf75fcbf00631020a7b31ed0b8ca1e3e3450984f98d29a"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-1/unit.json",
+              "bytes": 1807,
+              "sha256": "03d3fa8eb340e550dd3ab5dd581a3cec90e5e1ceecafaa1a9521de7ab9d0e7f2"
+            }
+          ]
+        },
+        {
+          "dir": "iter-2",
+          "status": "present",
+          "first_committed": "01eceea",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-2/integration.json",
+              "bytes": 6188,
+              "sha256": "fbd9960a49ffdaa2e54e3403e2d66b6e003e7474c2003d4a0a92cfa022a4aa16"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-2/network.json",
+              "bytes": 1896,
+              "sha256": "96b8974ead92fde593539337182f71096cceddf9a7b29f780eb0df8f7bb86efe"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-2/transport.json",
+              "bytes": 2215,
+              "sha256": "1162036a5040852c0aa0a324baffc6533c0222e70cba7464da51edd2f24862b1"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/iter-2/unit.json",
+              "bytes": 1807,
+              "sha256": "a5d3c20b64b4e2940e16d4f3dee46af7d9ac084637dcb73e49ad1c502e1693c6"
+            }
+          ]
+        },
+        {
+          "dir": "build-gns-iter-1",
+          "status": "restored",
+          "first_committed": "2fb595a",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/build-gns-iter-1/dtls.json",
+              "bytes": 7198,
+              "sha256": "a819ff17557f70a9ff5ecb5de82c6b532d58027a3fe8394880f0282ceb29208a"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/build-gns-iter-1/gns.json",
+              "bytes": 797,
+              "sha256": "e1e19177848cb4e7a42fc3bf0eb1da14b792887fd9a4c88f31266b550ca46c86"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/build-gns-iter-1/integration-gns.json",
+              "bytes": 7602,
+              "sha256": "238adc4d8cef6e747d151e2bec0d941c20470923599af65ce9bf3cc6f09e865f"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/build-gns-iter-1/network-gns.json",
+              "bytes": 2420,
+              "sha256": "5e8c172b901c0e266973353b9f7c420165f8bbd8d59fd1b1d31fd2d6317f1399"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-164201-01006cf-dirty/build-gns-iter-1/transport-both.json",
+              "bytes": 2842,
+              "sha256": "6dcc29a494d5ca195bbb5eead23db499816cddc7e74733497f5dbd3df6d3aa13"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty",
+      "run_first_committed": "3bdfeac",
+      "invocations": [
+        {
+          "dir": "iter-1",
+          "status": "present",
+          "first_committed": "3bdfeac",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-1/integration.json",
+              "bytes": 6188,
+              "sha256": "c56bf8ddb4d3e8459073c081077a22974d7e55b622d269a43fa05e2f79170d6e"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-1/network.json",
+              "bytes": 1896,
+              "sha256": "afa0ff170c5e2861c5adfb401579d7de913279a55c183728de71ff3e92dc7824"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-1/transport.json",
+              "bytes": 2215,
+              "sha256": "2977845b9dadb34501fc65a43ab28ef37b137d08236c84eb4eef5ccf7aa8d465"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-1/unit.json",
+              "bytes": 1807,
+              "sha256": "431e5c3cad28539b92bc5f56f4e9ecd06585495d3cb4918efe43c7e77ca71dcb"
+            }
+          ]
+        },
+        {
+          "dir": "iter-2",
+          "status": "present",
+          "first_committed": "3bdfeac",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-2/integration.json",
+              "bytes": 6188,
+              "sha256": "277e085c8e6712b4d8cf1a52cc2713ca23ccdd365b0471331e53faf359a32121"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-2/network.json",
+              "bytes": 1896,
+              "sha256": "d2b98781f452c460e739502530d853324ce0822cd8ee537dbfc5d18c39a42ac4"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-2/transport.json",
+              "bytes": 2215,
+              "sha256": "658fac350bd6a147d8c509ff0266263aaa6f2700d389ec32cf2324f837698ad5"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/iter-2/unit.json",
+              "bytes": 1807,
+              "sha256": "431e5c3cad28539b92bc5f56f4e9ecd06585495d3cb4918efe43c7e77ca71dcb"
+            }
+          ]
+        },
+        {
+          "dir": "build-gns-iter-1",
+          "status": "restored",
+          "first_committed": "2fb595a",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/build-gns-iter-1/dtls.json",
+              "bytes": 7197,
+              "sha256": "7b79d027d148a98bd501b0e47926a12f6c3969ec99d6aa6ecfd6fe0c2ba86d7d"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/build-gns-iter-1/gns.json",
+              "bytes": 799,
+              "sha256": "8b5b654f7628532b591c125cc0e76b280dc06fc39bd71826ca019b9320d83da1"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/build-gns-iter-1/integration-gns.json",
+              "bytes": 7602,
+              "sha256": "fe1e9ea6369788a5b5701220535f37079eb33dd323d33805e0abb3b87d9c5771"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/build-gns-iter-1/network-gns.json",
+              "bytes": 2418,
+              "sha256": "eb296161cfaced1abbc71177fb3f84109651779491e75ae64a419718d45496f7"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-171414-01eceea-dirty/build-gns-iter-1/transport-both.json",
+              "bytes": 2841,
+              "sha256": "f6ae26336db3bbdc7ca73e28ea4f0526034cda24d564a87f356d634a3321aa4a"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty",
+      "run_first_committed": "3bdfeac",
+      "invocations": [
+        {
+          "dir": "iter-1",
+          "status": "present",
+          "first_committed": "3bdfeac",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-1/integration.json",
+              "bytes": 6188,
+              "sha256": "15b28215b53a3154d2798c623947ba6a9eebc986ebb9223d31e6addbbecc18ff"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-1/network.json",
+              "bytes": 1897,
+              "sha256": "4b3a2c731d948f7c20ac4153aab53afec53864678348283ef879ff01c62b7d5f"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-1/transport.json",
+              "bytes": 2215,
+              "sha256": "1162036a5040852c0aa0a324baffc6533c0222e70cba7464da51edd2f24862b1"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-1/unit.json",
+              "bytes": 1807,
+              "sha256": "03d3fa8eb340e550dd3ab5dd581a3cec90e5e1ceecafaa1a9521de7ab9d0e7f2"
+            }
+          ]
+        },
+        {
+          "dir": "iter-2",
+          "status": "present",
+          "first_committed": "3bdfeac",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-2/integration.json",
+              "bytes": 6188,
+              "sha256": "5cd4b990954dc2856c49991e7c2fe33095247da90f40dbe343fe7cbf1f05ec64"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-2/network.json",
+              "bytes": 1896,
+              "sha256": "f84c915c8a5d961c61b5caf47da57006d9038ddeec2e252d862e1d372f603c2a"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-2/transport.json",
+              "bytes": 2215,
+              "sha256": "5f47c074bfba75e5aa7dc7178aa3605a1ba34345e972e8a420e86113f6024f43"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/iter-2/unit.json",
+              "bytes": 1807,
+              "sha256": "a5d3c20b64b4e2940e16d4f3dee46af7d9ac084637dcb73e49ad1c502e1693c6"
+            }
+          ]
+        },
+        {
+          "dir": "build-gns-iter-1",
+          "status": "restored",
+          "first_committed": "2fb595a",
+          "files": [
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/build-gns-iter-1/dtls.json",
+              "bytes": 7198,
+              "sha256": "1d437824115f56254df89614198c964eb49aad53e0b2b9a1fd68fbd29e5daab6"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/build-gns-iter-1/gns.json",
+              "bytes": 797,
+              "sha256": "8ff17ae4f86b317c7da3c4d76f3b8d3157a48cf049b5e4b9e48893f16437a136"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/build-gns-iter-1/integration-gns.json",
+              "bytes": 7602,
+              "sha256": "78d0c9a773124c4ad46f541fce3db1a7bfa471621c56a8dd05af8818ebf88728"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/build-gns-iter-1/network-gns.json",
+              "bytes": 2420,
+              "sha256": "98e340e8cb7bb100e743a54ebe286a2f990ff597912ced9e6ab51f97147e3335"
+            },
+            {
+              "path": "evidence/logs/tests-2026-10-25-174833-01eceea-dirty/build-gns-iter-1/transport-both.json",
+              "bytes": 2840,
+              "sha256": "af7912d2a2d0fec56be1e5d0074ff7392c7f6c0605ea89f43e80cbb1c854c0a9"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

@@ -1,49 +1,50 @@
 {
- "id": "F-SOWM-015",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "networking",
- "claim": "The only networking in the repo is HagIPC, a dev-only loopback TCP (127.0.0.1, default port 19000) text server injected via CreateRemoteThread(LoadLibraryW) that offers memory read/write, arbitrary function call, code-blob exec, MinHook probe hooks, watch and value scan; there is no game-to-game networking or Steam networking use.",
- "evidence": "Server.cpp:152 inet_pton(AF_INET, \"127.0.0.1\", &addr.sin_addr); // loopback ONLY; inject.ps1:2 \"Classic LoadLibrary injection\"",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "HagIPC/src/ipc/Server.cpp",
-   "location": "lines 144-165, 212-370"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "HagIPC/README.md",
-   "location": "Protocol / Config"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "HagIPC/tools/inject.ps1",
-   "location": "lines 2-29"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "HagIPC/src/ipc/HookProbe.h",
-   "location": "lines 8-25"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "SoWLoader/src/Loader.cpp",
-   "location": "lines 91-135 -sowipc/-sowhooks"
-  }
- ],
- "game_build_compatibility": "Build-independent tool (works on RVAs supplied at runtime).",
- "verification_method": "Static read of repo source and grep for WSAStartup/socket/SteamNetworking.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "Designed as an attached-debugger-level dev tool; executing it would violate Phase 1 rules and is a security risk if exposed.",
- "next_experiment": "None for Phase 1; for later phases its call-on-game-thread limitation (README) is a reminder that co-op sync code must marshal onto the main thread.",
- "related": [
-  "F-SOWM-006"
- ]
+  "id": "F-SOWM-015",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "networking",
+  "claim": "The only networking in the repo is HagIPC, a dev-only loopback TCP (127.0.0.1, default port 19000) text server injected via CreateRemoteThread(LoadLibraryW) that offers memory read/write, arbitrary function call, code-blob exec, MinHook probe hooks, watch and value scan; there is no game-to-game networking or Steam networking use.",
+  "evidence": "Server.cpp:152 inet_pton(AF_INET, \"127.0.0.1\", &addr.sin_addr); // loopback ONLY; inject.ps1:2 \"Classic LoadLibrary injection\"",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "HagIPC/src/ipc/Server.cpp",
+      "location": "lines 144-165, 212-370"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "HagIPC/README.md",
+      "location": "Protocol / Config"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "HagIPC/tools/inject.ps1",
+      "location": "lines 2-29"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "HagIPC/src/ipc/HookProbe.h",
+      "location": "lines 8-25"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "SoWLoader/src/Loader.cpp",
+      "location": "lines 91-135 -sowipc/-sowhooks"
+    }
+  ],
+  "game_build_compatibility": "Build-independent tool (works on RVAs supplied at runtime).",
+  "verification_method": "Static read of repo source and grep for WSAStartup/socket/SteamNetworking.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Designed as an attached-debugger-level dev tool; executing it would violate Phase 1 rules and is a security risk if exposed.",
+  "next_experiment": "None for Phase 1; for later phases its call-on-game-thread limitation (README) is a reminder that co-op sync code must marshal onto the main thread.",
+  "related": [
+    "F-SOWM-006"
+  ]
 }

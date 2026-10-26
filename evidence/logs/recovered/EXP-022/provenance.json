@@ -1,0 +1,71 @@
+{
+  "experiment": "EXP-022",
+  "record": "evidence/experiments/EXP-022.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "f283a07de5d25b1cf1cb7f83e2d2a95b3c39a902",
+      "role": "created",
+      "subject": "Review #9 part 2: protocol v2 application-level reliable events, soak gate v5 (realized impairment), fixes",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "dc1cf67b54ffcfa1395b7a98225b4cf83380085f",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "6b046474c1788804e82eeecdf0b8e96f6a221730",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "915c6a886c1d86ef30d7f74ebca4da6a5116f4b1",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "8c598b356c278c853ac9201c43f8e464a8dc2cea",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "f6a0f0d9c3fea2d614d1bf511582a2311845af4d",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "29d15911e40072730fde1a7f4f7f46eada6b7242",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "eca9a3ddcf0e35c9cfa383461f55baec35487fff",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "090f1703ab5df1956491d7b75c80a7310310d63d",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "d781f17f4fb81f3dc5342d747f2d8a82d65048b0",
+          "recovered_path": "evidence/logs/recovered/EXP-022/f283a07/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

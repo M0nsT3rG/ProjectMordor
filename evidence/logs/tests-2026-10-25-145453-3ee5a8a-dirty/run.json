@@ -1,0 +1,30 @@
+{
+    "run_id":  "tests-2026-10-25-145453-3ee5a8a-dirty",
+    "started_utc":  "2026-10-25T13:54:53.1624630Z",
+    "commit":  "3ee5a8a183cb1e7c2cea5c761141fc22be82332c",
+    "dirty":  true,
+    "config":  "Release",
+    "builds":  [
+                   "build",
+                   "build-gns"
+               ],
+    "repeat":  1,
+    "suites":  {
+                   "unit":  "udp",
+                   "integration":  "udp",
+                   "network":  "udp",
+                   "transport":  "udp",
+                   "integration-gns":  "gns",
+                   "network-gns":  "gns",
+                   "transport-both":  "udp",
+                   "gns":  "udp",
+                   "dtls":  "udp"
+               },
+    "e2e":  true,
+    "e2e_exit_codes":  {
+                           "host":  0,
+                           "client1":  0,
+                           "client2":  0
+                       },
+    "result":  "passed"
+}

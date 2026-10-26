@@ -1,26 +1,27 @@
 {
- "id": "F-SOWM-007",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "game-loop",
- "claim": "Repo claims game-function RVAs for the main thread/window (0x140c24db0), post-window init (0x1411798ac), world load (0x141c3d7fc), save-to-front-end clear (0x141bb8e30) and cursor recenter (0x1411ac828), several described as live-verified by the author.",
- "evidence": "GameOffsets.h:91 kOnWorldLoad = 0x141c3d7fcull; :58 kCursorRecenter = 0x1411ac828;",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/GameOffsets.h",
-   "location": "lines 37-58, 88-96"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
- "verification_method": "Static read only; these are repo claims, not verified facts. Could be verified by static disassembly of our exe at those RVAs (e.g. check that 0x140c24db0 references the L\"Shadow of War\" window class string and \"MainThread\").",
- "classification": "HYPOTHESIS",
- "confidence": "low",
- "limitations": "No build identifier attached to any offset; author's binary may differ from 1.0.8874.0.",
- "next_experiment": "Static check in our exe: locate the 'Shadow of War' wide string and 'MainThread' xrefs and compare containing function RVA to the repo claim.",
- "related": [
-  "F-SOWM-005",
-  "F-SOWM-006"
- ]
+  "id": "F-SOWM-007",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "game-loop",
+  "claim": "Repo claims game-function RVAs for the main thread/window (0x140c24db0), post-window init (0x1411798ac), world load (0x141c3d7fc), save-to-front-end clear (0x141bb8e30) and cursor recenter (0x1411ac828), several described as live-verified by the author.",
+  "evidence": "GameOffsets.h:91 kOnWorldLoad = 0x141c3d7fcull; :58 kCursorRecenter = 0x1411ac828;",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/GameOffsets.h",
+      "location": "lines 37-58, 88-96"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
+  "verification_method": "Static read only; these are repo claims, not verified facts. Could be verified by static disassembly of our exe at those RVAs (e.g. check that 0x140c24db0 references the L\"Shadow of War\" window class string and \"MainThread\").",
+  "classification": "HYPOTHESIS",
+  "verification_scope": "third_party_claim",
+  "confidence": "low",
+  "limitations": "No build identifier attached to any offset; author's binary may differ from 1.0.8874.0.",
+  "next_experiment": "Static check in our exe: locate the 'Shadow of War' wide string and 'MainThread' xrefs and compare containing function RVA to the repo claim.",
+  "related": [
+    "F-SOWM-005",
+    "F-SOWM-006"
+  ]
 }

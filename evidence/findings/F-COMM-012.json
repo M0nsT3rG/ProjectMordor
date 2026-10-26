@@ -1,44 +1,45 @@
 {
- "id": "F-COMM-012",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "networking",
- "claim": "The game's online services use WB's backend at kraken-api.wbagora.com with a custom zlib-compressed binary value protocol and endpoints /auth, /access, /ssc/invoke and /broadcast_channels; a community rebuild of this server exists.",
- "evidence": "request_tester.py sets base_url kraken-api.wbagora.com; nemesis/src/routes register /auth, /access, /ssc/invoke.",
- "sources": [
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-server",
-   "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
-   "path": "request-tester/request_tester.py",
-   "location": "line 8"
-  },
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-server",
-   "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
-   "path": "nemesis/src/routes/mod.rs",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-server",
-   "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
-   "path": "nemesis/src/codec/binary_protocol.rs",
-   "location": "type constants"
-  },
-  {
-   "url": "https://github.com/SystematicSkid/shadow-of-war-server",
-   "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
-   "path": "README.md",
-   "location": ""
-  }
- ],
- "game_build_compatibility": "UNKNOWN; server rebuild dated 2025-03.",
- "verification_method": "Read source at pinned commit. Could be checked by a static string search for wbagora in a copied exe; never by contacting the host.",
- "classification": "HYPOTHESIS",
- "confidence": "medium",
- "limitations": "EULA 1(b) forbids software that emulates or redirects WB's protocols; we will not use, emulate or contact this backend. Single source.",
- "next_experiment": "Static string search only; design the co-op transport fully separate (own peer link) and block the mod from touching WB endpoints.",
- "related": [
-  "F-COMM-013",
-  "F-COMM-015"
- ]
+  "id": "F-COMM-012",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "networking",
+  "claim": "The game's online services use WB's backend at kraken-api.wbagora.com with a custom zlib-compressed binary value protocol and endpoints /auth, /access, /ssc/invoke and /broadcast_channels; a community rebuild of this server exists.",
+  "evidence": "request_tester.py sets base_url kraken-api.wbagora.com; nemesis/src/routes register /auth, /access, /ssc/invoke.",
+  "sources": [
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-server",
+      "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
+      "path": "request-tester/request_tester.py",
+      "location": "line 8"
+    },
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-server",
+      "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
+      "path": "nemesis/src/routes/mod.rs",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-server",
+      "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
+      "path": "nemesis/src/codec/binary_protocol.rs",
+      "location": "type constants"
+    },
+    {
+      "url": "https://github.com/SystematicSkid/shadow-of-war-server",
+      "commit": "11d80ca21582281fa18f067e8960b669726b2f83",
+      "path": "README.md",
+      "location": ""
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN; server rebuild dated 2025-03.",
+  "verification_method": "Read source at pinned commit. Could be checked by a static string search for wbagora in a copied exe; never by contacting the host.",
+  "classification": "HYPOTHESIS",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "EULA 1(b) forbids software that emulates or redirects WB's protocols; we will not use, emulate or contact this backend. Single source.",
+  "next_experiment": "Static string search only; design the co-op transport fully separate (own peer link) and block the mod from touching WB endpoints.",
+  "related": [
+    "F-COMM-013",
+    "F-COMM-015"
+  ]
 }

@@ -1,50 +1,51 @@
 {
- "id": "F-COMM-014",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "anti-tamper",
- "claim": "There is no primary-source evidence that Denuvo was removed from the Steam version; the Steam store page still declares 'Denuvo Antitamper' on 2026-10-23, so the 'removed later' claim is contradicted by available sources.",
- "evidence": "Steam store: 'Incorporates 3rd-party DRM: Denuvo Antitamper'; PCGW: Steam version requires Denuvo.",
- "sources": [
-  {
-   "url": "https://store.steampowered.com/app/356190/",
-   "commit": "",
-   "path": "",
-   "location": "DRM notice near purchase area"
-  },
-  {
-   "url": "https://www.pcgamingwiki.com/wiki/Middle-earth:_Shadow_of_War",
-   "commit": "",
-   "path": "",
-   "location": "Availability, Denuvo ref (Refcheck 2019-12-23)"
-  },
-  {
-   "url": "https://www.guru3d.com/story/middle-earth-shadow-of-war-pc-drm-was-cracked-within-24-hours/",
-   "commit": "",
-   "path": "",
-   "location": ""
-  },
-  {
-   "url": "https://steamcommunity.com/app/356190/discussions/0/3040479910542970827",
-   "commit": "",
-   "path": "",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "games/shadow-of-war/NOTES.md",
-   "location": "lines 192-202"
-  }
- ],
- "game_build_compatibility": "Store notice is not tied to a build; coop-anything (third party) reports SteamStub present and a Denuvo-like section layout on build 3095001.",
- "verification_method": "Fetched store page; read PCGW wikitext; removal claims appear only in forum comments. Verify on our build statically: PE section names/sizes/entropy of a copied exe (no execution, no patching).",
- "classification": "CONTRADICTED",
- "confidence": "medium",
- "limitations": "Store DRM notices are sometimes not updated after removal; only a binary inspection of our build can settle presence. We must not bypass or strip DRM.",
- "next_experiment": "Static PE inspection of a copied ShadowOfWar.exe (sections, entropy, .bind SteamStub section) and record findings in the anti-tamper evidence.",
- "related": [
-  "F-COMM-008",
-  "F-COMM-017"
- ]
+  "id": "F-COMM-014",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "anti-tamper",
+  "claim": "There is no primary-source evidence that Denuvo was removed from the Steam version; the Steam store page still declares 'Denuvo Antitamper' on 2026-10-23, so the 'removed later' claim is contradicted by available sources.",
+  "evidence": "Steam store: 'Incorporates 3rd-party DRM: Denuvo Antitamper'; PCGW: Steam version requires Denuvo.",
+  "sources": [
+    {
+      "url": "https://store.steampowered.com/app/356190/",
+      "commit": "",
+      "path": "",
+      "location": "DRM notice near purchase area"
+    },
+    {
+      "url": "https://www.pcgamingwiki.com/wiki/Middle-earth:_Shadow_of_War",
+      "commit": "",
+      "path": "",
+      "location": "Availability, Denuvo ref (Refcheck 2019-12-23)"
+    },
+    {
+      "url": "https://www.guru3d.com/story/middle-earth-shadow-of-war-pc-drm-was-cracked-within-24-hours/",
+      "commit": "",
+      "path": "",
+      "location": ""
+    },
+    {
+      "url": "https://steamcommunity.com/app/356190/discussions/0/3040479910542970827",
+      "commit": "",
+      "path": "",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "games/shadow-of-war/NOTES.md",
+      "location": "lines 192-202"
+    }
+  ],
+  "game_build_compatibility": "Store notice is not tied to a build; coop-anything (third party) reports SteamStub present and a Denuvo-like section layout on build 3095001.",
+  "verification_method": "Fetched store page; read PCGW wikitext; removal claims appear only in forum comments. Verify on our build statically: PE section names/sizes/entropy of a copied exe (no execution, no patching).",
+  "classification": "CONTRADICTED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Store DRM notices are sometimes not updated after removal; only a binary inspection of our build can settle presence. We must not bypass or strip DRM.",
+  "next_experiment": "Static PE inspection of a copied ShadowOfWar.exe (sections, entropy, .bind SteamStub section) and record findings in the anti-tamper evidence.",
+  "related": [
+    "F-COMM-008",
+    "F-COMM-017"
+  ]
 }

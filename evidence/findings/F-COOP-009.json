@@ -1,32 +1,33 @@
 {
- "id": "F-COOP-009",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "testing",
- "claim": "The repo's QA policy forbids human playtests as the test plan and requires in-game bots, two or more real clients, mutation twins and hollow-pass guards for any 'works' claim.",
- "evidence": "automated-qa.md Policy: 'Don't ask a human to playtest'; rules: turn the fix off and the test must fail; assert the mode at start.",
- "sources": [
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "playbook/automated-qa.md",
-   "location": "## Policy; ## Rules learned the hard way"
-  },
-  {
-   "url": "https://github.com/cranebeaker/coop-anything",
-   "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
-   "path": "playbook/fuzzing-coop-sync.md",
-   "location": "## 1. What a fuzzer for sync is; ## 2. The rules worth checking"
-  }
- ],
- "game_build_compatibility": "N/A (methodology)",
- "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "Requires a bridge into the running game, which Project Mordor Phase 1 forbids; only the game-free parts (fuzzing, fake world) apply now.",
- "next_experiment": "Plan a game-free fake-world/fuzz harness for the sync core as the first testable artifact of Phase 2.",
- "related": [
-  "F-COOP-007",
-  "F-COOP-008"
- ]
+  "id": "F-COOP-009",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "testing",
+  "claim": "The repo's QA policy forbids human playtests as the test plan and requires in-game bots, two or more real clients, mutation twins and hollow-pass guards for any 'works' claim.",
+  "evidence": "automated-qa.md Policy: 'Don't ask a human to playtest'; rules: turn the fix off and the test must fail; assert the mode at start.",
+  "sources": [
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "playbook/automated-qa.md",
+      "location": "## Policy; ## Rules learned the hard way"
+    },
+    {
+      "url": "https://github.com/cranebeaker/coop-anything",
+      "commit": "5b86e5bb10ce864ab9872f2589651f73ffcae5db",
+      "path": "playbook/fuzzing-coop-sync.md",
+      "location": "## 1. What a fuzzer for sync is; ## 2. The rules worth checking"
+    }
+  ],
+  "game_build_compatibility": "N/A (methodology)",
+  "verification_method": "Read-only reading of the shallow clone (depth 50) at the stated commit; no code built or run.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Requires a bridge into the running game, which Project Mordor Phase 1 forbids; only the game-free parts (fuzzing, fake world) apply now.",
+  "next_experiment": "Plan a game-free fake-world/fuzz harness for the sync core as the first testable artifact of Phase 2.",
+  "related": [
+    "F-COOP-007",
+    "F-COOP-008"
+  ]
 }

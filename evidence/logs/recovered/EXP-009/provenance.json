@@ -1,0 +1,35 @@
+{
+  "experiment": "EXP-009",
+  "record": "evidence/experiments/EXP-009.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-integration-2026-10-23.json",
+    "evidence/logs/tests-network-2026-10-23.json",
+    "evidence/logs/e2e-2026-10-23/host.log"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "9f15d2d10c5091fc1abb30da929e25eb394864ad",
+      "role": "created",
+      "subject": "Triage ChatGPT review #1; fix host backlog timestep and liveness",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-23.json",
+          "blob": "07cb24e28b95d0b803a4f5bc7fb76c47ff385f95",
+          "recovered_path": "evidence/logs/recovered/EXP-009/9f15d2d/tests-integration-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-23.json",
+          "blob": "1bc43d758205618006d3ef1bdd7ce642047f17bd",
+          "recovered_path": "evidence/logs/recovered/EXP-009/9f15d2d/tests-network-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/e2e-2026-10-23/host.log",
+          "blob": "a8c0377ec12bc8429bf0858912ceb940855aa788",
+          "recovered_path": "evidence/logs/recovered/EXP-009/9f15d2d/e2e-2026-10-23/host.log"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

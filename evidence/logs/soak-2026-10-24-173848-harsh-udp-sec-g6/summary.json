@@ -1,0 +1,484 @@
+{
+  "gate_version": 6,
+  "transport": "udp",
+  "clock": "real-time (wall clock, separate processes, loopback)",
+  "run": {
+    "profile": "harsh",
+    "clock": "real-time",
+    "started_utc": "2026-10-24T15:38:51.0879772Z",
+    "duration_s": 120,
+    "impairment": {
+      "latency_ms": 80,
+      "loss": 0.15,
+      "jitter_ms": 40,
+      "duplicate": 0.05
+    },
+    "impairment_scope": "every sender (host and both clients), independent seeds",
+    "scenario": "two-clients-one-stall",
+    "expected_clients": [
+      "client1",
+      "client2"
+    ],
+    "stalled_clients": [
+      "client2"
+    ],
+    "gate_version": 6,
+    "impairment_seeds": {
+      "host": 101,
+      "client1": 102,
+      "client2": 103
+    },
+    "event_interval_ms": 500,
+    "transport": "udp",
+    "secure": true,
+    "stall_at_s": 48,
+    "stall_s": 5,
+    "host_timeout_ms": 3000,
+    "exit_codes": {
+      "host": 0,
+      "client1": 0,
+      "client2": 0
+    }
+  },
+  "budgets": {
+    "rtt_p99_ms": 300.0,
+    "download_kbit_s": 24.08,
+    "upload_kbit_s": 31.0,
+    "max_correction": 2.0
+  },
+  "host": {
+    "world_tick": 3781,
+    "uptime_us": 125999485,
+    "skipped_ticks": 0,
+    "shed_inputs": 114,
+    "stale_inputs": 39005,
+    "joins": 2,
+    "reconnects": 1,
+    "timeouts": 1,
+    "timeout_notices": 2,
+    "invalid": 0,
+    "unknown_peer": 27,
+    "bytes_in": 736969,
+    "bytes_out": 643570,
+    "packets_in": 7716,
+    "events_queued": 469,
+    "events_applied": 467,
+    "events_retransmitted": 11,
+    "events_replayed": 23,
+    "events_dropped_with_slot": 2
+  },
+  "realized_upstream_ratio": 0.845,
+  "distributions": {
+    "rtt_ms": {
+      "client1": {
+        "p5": 176.057999,
+        "p50": 202.212997,
+        "p95": 231.664001,
+        "p99": 238.5
+      },
+      "client2": {
+        "p5": 178.725006,
+        "p50": 203.755005,
+        "p95": 231.095993,
+        "p99": 239.376007
+      }
+    },
+    "delivery_ratio": {
+      "client1": 0.8485,
+      "client2": 0.8334
+    }
+  },
+  "host_tick_drift": 0.000269,
+  "clients": {
+    "client1": {
+      "final_state": "connected",
+      "player": 2,
+      "rtt_samples": 335,
+      "rtt_p50_ms": 202.212997,
+      "rtt_p95_ms": 231.664001,
+      "rtt_p99_ms": 238.5,
+      "rtt_max_ms": 241.738007,
+      "snapshots": 2940,
+      "stale": 30,
+      "corrections": 52,
+      "max_correction": 0.333286,
+      "correction_p50": 0.166667,
+      "correction_p99": 0.333286,
+      "reconnects": 0,
+      "max_reconnect_ms": 0,
+      "stale_notices": 0,
+      "invalid": 0,
+      "bytes_in": 276410,
+      "bytes_out": 450176,
+      "elapsed_ms": 120000,
+      "rtt_min_ms": 166.451996,
+      "packets_out": 4688,
+      "events_applied": 233,
+      "event_order_errors": 0,
+      "events_duplicate": 0,
+      "rtt_p5_ms": 176.057999,
+      "stalled": false,
+      "recovery_after_stall_ms": null,
+      "kbit_s_in": 18.43,
+      "kbit_s_out": 30.01,
+      "high_resolution_timer": true,
+      "window_rates_kbit_s": {
+        "windows": 118,
+        "in": {
+          "p95": 21.26,
+          "p99": 21.45,
+          "peak": 22.14
+        },
+        "out": {
+          "p95": 30.98,
+          "p99": 31.01,
+          "peak": 31.01
+        }
+      }
+    },
+    "client2": {
+      "final_state": "connected",
+      "player": 1,
+      "rtt_samples": 329,
+      "rtt_p50_ms": 203.755005,
+      "rtt_p95_ms": 231.095993,
+      "rtt_p99_ms": 239.376007,
+      "rtt_max_ms": 5130.538086,
+      "snapshots": 2880,
+      "stale": 27,
+      "corrections": 59,
+      "max_correction": 0.333333,
+      "correction_p50": 0.166667,
+      "correction_p99": 0.333333,
+      "reconnects": 1,
+      "max_reconnect_ms": 2366,
+      "stale_notices": 0,
+      "invalid": 0,
+      "bytes_in": 273728,
+      "bytes_out": 423291,
+      "elapsed_ms": 120000,
+      "rtt_min_ms": 167.518997,
+      "packets_out": 4443,
+      "events_applied": 234,
+      "event_order_errors": 0,
+      "events_duplicate": 18,
+      "rtt_p5_ms": 178.725006,
+      "stalled": true,
+      "recovery_after_stall_ms": 2720.0,
+      "kbit_s_in": 18.25,
+      "kbit_s_out": 28.22,
+      "high_resolution_timer": true,
+      "window_rates_kbit_s": {
+        "windows": 112,
+        "in": {
+          "p95": 21.47,
+          "p99": 21.83,
+          "peak": 26.22
+        },
+        "out": {
+          "p95": 31.07,
+          "p99": 31.69,
+          "peak": 34.0
+        }
+      }
+    }
+  },
+  "gates": [
+    {
+      "gate": "manifest_lists_expected_clients",
+      "passed": true,
+      "detail": "expected_clients=['client1', 'client2']"
+    },
+    {
+      "gate": "manifest_names_valid",
+      "passed": true,
+      "detail": "invalid=[]"
+    },
+    {
+      "gate": "manifest_names_unique",
+      "passed": true,
+      "detail": "duplicates=[]"
+    },
+    {
+      "gate": "scenario_known",
+      "passed": true,
+      "detail": "scenario='two-clients-one-stall', known=['two-clients-one-stall']"
+    },
+    {
+      "gate": "manifest_matches_scenario",
+      "passed": true,
+      "detail": "manifest=['client1', 'client2'], scenario=['client1', 'client2']"
+    },
+    {
+      "gate": "client_logs_match_manifest",
+      "passed": true,
+      "detail": "missing=[], unexpected=[]"
+    },
+    {
+      "gate": "stalled_clients_in_manifest",
+      "passed": true,
+      "detail": "stalled=['client2']"
+    },
+    {
+      "gate": "stall_plan_matches_scenario",
+      "passed": true,
+      "detail": "stalled=['client2'], scenario=['client2']"
+    },
+    {
+      "gate": "exit_codes_cover_all_processes",
+      "passed": true,
+      "detail": "exit_codes for ['client1', 'client2', 'host']"
+    },
+    {
+      "gate": "host_reported_stop",
+      "passed": true,
+      "detail": "host_stopped event present"
+    },
+    {
+      "gate": "transport_declared",
+      "passed": true,
+      "detail": "transport='udp'"
+    },
+    {
+      "gate": "transport_matches_host_log",
+      "passed": true,
+      "detail": "run.json='udp', host_stopped='udp'"
+    },
+    {
+      "gate": "host_exit_code",
+      "passed": true,
+      "detail": "exit 0"
+    },
+    {
+      "gate": "host_invalid_packets_zero",
+      "passed": true,
+      "detail": "invalid=0"
+    },
+    {
+      "gate": "host_tick_drift",
+      "passed": true,
+      "detail": "drift=0.00027 (ticks=3781, expected=3780.0)"
+    },
+    {
+      "gate": "host_never_skipped_ticks",
+      "passed": true,
+      "detail": "skipped_ticks=0"
+    },
+    {
+      "gate": "host_ran_full_duration",
+      "passed": true,
+      "detail": "uptime=126.0 s, duration=120.0 s"
+    },
+    {
+      "gate": "client1_summary_present",
+      "passed": true,
+      "detail": "summary event present"
+    },
+    {
+      "gate": "client1_exit_code",
+      "passed": true,
+      "detail": "exit 0"
+    },
+    {
+      "gate": "client1_final_connected",
+      "passed": true,
+      "detail": "final_state=connected"
+    },
+    {
+      "gate": "client1_invalid_zero",
+      "passed": true,
+      "detail": "invalid=0"
+    },
+    {
+      "gate": "client1_ran_full_duration",
+      "passed": true,
+      "detail": "elapsed=120.0 s, min=114.0 s"
+    },
+    {
+      "gate": "client1_rtt_sample_count",
+      "passed": true,
+      "detail": "samples=335, min=240"
+    },
+    {
+      "gate": "client1_rtt_p99",
+      "passed": true,
+      "detail": "p99=238.5 ms, limit=300.0 ms (configured 240.0 + 60.0; synthetic loopback bound)"
+    },
+    {
+      "gate": "client1_download_mean_budget",
+      "passed": true,
+      "detail": "mean in=18.43 kbit/s, budget=24.08 (mean-rate gate, not a peak gate)"
+    },
+    {
+      "gate": "client1_upload_mean_budget",
+      "passed": true,
+      "detail": "mean out=30.01 kbit/s, budget=31.00 (mean-rate gate, not a peak gate)"
+    },
+    {
+      "gate": "client1_correction_budget",
+      "passed": true,
+      "detail": "max_correction=0.333286, budget=2.000"
+    },
+    {
+      "gate": "client1_no_reconnects",
+      "passed": true,
+      "detail": "reconnects=0"
+    },
+    {
+      "gate": "client2_summary_present",
+      "passed": true,
+      "detail": "summary event present"
+    },
+    {
+      "gate": "client2_exit_code",
+      "passed": true,
+      "detail": "exit 0"
+    },
+    {
+      "gate": "client2_final_connected",
+      "passed": true,
+      "detail": "final_state=connected"
+    },
+    {
+      "gate": "client2_invalid_zero",
+      "passed": true,
+      "detail": "invalid=0"
+    },
+    {
+      "gate": "client2_ran_full_duration",
+      "passed": true,
+      "detail": "elapsed=120.0 s, min=114.0 s"
+    },
+    {
+      "gate": "client2_rtt_sample_count",
+      "passed": true,
+      "detail": "samples=329, min=240"
+    },
+    {
+      "gate": "client2_rtt_p99",
+      "passed": true,
+      "detail": "p99=239.376007 ms, limit=300.0 ms (configured 240.0 + 60.0; synthetic loopback bound)"
+    },
+    {
+      "gate": "client2_download_mean_budget",
+      "passed": true,
+      "detail": "mean in=18.25 kbit/s, budget=24.08 (mean-rate gate, not a peak gate)"
+    },
+    {
+      "gate": "client2_upload_mean_budget",
+      "passed": true,
+      "detail": "mean out=28.22 kbit/s, budget=31.00 (mean-rate gate, not a peak gate)"
+    },
+    {
+      "gate": "client2_correction_budget",
+      "passed": true,
+      "detail": "max_correction=0.333333, budget=2.000"
+    },
+    {
+      "gate": "client2_reconnected_once",
+      "passed": true,
+      "detail": "reconnects=1"
+    },
+    {
+      "gate": "client2_recovery_time",
+      "passed": true,
+      "detail": "recovery=2720.0 ms, limit=3000.0 ms"
+    },
+    {
+      "gate": "host_timeouts_match_stalls",
+      "passed": true,
+      "detail": "timeouts=1"
+    },
+    {
+      "gate": "host_reconnects_match_stalls",
+      "passed": true,
+      "detail": "reconnects=1"
+    },
+    {
+      "gate": "host_joins_match_manifest",
+      "passed": true,
+      "detail": "joins=2, expected=2"
+    },
+    {
+      "gate": "client1_realized_rtt_floor",
+      "passed": true,
+      "detail": "rtt_p5=176.057999 ms over 335 samples (min 100), floor=158.0 ms (2 x latency 80 - 2.0); rtt_min=166.451996 reported only"
+    },
+    {
+      "gate": "client1_realized_handshake_delay",
+      "passed": true,
+      "detail": "first connected at 2979 ms, floor=478.0 ms (secure handshake)"
+    },
+    {
+      "gate": "client2_realized_rtt_floor",
+      "passed": true,
+      "detail": "rtt_p5=178.725006 ms over 329 samples (min 100), floor=158.0 ms (2 x latency 80 - 2.0); rtt_min=167.518997 reported only"
+    },
+    {
+      "gate": "client2_realized_handshake_delay",
+      "passed": true,
+      "detail": "first connected at 2764 ms, floor=478.0 ms (secure handshake)"
+    },
+    {
+      "gate": "realized_upstream_loss",
+      "passed": true,
+      "detail": "host packets_in / clients packets_out = 0.8450, expected within [0.6800, 0.9750] (loss 0.15, dup 0.05)"
+    },
+    {
+      "gate": "client1_realized_delivery",
+      "passed": true,
+      "detail": "host packets_in[player 2]=3978 / packets_out=4688 = 0.8485494880546075, expected within [0.6800, 0.9750]"
+    },
+    {
+      "gate": "client1_leave_confirmed",
+      "passed": true,
+      "detail": "leave_confirmed=True, leave_ms=186, disconnects_sent=3"
+    },
+    {
+      "gate": "client2_realized_delivery",
+      "passed": true,
+      "detail": "host packets_in[player 1]=3703 / packets_out=4443 = 0.83344586990772, expected within [0.6800, 0.9750]"
+    },
+    {
+      "gate": "client2_leave_confirmed",
+      "passed": true,
+      "detail": "leave_confirmed=True, leave_ms=189, disconnects_sent=3"
+    },
+    {
+      "gate": "events_generated",
+      "passed": true,
+      "detail": "queued=469, min=240"
+    },
+    {
+      "gate": "events_applied_all_but_in_flight",
+      "passed": true,
+      "detail": "applied=467, queued=469, in-flight allowance=8"
+    },
+    {
+      "gate": "events_dropped_only_at_end",
+      "passed": true,
+      "detail": "dropped_with_slot=2, allowance=8"
+    },
+    {
+      "gate": "client1_events_in_order",
+      "passed": true,
+      "detail": "event_order_errors=0"
+    },
+    {
+      "gate": "client1_events_applied",
+      "passed": true,
+      "detail": "applied=233, min=120"
+    },
+    {
+      "gate": "client2_events_in_order",
+      "passed": true,
+      "detail": "event_order_errors=0"
+    },
+    {
+      "gate": "client2_events_applied",
+      "passed": true,
+      "detail": "applied=234, min=120"
+    }
+  ],
+  "passed": true
+}

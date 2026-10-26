@@ -1,0 +1,83 @@
+{
+  "experiment": "EXP-021",
+  "record": "evidence/experiments/EXP-021.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-dtls-before-now-fix-2026-10-24.json",
+    "evidence/logs/tests-dtls-reliable-livelock-2026-10-24.json",
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "a98b62e9d8e8be724a68aa60fb3e409c15053e36",
+      "role": "created",
+      "subject": "Review #8 part 2: secure executables (keys, invitations, fail-closed CLI), secure E2E/soak, five fixes",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-dtls-before-now-fix-2026-10-24.json",
+          "blob": "5335695f7bc227360f42429bd3692bea8fe25035",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-dtls-before-now-fix-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-reliable-livelock-2026-10-24.json",
+          "blob": "5335695f7bc227360f42429bd3692bea8fe25035",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-dtls-reliable-livelock-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "9e3a71a57b212f60899b5a069c633b353e7e2b49",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "df33cbf01253e2779f832ae631454aa4f85c558d",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "3f981c2f08172597deaced8a821ca8574f77cea2",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "da3d50edfa088dd800776fd9f0df19e83f6d963a",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "91a5c5727f9e7da272f408004c90de6e821aba09",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "715079a80e462ecfc0a9ef22fe7b8f5fe037ecfc",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "05469df34479d98a40ab69c95e752938da9f4a1b",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "53584f52e32d67a6465cba9e5c8b3e4ce482e398",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "a5c5cfeb1df525ca796a2538040718d7abd173ba",
+          "recovered_path": "evidence/logs/recovered/EXP-021/a98b62e/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

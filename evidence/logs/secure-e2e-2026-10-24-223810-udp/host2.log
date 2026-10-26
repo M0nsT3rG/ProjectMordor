@@ -1,0 +1,25 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"clock","mono_us":146250653524}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":7,"lvl":"info","comp":"host","evt":"security","mode":"dtls","own_fingerprint":"5a921dd756b8fa29b2868f806ba60a51ac500b1cd4d86441a29c6b6ea1c38047","invitation":"e2e-udp"}
+{"t_ms":9,"lvl":"info","comp":"host","evt":"host_started","port":47845,"loopback_only":true,"session":1511423601,"secure":true,"tick_rate_hz":30,"protocol_version":3,"transport":"udp"}
+{"t_ms":161,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"inner_connected","mono_us":146250814791,"peer":1,"detail":""}
+{"t_ms":4215,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"inner_connected","mono_us":146254868586,"peer":2,"detail":""}
+{"t_ms":4219,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":146254868586,"peer":2,"detail":"22/0/1"}
+{"t_ms":4219,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":146254868586,"peer":2,"detail":"22/0/3"}
+{"t_ms":4221,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":146254874575,"peer":2,"detail":"22/0/1"}
+{"t_ms":4221,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":146254874575,"peer":2,"detail":"22/0/2,22/0/11,22/0/12,22/0/13,22/0/14"}
+{"t_ms":4224,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rx","mono_us":146254878077,"peer":2,"detail":"22/0/11,22/0/16,22/0/15,20/0,22/1"}
+{"t_ms":4224,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":146254878077,"peer":2,"detail":"21/0"}
+{"t_ms":4224,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rejected","mono_us":146254878077,"peer":2,"detail":"handshake_failed: no matching DANE TLSA records error:0A000086:SSL routines::certificate verify failed"}
+{"t_ms":4276,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"inner_connected","mono_us":146254929581,"peer":3,"detail":""}
+{"t_ms":4276,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":146254929581,"peer":3,"detail":"22/0/1"}
+{"t_ms":4276,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":146254929581,"peer":3,"detail":"22/0/3"}
+{"t_ms":4277,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"listen_rx","mono_us":146254931200,"peer":3,"detail":"22/0/1"}
+{"t_ms":4278,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":146254931200,"peer":3,"detail":"22/0/2,22/0/11,22/0/12,22/0/13,22/0/14"}
+{"t_ms":4279,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rx","mono_us":146254932738,"peer":3,"detail":"22/0/11,22/0/16,22/0/15,20/0,22/1"}
+{"t_ms":4280,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"handshake_done","mono_us":146254932738,"peer":3,"detail":""}
+{"t_ms":4280,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"tx","mono_us":146254932738,"peer":3,"detail":"22/0/4,20/0,22/1,23/1"}
+{"t_ms":4281,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rx","mono_us":146254934728,"peer":3,"detail":"23/1"}
+{"t_ms":4281,"lvl":"info","comp":"host","evt":"dtls_trace","ev":"rejected","mono_us":146254934728,"peer":3,"detail":"binding_invitation_mismatch"}
+{"t_ms":14011,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":0,"packets_out":0,"invalid":0,"bytes_in":0,"bytes_out":0,"world_tick":421,"uptime_us":13999971,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":0,"joins":0,"reconnects":0,"timeouts":0,"timeout_notices":0,"unknown_peer":0,"send_errors":0,"transport":"udp","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0,"transport_simulated_drops":0,"transport_sent":0,"transport_received":0,"events_queued":0,"events_applied":0,"events_retransmitted":0,"events_replayed":0,"events_dropped_with_slot":0,"events_send_refused":0,"event_acks_invalid":0,"clean_leaves":0,"leave_acks_repeated":0,"leave_lingers_cut":0}
+{"t_ms":14011,"lvl":"info","comp":"host","evt":"secure_stats","authenticated":0,"pending_opened":2,"pending_failed":2,"pending_refused_cap":0,"dropped_not_dtls":16,"idle_timeouts":0,"reliable_retransmits":0,"pending_replaced":0,"hello_verify_sent":2,"hello_rate_limited":0,"promotions_replacing":0,"rejected_established":0,"handshakes_done":0,"handshake_retransmits":0,"handshake_ms_max":0}

@@ -1,0 +1,24 @@
+{
+  "id": "EXP-012",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, loopback, real wall-clock time",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Address ChatGPT's review #2 follow-up (manifest well-formedness and scenario match; mean vs peak bandwidth) as soak gate version 3 and re-run the soak.",
+  "hypothesis": "v2 trusted a self-declared, possibly duplicated or malformed expected_clients list; mean-rate bandwidth gates hide bursts.",
+  "procedure": "Implemented gate v3 in tools/soak/analyze.py (valid unique names, known scenario, manifest and stall plan equal to the scenario; bandwidth gates renamed *_mean_budget; 1 s window p95/p99/peak reported from status lines). Added 6 analyzer self-checks; ./scripts/soak.ps1 -Profile lan|moderate|harsh -DurationS 120 into fresh -g3 directories.",
+  "expected_result": "Self-checks prove each new gate can fail; all three v3 soak runs pass.",
+  "observed_result": "Self-checks 17/17 (6 new). Writing them exposed a defect in the new code itself: a non-string client name crashed the analyzer (TypeError in sorted) instead of failing a gate; fixed and covered. v3 soak: soak-2026-10-23-212948-lan-g3: gate v3 PASSED (41 gates); client1 rtt p50/p99 10.5/12.1 ms; recovery 21.0 ms; client1 mean in 21.63 vs 1 s window peak 21.86 kbit/s (mean budget 22.93); timeout_notices 1 | soak-2026-10-23-213209-moderate-g3: gate v3 PASSED (41 gates); client1 rtt p50/p99 104.3/120.5 ms; recovery 154.0 ms; client1 mean in 21.06 vs 1 s window peak 23.9 kbit/s (mean budget 23.39); timeout_notices 1 | soak-2026-10-23-213417-harsh-g3: gate v3 PASSED (41 gates); client1 rtt p50/p99 204.6/237.5 ms; recovery 1328.0 ms; client1 mean in 19.34 vs 1 s window peak 24.84 kbit/s (mean budget 24.08); timeout_notices 1. Finding: 1 s window peaks of the download rate exceed the MEAN-rate ceiling in moderate and harsh (e.g. 23.95 vs 23.39 kbit/s), so a future peak gate needs its own justified bound; the mean gate is not a peak bound.",
+  "evidence_paths": [
+    "evidence/logs/soak-2026-10-23-212948-lan-g3/summary.json",
+    "evidence/logs/soak-2026-10-23-213209-moderate-g3/summary.json",
+    "evidence/logs/soak-2026-10-23-213417-harsh-g3/summary.json"
+  ],
+  "result": "PASSED",
+  "errors": "",
+  "confidence": "medium",
+  "follow_up": "Design a peak/burst bound (e.g. from jitter bunching and duplication) as a future gate version; FB-2-05 stall coverage.",
+  "related": [
+    "EXP-011"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "F-GNS-002",
+  "type": "finding",
+  "date": "2026-10-25",
+  "subsystem": "networking",
+  "claim": "In GameNetworkingSockets v1.6.1, packets arriving on a shared direct-UDP listen socket are dispatched by source address: an accepted connection is registered under its remote address (CSharedSocket::AddRemoteHost) and receives only packets from that address; any other source goes to the listen socket's unknown-address handler (challenge / connect / close messages). Together with F-GNS-001, data on an established GNS connection comes only from the address that answered the stateless challenge.",
+  "evidence": "CSharedSocket::DefaultCallbackRecvPacket looks up info.m_adrFrom in m_mapRemoteHosts and calls that remote host's callback, else m_callbackUnknownAddress; AddRemoteHost inserts adrRemote -> callback and refuses a duplicate address.",
+  "sources": [
+    {
+      "url": "https://github.com/ValveSoftware/GameNetworkingSockets",
+      "commit": "d534c19aa760df3fb75fd20db13ba1932b8a5463",
+      "path": "src/steamnetworkingsockets/clientlib/steamnetworkingsockets_socketthread.cpp",
+      "location": "CSharedSocket::DefaultCallbackRecvPacket (about line 3582) and CSharedSocket::AddRemoteHost (about line 3639) at tag v1.6.1"
+    }
+  ],
+  "game_build_compatibility": "N/A (prototype transport library)",
+  "verification_method": "Read-only reading of the shallow clone of tag v1.6.1 used for F-GNS-001; nothing built or run from it.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Server (listen-socket) side of the direct-UDP path only; the client side of ConnectByIPAddress was not traced. Address-bound dispatch is not identity: a spoofed packet from a connected peer's address reaches that connection (GNS's own per-connection crypto and our DTLS still apply). Relays and P2P signalling are not used by this project and were not examined.",
+  "next_experiment": "Predeclared A/B (EXP-027): skip our DTLS cookie exchange on GNS only, keep identity authentication; negative tests for unauthorized peers and for the UDP path keeping its cookie.",
+  "related": [
+    "F-GNS-001"
+  ]
+}

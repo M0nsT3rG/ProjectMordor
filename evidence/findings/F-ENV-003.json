@@ -16,6 +16,7 @@
   "game_build_compatibility": "Measured on exe SHA-256 ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF (FileVersion 1.0.8874.0, Steam buildid 3095001)",
   "verification_method": "Read-only local inspection with tools/environment/discover_game.py and pe_inventory.py; re-run scripts/inventory.ps1 to reproduce.",
   "classification": "HYPOTHESIS",
+  "verification_scope": "locally_measured",
   "confidence": "medium",
   "limitations": "Attribution to SteamStub is inferred from public descriptions of the wrapper, not proven. Analysing or removing the wrapper is out of scope (rule 3).",
   "next_experiment": "None in Phase 1. Any approach that needs plaintext code on disk is blocked by rule 3; see EXP-003.",

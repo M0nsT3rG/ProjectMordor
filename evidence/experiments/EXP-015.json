@@ -1,0 +1,23 @@
+{
+  "id": "EXP-015",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, loopback (UDP backend); GNS build also run",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "ChatGPT review #4: finalize the Transport contract (identity, lifecycle, delivery classes, errors) before the GNS adapter, keep UDP behaviour, and add backend-independent contract tests.",
+  "hypothesis": "A PeerId+generation / event-based contract with explicit SendResult can replace endpoint identity without changing any observable UDP behaviour.",
+  "procedure": "Transport v2 (PeerId{id,generation}, Connected/Disconnected/Message/DroppedInbound events, Delivery::Unreliable|ReliableOrdered, SendResult, TransportStats incl. accepted_then_failed/discarded_on_close/simulated_drops, capabilities); UdpTransport v2; Host/Client migrated to PeerId and events (incl. transport Disconnected -> grace/reconnect, send errors counted). New suite tests/transport (10 contract tests over every available backend). Mutation check: removed generation increment and discarded_on_close counting, re-ran, restored. Regression: UDP suites x3 in both builds, E2E, moderate soak gate v3.",
+  "expected_result": "UDP tests/harness unchanged and passing; contract tests pass and fail on the mutants; soak passes.",
+  "observed_result": "UDP tests and harness unchanged (git diff 42e9451 empty) and passing x3; transport contract 10/10; the mutant failed exactly contract_endpoint_reuse_gets_new_peer_generation and contract_queued_data_discarded_on_close_is_counted (8/10), restored 10/10; GNS build 5 suites x3 passed; E2E passed; soak-2026-10-23-221702-moderate-g3 41/41 gates (RTT p50/p99 103.6/122.3 ms, recovery 140 ms) with host send_errors=0, transport_accepted_then_failed=0, transport_discarded_on_close=0. Also fixed during implementation: a draft of Host::update polled the transport a second time after timeouts (semantic change), caught before compiling; the contract gained flush() so update() keeps receive-then-flush order.",
+  "evidence_paths": [
+    "evidence/logs/recovered/EXP-015",
+    "evidence/logs/soak-2026-10-23-221702-moderate-g3/summary.json"
+  ],
+  "result": "PASSED",
+  "errors": "",
+  "confidence": "high",
+  "follow_up": "GNS adapter must pass tests/transport unchanged (incl. reliable delivery and disconnect-with-queued-reliable cases); D-013 handshake choice.",
+  "related": [
+    "EXP-014"
+  ]
+}

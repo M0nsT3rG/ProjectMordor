@@ -1,0 +1,13 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"clock","mono_us":63276529891}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":0,"lvl":"info","comp":"host","evt":"security","mode":"plaintext","own_fingerprint":"","skip_cookie_if_routable":false,"invitation":""}
+{"t_ms":2,"lvl":"info","comp":"host","evt":"host_started","port":47833,"loopback_only":true,"session":4285214289,"secure":false,"tick_rate_hz":30,"protocol_version":3,"transport":"udp"}
+{"t_ms":118,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":122,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":10121,"lvl":"info","comp":"host","evt":"player_timeout","player":2,"grace_ms":30000}
+{"t_ms":12201,"lvl":"info","comp":"host","evt":"player_reconnected","player":2,"entity":2}
+{"t_ms":24118,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":24118,"lvl":"info","comp":"host","evt":"player_stats","player":1,"packets_in":815}
+{"t_ms":24124,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":24124,"lvl":"info","comp":"host","evt":"player_stats","player":2,"packets_in":641}
+{"t_ms":30003,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":1461,"packets_out":1555,"invalid":0,"bytes_in":70867,"bytes_out":125211,"world_tick":901,"uptime_us":29999732,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":1702,"joins":2,"reconnects":1,"timeouts":1,"timeout_notices":1,"unknown_peer":2,"send_errors":0,"transport":"udp","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0,"transport_simulated_drops":0,"transport_sent":1555,"transport_received":1461,"events_queued":0,"events_applied":0,"events_retransmitted":0,"events_replayed":0,"events_dropped_with_slot":0,"events_send_refused":0,"event_acks_invalid":0,"clean_leaves":2,"leave_acks_repeated":0,"leave_lingers_cut":0}

@@ -3,6 +3,8 @@
 #include <numbers>
 #include <random>
 
+#include "client/event_order.hpp"
+#include "common/cli.hpp"
 #include "test_support.hpp"
 
 using namespace mordor;
@@ -43,6 +45,18 @@ Snapshot sample_snapshot() {
 }  // namespace
 
 // Test 4 (unit part): transforms survive the wire bit-exactly, including -0 and limits.
+TEST(json_escape_handles_quotes_backslashes_and_control_characters) {
+    // FB-22-01: the runner's results file must stay valid JSON whatever --suite or an error message contains.
+    using test::json_escape;
+    CHECK(json_escape("plain_name") == "plain_name");
+    CHECK(json_escape("a\"b") == "a\\\"b");
+    CHECK(json_escape("C:\\dir\\file") == "C:\\\\dir\\\\file");
+    CHECK(json_escape("line1\nline2\r\tend") == "line1\\nline2\\r\\tend");
+    CHECK(json_escape(std::string_view("\x01\x1f", 2)) == "\\u0001\\u001f");
+    CHECK(json_escape(std::string_view("nul\0x", 5)) == "nul\\u0000x");
+    CHECK(json_escape("M\xC3\xBAsica") == "M\xC3\xBAsica");  // UTF-8 passes through unchanged
+}
+
 TEST(transform_snapshot_roundtrip) {
     const auto s = sample_snapshot();
     const auto out = roundtrip(s);
@@ -54,12 +68,25 @@ TEST(all_message_types_roundtrip) {
     CHECK(roundtrip(ConnectRequest{0x1122334455667788ull, 99}) == (ConnectRequest{0x1122334455667788ull, 99}));
     CHECK(roundtrip(ConnectAccept{77, 1, 2, 3, 30, 400}) == (ConnectAccept{77, 1, 2, 3, 30, 400}));
     CHECK(roundtrip(ConnectReject{RejectReason::ServerFull, 1}) == (ConnectReject{RejectReason::ServerFull, 1}));
-    CHECK(roundtrip(Disconnect{DisconnectReason::Timeout}) == (Disconnect{DisconnectReason::Timeout}));
+    CHECK(roundtrip(Disconnect{DisconnectReason::Timeout, 3}) == (Disconnect{DisconnectReason::Timeout, 3}));
     CHECK(roundtrip(Heartbeat{123456789}) == (Heartbeat{123456789}));
     CHECK(roundtrip(HeartbeatAck{987654321}) == (HeartbeatAck{987654321}));
     InputBatch b;
     for (std::uint32_t i = 1; i <= kMaxInputsPerPacket; ++i) b.inputs.push_back({i, -1.0f, 1.0f});
     CHECK(roundtrip(b) == b);
+}
+
+// Review #9 FB-9-02 (protocol v2): event messages round-trip; limits are enforced on both sides.
+TEST(event_messages_roundtrip_and_respect_limits) {
+    GameEvent e{7, 42, {1, 2, 3}, 5};
+    CHECK(roundtrip(e) == e);
+    CHECK(roundtrip(EventAck{123, 5}) == (EventAck{123, 5}));
+    CHECK(roundtrip(DisconnectAck{3}) == (DisconnectAck{3}));
+    CHECK(encode(hdr(1), GameEvent{0, 1, {}}).empty());                                       // id 0 is invalid
+    CHECK(encode(hdr(1), GameEvent{1, 1, std::vector<std::uint8_t>(kMaxEventPayload + 1)}).empty());  // too large
+    auto bytes = encode(hdr(1), GameEvent{1, 1, {9}});
+    bytes[kHeaderSize + 8] = 200;  // claimed payload length beyond the packet (id 4, player 2, kind 2 bytes before it)
+    CHECK(!decode(bytes).packet);
 }
 
 TEST(header_layout_is_22_bytes_little_endian) {
@@ -263,8 +290,50 @@ TEST(interpolation_is_consistent) {
     CHECK(buf.size() == sim::InterpolationBuffer::kCapacity);
 }
 
+// Review #6 answer 3: the connect deadline is a configurable policy with an explicit range; out of range fails.
+TEST(connect_deadline_policy_is_bounded) {
+    auto parse = [](std::vector<const char*> argv) {
+        argv.insert(argv.begin(), "mordor-client");
+        cli::Args a(static_cast<int>(argv.size()), const_cast<char**>(argv.data()));
+        return cli::connect_deadline_us_from(a, client::kMinConnectDeadlineUs, client::kMaxConnectDeadlineUs, 20'000'000);
+    };
+    CHECK(parse({}) == 20'000'000);
+    CHECK(parse({"--connect-deadline-s", "30"}) == 30'000'000);
+    CHECK(parse({"--connect-deadline-s", "120"}) == 120'000'000);
+    for (const char* bad : {"0", "0.5", "121", "-3"}) {
+        bool threw = false;
+        try {
+            parse({"--connect-deadline-s", bad});
+        } catch (const std::invalid_argument&) {
+            threw = true;
+        }
+        CHECK(threw);
+    }
+    client::ClientConfig cc;
+    cc.connect_deadline_us = 200'000'000;
+    client::Client c(cc, test::test_logger("client"));
+    std::string err;
+    CHECK(!c.start(&err) && !err.empty());  // the library refuses it too, not only the CLI
+}
+
 TEST(interpolation_takes_short_path_for_yaw) {
     const float pi = std::numbers::pi_v<float>;
     const float r = sim::lerp_angle(pi - 0.1f, -pi + 0.1f, 0.5f);
     CHECK_NEAR(std::fabs(r), pi, 1e-4);  // through +-pi, not through 0
+}
+
+// Codex (PR #24): the client application's event-order check follows the stream: a reconnect to the same player
+// continues it, a new host session or a new player restarts it at id 1, and only real gaps or repeats count.
+TEST(event_order_check_follows_the_stream) {
+    client::EventOrderCheck c;
+    for (std::uint32_t id : {1u, 2u, 3u}) c.apply(7, 1, id);
+    c.apply(7, 1, 4);  // a token reconnect to the same player: the same stream
+    CHECK(c.errors == 0);
+    c.apply(9, 1, 1);  // the host restarted: a new session, ids again from 1
+    c.apply(9, 2, 1);  // a new player in that session (grace expired): again from 1
+    c.apply(9, 2, 2);
+    CHECK(c.errors == 0);
+    c.apply(9, 2, 4);  // a gap
+    c.apply(9, 2, 4);  // a repeat
+    CHECK(c.errors == 2);
 }

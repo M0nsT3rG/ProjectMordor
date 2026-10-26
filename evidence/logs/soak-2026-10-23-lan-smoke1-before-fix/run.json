@@ -1,0 +1,24 @@
+{
+    "profile":  "lan",
+    "clock":  "real-time",
+    "started_utc":  "2026-10-23T18:14:36.1161806Z",
+    "duration_s":  20,
+    "impairment":  {
+                       "latency_ms":  2,
+                       "loss":  0.01,
+                       "jitter_ms":  2,
+                       "duplicate":  0
+                   },
+    "impairment_scope":  "every sender (host and both clients), independent seeds",
+    "stalled_clients":  [
+                            "client2"
+                        ],
+    "stall_at_s":  8,
+    "stall_s":  5,
+    "host_timeout_ms":  3000,
+    "exit_codes":  {
+                       "host":  0,
+                       "client1":  0,
+                       "client2":  0
+                   }
+}

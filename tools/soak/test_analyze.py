@@ -1,0 +1,212 @@
+"""Self-checks for analyze.py with synthetic logs: python -I tools/soak/test_analyze.py"""
+import json
+import sys
+import tempfile
+import unittest
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import analyze  # noqa: E402
+
+
+def summary(p99=110.0, reconnects=0, kin=20.0, kout=25.0, max_corr=0.3, samples=400, elapsed_ms=120_000,
+            rtt_min=82.0, packets_out=4000, events_applied=200, order_errors=0, rtt_p5=84.0, player=1):
+    # kbit/s = bytes * 8 / elapsed_ms  =>  bytes = kbit/s * elapsed_ms / 8
+    return {"t_ms": 119_000, "evt": "summary", "final_state": "connected", "rtt_p99_ms": p99, "reconnects": reconnects,
+            "invalid": 0, "bytes_in": int(kin * elapsed_ms / 8), "bytes_out": int(kout * elapsed_ms / 8),
+            "elapsed_ms": elapsed_ms, "rtt_samples": samples, "max_correction": max_corr, "rtt_min_ms": rtt_min,
+            "packets_out": packets_out, "events_applied": events_applied, "event_order_errors": order_errors,
+            "rtt_p5_ms": rtt_p5, "player": player}
+
+
+def leave(confirmed=True):
+    return {"t_ms": 119_100, "evt": "leave", "leave_confirmed": confirmed, "leave_ms": 90, "disconnects_sent": 2}
+
+
+def write_run(d: Path, *, host_invalid=0, c2_reconnects=1, c2_recovery_ms=800, c1=None, exit_c1=0, drift_ticks=0,
+              expected=("client1", "client2"), logs=("client1", "client2"), manifest=True,
+              scenario="two-clients-one-stall", stalled=("client2",), statuses=None, transport="udp", host_transport="udp",
+              host_packets_in=7600, secure=False, connect_ms=500, events_queued=480, events_applied_host=478, c2=None,
+              player_in=(3800, 3800), leaves=(True, True)):
+    run = {"profile": "test", "duration_s": 120, "impairment": {"latency_ms": 40, "jitter_ms": 20, "loss": 0.05, "duplicate": 0.0},
+           "stall_s": 5, "host_timeout_ms": 3000, "stalled_clients": list(stalled), "scenario": scenario, "transport": transport,
+           "exit_codes": {"host": 0, "client1": exit_c1, "client2": 0}, "secure": secure, "event_interval_ms": 500}
+    if manifest:
+        run["expected_clients"] = list(expected)
+    (d / "run.json").write_text(json.dumps(run))
+    host = [{"t_ms": 0, "evt": "host_started"}] + [
+        {"t_ms": 119_200, "evt": "player_stats", "player": i + 1, "packets_in": n} for i, n in enumerate(player_in) if n is not None] + [
+            {"t_ms": 126_000, "evt": "host_stopped", "invalid": host_invalid, "uptime_us": 126_000_000, "tick_rate_hz": 30,
+             "world_tick": 3780 + drift_ticks, "skipped_ticks": 0, "shed_inputs": 3, "joins": 2, "reconnects": 1, "timeouts": 1, "transport": host_transport,
+             "packets_in": host_packets_in, "events_queued": events_queued, "events_applied": events_applied_host,
+             "events_dropped_with_slot": 2}]
+    (d / "host.log").write_text("\n".join(map(json.dumps, host)))
+    contents = {
+        "client1": [{"t_ms": connect_ms, "evt": "connected"}] + list(statuses or []) + [c1 or summary(), leave(leaves[0])],
+        "client2": [{"t_ms": connect_ms, "evt": "connected"}, {"t_ms": 48_000, "evt": "stall_begin"}, {"t_ms": 53_000, "evt": "stall_end"},
+                    {"t_ms": 53_000 + c2_recovery_ms, "evt": "reconnected"}, c2 or summary(reconnects=c2_reconnects, player=2),
+                    leave(leaves[1])],
+    }
+    for name in logs:
+        (d / f"{name}.log").write_text("\n".join(map(json.dumps, contents.get(name, contents["client1"]))))
+
+
+def failed(result):
+    return {g["gate"] for g in result["gates"] if not g["passed"]}
+
+
+class AnalyzeTests(unittest.TestCase):
+    def run_case(self, **kw):
+        with tempfile.TemporaryDirectory() as d:
+            write_run(Path(d), **kw)
+            return analyze.analyze(Path(d))
+
+    def test_healthy_run_passes(self):
+        r = self.run_case()
+        self.assertTrue(r["passed"], failed(r))
+        self.assertEqual(r["gate_version"], 6)
+        self.assertEqual(r["distributions"]["delivery_ratio"], {"client1": 0.95, "client2": 0.95})
+        self.assertEqual(r["clients"]["client2"]["recovery_after_stall_ms"], 800)
+
+    def test_each_v5_gate_can_fail(self):
+        # Realized impairment (FB-9-03): configured 40 ms latency, 5% loss, 0 dup.
+        self.assertIn("client1_realized_rtt_floor", failed(self.run_case(c1=summary(rtt_p5=3.0))))  # impairment off
+        self.assertIn("client1_realized_handshake_delay", failed(self.run_case(connect_ms=10)))
+        self.assertIn("client1_realized_handshake_delay", failed(self.run_case(secure=True, connect_ms=150)))  # < 3 RTT
+        self.assertNotIn("client1_realized_handshake_delay", failed(self.run_case(secure=True, connect_ms=300)))
+        self.assertIn("realized_upstream_loss", failed(self.run_case(host_packets_in=8000)))  # no loss happened
+        self.assertIn("realized_upstream_loss", failed(self.run_case(host_packets_in=6000)))  # far too much loss
+        # Application-level events (FB-9-02).
+        self.assertIn("events_applied_all_but_in_flight", failed(self.run_case(events_applied_host=400)))
+        self.assertIn("client1_events_in_order", failed(self.run_case(c1=summary(order_errors=1))))
+        self.assertIn("events_generated", failed(self.run_case(events_queued=10, events_applied_host=10)))
+
+    def test_each_v6_gate_can_fail(self):
+        # v6 (FB-10-05): p5 floor with a sample minimum, one outlier minimum no longer decides it.
+        self.assertNotIn("client1_realized_rtt_floor", failed(self.run_case(c1=summary(rtt_min=3.0))))
+        self.assertIn("client1_realized_rtt_floor", failed(self.run_case(c1=summary(samples=99))))
+        # Per-client delivery: an aggregate that looks fine can hide one client with no loss and one with too much.
+        r = self.run_case(player_in=(4000, 3400))  # 1.0 and 0.85 vs [0.88, 0.985]
+        self.assertNotIn("realized_upstream_loss", failed(r))
+        self.assertIn("client1_realized_delivery", failed(r))
+        self.assertIn("client2_realized_delivery", failed(r))
+        self.assertIn("client2_realized_delivery", failed(self.run_case(player_in=(3800, None))))  # host logged nothing
+        # Confirmed leave (KI-37).
+        self.assertIn("client2_leave_confirmed", failed(self.run_case(leaves=(True, False))))
+
+    def test_each_v1_gate_can_fail(self):
+        self.assertIn("host_invalid_packets_zero", failed(self.run_case(host_invalid=1)))
+        self.assertIn("client2_reconnected_once", failed(self.run_case(c2_reconnects=2)))
+        self.assertIn("client2_recovery_time", failed(self.run_case(c2_recovery_ms=3500)))
+        self.assertIn("client1_rtt_p99", failed(self.run_case(c1=summary(p99=200.0))))  # limit = 2*(40+20)+60 = 180
+        self.assertIn("client1_exit_code", failed(self.run_case(exit_c1=1)))
+        self.assertIn("host_tick_drift", failed(self.run_case(drift_ticks=80)))  # 80/3780 > 1 %
+
+    def test_missing_summary_fails_not_passes(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_run(Path(d))
+            (Path(d) / "client1.log").write_text("not json\n")
+            r = analyze.analyze(Path(d))
+            self.assertFalse(r["passed"])
+            self.assertIn("client1_summary_present", failed(r))
+
+    # FB-2-01: the manifest, not the directory listing, defines who must be gated.
+    def test_missing_client_log_fails(self):
+        r = self.run_case(logs=("client1",))  # client2 never produced a log
+        self.assertFalse(r["passed"])
+        self.assertIn("client_logs_match_manifest", failed(r))
+        self.assertIn("client2_summary_present", failed(r))   # still gated although absent
+        self.assertIn("client2_reconnected_once", failed(r))  # its stall gates are not skipped
+
+    def test_renamed_client_log_fails(self):
+        r = self.run_case(logs=("client1", "client3"))
+        self.assertIn("client_logs_match_manifest", failed(r))
+        self.assertIn("client2_summary_present", failed(r))
+
+    def test_extra_client_log_fails(self):
+        r = self.run_case(logs=("client1", "client2", "client3"))
+        self.assertIn("client_logs_match_manifest", failed(r))
+
+    def test_missing_manifest_fails(self):
+        r = self.run_case(manifest=False)
+        self.assertIn("manifest_lists_expected_clients", failed(r))
+        self.assertFalse(r["passed"])
+
+    def test_joins_compare_to_manifest(self):
+        r = self.run_case(expected=("client1", "client2", "client3"), logs=("client1", "client2", "client3"))
+        self.assertIn("host_joins_match_manifest", failed(r))  # host saw 2 joins, manifest expects 3
+
+    # FB-2-03: design-derived ceilings and sample minimums.
+    def test_bandwidth_correction_and_coverage_gates_can_fail(self):
+        self.assertIn("client1_download_mean_budget", failed(self.run_case(c1=summary(kin=30.0))))
+        self.assertIn("client1_upload_mean_budget", failed(self.run_case(c1=summary(kout=40.0))))
+        self.assertIn("client1_correction_budget", failed(self.run_case(c1=summary(max_corr=2.0))))
+        self.assertIn("client1_rtt_sample_count", failed(self.run_case(c1=summary(samples=100))))
+        self.assertIn("client1_ran_full_duration", failed(self.run_case(c1=summary(elapsed_ms=60_000))))
+
+    def test_budgets_follow_protocol_arithmetic(self):
+        # 87-byte snapshot x 30 Hz + 30-byte ack x 4 Hz = 2730 B/s = 21.84 kbit/s, x1.05 margin
+        self.assertAlmostEqual(analyze.download_budget_kbit(2, 0.0), 22.932, places=3)
+        # 119-byte input batch x 30 Hz + 30-byte heartbeat x 4 Hz = 3690 B/s = 29.52 kbit/s, x1.05 margin
+        self.assertAlmostEqual(analyze.upload_budget_kbit(), 30.996, places=3)
+        self.assertAlmostEqual(analyze.correction_budget(180.0), 5.0 * (0.18 + 0.1), places=6)
+
+    # Review #2 follow-up (gate v3): the manifest must be well-formed and equal the declared scenario.
+    def test_duplicate_client_names_fail(self):
+        r = self.run_case(expected=("client1", "client1", "client2"))
+        self.assertIn("manifest_names_unique", failed(r))
+        self.assertIn("manifest_matches_scenario", failed(r))
+        # each client is still gated once: no duplicated per-client gates
+        names = [g["gate"] for g in r["gates"]]
+        self.assertEqual(names.count("client1_summary_present"), 1)
+
+    def test_invalid_client_names_fail(self):
+        for bad in (("client1", "../host"), ("client1", ""), ("client1", 7), ("client1", "client0")):
+            r = self.run_case(expected=bad)
+            self.assertIn("manifest_names_valid", failed(r), bad)
+            self.assertFalse(r["passed"])
+
+    def test_unknown_or_missing_scenario_fails(self):
+        self.assertIn("scenario_known", failed(self.run_case(scenario="free-for-all")))
+        self.assertIn("scenario_known", failed(self.run_case(scenario=None)))
+
+    def test_manifest_must_equal_scenario_not_self_declared(self):
+        # A self-consistent but different manifest (one client, logs present) must still fail.
+        r = self.run_case(expected=("client1",), logs=("client1",), stalled=())
+        self.assertIn("manifest_matches_scenario", failed(r))
+        self.assertIn("stall_plan_matches_scenario", failed(r))
+        self.assertFalse(r["passed"])
+
+    def test_stall_plan_must_match_scenario(self):
+        self.assertIn("stall_plan_matches_scenario", failed(self.run_case(stalled=("client1", "client2"))))
+
+    def test_window_rates_report_peaks(self):
+        statuses = [{"t_ms": 1000 * i, "evt": "status", "bytes_in": 2500 * i, "bytes_out": 3000 * i} for i in range(1, 11)]
+        statuses[5]["bytes_in"] += 5000  # one burst window: +40 kbit/s for one second
+        r = self.run_case(statuses=statuses)
+        w = r["clients"]["client1"]["window_rates_kbit_s"]
+        self.assertEqual(w["windows"], 9)
+        self.assertAlmostEqual(w["in"]["peak"], 60.0)   # 20 kbit/s steady + 40 burst
+        self.assertAlmostEqual(w["out"]["peak"], 24.0)
+        self.assertTrue(r["passed"], failed(r))         # peaks are reported, not gated (v3)
+        self.assertIsNone(self.run_case()["clients"]["client1"]["window_rates_kbit_s"])  # no status lines
+
+    # v4: per-transport results.
+    def test_transport_must_be_declared_and_match_host_log(self):
+        self.assertIn("transport_declared", failed(self.run_case(transport=None)))
+        self.assertIn("transport_declared", failed(self.run_case(transport="tcp")))
+        self.assertIn("transport_matches_host_log", failed(self.run_case(transport="gns", host_transport="udp")))
+        r = self.run_case(transport="gns", host_transport="gns")
+        self.assertTrue(r["passed"], failed(r))
+        self.assertEqual(r["transport"], "gns")
+
+    def test_existing_summary_is_never_overwritten(self):
+        with tempfile.TemporaryDirectory() as d:
+            write_run(Path(d))
+            (Path(d) / "summary.json").write_text('{"original": true}')
+            self.assertEqual(analyze.main([d]), 2)
+            self.assertEqual(json.loads((Path(d) / "summary.json").read_text()), {"original": True})
+
+
+if __name__ == "__main__":
+    unittest.main()

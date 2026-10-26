@@ -1,32 +1,33 @@
 {
- "id": "F-SOWM-004",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "engine",
- "claim": "The repo reports the Steam ShadowOfWar.exe is wrapped by SteamStub v3.1 (removed with Steamless; .text not encrypted) plus Denuvo Anti-Tamper woven into code, with a near-empty .text and real code in .xtext/.arch sections, image base 0x140000000.",
- "evidence": "docs/reverse-engineering.md:21 \"Outer: SteamStub Variant 3.1 (x64)\"; :61 \".text (only 20 bytes!)\"",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "docs/reverse-engineering.md",
-   "location": "lines 6-29, 53-64"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "README.md",
-   "location": "Target binary & DRM"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001.",
- "verification_method": "Static read of repo docs. Verify on our exe by listing PE section names/sizes and checking for a .bind section (read-only header parse; no unpacking needed for this check).",
- "classification": "PARTIALLY_CONFIRMED",
- "confidence": "medium",
- "limitations": "Steamless unpacking produces a modified copy; whether that is acceptable for our research is a legal/policy decision. Denuvo-mutated functions are opaque to static analysis.",
- "next_experiment": "Read-only PE section header dump of our ShadowOfWar.exe; compare to the 17-section list in the repo.",
- "related": [
-  "F-SOWM-005",
-  "F-SOWM-016"
- ]
+  "id": "F-SOWM-004",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "engine",
+  "claim": "The repo reports the Steam ShadowOfWar.exe is wrapped by SteamStub v3.1 (removed with Steamless; .text not encrypted) plus Denuvo Anti-Tamper woven into code, with a near-empty .text and real code in .xtext/.arch sections, image base 0x140000000.",
+  "evidence": "docs/reverse-engineering.md:21 \"Outer: SteamStub Variant 3.1 (x64)\"; :61 \".text (only 20 bytes!)\"",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "docs/reverse-engineering.md",
+      "location": "lines 6-29, 53-64"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "README.md",
+      "location": "Target binary & DRM"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001.",
+  "verification_method": "Static read of repo docs. Verify on our exe by listing PE section names/sizes and checking for a .bind section (read-only header parse; no unpacking needed for this check).",
+  "classification": "PARTIALLY_CONFIRMED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Steamless unpacking produces a modified copy; whether that is acceptable for our research is a legal/policy decision. Denuvo-mutated functions are opaque to static analysis.",
+  "next_experiment": "Read-only PE section header dump of our ShadowOfWar.exe; compare to the 17-section list in the repo.",
+  "related": [
+    "F-SOWM-005",
+    "F-SOWM-016"
+  ]
 }

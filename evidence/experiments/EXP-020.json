@@ -1,0 +1,26 @@
+{
+  "id": "EXP-020",
+  "type": "experiment",
+  "date": "2026-10-24",
+  "environment": "Windows 11 Pro x64 (26300), VS 2026 MSVC 19.51.36260, CMake 4.4.4, GNS 1.6.1 via vcpkg 65a2c23 (x64-windows), loopback",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Refine the KI-27 upstream draft: check upstream master, search duplicates, discriminate first Init vs re-Init, verify a standalone Windows build, audit for private information.",
+  "hypothesis": "If the assert were a pure service-thread startup race it would also appear after the FIRST Init; if it needs state from a previous library lifetime it appears only after Kill + re-Init.",
+  "procedure": "gh api: repo default branch, master commit, tags, file history; raw master steamnetworkingsockets_socketthread.cpp diffed against the vcpkg 1.6.1 source. gh search issues/PRs for 10 query strings; read #230, #14, #167. Reproducer runs: 1 iteration per process x300 and 2 iterations per process x200, plus 3x400 iterations with 0 and 10 ms wait, each process's JSON line written to evidence/logs/ki27-repro-per-process-2026-10-24.jsonl (earlier repro.cpp build, same loop). Standalone tools/ki27-repro (main.cpp, CMakeLists.txt, vcpkg.json) built from an empty directory with the documented commands. grep audit of the reproducer and the issue body for project/private strings.",
+  "expected_result": "Upstream unchanged or changed; a clear first-Init vs re-Init split; clean standalone build; no private data.",
+  "observed_result": "Upstream master == v1.6.1 tag (d534c19, pushed 2026-10-03); the file is byte-identical to the vcpkg copy; assert at line 2609 in both. Duplicate search: no report of this assert; #230 (closed 2022, POSIX) is related (static s_bRecreatePollList not reset by Kill), different assert. Recorded: first Init only 0/300 processes; one re-Init 18/200 processes asserted (18 assertions); 400 iterations no wait 39/38/39; 10 ms wait 0/0/0. Console-only (not recorded): first Init only 0/500 more processes; re-Init 25/200 more; standalone build 40 (no wait) and 0 (10 ms). So the assert needs a previous Init/Kill in the same process; the earlier 'startup race' framing was incomplete. Root cause still a hypothesis (no debugger/stack trace). Standalone build verified (dependencies restored from the local vcpkg binary cache). Audit: no project names, paths, user names or secrets in the reproducer or the issue body.",
+  "evidence_paths": [
+    "evidence/logs/ki27-repro-per-process-2026-10-24.jsonl",
+    "evidence/logs/ki27-repro-2026-10-24.json",
+    "docs/upstream/gns-ki27-issue.md",
+    "tools/ki27-repro/main.cpp"
+  ],
+  "result": "PASSED",
+  "errors": "A per-run breakdown (41/35/40) was mistyped in the draft and corrected to the logged 39/38/39 before presentation.",
+  "confidence": "medium",
+  "follow_up": "Owner decides whether to post; optionally record a batch with the exact main.cpp first; a debugger/stack trace would turn the hypothesis into a cause.",
+  "related": [
+    "EXP-019",
+    "EXP-018"
+  ]
+}

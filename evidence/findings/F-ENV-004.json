@@ -16,6 +16,7 @@
   "game_build_compatibility": "Measured on exe SHA-256 ED0D95CABB033CD66AAA99D699374881846C3CB03EC345F1123D82D45E0BDAEF (FileVersion 1.0.8874.0, Steam buildid 3095001)",
   "verification_method": "Read-only local inspection with tools/environment/discover_game.py and pe_inventory.py; re-run scripts/inventory.ps1 to reproduce.",
   "classification": "HYPOTHESIS",
+  "verification_scope": "locally_measured",
   "confidence": "medium",
   "limitations": "Strongly suggests a code-protection or packing layer, whose identity is UNKNOWN. Third-party reports about Denuvo removal must be checked separately. Static analysis of the on-disk binary is therefore expected to be of limited value, and deeper analysis of the protection is out of scope.",
   "next_experiment": "Legal review (EU Directive 2009/24/EC Art. 6) before any runtime observation; prefer documented public APIs and the game's own data files.",

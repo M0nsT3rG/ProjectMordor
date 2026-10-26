@@ -1,0 +1,9 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"host","evt":"security","mode":"dtls","own_fingerprint":"513192b7cb1352459838d00fa2e6a2a7627f2e99f340d4a8820f6be7ef4521a2","invitation":"e2e-udp"}
+{"t_ms":5,"lvl":"info","comp":"host","evt":"host_started","port":47843,"loopback_only":true,"session":1117044957,"secure":true,"tick_rate_hz":30,"protocol_version":1,"transport":"udp"}
+{"t_ms":387,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":390,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":10134,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":10138,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":14005,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":666,"packets_out":662,"invalid":0,"bytes_in":22912,"bytes_out":53184,"world_tick":420,"uptime_us":13998686,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":0,"stale_inputs":0,"joins":2,"reconnects":0,"timeouts":0,"timeout_notices":0,"unknown_peer":0,"send_errors":0,"transport":"udp","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":0,"transport_impairment_refused":0}
+{"t_ms":14005,"lvl":"info","comp":"host","evt":"secure_stats","authenticated":2,"pending_opened":2,"pending_failed":0,"pending_refused_cap":0,"dropped_not_dtls":0,"idle_timeouts":0,"reliable_retransmits":0}

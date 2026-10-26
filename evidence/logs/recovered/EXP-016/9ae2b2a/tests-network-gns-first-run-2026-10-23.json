@@ -1,0 +1,14 @@
+[
+  {"name":"impairment_loss_is_deterministic_and_close_to_configured_rate","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: tests ImpairedSender, the UDP backend's impairment"},
+  {"name":"impairment_delays_until_due","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: tests ImpairedSender, the UDP backend's impairment"},
+  {"name":"latency_is_measured","result":"PASSED","transport":"gns","ms":3392,"error":""},
+  {"name":"delayed_and_reordered_packets_converge","result":"FAILED","transport":"gns","ms":5917,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\network\\network_tests.cpp:116: CHECK(a.stats().stale_snapshots > 0)"},
+  {"name":"packet_loss_does_not_break_session","result":"PASSED","transport":"gns","ms":7136,"error":""},
+  {"name":"heavy_loss_and_duplication_never_crash","result":"FAILED","transport":"gns","ms":6112,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\network\\network_tests.cpp:148: CHECK(st == ClientState::Connected || st == ClientState::Connecting || st == ClientState::Reconnecting)"},
+  {"name":"timed_out_client_reconnects_with_same_identity","result":"FAILED","transport":"gns","ms":5663,"error":"D:\\Projetos Pessoais\\Shadow of War COOP\\tests\\network\\network_tests.cpp:167: CHECK(s.pump_until([&] { return a.state() == ClientState::Reconnecting && s.host.connected_count() == 1; }, 5 * kSec))"},
+  {"name":"reconnect_gives_up_after_window","result":"PASSED","transport":"gns","ms":5111,"error":""},
+  {"name":"silent_host_loss_ends_in_failed_state","result":"SKIPPED","transport":"gns","ms":0,"error":"UDP-only: uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS"},
+  {"name":"expired_grace_period_removes_entity","result":"PASSED","transport":"gns","ms":4120,"error":""},
+  {"name":"jitter_never_exceeds_tick_movement_budget","result":"PASSED","transport":"gns","ms":7824,"error":""},
+  {"name":"timeout_notice_recovery_under_jitter_reconnects_once","result":"PASSED","transport":"gns","ms":8269,"error":""}
+]

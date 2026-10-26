@@ -1,38 +1,39 @@
 {
- "id": "F-SOWM-010",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "entity",
- "claim": "The InventoryEditor mod obtains the current player as *(*(engine singleton 0x1426ffa98)+0x888) and reads the player world position as three floats at player+0x2180/0x2184/0x2188, although GameOffsets.h marks that engine singleton as UNVERIFIED.",
- "evidence": "InventoryEditor.cpp:363 ReadMem(engine + 0x888, player); :376 ReadMem(player + 0x2180, x)",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "mods/InventoryEditor/src/InventoryEditor.cpp",
-   "location": "lines 356-393 CurrentPlayer/BuildDropPose"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/GameOffsets.h",
-   "location": "line 77 kEngineSingleton (UNVERIFIED)"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/GameOffsets.h",
-   "location": "line 103 kPlayerBaseVtable shared Character base"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
- "verification_method": "Static read of repo. Could be checked against our build only by static RE of xrefs to 0x1426ffa98 and +0x888 uses; no runtime reading in Phase 1.",
- "classification": "HYPOTHESIS",
- "confidence": "low",
- "limitations": "Internal contradiction: the same singleton is labeled UNVERIFIED/garbage-yielding for the pause chain but used for the player pointer. Only position is mapped; no rotation, velocity, health or controller.",
- "next_experiment": "Static RE in our exe: find code reading [singleton]+0x888 and confirm the target type via RTTI/vtable (repo claims Character base vtable 0x141f995e0).",
- "related": [
-  "F-SOWM-011",
-  "F-SOWM-013"
- ]
+  "id": "F-SOWM-010",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "entity",
+  "claim": "The InventoryEditor mod obtains the current player as *(*(engine singleton 0x1426ffa98)+0x888) and reads the player world position as three floats at player+0x2180/0x2184/0x2188, although GameOffsets.h marks that engine singleton as UNVERIFIED.",
+  "evidence": "InventoryEditor.cpp:363 ReadMem(engine + 0x888, player); :376 ReadMem(player + 0x2180, x)",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "mods/InventoryEditor/src/InventoryEditor.cpp",
+      "location": "lines 356-393 CurrentPlayer/BuildDropPose"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/GameOffsets.h",
+      "location": "line 77 kEngineSingleton (UNVERIFIED)"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/GameOffsets.h",
+      "location": "line 103 kPlayerBaseVtable shared Character base"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Offsets are hardcoded file RVAs (no pattern scan, no version gate), so any mismatch with 1.0.8874.0 would silently hook wrong code.",
+  "verification_method": "Static read of repo. Could be checked against our build only by static RE of xrefs to 0x1426ffa98 and +0x888 uses; no runtime reading in Phase 1.",
+  "classification": "HYPOTHESIS",
+  "verification_scope": "third_party_claim",
+  "confidence": "low",
+  "limitations": "Internal contradiction: the same singleton is labeled UNVERIFIED/garbage-yielding for the pause chain but used for the player pointer. Only position is mapped; no rotation, velocity, health or controller.",
+  "next_experiment": "Static RE in our exe: find code reading [singleton]+0x888 and confirm the target type via RTTI/vtable (repo claims Character base vtable 0x141f995e0).",
+  "related": [
+    "F-SOWM-011",
+    "F-SOWM-013"
+  ]
 }

@@ -1,0 +1,26 @@
+{
+  "id": "F-GNS-001",
+  "type": "finding",
+  "date": "2026-10-24",
+  "subsystem": "networking",
+  "claim": "In GameNetworkingSockets v1.6.1 a direct-UDP listen socket accepts a ConnectRequest only if it echoes a stateless challenge, a SipHash of (time slot, sender IP, sender port) under a per-socket secret, at most about 4 s old. A GNS connection therefore proves return routability for its address before it is created.",
+  "evidence": "GenerateChallenge hashes {nTime, port, ipv6} with m_argbChallengeSecret; Received_ChallengeRequest replies with it to adrFrom; Received_ConnectRequest rejects 'Challenge too old.' (> GetChallengeTime(4 s)) and 'Incorrect challenge. Could be spoofed.' when GenerateChallenge(nTimeThen, adrFrom) differs.",
+  "sources": [
+    {
+      "url": "https://github.com/ValveSoftware/GameNetworkingSockets",
+      "commit": "d534c19aa760df3fb75fd20db13ba1932b8a5463",
+      "path": "src/steamnetworkingsockets/clientlib/steamnetworkingsockets_udp.cpp",
+      "location": "CSteamNetworkListenSocketDirectUDP::GenerateChallenge, Received_ChallengeRequest, Received_ConnectRequest (lines 262-331 at tag v1.6.1)"
+    }
+  ],
+  "game_build_compatibility": "N/A (prototype transport library)",
+  "verification_method": "Read-only reading of a shallow clone of tag v1.6.1 (the version vcpkg installs here), outside this repository; nothing built or run from it.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "Covers the direct-UDP path only (not relays or P2P signalling). It says what the code does, not that our build behaves identically (that is the same version, not verified by test). Return routability is not identity: GNS still accepts unauthenticated peers (KI-21), so authentication stays at our layer. Packets after connection setup are matched by connection id; whether the address is re-checked per packet was not examined.",
+  "next_experiment": "Measure the DTLS cookie's cost per secure GNS reconnect (EXP-025). If a backend-specific cookie bypass is proposed, test with a spoofed-source ConnectRequest before relying on it.",
+  "related": [
+    "F-COOP-006"
+  ]
+}

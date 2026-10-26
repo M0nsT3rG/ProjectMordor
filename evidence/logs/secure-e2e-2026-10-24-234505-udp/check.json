@@ -1,0 +1,142 @@
+{
+  "transport": "udp",
+  "passed": true,
+  "gates": [
+    {
+      "gate": "participants_ready",
+      "passed": true,
+      "detail": {
+        "limit_s": 30,
+        "log_appeared_ms": {
+          "client1": 40,
+          "client2": 122
+        },
+        "connected_ms": {
+          "client1": 121,
+          "client2": 123
+        }
+      }
+    },
+    {
+      "gate": "host_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "client1_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "client2_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "host2_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "host_security_dtls",
+      "passed": true,
+      "detail": "dtls"
+    },
+    {
+      "gate": "client1_security_dtls",
+      "passed": true,
+      "detail": "dtls"
+    },
+    {
+      "gate": "client2_security_dtls",
+      "passed": true,
+      "detail": "dtls"
+    },
+    {
+      "gate": "host2_security_dtls",
+      "passed": true,
+      "detail": "dtls"
+    },
+    {
+      "gate": "client1_ends_connected",
+      "passed": true,
+      "detail": "connected"
+    },
+    {
+      "gate": "client1_snapshots",
+      "passed": true,
+      "detail": 299
+    },
+    {
+      "gate": "client2_ends_connected",
+      "passed": true,
+      "detail": "connected"
+    },
+    {
+      "gate": "client2_snapshots",
+      "passed": true,
+      "detail": 300
+    },
+    {
+      "gate": "host_authenticated_both",
+      "passed": true,
+      "detail": 2
+    },
+    {
+      "gate": "host_no_plaintext_datagrams",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "host_no_timeouts",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "negative_plaintext_cannot_connect",
+      "passed": true,
+      "detail": 1
+    },
+    {
+      "gate": "negative_stranger_cannot_connect",
+      "passed": true,
+      "detail": 1
+    },
+    {
+      "gate": "negative_wrong_invitation_cannot_connect",
+      "passed": true,
+      "detail": 1
+    },
+    {
+      "gate": "negative_expired_invitation_refused_at_startup",
+      "passed": true,
+      "detail": [
+        2,
+        "error: secure mode: the invitation has expired"
+      ]
+    },
+    {
+      "gate": "negative_missing_key_refused_at_startup",
+      "passed": true,
+      "detail": [
+        2,
+        "error: secure mode: key file not found"
+      ]
+    },
+    {
+      "gate": "host2_authenticated_nobody",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "host2_dropped_plaintext",
+      "passed": true,
+      "detail": 16
+    },
+    {
+      "gate": "no_key_material_or_key_paths_in_logs",
+      "passed": true,
+      "detail": []
+    }
+  ]
+}

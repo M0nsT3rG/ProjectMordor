@@ -1,0 +1,81 @@
+{
+  "scenario": "host-jitter-client-outage",
+  "transport": "udp",
+  "passed": true,
+  "gates": [
+    {
+      "gate": "host_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "client1_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "client2_exit_0",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "host_transport_matches",
+      "passed": true,
+      "detail": "udp"
+    },
+    {
+      "gate": "host_timed_out_exactly_the_cut_client",
+      "passed": true,
+      "detail": 1
+    },
+    {
+      "gate": "client1_never_reconnected",
+      "passed": true,
+      "detail": 0
+    },
+    {
+      "gate": "client1_ends_connected",
+      "passed": true,
+      "detail": "connected"
+    },
+    {
+      "gate": "client2_reconnected",
+      "passed": true,
+      "detail": 1
+    },
+    {
+      "gate": "client2_ends_connected",
+      "passed": true,
+      "detail": "connected"
+    },
+    {
+      "gate": "client2_kept_identity",
+      "passed": true,
+      "detail": [
+        2,
+        2
+      ]
+    },
+    {
+      "gate": "client2_reconnect_bounded",
+      "passed": true,
+      "detail": [
+        53,
+        9000
+      ]
+    },
+    {
+      "gate": "client2_outage_happened",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "gate": "client1_sees_host_only_delay",
+      "passed": true,
+      "detail": [
+        43.224998,
+        20
+      ]
+    }
+  ]
+}

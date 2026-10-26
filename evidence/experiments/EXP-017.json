@@ -1,0 +1,29 @@
+{
+  "id": "EXP-017",
+  "type": "experiment",
+  "date": "2026-10-24",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; real time for soaks",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #5 FB-5-01..04 and the owner-approved FB-5-05 DTLS 1.2 + RFC 7250 proof test.",
+  "hypothesis": "Counter semantics, an overall connect deadline, a single-owner GNS impairment guard and transport-based substitute tests close the review gaps without regressing either backend; OpenSSL 3.6.5 supports DTLS 1.2 with pinned raw public keys and rejects the tested failure paths.",
+  "procedure": "FB-5-01: per-message vs per-connection counters made distinct; mid-backlog disconnect/reconnect contract test. FB-5-02: Client connect_deadline_us (20 s) plus 4 lifecycle tests (absent host, black-holed connect with a deadline below both transport and session timeouts, host gone during handshake, repeated outages). FB-5-03: GNS set_impairment refuses a different config while held, same config joins, last holder resets; guard/leakage contract test. FB-5-04: 8 _over_transport substitute tests with a Transport-based fake peer; docs/test-coverage.md. FB-5-05: tests/dtls, both peers in-process over BIO_s_dgram_mem. Then all suites x2 in both builds, E2E, and soak gate v4 on 3 profiles x 2 transports.",
+  "expected_result": "All applicable tests pass on both transports; DTLS success path completes and all failure paths are rejected; soaks 43/43.",
+  "observed_result": "Findings while implementing: (1) the FB-5-03 guard exposed a FALSE GNS pass: timeout_notice_recovery_under_jitter_reconnects_once passed on GNS only because the client's 100% loss silently replaced the host's 400 ms jitter process-wide; with the guard the overwrite is refused and the test failed on network-gns, so it is now UDP-only (that failing run printed CHECK(s.pump_until(... host.connected_count() == 0 ...)) at network_tests.cpp:353, 11 passed / 1 failed / 4 skipped; its JSON log was overwritten by the next ctest run and is not preserved) with that reason. (2) Two first-draft substitute tests failed on GNS because the old connection really is closed (host closes it on token migration, client closes it on reconnect); the tests now assert that stronger property. (3) DTLS first run: {'FAILED': 8}, all at SSL_add_expected_rpk; OpenSSL stores the pin as a DANE-EE SPKI record, so SSL_CTX_dane_enable + SSL_dane_enable(ssl, NULL) are required. After that 8/8: DTLSv1.2 with ECDHE-ECDSA-AES128-GCM-SHA256, RPK negotiated both ways, no X.509; wrong host key and wrong client key rejected (verify result not OK); no RPK, DTLS 1.0 only, and ECDHE CBC suite rejected; exporter equal on both sides, distinct per invitation and per handshake; replayed and tampered records dropped with the channel intact. (4) An intermittent GNS internal assertion (socketthread.cpp(2609)) appears in contract runs: 1/3 runs on the previous commit 9ae2b2a (built in a separate worktree) and 2/3 with these changes, so it is pre-existing (KI-27, not investigated). FINAL test results: {'unit': {'PASSED': 15}, 'integration': {'PASSED': 34}, 'network': {'PASSED': 16}, 'transport': {'PASSED': 17}, 'transport-both': {'PASSED': 17}, 'integration-gns': {'PASSED': 20, 'SKIPPED': 14}, 'network-gns': {'SKIPPED': 5, 'PASSED': 11}, 'gns': {'PASSED': 7}, 'dtls': {'PASSED': 8}}. GNS build suites passed a second run. E2E passed. Soak gate v4: soak-2026-10-24-001323-lan-udp-g4: PASSED 43/43; rtt p50/p99 10.4/12.1 ms; recovery 18.0 ms | soak-2026-10-24-001532-moderate-udp-g4: PASSED 43/43; rtt p50/p99 103.1/121.3 ms; recovery 147.0 ms | soak-2026-10-24-001740-harsh-udp-g4: PASSED 43/43; rtt p50/p99 204.4/239.7 ms; recovery 826.0 ms | soak-2026-10-24-001948-lan-gns-g4: PASSED 43/43; rtt p50/p99 9.0/12.1 ms; recovery 30.0 ms | soak-2026-10-24-002158-moderate-gns-g4: PASSED 43/43; rtt p50/p99 97.0/115.5 ms; recovery 378.0 ms | soak-2026-10-24-002406-harsh-gns-g4: PASSED 43/43; rtt p50/p99 188.6/228.5 ms; recovery 783.0 ms.",
+  "evidence_paths": [
+    "evidence/logs/recovered/EXP-017",
+    "evidence/logs/soak-2026-10-24-001323-lan-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-001532-moderate-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-001740-harsh-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-001948-lan-gns-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-002158-moderate-gns-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-002406-harsh-gns-g4/summary.json"
+  ],
+  "result": "PASSED",
+  "errors": "DTLS first run failed (DANE not enabled); network-gns failed once after the guard (false pass exposed); two substitute drafts failed on GNS. All recorded above.",
+  "confidence": "high",
+  "follow_up": "DTLS integration behind the Transport and an independent review (KI-29); application-level delivery for events (KI-28); KI-27 assertion.",
+  "related": [
+    "EXP-016",
+    "EXP-015"
+  ]
+}

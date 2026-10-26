@@ -1,0 +1,14 @@
+{"t_ms":0,"lvl":"info","comp":"host","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"host","evt":"security","mode":"dtls","own_fingerprint":"7c1314690eef58b0f3fe8af5865a866c86a4658e4b07fb44c09a153367763c6f","invitation":"soak-harsh"}
+{"t_ms":5,"lvl":"info","comp":"host","evt":"host_started","port":47813,"loopback_only":true,"session":2349444307,"secure":true,"tick_rate_hz":30,"protocol_version":2,"transport":"udp"}
+{"t_ms":1968,"lvl":"info","comp":"host","evt":"player_joined","player":1,"entity":1,"connected":1}
+{"t_ms":2705,"lvl":"info","comp":"host","evt":"player_joined","player":2,"entity":2,"connected":2}
+{"t_ms":15117,"lvl":"info","comp":"host","evt":"player_timeout","player":1,"grace_ms":30000}
+{"t_ms":28370,"lvl":"info","comp":"host","evt":"player_reconnected","player":1,"entity":1}
+{"t_ms":30115,"lvl":"info","comp":"host","evt":"player_left","player":2,"reason":1}
+{"t_ms":30115,"lvl":"warn","comp":"host","evt":"events_dropped_with_player","player":2,"events":1}
+{"t_ms":30120,"lvl":"info","comp":"host","evt":"player_left","player":1,"reason":1}
+{"t_ms":30120,"lvl":"warn","comp":"host","evt":"events_dropped_with_player","player":1,"events":1}
+{"t_ms":36006,"lvl":"info","comp":"host","evt":"event_source","events_refused":0}
+{"t_ms":36006,"lvl":"info","comp":"host","evt":"host_stopped","packets_in":1370,"packets_out":1567,"invalid":0,"bytes_in":127481,"bytes_out":119542,"world_tick":1080,"uptime_us":35999553,"tick_rate_hz":30,"skipped_ticks":0,"shed_inputs":17,"stale_inputs":6657,"joins":2,"reconnects":1,"timeouts":1,"timeout_notices":1,"unknown_peer":28,"send_errors":0,"transport":"udp","transport_accepted_then_failed":0,"transport_discarded_on_close":0,"transport_closed_with_unacked_reliable":2,"transport_impairment_refused":0,"events_queued":112,"events_applied":110,"events_retransmitted":38,"events_replayed":9,"events_dropped_with_slot":2}
+{"t_ms":36006,"lvl":"info","comp":"host","evt":"secure_stats","authenticated":3,"pending_opened":4,"pending_failed":1,"pending_refused_cap":0,"dropped_not_dtls":0,"idle_timeouts":1,"reliable_retransmits":238,"pending_replaced":0,"hello_ignored":0,"hello_rate_limited":0,"promotions_replacing":0,"rejected_established":0,"handshakes_done":3,"handshake_retransmits":0,"handshake_ms_max":2262}

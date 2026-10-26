@@ -1,5 +1,9 @@
-# Build output
-build/
+# Build output, at the repository root only: unanchored, build-*/ also hid evidence/logs/tests-*/build-gns-iter-1/
+# (Codex review, 2026-10-25). tools/evidence/test_evidence.py checks that evidence is never ignored.
+/build/
+/build-*/
+/build-*.log
+vcpkg_installed/
 out/
 *.obj
 *.pdb
@@ -25,3 +29,4 @@ __pycache__/
 CMakeUserPresets.json
 .env
 *.local.json
+.worktrees/

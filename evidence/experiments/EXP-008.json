@@ -10,8 +10,7 @@
   "expected_result": "Ranked defect list; valid findings fixed and covered by tests.",
   "observed_result": "Codex could not run: its shell and file runtime failed at startup with CryptUnprotectData error 2148073483 (a Windows DPAPI/credential problem in the Codex sandbox), so it read no code. The independent reviewer found nothing critical and no memory-safety defects, and reported: (1) 16-bit player/entity ids could wrap to 0 under repeated joins, breaking snapshots for everyone; (2) the host input backlog never drained after jitter; (3) retransmitted ConnectRequests did not refresh liveness; (4) a slot in its grace period could be destroyed by a token-less request; (5) a stale ConnectAccept from an earlier attempt was accepted; (6) the prediction test passed without prediction; (7) the reconnect test comment was wrong about client b; (8) the heavy-loss test is only a smoke test; (9) low flakiness risk from fixed yield counts. Fixed: 1-7 (id exhaustion rejects with ServerFull; drain to a backlog of 2; liveness refresh; grace slots reclaimable by token only; nonce echoed in ConnectAccept and regenerated per reconnect; the prediction test now runs at 200 ms RTT and asserts authority has not moved yet; the reconnect test asserts b's reconnect). New test: id_exhaustion_rejects_instead_of_wrapping. Not fixed: 8 (accepted as a smoke test) and 9 (no flake observed in 13+ runs). No dedicated test covers the backlog drain.",
   "evidence_paths": [
-    "evidence/logs/tests-integration-2026-10-23.json",
-    "evidence/logs/tests-network-2026-10-23.json"
+    "evidence/logs/recovered/EXP-008"
   ],
   "result": "PASSED",
   "errors": "Codex: CryptUnprotectData failed: 2148073483",

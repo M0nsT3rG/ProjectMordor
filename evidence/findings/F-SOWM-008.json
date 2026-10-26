@@ -1,31 +1,32 @@
 {
- "id": "F-SOWM-008",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "engine",
- "claim": "The repo identifies the engine as Monolith LithTech lineage ('Kraken' ClientShell) with a data-driven Scaleform (GFx) front-end UI and a global StringDatabase localization function.",
- "evidence": "GameOffsets.h:80 \"--- Front-end / start menu (LithTech \\\"Kraken\\\" ClientShell) ---\"; :166 \"The front-end IS Scaleform (GFxValue).\"",
- "sources": [
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "shared/GameOffsets.h",
-   "location": "lines 80-86, 165-177"
-  },
-  {
-   "url": "https://github.com/Hagryph/SoWMods",
-   "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
-   "path": "docs/reverse-engineering.md",
-   "location": "lines 17, 98-130"
-  }
- ],
- "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Our projectconsole.cfg uses 'GameClientShell.' prefixed vars, which is consistent with a ClientShell architecture.",
- "verification_method": "Static read. Verify by string search in our exe/data for CUIFrontEndRootLayer, GFx/Scaleform, StringDatabase strings (read-only).",
- "classification": "HYPOTHESIS",
- "confidence": "medium",
- "limitations": "Engine naming is the author's inference from strings/RTTI.",
- "next_experiment": "Read-only string/RTTI scan of our exe for 'Kraken', 'GameClientShell', 'GFx' and '.?AV' class names to seed the object model.",
- "related": [
-  "F-SOWM-009"
- ]
+  "id": "F-SOWM-008",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "engine",
+  "claim": "The repo identifies the engine as Monolith LithTech lineage ('Kraken' ClientShell) with a data-driven Scaleform (GFx) front-end UI and a global StringDatabase localization function.",
+  "evidence": "GameOffsets.h:80 \"--- Front-end / start menu (LithTech \\\"Kraken\\\" ClientShell) ---\"; :166 \"The front-end IS Scaleform (GFxValue).\"",
+  "sources": [
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "shared/GameOffsets.h",
+      "location": "lines 80-86, 165-177"
+    },
+    {
+      "url": "https://github.com/Hagryph/SoWMods",
+      "commit": "ba0c3d9b090410d322d36a041155554c9682dc98",
+      "path": "docs/reverse-engineering.md",
+      "location": "lines 17, 98-130"
+    }
+  ],
+  "game_build_compatibility": "UNKNOWN: repo records no game version, Steam buildid, exe hash or build check; it only states a ~112 MB x64 Steam exe with SteamStub v3.1 + Denuvo (docs/reverse-engineering.md:12,21-29). Our exe is 117732784 bytes (~112.3 MiB), consistent but not proof of 1.0.8874.0 / build 3095001. Our projectconsole.cfg uses 'GameClientShell.' prefixed vars, which is consistent with a ClientShell architecture.",
+  "verification_method": "Static read. Verify by string search in our exe/data for CUIFrontEndRootLayer, GFx/Scaleform, StringDatabase strings (read-only).",
+  "classification": "HYPOTHESIS",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Engine naming is the author's inference from strings/RTTI.",
+  "next_experiment": "Read-only string/RTTI scan of our exe for 'Kraken', 'GameClientShell', 'GFx' and '.?AV' class names to seed the object model.",
+  "related": [
+    "F-SOWM-009"
+  ]
 }

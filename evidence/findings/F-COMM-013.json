@@ -1,38 +1,39 @@
 {
- "id": "F-COMM-013",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "networking",
- "claim": "Shadow of War's official online features (Online Conquest, Online Vendettas, social/fight-pit modes) are asynchronous; the predecessor Shadow of Mordor's online features were shut down in January 2021 while Shadow of War's were stated to remain unaffected, and no official 2025-2026 shutdown notice was found.",
- "evidence": "GameSpot: Mordor servers shut down per WB support; KitGuru: sequel online 'will remain unaffected' for now.",
- "sources": [
-  {
-   "url": "https://gamespot.com/articles/middle-earth-shadow-of-mordor-servers-have-shut-down/1100-6486345/",
-   "commit": "",
-   "path": "",
-   "location": ""
-  },
-  {
-   "url": "https://www.kitguru.net/?p=492487",
-   "commit": "",
-   "path": "",
-   "location": ""
-  },
-  {
-   "url": "https://steamcommunity.com/app/356190/discussions/0/3087760096565106627",
-   "commit": "",
-   "path": "",
-   "location": ""
-  }
- ],
- "game_build_compatibility": "Not version-specific.",
- "verification_method": "Web search 2026-10-23; no WB support page for Shadow of War server status retrieved.",
- "classification": "PARTIALLY_CONFIRMED",
- "confidence": "medium",
- "limitations": "Current server status not verified from a WB primary source; Steam forum posts are anecdotal.",
- "next_experiment": "Co-op tests must run with online features disabled/offline; confirm how the game behaves with no WB connection on an isolated copy.",
- "related": [
-  "F-COMM-012",
-  "F-COMM-015"
- ]
+  "id": "F-COMM-013",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "networking",
+  "claim": "Shadow of War's official online features (Online Conquest, Online Vendettas, social/fight-pit modes) are asynchronous; the predecessor Shadow of Mordor's online features were shut down in January 2021 while Shadow of War's were stated to remain unaffected, and no official 2025-2026 shutdown notice was found.",
+  "evidence": "GameSpot: Mordor servers shut down per WB support; KitGuru: sequel online 'will remain unaffected' for now.",
+  "sources": [
+    {
+      "url": "https://gamespot.com/articles/middle-earth-shadow-of-mordor-servers-have-shut-down/1100-6486345/",
+      "commit": "",
+      "path": "",
+      "location": ""
+    },
+    {
+      "url": "https://www.kitguru.net/?p=492487",
+      "commit": "",
+      "path": "",
+      "location": ""
+    },
+    {
+      "url": "https://steamcommunity.com/app/356190/discussions/0/3087760096565106627",
+      "commit": "",
+      "path": "",
+      "location": ""
+    }
+  ],
+  "game_build_compatibility": "Not version-specific.",
+  "verification_method": "Web search 2026-10-23; no WB support page for Shadow of War server status retrieved.",
+  "classification": "PARTIALLY_CONFIRMED",
+  "verification_scope": "third_party_claim",
+  "confidence": "medium",
+  "limitations": "Current server status not verified from a WB primary source; Steam forum posts are anecdotal.",
+  "next_experiment": "Co-op tests must run with online features disabled/offline; confirm how the game behaves with no WB connection on an isolated copy.",
+  "related": [
+    "F-COMM-012",
+    "F-COMM-015"
+  ]
 }

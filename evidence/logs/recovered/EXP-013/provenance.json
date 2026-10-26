@@ -1,0 +1,23 @@
+{
+  "experiment": "EXP-013",
+  "record": "evidence/experiments/EXP-013.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-gns-2026-10-23.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "738ab06b71ae7b081fe1bb2403570dffc8141138",
+      "role": "created",
+      "subject": "Add optional GameNetworkingSockets build and spike tests (D-012)",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-23.json",
+          "blob": "9e9ad9a7ae930963fbb810e4180536f95e07a380",
+          "recovered_path": "evidence/logs/recovered/EXP-013/738ab06/tests-gns-2026-10-23.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

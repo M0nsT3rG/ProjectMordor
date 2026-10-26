@@ -1,0 +1,71 @@
+{
+  "experiment": "EXP-026",
+  "record": "evidence/experiments/EXP-026.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "b61438dc6e5484bedf72df883dfb8b3bf636b3b9",
+      "role": "created",
+      "subject": "Reviews #13/#14 part 2: EXP-026 (UDP-only retry not adopted; gain did not replicate), final-head battery 12/12 with repeats (GNS 5/13 pooled failures), KI-35/41",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "f2157afd7c5c1961903a045365367b5b533574da",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "2bec5127cae61f59f7faf617d9f111a41ef645ea",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "78fc21c08b35886c697ef9fc3b858c8b7cea258f",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "51d50c42ccfe553ae3878a107f86c2702cd77e0f",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "f20148f13db683e9c994c188e74388136c2d458a",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "629e722887d9be8e0736d077a1a975f61f511be5",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "3a68a5734a1d1c4e35428113f36ff76afe9fe913",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "e183d7704c75e6938206915953d62f6fe08c8880",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "ad9bb710235c26010f7fbbd90b9f84e7f94a61fd",
+          "recovered_path": "evidence/logs/recovered/EXP-026/b61438d/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

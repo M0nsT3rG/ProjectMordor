@@ -1,0 +1,77 @@
+{
+  "experiment": "EXP-018",
+  "record": "evidence/experiments/EXP-018.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-dtls-transport-first-run-2026-10-24.json",
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "e81065d34e1e9bf22d3306ec5db0d4a426d1cf5c",
+      "role": "created",
+      "subject": "Review #6: DTLS over Transport::Unreliable with fail-closed binding, KI-27 root cause, asymmetric processes",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-dtls-transport-first-run-2026-10-24.json",
+          "blob": "4fde98e969e74585b5a1d8ef4e29ede9a0b8e0ff",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-dtls-transport-first-run-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "9e3a71a57b212f60899b5a069c633b353e7e2b49",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "5cab1fc3172e9461aebcf57003d9f718f5a56a1e",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "2d85ce4c92b3fb13de9ec8683cf542fd8ecfe8fa",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "1d98e77ce6861475845449e4676828ff1afc24bb",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "beacbf2da6cab52a0366e4856662d0192234e051",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "5f73d9e96f349ffc99558785b3cfdc72b7132b02",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "6d1290c828ea959e3ba8a65c99022364bec50a73",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "c03a5cfd67949ea87d55f3cb168c2021359360ec",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "ea02e1d6db5d02a2eb804076b6d3e313717880a9",
+          "recovered_path": "evidence/logs/recovered/EXP-018/e81065d/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

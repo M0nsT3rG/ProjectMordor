@@ -1,0 +1,9 @@
+{"t_ms":0,"lvl":"info","comp":"client","evt":"loop_timer","high_resolution":true}
+{"t_ms":0,"lvl":"info","comp":"client","evt":"security","mode":"plaintext","own_fingerprint":"","invitation":""}
+{"t_ms":55,"lvl":"info","comp":"client","evt":"state_change","from":"idle","to":"connecting","why":"connect_called"}
+{"t_ms":1054,"lvl":"info","comp":"client","evt":"status","state":"connecting","player":0,"rtt_ms":-1.000000,"x":0.000000,"z":0.000000,"remotes":0,"snapshots":0,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0,"bytes_in":0,"bytes_out":152}
+{"t_ms":2054,"lvl":"info","comp":"client","evt":"status","state":"connecting","player":0,"rtt_ms":-1.000000,"x":0.000000,"z":0.000000,"remotes":0,"snapshots":0,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0,"bytes_in":0,"bytes_out":304}
+{"t_ms":3055,"lvl":"info","comp":"client","evt":"status","state":"connecting","player":0,"rtt_ms":-1.000000,"x":0.000000,"z":0.000000,"remotes":0,"snapshots":0,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0,"bytes_in":0,"bytes_out":456}
+{"t_ms":4054,"lvl":"info","comp":"client","evt":"state_change","from":"connecting","to":"failed","why":"connect_deadline"}
+{"t_ms":4054,"lvl":"info","comp":"client","evt":"summary","final_state":"failed","player":0,"rtt_samples":0,"rtt_p50_ms":-1.000000,"rtt_p95_ms":-1.000000,"rtt_p99_ms":-1.000000,"rtt_max_ms":-1.000000,"snapshots":0,"stale":0,"corrections":0,"max_correction":0.000000,"correction_p50":0.000000,"correction_p99":0.000000,"stale_notices":0,"reconnects":0,"max_reconnect_ms":0,"invalid":0,"bytes_in":0,"bytes_out":608,"packets_in":0,"packets_out":16,"elapsed_ms":4000}
+{"t_ms":4054,"lvl":"info","comp":"client","evt":"state_change","from":"failed","to":"disconnected","why":"local_disconnect"}

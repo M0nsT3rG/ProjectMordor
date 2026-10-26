@@ -1,44 +1,45 @@
 {
- "id": "F-COMM-001",
- "type": "finding",
- "date": "2026-10-23",
- "subsystem": "tooling",
- "claim": "The GitHub org Shadow-of-War-Modding-Community has exactly three public repos (ImHex-Patterns, MeshParser, Documentation); none declares a license and Documentation contains only a one-line README.",
- "evidence": "GitHub API org repos listing returned 3 repos with license null; Documentation has a single commit with README.md only.",
- "sources": [
-  {
-   "url": "https://api.github.com/orgs/Shadow-of-War-Modding-Community/repos",
-   "commit": "",
-   "path": "",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
-   "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
-   "path": "README.md",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/MeshParser",
-   "commit": "e7821cd9b5ef13b44f6a9d75750259d5c0075069",
-   "path": "README.md",
-   "location": ""
-  },
-  {
-   "url": "https://github.com/Shadow-of-War-Modding-Community/Documentation",
-   "commit": "04e60fb7e1cf756f6699bd14b15b771e9c1e6953",
-   "path": "README.md",
-   "location": ""
-  }
- ],
- "game_build_compatibility": "Not applicable (statement about the org); repos do not state a game build.",
- "verification_method": "Queried GitHub REST API on 2026-10-23 and shallow-cloned all three repos (read-only); recorded HEAD commits.",
- "classification": "CONFIRMED",
- "confidence": "high",
- "limitations": "No license means default copyright: code may be read for research but not copied into project code without permission. Org wiki/Discord content was not examined.",
- "next_experiment": "Ask the org maintainers (survivalizeed, xNightswitch) about licensing and whether an arch06 extractor exists privately before writing our own.",
- "related": [
-  "F-COMM-002",
-  "F-COMM-006"
- ]
+  "id": "F-COMM-001",
+  "type": "finding",
+  "date": "2026-10-23",
+  "subsystem": "tooling",
+  "claim": "The GitHub org Shadow-of-War-Modding-Community has exactly three public repos (ImHex-Patterns, MeshParser, Documentation); none declares a license and Documentation contains only a one-line README.",
+  "evidence": "GitHub API org repos listing returned 3 repos with license null; Documentation has a single commit with README.md only.",
+  "sources": [
+    {
+      "url": "https://api.github.com/orgs/Shadow-of-War-Modding-Community/repos",
+      "commit": "",
+      "path": "",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/ImHex-Patterns",
+      "commit": "fcb03e2e6f6236370e0e2dae17f61fb96b5180e1",
+      "path": "README.md",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/MeshParser",
+      "commit": "e7821cd9b5ef13b44f6a9d75750259d5c0075069",
+      "path": "README.md",
+      "location": ""
+    },
+    {
+      "url": "https://github.com/Shadow-of-War-Modding-Community/Documentation",
+      "commit": "04e60fb7e1cf756f6699bd14b15b771e9c1e6953",
+      "path": "README.md",
+      "location": ""
+    }
+  ],
+  "game_build_compatibility": "Not applicable (statement about the org); repos do not state a game build.",
+  "verification_method": "Queried GitHub REST API on 2026-10-23 and shallow-cloned all three repos (read-only); recorded HEAD commits.",
+  "classification": "CONFIRMED",
+  "verification_scope": "source_verified",
+  "confidence": "high",
+  "limitations": "No license means default copyright: code may be read for research but not copied into project code without permission. Org wiki/Discord content was not examined.",
+  "next_experiment": "Ask the org maintainers (survivalizeed, xNightswitch) about licensing and whether an arch06 extractor exists privately before writing our own.",
+  "related": [
+    "F-COMM-002",
+    "F-COMM-006"
+  ]
 }

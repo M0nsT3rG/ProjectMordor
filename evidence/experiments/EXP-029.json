@@ -1,0 +1,25 @@
+{
+  "id": "EXP-029",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; Python 3, git",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #17 (FB-17-01/02) on feature/review17-evidence: document the dump limit, make test evidence immutable per run, recover the evidence that date-named files lost, and enforce the rule.",
+  "hypothesis": "Every overwritten version cited by an experiment record is still in git and can be restored without judgement; a per-run directory removes the overwrite; the validator can reject the mutable names.",
+  "procedure": "Found every record citing evidence/logs/tests-<suite>-<date>.json, e2e-<date>/ or a file in it (20). tools/evidence/recover_dated.py: for each record, the version of each cited path in each commit that changed the record (creation first, later edits labelled, identical versions not repeated) copied to evidence/logs/recovered/<EXP>/<commit>/ with provenance.json; the records' dated paths replaced by that directory (line endings kept; the diff only changes those paths); a second run refuses. Spot check: recovered EXP-027 dtls results byte-identical to b7405d9 and different from EXP-028's. Validator: date-named test.ps1 paths rejected (tools/evidence/test_evidence.py; the pre-repoint records gave 127 errors). scripts/test.ps1: per-run directory tests-<time>-<commit7>[-dirty] with suite JSONs written by this run only, run.json and e2e/; refuses an existing directory; check_test_transport.py --dir; report.py reads run directories (new test). Ran test.ps1 -GnsBuild -E2E, then test.ps1, on the working tree over 3ee5a8a (scripts and tools changed, C++ unchanged). Codex review of the working tree (first pass): 2 P2 findings, both confirmed and fixed: files inside e2e-<date>/ were neither recovered nor rejected (EXP-005, EXP-009), and report.py did not list the new per-run e2e/ directories; recovery redone from the committed records; second Codex pass: no actionable regression.",
+  "expected_result": "All recovered, validator clean, two separate run directories, all tests pass.",
+  "observed_result": "156 files recovered for 20 records (EXP-023: creation b3219e1 plus edits 77f9cb8 and a341969; EXP-025: creation 1bc8cc4 plus edit 67868d5; the others: creation only). Validator 0 errors after repointing; validator, report and comparator self-tests pass. Full run: all 12 ctest suites passed, transport check OK, start-failure smoke 3/3, wait-bounded self-check 12/12, E2E exit codes 0; directory tests-2026-10-25-145453-3ee5a8a-dirty with 9 suite files, run.json (result passed, dirty true) and e2e/. Quick run: 4 UDP suites passed; directory tests-2026-10-25-150313-3ee5a8a-dirty holds only those 4 (no stale GNS file copied). The earlier directory was not touched.",
+  "evidence_paths": [
+    "evidence/logs/recovered",
+    "evidence/logs/tests-2026-10-25-145453-3ee5a8a-dirty",
+    "evidence/logs/tests-2026-10-25-150313-3ee5a8a-dirty"
+  ],
+  "result": "PASSED",
+  "errors": "None. The runs are marked dirty because the changed scripts were not yet committed; the C++ code under test equals 3ee5a8a.",
+  "confidence": "high",
+  "follow_up": "Soak, asymmetric and secure E2E directories were already per run (timestamped). KI-35 next: GNS establishment and session phases with predeclared comparisons.",
+  "related": [
+    "EXP-027",
+    "EXP-028"
+  ]
+}

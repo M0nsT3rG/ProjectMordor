@@ -1,0 +1,19 @@
+[
+  {"name":"dtls12_with_pinned_raw_public_keys_succeeds","result":"PASSED","transport":"udp","ms":6,"error":""},
+  {"name":"dtls12_wrong_host_key_is_rejected_by_client","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"dtls12_wrong_client_key_is_rejected_by_host","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"dtls12_peer_without_raw_public_key_is_rejected","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"dtls_older_protocol_version_is_rejected","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"dtls12_non_aead_cipher_suite_is_rejected","result":"PASSED","transport":"udp","ms":0,"error":""},
+  {"name":"dtls12_exporter_binds_invitation_and_is_fresh_per_handshake","result":"PASSED","transport":"udp","ms":2,"error":""},
+  {"name":"dtls12_replayed_and_tampered_records_are_dropped","result":"PASSED","transport":"udp","ms":1,"error":""},
+  {"name":"dtls_over_transport_authenticates_with_pinned_keys_and_binding","result":"PASSED","transport":"udp","ms":118,"error":""},
+  {"name":"dtls_over_transport_survives_loss_jitter_reorder_and_duplication","result":"PASSED","transport":"udp","ms":13087,"error":""},
+  {"name":"dtls_over_transport_wrong_pinned_key_is_rejected","result":"PASSED","transport":"udp","ms":15,"error":""},
+  {"name":"dtls_binding_rejects_mismatched_invitation_id_version_and_expiry","result":"PASSED","transport":"udp","ms":65,"error":""},
+  {"name":"dtls_binding_missing_confirmation_fails_closed","result":"PASSED","transport":"udp","ms":3017,"error":""},
+  {"name":"dtls_binding_expired_invitation_is_refused","result":"PASSED","transport":"udp","ms":604,"error":""},
+  {"name":"dtls_reconnect_is_a_new_handshake_with_a_fresh_binding","result":"PASSED","transport":"udp","ms":40,"error":""},
+  {"name":"dtls_spurious_client_hello_does_not_disturb_an_established_session","result":"PASSED","transport":"udp","ms":1509,"error":""},
+  {"name":"dtls_small_mtu_fragments_the_handshake_within_the_limit","result":"PASSED","transport":"udp","ms":20,"error":""}
+]

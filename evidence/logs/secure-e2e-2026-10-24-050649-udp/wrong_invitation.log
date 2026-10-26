@@ -1,0 +1,6 @@
+{"t_ms":0,"lvl":"info","comp":"client","evt":"loop_timer","high_resolution":true}
+{"t_ms":4,"lvl":"info","comp":"client","evt":"security","mode":"dtls","own_fingerprint":"ddb8332bc347fbfc6b28093ae4c3439784d1fdcdb29fe756b165aeff4598cbf5","invitation":"other-udp"}
+{"t_ms":7,"lvl":"info","comp":"client","evt":"state_change","from":"idle","to":"connecting","why":"connect_called"}
+{"t_ms":12,"lvl":"info","comp":"client","evt":"state_change","from":"connecting","to":"failed","why":"transport_handshake_failed"}
+{"t_ms":12,"lvl":"info","comp":"client","evt":"summary","final_state":"failed","player":0,"rtt_samples":0,"rtt_p50_ms":-1.000000,"rtt_p95_ms":-1.000000,"rtt_p99_ms":-1.000000,"rtt_max_ms":-1.000000,"snapshots":0,"stale":0,"corrections":0,"max_correction":0.000000,"correction_p50":0.000000,"correction_p99":0.000000,"stale_notices":0,"reconnects":0,"max_reconnect_ms":0,"invalid":0,"bytes_in":0,"bytes_out":38,"packets_in":0,"packets_out":1,"elapsed_ms":6}
+{"t_ms":12,"lvl":"info","comp":"client","evt":"state_change","from":"failed","to":"disconnected","why":"local_disconnect"}

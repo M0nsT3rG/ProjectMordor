@@ -1,0 +1,35 @@
+{
+  "id": "EXP-019",
+  "type": "experiment",
+  "date": "2026-10-24",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; real time",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #7 FB-7-01..05 and answer 3 (secure transport decorator); prepare the KI-27 upstream report for the owner.",
+  "hypothesis": "A Transport decorator can carry Host/Client game traffic over DTLS with no plaintext path, bounded pre-auth state and safe same-address reconnects; the KI-27 assert reproduces with the public GNS API alone.",
+  "procedure": "SecureTransport (decorator over any backend; Connected/Messages only after DTLS + binding; caps + expiry; pending promotion; ReliableOrdered Unsupported). Host/Client 'secure' config with start() failure instead of fallback. DTLS_set_timer_cb back-off; binding reply rate limit; corrupt-confirmation test hook; multi-pin. Tests: 7 decorator tests, 6 timer/binding tests (both backends). KI-27: minimal reproducer (Init/CreateListenSocketIP/Close/Kill loop) with 0/10/50 ms settle; 10-process stress of the transport suite's GNS tests. All suites x2, E2E, soak v4 x6, asymmetric x4.",
+  "expected_result": "All tests pass on both backends; plaintext refused both ways; caps hold; 0 KI-27 assertions under the mitigation.",
+  "observed_result": "First full DTLS run after adding the FB-7 tests: {'PASSED': 27, 'FAILED': 3}; with OpenSSL's default back-off (1 s doubling) only ~4 handshake attempts fit the 15 s budget, so under 25% loss dtls_over_transport_survives... failed once (passed on rerun, i.e. intermittent) and dtls_timer_fires_with_late_irregular_service failed on UDP (client handshake_timeout, host binding_timeout). Fix: DTLS_set_timer_cb 250 ms doubling to 2 s; then 30/30 three times. Decorator: 2 players play over DTLS on UDP and GNS; plaintext client refused (13 non-DTLS datagrams dropped, client connect_deadline); secure client vs plaintext host never connects; unpinned player and wrong invitation -> transport_handshake_failed; outage reconnect keeps the player id after a new handshake; 6 unpinned handshakes vs cap 3 refused beyond it, all pending expired, then a legitimate player connected; UDP same-address reconnects x2 replaced the association only once authenticated, late old records dropped. Timer: 3 s total loss -> 3 retransmits during the outage, ~2000 service calls; permanent loss 4 s -> handshake_timeout after 4 retransmits. Binding: altered confirmation rejected; duplicated/reordered bindings <= 5 sent per side; invitation expiring mid-handshake refused. KI-27 reproducer (public API only): assertions per 400 iterations by settle ms {0: [44, 35, 34], 50: [0, 0, 0], 10: [0, 0, 0]}. Stress: 10 processes of the transport GNS tests, 0 assertions, 0 failures. Asymmetric 4/4. FINAL: {'unit': {'PASSED': 16}, 'integration': {'PASSED': 34}, 'network': {'PASSED': 16}, 'transport': {'PASSED': 17}, 'transport-both': {'PASSED': 19}, 'integration-gns': {'PASSED': 20, 'SKIPPED': 14}, 'network-gns': {'SKIPPED': 5, 'PASSED': 11}, 'gns': {'PASSED': 7}, 'dtls': {'PASSED': 30}}. Soak v4: soak-2026-10-24-015620-lan-udp-g4: 43/43; rtt p50/p99 10.2/12.2 ms; recovery 17.0 ms | soak-2026-10-24-015841-moderate-udp-g4: 43/43; rtt p50/p99 103.2/120.8 ms; recovery 158.0 ms | soak-2026-10-24-020049-harsh-udp-g4: 43/43; rtt p50/p99 205.0/237.5 ms; recovery 802.0 ms | soak-2026-10-24-020257-lan-gns-g4: 43/43; rtt p50/p99 9.0/12.1 ms; recovery 540.0 ms | soak-2026-10-24-020507-moderate-gns-g4: 43/43; rtt p50/p99 96.0/115.3 ms; recovery 390.0 ms | soak-2026-10-24-020716-harsh-gns-g4: 43/43; rtt p50/p99 188.8/229.5 ms; recovery 1694.0 ms.",
+  "evidence_paths": [
+    "evidence/logs/tests-dtls-review7-first-run-2026-10-24.json",
+    "evidence/logs/ki27-repro-2026-10-24.json",
+    "evidence/logs/recovered/EXP-019",
+    "evidence/logs/soak-2026-10-24-015620-lan-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-015841-moderate-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-020049-harsh-udp-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-020257-lan-gns-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-020507-moderate-gns-g4/summary.json",
+    "evidence/logs/soak-2026-10-24-020716-harsh-gns-g4/summary.json",
+    "evidence/logs/asym-2026-10-24-021720-uplink-outage-gns/check.json",
+    "evidence/logs/asym-2026-10-24-021753-host-jitter-client-outage-gns/check.json",
+    "evidence/logs/asym-2026-10-24-021825-uplink-outage-udp/check.json",
+    "evidence/logs/asym-2026-10-24-021906-host-jitter-client-outage-udp/check.json"
+  ],
+  "result": "PASSED",
+  "errors": "DTLS first run with default back-off: 2 failures (one intermittent). Recorded above.",
+  "confidence": "medium",
+  "follow_up": "Key/invitation provisioning for the executables (KI-31); stateless cookie (KI-30); independent review; owner decides on posting the KI-27 upstream draft.",
+  "related": [
+    "EXP-018",
+    "EXP-017"
+  ]
+}

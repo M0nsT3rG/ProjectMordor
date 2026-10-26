@@ -1,0 +1,22 @@
+{
+  "id": "EXP-033",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback; PowerShell 5.1, Python 3",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Implement ChatGPT review #21 on feature/review21-identity: FAILED cases fail the run whatever ctest's exit code (FB-21-01), suite identity in the runner's JSON (FB-21-02), redaction of paths with spaces and non-ASCII letters (FB-21-03).",
+  "hypothesis": "Counting FAILED cases in valid files closes the exit-0 gap; a --suite argument written into every case lets test.ps1 reject a file filed under another suite; quoting paths in messages and redacting up to the last separator removes the partial-path leak.",
+  "procedure": "tests/test_main.cpp: --suite NAME written as \"suite\" in every case; CMakeLists passes the ctest name. test.ps1: Test-ResultsFile requires suite == the expected ctest name; Get-FailedCases records ctest_runs[].failed_cases and fails the run. local-paths.ps1: quoted paths hidden whole; unquoted paths hidden up to the last separator plus the file name; test.ps1 quotes the paths it puts in messages. Harness: FAILED with exit 0, a valid file filed under another suite, 6 redaction cases with spaces and non-ASCII (the script kept ASCII-only; PowerShell 5.1 reads BOM-less scripts as ANSI). Red-before: without the FB-21-01 condition the FAILED/exit-0 run ended passed. Rebuilt both builds; ran test.ps1 -GnsBuild -Repeat 2 -E2E. Codex review: pass 1 found that .gitignore's unanchored build-*/ hid every evidence/logs/tests-*/build-gns-iter-1/ directory, so no GNS invocation copy since review #18 had been committed; the ignores were anchored to the root, the 7 on-disk directories committed, and test_evidence.py checks with git check-ignore that evidence is never ignored (it fails with the old .gitignore). Pass 2: no regression. In the same session the owner recorded D-007 (docs/decisions.md); D-008 is pending, so G0 stays closed.",
+  "expected_result": "Harness, report and validator self-tests pass; real result files carry the right suite; the full run passes.",
+  "observed_result": "Harness all passed; evidence self-tests pass (including the git-ignore check); report 12/12. Full run tests-2026-10-25-182016-3bdfeac-dirty after rebuilding: iter-1, iter-2 (4 suites each) and build-gns-iter-1 (5 suites), exit 0, nothing missing, invalid or failed, so every real suite file carries the right suite (e.g. unit, integration-gns, dtls); transport check OK x4; smoke 3/3; both self-checks passed; E2E 0.",
+  "evidence_paths": [
+    "evidence/logs/tests-2026-10-25-182016-3bdfeac-dirty"
+  ],
+  "result": "PASSED",
+  "errors": "Unquoted paths in third-party messages may be over-hidden (marked shortcut in local-paths.ps1). The run is marked dirty because the changes were not yet committed.",
+  "confidence": "high",
+  "follow_up": "D-008 (owner): GOG lists the game as DRM-free; verify a purchased GOG copy read-only before G0. KI-35 GNS phases with predeclared comparisons.",
+  "related": [
+    "EXP-032"
+  ]
+}

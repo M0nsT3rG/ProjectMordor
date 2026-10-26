@@ -1,0 +1,23 @@
+{
+  "id": "ki27-probe-2026-10-24",
+  "method": "tests/transport gns_teardown_assertion_probe, 200 runs per scenario per process, 6 processes",
+  "before_mitigation": {
+    "open_close_listener": 4,
+    "open_listener_wait_50ms_close": 0,
+    "listener_with_runtime_kept_alive": 0,
+    "open_close_client": 0,
+    "connect_then_close_immediately": 0,
+    "connected_close_client_first": 0,
+    "connected_close_host_first": 0,
+    "assertions_in_whole_processes": 8
+  },
+  "earlier_40_run_probe": {
+    "open_close_listener": 1,
+    "others": 0
+  },
+  "after_mitigation": {
+    "all_scenarios": 0,
+    "assertions_in_whole_processes": 0
+  },
+  "note": "Counts transcribed from console output; GNS prints the assertion via its debug callback, now counted by gns_internal_assertions()."
+}

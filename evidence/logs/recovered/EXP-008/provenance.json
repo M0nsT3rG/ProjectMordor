@@ -1,0 +1,29 @@
+{
+  "experiment": "EXP-008",
+  "record": "evidence/experiments/EXP-008.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-integration-2026-10-23.json",
+    "evidence/logs/tests-network-2026-10-23.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "77666674ca1cb9833c52900cc3f9c029c44f89a5",
+      "role": "created",
+      "subject": "Phase 1: research, evidence system and networking prototype",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-23.json",
+          "blob": "edd9b3f1a58e1785a3bebf396854b5257f545c63",
+          "recovered_path": "evidence/logs/recovered/EXP-008/7766667/tests-integration-2026-10-23.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-23.json",
+          "blob": "933edbf2b82b3ad37e47eabbd23cc7485e2af6cf",
+          "recovered_path": "evidence/logs/recovered/EXP-008/7766667/tests-network-2026-10-23.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

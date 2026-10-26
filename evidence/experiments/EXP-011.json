@@ -1,0 +1,26 @@
+{
+  "id": "EXP-011",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, loopback, real wall-clock time for soak runs",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Verify and address ChatGPT review #2 (FB-2-01 manifest validation, FB-2-02 timeout-notice robustness, FB-2-03 budgets) and re-run the soak under gate version 2.",
+  "hypothesis": "FB-2-01: analyzer v1 can pass a run whose client never started. FB-2-02: a delayed or replayed Disconnect{Timeout} after a successful reconnect forces a spurious reconnect.",
+  "procedure": "1) FB-2-01: ran analyzer v1 (git HEAD 39287be) on a synthetic run where client2 never started; then analyzer v2. 2) FB-2-02: wrote fake-host tests first and ran them on the unfixed client; then added the accept-sequence guard. 3) ./scripts/test.ps1 -Repeat 3 -E2E; python -I tools/soak/test_analyze.py; ./scripts/soak.ps1 -Profile lan|moderate|harsh -DurationS 120 under gate v2 into fresh directories.",
+  "expected_result": "v1 passes the broken run and v2 fails it; notice tests fail before the guard and pass after; all v2 soak gates pass.",
+  "observed_result": "FB-2-01 confirmed: analyzer v1 printed 'SOAK PASSED' for a run with no client2 log and a null client2 exit code; v2 fails it (manifest, log set, exit-code coverage). FB-2-02 confirmed: delayed_timeout_notice_after_reconnect_is_ignored and replayed_and_duplicate_timeout_notices_have_no_extra_effect FAILED on the unfixed client and pass with the guard. The real-host jitter test passed both before and after (it delivered no late notice: stale_notices=0), so it is kept only as a smoke test. Suites: unit 15, integration 25, network 12 all passed (x3 + E2E); analyzer self-checks 11/11. Soak v2: soak-2026-10-23-204617-lan-g2: gate v2 PASSED (36 gates); client1 rtt p50/p99 10.5/12.1 ms; recovery 18.0 ms; max correction 0.000 (budget 0.84); in/out 21.61/13.66 kbit/s (budgets 22.93/31.0); shed 0 | soak-2026-10-23-204825-moderate-g2: gate v2 PASSED (36 gates); client1 rtt p50/p99 103.9/121.6 ms; recovery 161.0 ms; max correction 0.333 (budget 1.4); in/out 21.05/22.22 kbit/s (budgets 23.39/31.0); shed 8 | soak-2026-10-23-205033-harsh-g2: gate v2 PASSED (36 gates); client1 rtt p50/p99 203.9/241.6 ms; recovery 1567.0 ms; max correction 0.333 (budget 2.0); in/out 19.2/29.39 kbit/s (budgets 24.08/31.0); shed 110. Gate v1 summaries from EXP-010 are untouched.",
+  "evidence_paths": [
+    "evidence/logs/soak-2026-10-23-204617-lan-g2/summary.json",
+    "evidence/logs/soak-2026-10-23-204825-moderate-g2/summary.json",
+    "evidence/logs/soak-2026-10-23-205033-harsh-g2/summary.json",
+    "evidence/logs/recovered/EXP-011"
+  ],
+  "result": "PASSED",
+  "errors": "",
+  "confidence": "medium",
+  "follow_up": "FB-2-05 (longer, randomized, host and OS-level stalls) and a versioned tighter RTT benchmark gate after repeated runs; LAN run pending approval.",
+  "related": [
+    "EXP-010",
+    "EXP-009"
+  ]
+}

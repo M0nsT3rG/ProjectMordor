@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Codex review of the combined diff (P2): makes the process ANSI code page UTF-8 (Windows 10 1903+), so the narrow
+     argv and narrow file APIs carry UTF-8 whatever the system code page is. Paths such as C:\Users\José\... reach
+     secure_identity.cpp (which reads them as UTF-8) intact. Embedded in every executable by CMakeLists.txt. -->
+<assembly manifestVersion="1.0" xmlns="urn:schemas-microsoft-com:asm.v1">
+  <application>
+    <windowsSettings>
+      <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+    </windowsSettings>
+  </application>
+</assembly>

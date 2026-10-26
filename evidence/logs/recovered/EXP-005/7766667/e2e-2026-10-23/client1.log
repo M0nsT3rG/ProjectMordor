@@ -1,0 +1,9 @@
+{"t_ms":2,"lvl":"info","comp":"client","evt":"state_change","from":"idle","to":"connecting","why":"connect_called"}
+{"t_ms":147,"lvl":"info","comp":"client","evt":"connected","player":2,"entity":2,"session":3862100019,"same_session":false}
+{"t_ms":147,"lvl":"info","comp":"client","evt":"state_change","from":"connecting","to":"connected","why":"connect_accept"}
+{"t_ms":1005,"lvl":"info","comp":"client","evt":"status","state":"connected","player":2,"rtt_ms":132.923250,"x":5.538539,"z":2.259479,"remotes":1,"snapshots":23,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0}
+{"t_ms":2007,"lvl":"info","comp":"client","evt":"status","state":"connected","player":2,"rtt_ms":130.632300,"x":5.882196,"z":7.040566,"remotes":1,"snapshots":47,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0}
+{"t_ms":3007,"lvl":"info","comp":"client","evt":"status","state":"connected","player":2,"rtt_ms":132.925136,"x":2.038821,"z":9.905252,"remotes":1,"snapshots":73,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0}
+{"t_ms":4015,"lvl":"info","comp":"client","evt":"status","state":"connected","player":2,"rtt_ms":131.060911,"x":-2.556785,"z":8.092475,"remotes":1,"snapshots":101,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0}
+{"t_ms":5007,"lvl":"info","comp":"client","evt":"status","state":"connected","player":2,"rtt_ms":133.010120,"x":-3.460706,"z":3.535461,"remotes":1,"snapshots":129,"stale":0,"corrections":0,"max_correction":0.000000,"reconnects":0}
+{"t_ms":6007,"lvl":"info","comp":"client","evt":"state_change","from":"connected","to":"disconnected","why":"local_disconnect"}

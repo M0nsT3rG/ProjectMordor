@@ -3,18 +3,85 @@
 #include <chrono>
 #include <cmath>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <functional>
 #include <memory>
 #include <stdexcept>
 #include <string>
+#include <string_view>
 #include <thread>
 #include <vector>
 
 #include "client/client.hpp"
+#include "common/precise_sleep.hpp"
 #include "host/host.hpp"
 
 namespace mordor::test {
+
+// Backend under test: MORDOR_TRANSPORT=udp (default) or gns. Results must be recorded per transport.
+inline net::TransportKind test_transport() {
+    static const net::TransportKind kind = [] {
+        char* v = nullptr;
+        std::size_t n = 0;
+        std::string s = (_dupenv_s(&v, &n, "MORDOR_TRANSPORT") == 0 && v) ? v : "udp";
+        std::free(v);
+        const auto k = net::parse_transport(s);
+        if (!k || !net::transport_available(*k)) {
+            std::fprintf(stderr, "MORDOR_TRANSPORT=%s is not available in this build\n", s.c_str());
+            std::exit(2);
+        }
+        return *k;
+    }();
+    return kind;
+}
+
+// A skipped test is reported as SKIPPED with its reason, never as PASSED.
+struct SkipTest : std::runtime_error {
+    using std::runtime_error::runtime_error;
+};
+#define UDP_ONLY(reason)                                                                     \
+    do {                                                                                     \
+        if (::mordor::test::test_transport() != ::mordor::net::TransportKind::Udp)           \
+            throw ::mordor::test::SkipTest(std::string("UDP-only: ") + (reason));            \
+    } while (0)
+
+// One simulated step. With GNS the library runs on real time (handshakes, keepalives, retransmits), so the
+// simulated clock is coupled to real time by sleeping each step; with UDP a yield is enough.
+inline void step_wait(std::uint64_t step_us) {
+    if (test_transport() == net::TransportKind::Udp) {
+        std::this_thread::yield();
+        return;
+    }
+    thread_local PreciseSleeper sleeper;
+    sleeper.sleep_us(static_cast<std::uint32_t>(step_us));
+}
+
+// FB-22-01: JSON string escaping for the runner's results file (RFC 8259): quote, backslash and every control
+// character. Test names are C++ identifiers, but --suite and error messages can hold anything (a newline in an
+// exception message used to produce invalid JSON).
+inline std::string json_escape(std::string_view s) {
+    std::string out;
+    out.reserve(s.size());
+    for (unsigned char c : s) {
+        switch (c) {
+            case '"': out += "\\\""; break;
+            case '\\': out += "\\\\"; break;
+            case '\n': out += "\\n"; break;
+            case '\r': out += "\\r"; break;
+            case '\t': out += "\\t"; break;
+            default:
+                if (c < 0x20) {
+                    char buf[8];
+                    std::snprintf(buf, sizeof buf, "\\u%04x", static_cast<unsigned>(c));
+                    out += buf;
+                } else {
+                    out += static_cast<char>(c);  // UTF-8 bytes pass through unchanged
+                }
+        }
+    }
+    return out;
+}
 
 struct TestCase {
     const char* name;
@@ -77,7 +144,7 @@ inline bool pump(SimClock& clk, host::Host* h, std::vector<client::Client*> clie
         for (auto* c : clients) c->update(clk.now);
         if (done && done()) return true;
         clk.now += step_us;
-        std::this_thread::yield();
+        step_wait(step_us);
     }
     return done ? done() : true;
 }
@@ -91,12 +158,17 @@ struct Session {
     host::Host host;
     std::vector<std::unique_ptr<client::Client>> clients;
 
-    explicit Session(host::HostConfig hc = {}) : host(hc, test_logger("host")) {
+    static host::HostConfig with_transport(host::HostConfig hc) {
+        hc.transport = test_transport();
+        return hc;
+    }
+    explicit Session(host::HostConfig hc = {}) : host(with_transport(hc), test_logger("host")) {
         std::string err;
         if (!host.start(&err)) throw CheckFailure("host start failed: " + err);
     }
     client::Client& add_client(client::ClientConfig cc = {}) {
         cc.host = net::Endpoint::loopback(host.port());
+        cc.transport = test_transport();
         clients.push_back(std::make_unique<client::Client>(cc, test_logger("client")));
         std::string err;
         if (!clients.back()->start(&err)) throw CheckFailure("client start failed: " + err);

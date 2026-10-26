@@ -1,0 +1,42 @@
+{
+    "transport":  "gns",
+    "clock":  "real-time",
+    "duration_s":  10,
+    "keys":  "generated under %TEMP% for this run and deleted afterwards (never in the repository)",
+    "exit_codes":  {
+                       "host":  0,
+                       "client1":  0,
+                       "client2":  0,
+                       "host2":  0
+                   },
+    "barrier":  {
+                    "ready":  true,
+                    "limit_s":  30,
+                    "log_appeared_ms":  {
+                                            "client1":  17,
+                                            "client2":  23
+                                        },
+                    "connected_ms":  {
+                                         "client1":  92,
+                                         "client2":  93
+                                     }
+                },
+    "exit_status":  {
+                        "client1":  "exited",
+                        "client2":  "exited",
+                        "host":  "exited",
+                        "plaintext":  "exited",
+                        "stranger":  "exited",
+                        "wrong_invitation":  "exited",
+                        "expired_invitation":  "exited",
+                        "missing_key":  "exited",
+                        "host2":  "exited"
+                    },
+    "negative_exit_codes":  {
+                                "plaintext":  1,
+                                "stranger":  1,
+                                "wrong_invitation":  1,
+                                "expired_invitation":  2,
+                                "missing_key":  2
+                            }
+}

@@ -1,0 +1,28 @@
+{
+  "id": "EXP-010",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, loopback 127.0.0.1, real wall-clock time, 3 separate processes",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "Real-time soak of host + 2 clients under three impairment profiles with a mid-run client stall (review FB-1-03 P1).",
+  "hypothesis": "The prototype meets the fixed gates of docs/soak-testing.md in real time, not only under the simulated clock.",
+  "procedure": "./scripts/soak.ps1 -Profile <lan|moderate|harsh> -DurationS 120 (plus two 20 s lan smoke runs before/after fixes); gates evaluated by tools/soak/analyze.py, fixed before the first run.",
+  "expected_result": "All gates pass for all profiles.",
+  "observed_result": "First smoke run FAILED one gate: recovery after the 5 s stall took 3085 ms (> 3000) because buffered snapshots refreshed the client's liveness while the host had already timed it out (KI-12); RTT p50 was 55.7 ms on a ~6 ms profile because of 15.6 ms sleep granularity (KI-02). After fixes (host timeout notice; high-resolution waitable timer) all gates passed on all three 120 s profiles. Per run: soak-2026-10-23-lan-smoke1-before-fix: FAILED client2_recovery_time; client1 rtt p50/p99 55.7/66.8 ms; client2 recovery 3085.0 ms; shed 0; max correction 0.000; drift 0.000494 | soak-2026-10-23-lan-smoke2-after-fix: PASSED; client1 rtt p50/p99 9.8/12.2 ms; client2 recovery 19.0 ms; shed 0; max correction 0.000; drift 3.2e-05 | soak-2026-10-23-lan: PASSED; client1 rtt p50/p99 10.5/12.1 ms; client2 recovery 20.0 ms; shed 0; max correction 0.000; drift 0.000272 | soak-2026-10-23-moderate: PASSED; client1 rtt p50/p99 104.2/120.8 ms; client2 recovery 161.0 ms; shed 2; max correction 0.333; drift 1e-05 | soak-2026-10-23-harsh: PASSED; client1 rtt p50/p99 204.6/239.2 ms; client2 recovery 572.0 ms; shed 72; max correction 0.333; drift 0.000271. RTT max for the stalled client includes the stall (measurement artifact); p99 unaffected.",
+  "evidence_paths": [
+    "evidence/logs/soak-2026-10-23-lan-smoke1-before-fix/summary.json",
+    "evidence/logs/soak-2026-10-23-lan-smoke2-after-fix/summary.json",
+    "evidence/logs/soak-2026-10-23-lan/summary.json",
+    "evidence/logs/soak-2026-10-23-moderate/summary.json",
+    "evidence/logs/soak-2026-10-23-harsh/summary.json"
+  ],
+  "result": "PASSED",
+  "errors": "smoke1: client2_recovery_time 3085 ms > 3000 ms (fixed, run preserved)",
+  "confidence": "medium",
+  "follow_up": "Two-PC LAN run (needs firewall approval); multi-hour soak and repeated stalls; real process suspension instead of in-process sleep.",
+  "related": [
+    "EXP-005",
+    "EXP-006",
+    "EXP-009"
+  ]
+}

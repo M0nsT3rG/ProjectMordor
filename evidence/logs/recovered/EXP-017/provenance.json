@@ -1,0 +1,77 @@
+{
+  "experiment": "EXP-017",
+  "record": "evidence/experiments/EXP-017.json",
+  "cited_dated_paths": [
+    "evidence/logs/tests-dtls-first-run-2026-10-24.json",
+    "evidence/logs/tests-unit-2026-10-24.json",
+    "evidence/logs/tests-integration-2026-10-24.json",
+    "evidence/logs/tests-network-2026-10-24.json",
+    "evidence/logs/tests-transport-2026-10-24.json",
+    "evidence/logs/tests-transport-both-2026-10-24.json",
+    "evidence/logs/tests-integration-gns-2026-10-24.json",
+    "evidence/logs/tests-network-gns-2026-10-24.json",
+    "evidence/logs/tests-gns-2026-10-24.json",
+    "evidence/logs/tests-dtls-2026-10-24.json"
+  ],
+  "rule": "version of each cited path in each commit that changed the record; creation first; identical versions not repeated",
+  "versions": [
+    {
+      "commit": "1fc796f49eead16aba606a22427cee1257907798",
+      "role": "created",
+      "subject": "Review #5: counter semantics, connect deadline, GNS impairment guard, substitute tests, DTLS proof",
+      "files": [
+        {
+          "original_path": "evidence/logs/tests-dtls-first-run-2026-10-24.json",
+          "blob": "03494c3c2aa5d25cc931a6bffde2050597a6d703",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-dtls-first-run-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-unit-2026-10-24.json",
+          "blob": "9bda5daff59c341a032623e57df44fd05380f7c0",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-unit-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-2026-10-24.json",
+          "blob": "6b1eca67135631834d759e8684c8eba0aa0fdc38",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-integration-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-2026-10-24.json",
+          "blob": "915479be4e48c992f88443d4d648383ce5e90b34",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-network-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-2026-10-24.json",
+          "blob": "a53b1e277cd80ca2aefffa596fc8f43ebe4b1117",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-transport-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-transport-both-2026-10-24.json",
+          "blob": "af9081a1603f1045b728c3b56e64fb317360a284",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-transport-both-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-integration-gns-2026-10-24.json",
+          "blob": "28f382611dd7fae16a9cd8e1943d3b3af64b2e77",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-integration-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-network-gns-2026-10-24.json",
+          "blob": "ba932fbc4f33b7757bf79cc865f687450028a8e7",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-network-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-gns-2026-10-24.json",
+          "blob": "5066ffbfbc863e277b2246ea8c654f08b1095323",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-gns-2026-10-24.json"
+        },
+        {
+          "original_path": "evidence/logs/tests-dtls-2026-10-24.json",
+          "blob": "1d4d1e58c46517523e91e452865fcaac3b6b3543",
+          "recovered_path": "evidence/logs/recovered/EXP-017/1fc796f/tests-dtls-2026-10-24.json"
+        }
+      ],
+      "not_in_commit": []
+    }
+  ]
+}

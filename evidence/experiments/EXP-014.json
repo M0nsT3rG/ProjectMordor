@@ -1,0 +1,24 @@
+{
+  "id": "EXP-014",
+  "type": "experiment",
+  "date": "2026-10-23",
+  "environment": "Windows 11 Pro x64, MSVC 14.51, GNS 1.6.1 via vcpkg 65a2c23, loopback",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "ChatGPT review #3: implement the Transport interface with the existing UDP backend without changing any test (FB-3-02), verify GNS authentication facts against the real library (answer 1), and harden the GNS spike tests (FB-3-01/03/04/05).",
+  "hypothesis": "Host/Client can move onto a Transport seam with identical behaviour; GNS open-source defaults accept unauthenticated peers.",
+  "procedure": "1) Added net::Transport + UdpTransport + factory; Host/Client hold std::unique_ptr<Transport>; ImpairedSender takes any transmit function. 2) git diff 42e9451 -- tests/ (expect empty); ctest x3; ./scripts/test.ps1 -E2E; ./scripts/soak.ps1 -Profile lan -DurationS 120. 3) Read GNS 1.6.1 public headers and vcpkg source tree for identity/certificate/auth defaults. 4) Rewrote tests/gns with RAII global-state guard, listen-port retries, concurrent/multi-client/mixed/queue-pressure tests and asserted security baselines; ran 3 instances in parallel.",
+  "expected_result": "No test file changes; all suites, E2E and soak pass as before; GNS facts documented with sources; new GNS tests pass, also in parallel.",
+  "observed_result": "Transport refactor: no UDP test or harness file changed (git diff 42e9451 -- tests/unit tests/integration tests/network tests/test_support.hpp tests/test_main.cpp empty; tests/gns rewritten deliberately for FB-3); unit 15, integration 25, network 12 passed x3 in both builds; E2E passed; lan soak soak-2026-10-23-215207-lan-g3 41/41 gates with RTT p50/p99 10.5/12.1 ms and recovery 21 ms (identical to before the refactor). GNS facts (source_verified): open-source build defaults IP_AllowWithoutAuth=2 and IPLocalHost_AllowWithoutAuth=2 (accept unauthenticated peers on any IP, no warning); certificate trust (CertStore_AddCertFromBase64) is internal, not in public headers; header warns plain IP is MITM-vulnerable. GNS tests 7/7 x3 and 3 parallel instances 21/21: concurrent bidirectional 3000 each way exact; two simultaneous clients 2000 each exact; interleaved reliable 1000/1000 exact with unreliable 900/1000 and no duplicates at 10% fake loss; queue pressure: 89661 accepted, 110339 refused (explicit backpressure), all accepted delivered in order, with 'recv queue overflow' warnings (receive queue must be drained often); security baseline asserted: encrypted, unauthenticated; defaults asserted == 2.",
+  "evidence_paths": [
+    "evidence/logs/recovered/EXP-014",
+    "evidence/logs/soak-2026-10-23-215207-lan-g3/summary.json"
+  ],
+  "result": "PASSED",
+  "errors": "Commit c681977 message overstated 'No test file changed'; precise statement corrected in a follow-up commit.",
+  "confidence": "high",
+  "follow_up": "GnsTransport adapter with GNS-owned liveness and native fault injection (transport-specific gate version); D-013 crypto library; authenticated-peer implementation and its tests.",
+  "related": [
+    "EXP-013",
+    "EXP-012"
+  ]
+}
