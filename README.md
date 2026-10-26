@@ -8,7 +8,7 @@ A research project into whether two legitimate owners of *Middle-earth: Shadow o
 
 ## Progress
 
-*Last updated 2026-10-25.*
+*Last updated 2026-10-26.*
 
 **Overall: about 16% (a rough estimate).**
 
@@ -33,8 +33,9 @@ A research project into whether two legitimate owners of *Middle-earth: Shadow o
 
 **Where the newer work is:**
 
-- Everything after Phase 1 is in open pull requests, stacked one on another (#1 → #22), each reviewed. **None is merged into `main` yet**, so `main` still shows the Phase 1 code. The [pull requests](../../pulls) and their review comments have the details.
-- The live status and test results are on the newest branch, in `.ai-collaboration/PROJECT_STATUS.md` and `TEST_RESULTS.md`.
+- Everything up to the integration candidate is now **merged into `main`** (2026-10-26, PR #24). It passed the [integration gate](docs/integration-gate.md): the test suites, real-time end-to-end runs, the 12-scenario soak battery, and two clean independent code reviews in a row. The owner approved the merge.
+- Still in review, not merged: the KI-35 investigation of the slow-recovery tail (PR #25).
+- The live status and test results are in `.ai-collaboration/PROJECT_STATUS.md` and `TEST_RESULTS.md`.
 
 ## Contents
 
