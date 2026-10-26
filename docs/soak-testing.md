@@ -806,6 +806,28 @@ This was written and committed **before** any run, after reviews #27/#28 (FB-28-
 - **Reported:** session-phase p50/p95; ConnectRequests per reconnect; timeouts and failures per arm; gate timeouts.
 - **Recommendation for the owner, not automatic.** Recommend adoption only if O1 or O2-p95 shows **on better** on at least one backend, **on worse** appears on no backend for O1 or O2, and O4 has no defect. Otherwise do not recommend. KI-35 stays open either way until the soak gate says otherwise.
 
+**EXP-043 result (`ki35-ab-2026-10-26-184205-a68552d`, complete).** 1200 harsh and 200 latency-only reconnects. There were no timeouts, failures or gate timeouts, and every batch was homogeneous (p ≥ 0.013).
+
+| | UDP off | UDP on | GNS off | GNS on |
+|---|---|---|---|---|
+| First request dropped (D1) | 150/300 | **0/300** | 76/300 | **0/300** |
+| ConnectRequests per reconnect | 2.04 | 1.35 | 1.67 | 1.36 |
+| Session phase p50 (ms) | 702 | **208** | 223 | 195 |
+| Total p50 / p95 / p99 (ms) | 1817 / 3365 / 4867 | 1666 / 3557 / 4919 | 2445 / 4492 / 6059 | 2478 / 4775 / 6321 |
+| P(total > 3 s) | 25/300 | 32/300 | 88/300 | 81/300 |
+
+- **O4 security:** 0 defects and 0 unassessable reconnects. The gate removed every first-request drop, as designed.
+- **O1, P(total > 3 s):** no difference shown. UDP +0.023, 95% [−0.024, +0.071]; GNS −0.023, [−0.095, +0.049].
+- **O2, p95 and p99:** no difference shown on either backend. For example, the UDP p95 difference is +192 ms, [−615, +698].
+- **O3, p50 cost (reported):**
+  - harsh: UDP −151 ms [−248, +108], GNS +33 [−139, +165];
+  - latency only: UDP −198 [−302, +180], GNS **+185 [+164, +202]**.
+  - That GNS figure is the gate's round trip where the first request was rarely dropped.
+- **By the predeclared rule: do not recommend.**
+  - Gating fixes the session phase, but the slow tail is DTLS and, on GNS, establishment (EXP-041), which it does not touch.
+  - It moves the session's wasted retry into a wait for the ack inside DTLS.
+  - `confirm_binding` stays off by default. Next for KI-35 are the DTLS-timer and cookie experiments (FB-25-07 / FB-28-04).
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

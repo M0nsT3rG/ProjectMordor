@@ -2,6 +2,22 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-26: EXP-043, A/B of client-side gating (`feature/ki35-gns-establishment`)
+
+- **Input:** reviews #27/#28. The owner authorised the behaviour change behind a flag that is off by default. Triaged in CHATGPT_FEEDBACK.md.
+- **`confirm_binding`** (`fc5eed3`, off by default, both ends):
+  - the host acks the client's verified binding (BindingAck `0xB2`, inside DTLS);
+  - the client authenticates only after that ack, with a 2 s fallback; nothing is buffered.
+- **The first design gated both sides.** A FB-28-02 test under loss showed that a host could ack while it still waited, and the client's record was dropped. It was replaced by host-acks / client-gates.
+- **Security tests:** 7, on both backends, with red-before checked.
+- **Predeclared** (`fade3f7`) and tooled (`def890c`). Codex reviewed the tooling 3 times: two evidence-gate defects, both fixed, then approved.
+- **Run on `a68552d`:** complete, 1400 reconnects.
+  - The gate removed every first-request drop (UDP 150/300 → 0, GNS 76/300 → 0) with 0 security defects. UDP session p50 went from 702 to 208 ms.
+  - It did not improve P(total > 3 s), p95 or p99 on either backend.
+  - On a clean GNS path it costs about 185 ms at p50.
+  - **By the predeclared rule: do not recommend.** The flag stays off.
+- **Next for KI-35:** the DTLS-timer and cookie experiments (FB-25-07 / FB-28-04).
+
 ## 2026-10-26: EXP-042, does the first session request overtake the binding? (`feature/ki35-gns-establishment`)
 
 - **Input:** the owner asked to test EXP-041's post-hoc explanation.

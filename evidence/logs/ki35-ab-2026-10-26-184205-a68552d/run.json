@@ -1,0 +1,137 @@
+{
+  "started": "2026-10-26T18:42:05",
+  "commit": "a68552db7ab8f50e87a552f2680dd98a9e0d29fb",
+  "dirty": false,
+  "batches": [
+    [
+      "udp",
+      4301,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4301,
+      "on",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4302,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4302,
+      "on",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4303,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4303,
+      "on",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      1,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      1,
+      "on",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      2,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      2,
+      "on",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      3,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      3,
+      "on",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4304,
+      "off",
+      "latency",
+      50
+    ],
+    [
+      "udp",
+      4304,
+      "on",
+      "latency",
+      50
+    ],
+    [
+      "gns",
+      4,
+      "off",
+      "latency",
+      50
+    ],
+    [
+      "gns",
+      4,
+      "on",
+      "latency",
+      50
+    ]
+  ],
+  "exit_codes": {
+    "udp-4301-off-harsh": 0,
+    "udp-4301-on-harsh": 0,
+    "udp-4302-off-harsh": 0,
+    "udp-4302-on-harsh": 0,
+    "udp-4303-off-harsh": 0,
+    "udp-4303-on-harsh": 0,
+    "gns-1-off-harsh": 0,
+    "gns-1-on-harsh": 0,
+    "gns-2-off-harsh": 0,
+    "gns-2-on-harsh": 0,
+    "gns-3-off-harsh": 0,
+    "gns-3-on-harsh": 0,
+    "udp-4304-off-latency": 0,
+    "udp-4304-on-latency": 0,
+    "gns-4-off-latency": 0,
+    "gns-4-on-latency": 0
+  }
+}
