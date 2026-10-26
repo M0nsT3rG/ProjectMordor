@@ -53,6 +53,8 @@ The candidate head must include every stacked follow-up (#23 and later): the int
    - grace expiry never closes a peer that a connected player uses (a new UDP player from the same address);
    - `mordor-client`'s event-order check follows the event stream (a host restart counted false order errors).
 
+   The combined pass on `c011a0c` found a fifth defect of the same kind: a token migration from another address closed a peer that a new player shares. It is fixed with one guard for every close the host makes, plus a regression. Items 3–5 are therefore rerun on the new head (see the next row).
+
    **The two consecutive clean passes are pending.**
 3. **Suites:** `tests-2026-10-26-010843-9904293` passed, with `dirty: false` and nothing missing, invalid or failed. A run on `951fd77` was stopped on purpose when the combined pass found the fourth defect; it is kept and recorded as `incomplete`.
 4. **Real time:** asymmetric 4/4, secure E2E 4/4.

@@ -67,6 +67,12 @@ Host::Slot* Host::find_by_peer(PeerId p) {
     return it == slots_.end() ? nullptr : &*it;
 }
 
+void Host::close_unshared_peer(PeerId p, const Slot* owner) {
+    if (!p.valid()) return;
+    const Slot* user = find_by_peer(p);
+    if (!user || user == owner) transport_->close_peer(p);
+}
+
 void Host::update(std::uint64_t now_us) {
     if (!running_) return;
     const std::uint64_t tick_us = 1'000'000 / cfg_.tick_rate_hz;
@@ -78,7 +84,7 @@ void Host::update(std::uint64_t now_us) {
     receive(now_us);
     for (auto it = closing_.begin(); it != closing_.end();) {
         if (now_us < it->close_at_us) { ++it; continue; }
-        if (!find_by_peer(it->peer)) transport_->close_peer(it->peer);  // unless a new join reused the peer
+        close_unshared_peer(it->peer, nullptr);  // unless a new join reused the peer
         it = closing_.erase(it);
     }
     // shortcut: after a stall longer than 5 ticks we skip ahead instead of catching up; revisit for real gameplay.
@@ -262,7 +268,7 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             remove_slot(s->player_id, false);
             if (closing_.size() >= kMaxLingering) {  // bounded (FB-11-03): the oldest linger ends early, counted
                 // Same guard as normal expiry: never close a peer a player is using (PR #12 review, P2).
-                if (!find_by_peer(closing_.front().peer)) transport_->close_peer(closing_.front().peer);
+                close_unshared_peer(closing_.front().peer, nullptr);
                 closing_.erase(closing_.begin());
                 ++stats_.leave_lingers_cut;
             }
@@ -311,7 +317,7 @@ void Host::on_connect(PeerId from, const ConnectRequest& req, std::uint64_t now_
             Slot* slot = nullptr;  // remove_slot may have moved elements
             for (auto& t : slots_)
                 if (t.token == req.reconnect_token) slot = &t;
-            if (slot->peer != from && slot->peer.valid()) transport_->close_peer(slot->peer);  // migrate identity
+            if (slot->peer != from) close_unshared_peer(slot->peer, slot);  // migrate identity
             slot->peer = from;
             slot->connected = true;
             slot->nonce = req.client_nonce;
@@ -379,10 +385,7 @@ void Host::remove_slot(std::uint16_t player_id, bool close_transport_peer) {
     auto it = std::find_if(slots_.begin(), slots_.end(), [&](const Slot& s) { return s.player_id == player_id; });
     if (it == slots_.end()) return;
     log_.info("player_stats", {kv("player", player_id), kv("packets_in", it->packets_in)});
-    // Same guard as the lingers: never close a peer a connected player is using. On UDP a new player from the same
-    // address during this slot's grace period shares its PeerId (Codex pass 6, PR #24).
-    if (const Slot* user = find_by_peer(it->peer); close_transport_peer && it->peer.valid() && (!user || user == &*it))
-        transport_->close_peer(it->peer);
+    if (close_transport_peer) close_unshared_peer(it->peer, &*it);
     world_.despawn(it->entity_id);
     slots_.erase(it);
 }

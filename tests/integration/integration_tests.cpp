@@ -479,6 +479,31 @@ TEST(grace_expiry_never_closes_a_peer_a_new_player_reuses) {
     CHECK(s.host.stats().timeouts == 1);
 }
 
+// Codex pass on c011a0c (PR #24): the same sharing, but the timed-out player comes back with its token from ANOTHER
+// address. Migrating its identity must not close the old peer, which the new player now uses.
+TEST(token_migration_never_closes_a_peer_a_new_player_reuses) {
+    UDP_ONLY("a new player from the address of a timed-out one shares its UDP PeerId; GNS gives each connection its own");
+    test::Session s;
+    FakeClient a(s.host.port());
+    a.join(s, 1);
+    const auto first = a.accept.player_id;
+    const auto token = a.accept.reconnect_token;
+    CHECK(s.pump_until([&] { return s.host.stats().timeouts == 1; }, 5 * kSec));  // silent: timed out, grace starts
+    a.join(s, 2);  // a new player from that address, sharing the PeerId of the slot in its grace period
+    CHECK(a.accept.player_id != first);
+    FakeClient moved(s.host.port());
+    moved.join(s, 3, token);  // the first player resumes from another address
+    CHECK(moved.accept.player_id == first);
+    const auto unknown = s.host.stats().unknown_peer;
+    for (int i = 0; i < 20; ++i) {
+        a.send(Heartbeat{s.clk.now});
+        moved.send(Heartbeat{s.clk.now});
+        s.run(50'000);
+    }
+    CHECK(s.host.stats().unknown_peer == unknown);  // both still map to their own open peers
+    CHECK(s.host.slot_count() == 2);
+}
+
 // FB-1-07: a token whose grace period expired is unknown, so the client re-joins as a new player.
 TEST(reconnect_after_grace_expiry_gets_new_identity) {
     host::HostConfig hc;

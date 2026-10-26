@@ -119,6 +119,9 @@ private:
     // close_transport_peer = false when the same transport peer is about to be reused (e.g. new client instance).
     void remove_slot(std::uint16_t player_id, bool close_transport_peer = true);
     Slot* find_by_peer(net::PeerId p);
+    // Closes p unless a connected slot other than owner uses it: on UDP a new player from the address of a player in
+    // its grace period shares that PeerId (Codex, PR #24).
+    void close_unshared_peer(net::PeerId p, const Slot* owner);
     void notify_timed_out(net::PeerId from, std::uint64_t now_us);
     std::uint64_t random_nonzero();
 

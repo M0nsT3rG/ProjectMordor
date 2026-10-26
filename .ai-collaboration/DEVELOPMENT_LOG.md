@@ -12,6 +12,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - **mordor-client:** the event-order check follows the stream (`client/event_order.hpp`, `event_order_check_follows_the_stream`). The combined pass on `951fd77` found this one.
 - **Gate run on `9904293`:** suites passed (clean); asymmetric 4/4; secure E2E 4/4; soak v6 12/12; dependencies unchanged; merges cleanly.
   - harsh-gns-secure passed with a 1853 ms recovery. That is one sample, and KI-35 stays open.
+- **Combined pass on `c011a0c`:** 1 more P2 of the same kind. When a timed-out player resumes with its token from another address, the identity migration closed the old peer, which a new player from that address may use. The host now has one guard, `close_unshared_peer`, used for every close it makes (expiry, migration, lingers), with the regression `token_migration_never_closes_a_peer_a_new_player_reuses` (red-before checked). So the gate battery reruns on the new head.
 - **Pending:** the Codex usage limit stopped the combined pass on `9904293`. Two consecutive clean passes on the final head are still needed, and then the owner's decision.
 
 ## 2026-10-25: Review #23 follow-up and the first integration-gate run (`feature/review23-integration`, stacked on #23)
