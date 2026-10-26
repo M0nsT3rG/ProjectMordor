@@ -31,12 +31,17 @@ class Classify(unittest.TestCase):
     def test_no_first_request_is_not_eligible(self):
         self.assertFalse(r.classify(cycle(auth=-1), [2400.0])["eligible"])
 
-    def test_unattributed_cycles_count_for_d1_only(self):
+    def test_unknown_attribution_counts_for_d1_only(self):
         cs = [cycle(host_drops=[1495.0], attribution={"attributed": False, "why": "ambiguous"})]
         for c in cs:
             c["reorder"] = r.classify(c, [2400.0])
         s = r.series(cs)
         self.assertEqual((s["d1"], s["first"]), ([1], []))
+
+    def test_a_session_that_never_completed_is_a_known_failure(self):  # Codex: never silently dropped
+        x = r.classify(cycle(connected=-1, outcome="timeout", attribution={"attributed": False, "why": "no_session"}),
+                       [2400.0])
+        self.assertIs(x["first"], False)
 
 
 def write_run(root: Path, d1_udp: float, first_given_d1: float, d1_gns: float = 0.2, drop_last: bool = False):
@@ -73,8 +78,31 @@ class Rules(unittest.TestCase):
             write_run(Path(tmp), d1_udp=0.13, first_given_d1=0.0)
             v = r.judge(Path(tmp))
             self.assertTrue(v["complete"], v["incomplete_because"])
-            self.assertFalse(v["rules"]["udp"]["d1_differs_from_in_order"])
+            self.assertEqual(v["rules"]["udp"]["in_order_contrast"], "not_different")
+            self.assertEqual(v["rules"]["udp"]["d1"]["verdict"], "different")
             self.assertEqual(v["rules"]["udp"]["H"], "refuted")
+
+    def test_no_usable_observations_is_inconclusive_not_refuted(self):  # Codex
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0)
+            for b in ("udp-4201", "udp-4202", "udp-4203"):
+                (Path(tmp) / b / "client.log").write_text("", encoding="utf-8")  # no request logged: none eligible
+            v = r.judge(Path(tmp))
+            self.assertEqual(v["rules"]["udp"]["in_order_contrast"], "no_data")
+            self.assertEqual(v["rules"]["udp"]["H"], "inconclusive")
+
+    def test_heterogeneous_batches_get_per_batch_verdicts_and_no_gns_direction(self):  # Codex
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0, d1_gns=0.15)
+            d = Path(tmp) / "udp-4203"  # rewrite one UDP batch with far fewer drops
+            lines = [json.loads(l) for l in (d / "cycles.jsonl").read_text(encoding="utf-8").splitlines()]
+            for c in lines:
+                c["host_drops"] = []
+            (d / "cycles.jsonl").write_text("\n".join(json.dumps(c) for c in lines) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertEqual(v["rules"]["udp"]["d1"]["verdict"], "heterogeneous")
+            self.assertEqual(set(v["rules"]["udp"]["d1"]["per_batch"]), {"udp-4201", "udp-4202", "udp-4203"})
+            self.assertEqual(v["rules"]["gns"]["verdict"], "heterogeneous")
 
     def test_gns_directional_rules(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -82,7 +110,7 @@ class Rules(unittest.TestCase):
             v = r.judge(Path(tmp))
             self.assertTrue(v["rules"]["gns"]["d1_below_udp"])
             self.assertTrue(v["rules"]["gns"]["dropped_first_rarely_completes"])
-            self.assertTrue(v["rules"]["udp"]["d1_differs_from_in_order"])
+            self.assertEqual(v["rules"]["udp"]["in_order_contrast"], "different")
             self.assertEqual(v["rules"]["udp"]["d1"]["verdict"], "equivalent")
 
     def test_incomplete_run_has_no_verdict(self):

@@ -749,6 +749,20 @@ This was written and committed **before** the first run. It tests EXP-041's post
 - **Reported:** host `authenticated` minus the first request's arrival for D1 reconnects; the number of drops per reconnect.
 - No result changes a gate, a default or the protocol. A fix (for example, the first request waits until the binding is verified, or the host holds one early record, still fail-closed) is an owner decision afterwards.
 
+**Amendment, before any run** (a Codex review of the tooling, 2026-10-26). No data had been collected: only two 4-cycle smoke runs, which tested the pipeline and are not counted. The rules above are replaced where they differ.
+- **Model corrected.** A duplicate is the same DTLS record, and OpenSSL's replay window drops a record already read (`dtls12_replayed_and_tampered_records_are_dropped`). So only each record's earliest copy matters, and a processed request gets exactly one accept. New values (`model.py --reorder`, same seed and sample count):
+
+  | Quantity | H | If delivery kept send order |
+  |---|---|---|
+  | P(D1) | **0.4886** | 0.1273 |
+  | P(first) | **0.3067** | – |
+  | P(first \| D1) | **0** (a dropped request cannot complete) | – |
+  | P(first \| not D1) | **0.5997** | – |
+
+- **A session that never completed** after authentication counts as first = false; it is never removed. If the completing request is unknown (no accept, no candidate or ambiguous) for more than 10% of eligible reconnects, R2 and R3 are **not assessable**.
+- **H is refuted only by an actual "different" result.** It is **supported** only if R1–R3 are all equivalent and the in-order contrast is "different". Missing data or an unestablished contrast is **inconclusive**.
+- **Homogeneity applies everywhere.** A heterogeneous UDP proportion gets per-batch verdicts only. The GNS directional rules are not judged if any proportion they use (UDP D1, GNS D1, GNS P(first | D1), GNS P(first | not D1)) is heterogeneous.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

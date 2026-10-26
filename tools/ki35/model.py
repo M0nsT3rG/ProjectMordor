@@ -77,16 +77,20 @@ def reorder_model(samples: int = 1_000_000, seed: int = 42) -> dict[str, float]:
       d1_in_order:   the same if delivery kept send order (the binding is only missing when it is lost): the contrast
       first:         the first request completes the session (some copy processed and some accept arrives)
       first_given_d1 / first_given_not_d1: the same, conditional"""
+    # Amended before any run (Codex review of the tooling): a duplicate is the same DTLS record, and OpenSSL's replay
+    # window drops a record already read (tests/dtls/dtls_proof_tests.cpp, dtls12_replayed_and_tampered_records_are_
+    # dropped). So only each record's EARLIEST copy matters: the request is dropped if it arrives before the binding
+    # (or the binding never does), processed otherwise, and a processed request gets exactly one accept.
     rng = random.Random(seed)
     n = d1 = d1_order = first = first_d1 = n_d1 = first_nd1 = 0
     for _ in range(samples):
         b, r = udp_copies(rng), udp_copies(rng)
         bmin = min(b) if b else float("inf")
-        dropped = [x for x in r if x < bmin]
-        processed = [x for x in r if x >= bmin]
-        ok = any(udp_copies(rng) for _ in processed)
+        dropped = bool(r) and min(r) < bmin
+        processed = bool(r) and not dropped
+        ok = processed and bool(udp_copies(rng))
         n += 1
-        d1 += bool(dropped)
+        d1 += dropped
         d1_order += (not b) and bool(r)
         first += ok
         if dropped:

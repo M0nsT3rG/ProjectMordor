@@ -18,10 +18,12 @@ import run_reconnect_probe as rc  # noqa: E402  (shared: loading, attribution, W
 from bounded import run_bounded  # noqa: E402
 
 ROOT = rc.ROOT
-# Fixed in the predeclaration (tools/ki35/model.py --reorder, 1,000,000 samples, seed 42; value +/- 0.002).
-H = {"d1": 0.4888, "first": 0.3183, "first_given_d1": 0.0208, "first_given_not_d1": 0.6028}
-IN_ORDER_D1 = 0.1274
-MODEL = {k: [round(v - 0.002, 4), round(v + 0.002, 4)] for k, v in H.items()}
+# Fixed in the predeclaration as amended before any run (tools/ki35/model.py --reorder with DTLS replay suppression,
+# 1,000,000 samples, seed 42; value +/- 0.002, never below 0).
+H = {"d1": 0.4886, "first": 0.3067, "first_given_d1": 0.0, "first_given_not_d1": 0.5997}
+IN_ORDER_D1 = 0.1273
+MODEL = {k: [round(max(0.0, v - 0.002), 4), round(v + 0.002, 4)] for k, v in H.items()}
+UNKNOWN_MAX = 0.10                    # above: the first-request rules (R2, R3) are not assessable
 DELTAS = (0.05, 0.08, 0.10)           # 0.08 primary; the others are sensitivity only
 D1_WINDOW_MS = (70.0, 130.0)          # host drop after the first request's send (one way 80-120 ms)
 BATCHES = [("udp", 4201), ("udp", 4202), ("udp", 4203), ("gns", 1), ("gns", 2), ("gns", 3)]
@@ -42,9 +44,12 @@ def classify(c: dict, sent: list[float]) -> dict:
     drops = [c["log_ms"] + d for d in c.get("host_drops", [])]
     d1 = any(D1_WINDOW_MS[0] <= d - t1 <= D1_WINDOW_MS[1] for d in drops)
     att = c["attribution"]
-    out = {"eligible": True, "d1": d1, "drops": len(drops), "attributed": att["attributed"]}
-    if att["attributed"]:
+    out = {"eligible": True, "d1": d1, "drops": len(drops)}
+    if c["connected"] < 0:      # authenticated but the session never completed: a known first = false (Codex)
+        out["first"] = False
+    elif att["attributed"]:
         out["first"] = att["index"] == 0
+    # otherwise the completing request is unknown (no accept, no candidate or ambiguous): counted, never guessed
     if d1 and c.get("host_auth", -1) >= 0:  # how long the binding trailed the dropped request at the host
         first_drop = min(d for d in drops if D1_WINDOW_MS[0] <= d - t1 <= D1_WINDOW_MS[1])
         out["binding_after_drop_ms"] = round(c["log_ms"] + c["host_auth"] - first_drop, 1)
@@ -63,7 +68,7 @@ def load(d: Path) -> list[dict]:
 
 def series(cycles: list[dict]) -> dict[str, list[int]]:
     el = [c["reorder"] for c in cycles if c["reorder"]["eligible"]]
-    at = [x for x in el if x["attributed"]]
+    at = [x for x in el if "first" in x]
     return {"d1": [int(x["d1"]) for x in el], "first": [int(x["first"]) for x in at],
             "first_given_d1": [int(x["first"]) for x in at if x["d1"]],
             "first_given_not_d1": [int(x["first"]) for x in at if not x["d1"]]}
@@ -76,7 +81,9 @@ def summarize(cycles: list[dict]) -> dict:
     drops = {}
     for x in el:
         drops[x["drops"]] = drops.get(x["drops"], 0) + 1
-    return {"cycles": len(cycles), "eligible": len(el), "unattributed": sum(not x["attributed"] for x in el),
+    unknown = sum("first" not in x for x in el)
+    return {"cycles": len(cycles), "eligible": len(el), "first_unknown": unknown,
+            "first_unknown_share": round(unknown / len(el), 4) if el else None,
             "proportions": {k: {"k": sum(v), "n": len(v), "p": round(sum(v) / len(v), 4) if v else None,
                                 "wilson90": rc.wilson(sum(v), len(v), rc.Z90), "wilson95": rc.wilson(sum(v), len(v)),
                                 "lag1": rc.lag1(v)} for k, v in s.items()},
@@ -95,29 +102,38 @@ def judge(out: Path) -> dict:
     v = {"model_h": H, "model_intervals": MODEL, "in_order_d1": IN_ORDER_D1, "deltas": DELTAS, "complete": not problems,
          "incomplete_because": problems, "batches": per_batch,
          "pooled": {b: summarize(cs) for b, cs in pooled.items() if cs}, "rules": {}}
+    hom = {b: {name: rc.homogeneity_p([(x["proportions"][name]["k"], x["proportions"][name]["n"])
+                                       for k, x in per_batch.items() if k.startswith(b)]) for name in H}
+           for b in v["pooled"]}
+    heterogeneous = lambda b, name: hom[b][name] is not None and hom[b][name] < rc.HOMOGENEITY_P
     if "udp" in v["pooled"]:
         u, rules = v["pooled"]["udp"], {}
+        not_assessable = (u["first_unknown_share"] or 0) > UNKNOWN_MAX
         for name in H:
             pr = u["proportions"][name]
-            hp = rc.homogeneity_p([(b["proportions"][name]["k"], b["proportions"][name]["n"])
-                                   for k, b in per_batch.items() if k.startswith("udp")])
-            r = {"k": pr["k"], "n": pr["n"], "wilson90": pr["wilson90"], "wilson95": pr["wilson95"], "homogeneity_p": hp}
+            r = {"k": pr["k"], "n": pr["n"], "wilson90": pr["wilson90"], "wilson95": pr["wilson95"],
+                 "homogeneity_p": hom["udp"][name]}
             if problems:
                 r["verdict"] = "incomplete"
-            elif hp is not None and hp < rc.HOMOGENEITY_P:
-                r["verdict"] = "heterogeneous"
+            elif heterogeneous("udp", name):
+                r["verdict"] = "heterogeneous"  # predeclared: per batch only, never pooled
+                r["per_batch"] = {k: rc.tost(x["proportions"][name]["k"], x["proportions"][name]["n"], MODEL[name], 0.08)
+                                  for k, x in per_batch.items() if k.startswith("udp")}
+            elif name != "d1" and not_assessable:
+                r["verdict"] = "not_assessable"
             else:
                 r["verdict"] = rc.tost(pr["k"], pr["n"], MODEL[name], 0.08)
                 r["sensitivity"] = {str(dl): rc.tost(pr["k"], pr["n"], MODEL[name], dl) for dl in DELTAS}
             rules[name] = r
         ci = u["proportions"]["d1"]["wilson95"]
-        rules["d1_differs_from_in_order"] = bool(ci and not (ci[0] <= IN_ORDER_D1 <= ci[1]))
+        rules["in_order_contrast"] = ("no_data" if ci is None else
+                                      "different" if not (ci[0] <= IN_ORDER_D1 <= ci[1]) else "not_different")
         verdicts = [rules[n]["verdict"] for n in H]
         if problems:
             rules["H"] = "incomplete"
-        elif "different" in verdicts or not rules["d1_differs_from_in_order"]:
+        elif "different" in verdicts:  # refutation needs an actual "different" test result (Codex)
             rules["H"] = "refuted"
-        elif all(x == "equivalent" for x in verdicts):
+        elif all(x == "equivalent" for x in verdicts) and rules["in_order_contrast"] == "different":
             rules["H"] = "supported"
         else:
             rules["H"] = "inconclusive"
@@ -126,9 +142,16 @@ def judge(out: Path) -> dict:
         g, u = v["pooled"]["gns"]["proportions"], v["pooled"]["udp"]["proportions"]
         gd, ud = g["d1"]["wilson95"], u["d1"]["wilson95"]
         a, b = g["first_given_d1"]["wilson95"], g["first_given_not_d1"]["wilson95"]
-        v["rules"]["gns"] = "incomplete" if problems else {
-            "d1_below_udp": bool(gd and ud and gd[1] < ud[0]),
-            "dropped_first_rarely_completes": bool(a and b and a[1] < b[0])}
+        hetero = [f"{bk}:{n}" for bk, n in (("udp", "d1"), ("gns", "d1"), ("gns", "first_given_d1"),
+                                             ("gns", "first_given_not_d1")) if heterogeneous(bk, n)]
+        if problems:
+            v["rules"]["gns"] = "incomplete"
+        elif hetero:
+            v["rules"]["gns"] = {"verdict": "heterogeneous", "inputs": hetero}  # no pooled directional judgement
+        else:
+            v["rules"]["gns"] = {"d1_below_udp": bool(gd and ud and gd[1] < ud[0]),
+                                 "dropped_first_rarely_completes": bool(a and b and a[1] < b[0])}
+    v["homogeneity_p"] = hom
     return v
 
 
