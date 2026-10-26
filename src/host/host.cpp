@@ -221,12 +221,13 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
     if (!s || p.header.session != session_) {
         // A repeated Disconnect after we already released the slot (our first DisconnectAck was lost): confirm again.
         // Only for this session and only as a reply to that peer, so it cannot be used for reflection.
-        if (!s && p.header.session == session_ && std::holds_alternative<Disconnect>(p.message)) {
-            // Only a peer still in its leave window, at most once per 100 ms: no amplification for spoofed sources.
+        if (const auto* d = std::get_if<Disconnect>(&p.message); !s && p.header.session == session_ && d) {
+            // Only a peer still in its leave window, for that player, at most once per 100 ms: no amplification for
+            // spoofed sources.
             for (auto& c : closing_)
-                if (c.peer == from && now_us - c.last_ack_us >= 100'000) {
+                if (c.peer == from && c.player == d->player && now_us - c.last_ack_us >= 100'000) {
                     c.last_ack_us = now_us;
-                    ack_leave(from, now_us);
+                    ack_leave(from, c.player, now_us);
                     ++stats_.leave_acks_repeated;
                 }
             return;
@@ -259,8 +260,12 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             }
         },
         [&](const Disconnect& d) {
+            if (d.player != s->player_id) {  // v4: a delayed leave of an earlier player on this peer, not this one
+                ++stats_.leaves_foreign;
+                return;
+            }
             log_.info("player_left", {kv("player", s->player_id), kv("reason", static_cast<int>(d.reason))});
-            ack_leave(from, now_us);  // FB-10-04: confirm before the slot goes away
+            ack_leave(from, s->player_id, now_us);  // FB-10-04: confirm before the slot goes away
             ++stats_.clean_leaves;
             // Keep the transport peer open for the client's leave window: closing it at once let the GNS close
             // notice overtake our (delayed, unreliable) DisconnectAcks, so the client never saw them (KI-37), and
@@ -272,7 +277,7 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
                 closing_.erase(closing_.begin());
                 ++stats_.leave_lingers_cut;
             }
-            closing_.push_back({from, now_us + kLeaveLingerUs, now_us});
+            closing_.push_back({from, d.player, now_us + kLeaveLingerUs, now_us});
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
             if (a.player != s->player_id) {  // a delayed ack of an earlier player on this peer (v4): not this stream
@@ -307,7 +312,7 @@ void Host::notify_timed_out(PeerId from, std::uint64_t now_us) {
         if (s.last_notice_us != 0 && now_us - s.last_notice_us < kNoticeIntervalUs) return;
         s.last_notice_us = now_us;
         ++stats_.timeout_notices;
-        send(s, Disconnect{DisconnectReason::Timeout}, now_us);
+        send(s, Disconnect{DisconnectReason::Timeout, s.player_id}, now_us);
         return;
     }
 }
@@ -478,10 +483,10 @@ SendResult Host::send(Slot& s, const Message& m, std::uint64_t now_us, Delivery 
 }
 
 // Two unreliable copies plus a reliable one where offered; sent before the slot and its transport peer are released.
-void Host::ack_leave(PeerId to, std::uint64_t now_us) {
+void Host::ack_leave(PeerId to, std::uint16_t player, std::uint64_t now_us) {
     Header h;
     h.session = session_;
-    const auto bytes = encode(h, DisconnectAck{});
+    const auto bytes = encode(h, DisconnectAck{player});
     for (int i = 0; i < 2; ++i) transmit(to, bytes, now_us, Delivery::Unreliable);
     if (transport_->capabilities().reliable_ordered) transmit(to, bytes, now_us, Delivery::ReliableOrdered);
     transport_->flush(now_us);
@@ -498,9 +503,9 @@ void Host::shutdown() {
     const bool reliable = transport_->capabilities().reliable_ordered;
     for (auto& s : slots_)
         if (s.connected) {
-            if (reliable) send(s, Disconnect{DisconnectReason::HostShutdown}, 0, Delivery::ReliableOrdered);
+            if (reliable) send(s, Disconnect{DisconnectReason::HostShutdown, s.player_id}, 0, Delivery::ReliableOrdered);
             else
-                for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown}, 0);
+                for (int i = 0; i < kDisconnectRepeats; ++i) send(s, Disconnect{DisconnectReason::HostShutdown, s.player_id}, 0);
         }
     transport_->flush_all();
     for (const auto& s : slots_) log_.info("player_stats", {kv("player", s.player_id), kv("packets_in", s.packets_in)});

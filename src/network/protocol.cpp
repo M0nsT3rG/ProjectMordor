@@ -50,7 +50,7 @@ bool write_payload(Writer& w, const Message& m) {
             return true;
         },
         [&](const ConnectReject& v) { w.u8(static_cast<std::uint8_t>(v.reason)); w.u16(v.host_version); return true; },
-        [&](const Disconnect& v) { w.u8(static_cast<std::uint8_t>(v.reason)); return true; },
+        [&](const Disconnect& v) { w.u8(static_cast<std::uint8_t>(v.reason)); w.u16(v.player); return true; },
         [&](const Heartbeat& v) { w.u64(v.send_time_us); return true; },
         [&](const HeartbeatAck& v) { w.u64(v.echo_time_us); return true; },
         [&](const InputBatch& v) {
@@ -74,7 +74,7 @@ bool write_payload(Writer& w, const Message& m) {
             return true;
         },
         [&](const EventAck& v) { w.u32(v.applied_through); w.u16(v.player); return true; },
-        [&](const DisconnectAck&) { return true; },
+        [&](const DisconnectAck& v) { w.u16(v.player); return true; },
     }, m);
 }
 
@@ -100,7 +100,7 @@ std::optional<Message> read_payload(MsgType t, Reader& r) {
         case MsgType::Disconnect: {
             const auto reason = r.u8();
             if (reason < 1 || reason > 4) return std::nullopt;
-            return Disconnect{static_cast<DisconnectReason>(reason)};
+            return Disconnect{static_cast<DisconnectReason>(reason), r.u16()};
         }
         case MsgType::Heartbeat: return Heartbeat{r.u64()};
         case MsgType::HeartbeatAck: return HeartbeatAck{r.u64()};
@@ -135,7 +135,7 @@ std::optional<Message> read_payload(MsgType t, Reader& r) {
             return v;
         }
         case MsgType::EventAck: return EventAck{r.u32(), r.u16()};
-        case MsgType::DisconnectAck: return DisconnectAck{};
+        case MsgType::DisconnectAck: return DisconnectAck{r.u16()};
     }
     return std::nullopt;
 }

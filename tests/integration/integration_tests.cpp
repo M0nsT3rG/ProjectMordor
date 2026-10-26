@@ -211,7 +211,7 @@ TEST(client_never_delivers_an_earlier_players_delayed_event) {
     send(GameEvent{1, 9, {1}, 1});
     CHECK(c.take_events().size() == 1);
     c.leave(clk.now);
-    send(DisconnectAck{});
+    send(DisconnectAck{1});
     CHECK(c.state() == ClientState::Disconnected);
     c.connect(clk.now);  // a fresh join: the host gives it a new player in the same session
     send(ConnectAccept{request(), 2, 2, 6, 30, 0});
@@ -222,6 +222,14 @@ TEST(client_never_delivers_an_earlier_players_delayed_event) {
     send(GameEvent{1, 9, {2}, 2});  // the new player's own first event
     const auto got = c.take_events();
     CHECK(got.size() == 1 && got[0].payload == std::vector<std::uint8_t>{2});
+    // The same for the leave handshake: the earlier leave's ack, delayed, does not confirm this one.
+    c.leave(clk.now);
+    send(DisconnectAck{1});
+    CHECK(c.state() == ClientState::Leaving);
+    send(Disconnect{DisconnectReason::HostShutdown, 1});  // nor does the earlier player's notice end it
+    CHECK(c.state() == ClientState::Leaving);
+    send(DisconnectAck{2});
+    CHECK(c.state() == ClientState::Disconnected && c.stats().leave_confirmed);
 }
 
 // Test 10
@@ -345,6 +353,7 @@ struct FakeClient {
         ++h.sequence;
         CHECK(sock.send_to(host, encode(h, m)));
     }
+    void quit() { send(Disconnect{DisconnectReason::ClientQuit, accept.player_id}); }  // a leave as this player (v4)
     // Sends ConnectRequest and steps the host until the matching ConnectAccept arrives.
     void join(test::Session& s, std::uint64_t nonce, std::uint64_t token = 0) {
         send(ConnectRequest{nonce, token});
@@ -781,7 +790,7 @@ struct NoticeFixture {
 TEST(delayed_timeout_notice_after_reconnect_is_ignored) {
     UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     NoticeFixture f;
-    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
+    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout, 1});
     f.fh.deliver(f.c, f.clk, notice);
     CHECK(f.c.state() == ClientState::Reconnecting);  // a current notice is honoured
     f.fh.expect_request(f.c, f.clk);
@@ -791,14 +800,14 @@ TEST(delayed_timeout_notice_after_reconnect_is_ignored) {
     f.fh.deliver(f.c, f.clk, notice);  // the same (now stale) datagram arrives again late
     CHECK(f.c.state() == ClientState::Connected);
     CHECK(f.c.stats().stale_notices == 1);
-    f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout}));  // a genuinely new one still works
+    f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout, 1}));  // a genuinely new one still works
     CHECK(f.c.state() == ClientState::Reconnecting);
 }
 
 TEST(replayed_and_duplicate_timeout_notices_have_no_extra_effect) {
     UDP_ONLY("uses a raw UDP socket as a fake peer; a GNS host/client only talks GNS");
     NoticeFixture f;
-    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
+    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout, 1});
     for (int i = 0; i < 5; ++i) f.fh.deliver(f.c, f.clk, notice);  // duplicates while already reconnecting
     CHECK(f.c.state() == ClientState::Reconnecting);
     f.fh.expect_request(f.c, f.clk);
@@ -814,13 +823,13 @@ TEST(timeout_notice_from_other_session_or_endpoint_is_ignored) {
     Header old = f.fh.h;
     old.session = 499;  // a previous host session
     old.sequence = f.fh.h.sequence + 100;
-    f.fh.deliver(f.c, f.clk, encode(old, Disconnect{DisconnectReason::Timeout}));
+    f.fh.deliver(f.c, f.clk, encode(old, Disconnect{DisconnectReason::Timeout, 1}));
     CHECK(f.c.state() == ClientState::Connected);
     UdpSocket other;
     CHECK(other.open(Endpoint::loopback(0)));
     Header spoof = f.fh.h;
     spoof.sequence += 100;
-    CHECK(other.send_to(f.fh.client_ep, encode(spoof, Disconnect{DisconnectReason::Timeout})));
+    CHECK(other.send_to(f.fh.client_ep, encode(spoof, Disconnect{DisconnectReason::Timeout, 1})));
     for (int i = 0; i < 50; ++i) {
         f.c.update(f.clk.now);
         std::this_thread::yield();
@@ -873,6 +882,7 @@ struct TransportFakeClient {
         ++h.sequence;
         CHECK(t->send(peer, encode(h, m), Delivery::Unreliable, 0) == SendResult::Sent);
     }
+    void quit() { send(Disconnect{DisconnectReason::ClientQuit, accept.player_id}); }  // a leave as this player (v4)
     // Retries ConnectRequest (like a real client) and steps the host until the matching ConnectAccept arrives.
     void join(test::Session& s, std::uint64_t nonce, std::uint64_t token = 0) {
         for (int i = 0; i < 200; ++i) {
@@ -1136,9 +1146,9 @@ TEST(stale_replayed_and_foreign_session_notices_are_ignored_over_transport) {
     Header old = f.fh.h;
     old.session = 499;  // a previous host session
     old.sequence = f.fh.h.sequence + 100;
-    f.fh.deliver(f.c, f.clk, encode(old, Disconnect{DisconnectReason::Timeout}));
+    f.fh.deliver(f.c, f.clk, encode(old, Disconnect{DisconnectReason::Timeout, 1}));
     CHECK(f.c.state() == ClientState::Connected);
-    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout});
+    const auto notice = f.fh.packet(Disconnect{DisconnectReason::Timeout, 1});
     CHECK(f.fh.deliver(f.c, f.clk, notice));  // a current notice is honoured
     CHECK(f.c.state() == ClientState::Reconnecting);
     for (int i = 0; i < 2; ++i) f.fh.deliver(f.c, f.clk, notice);  // duplicates (GNS: the old connection is gone)
@@ -1150,7 +1160,7 @@ TEST(stale_replayed_and_foreign_session_notices_are_ignored_over_transport) {
     for (int i = 0; i < 3; ++i) CHECK(f.fh.deliver(f.c, f.clk, notice));  // the old notice replayed late, on the
     CHECK(f.c.state() == ClientState::Connected);                           // current connection
     CHECK(f.c.stats().stale_notices == 3);  // only the sequence guard stands between the replay and a reconnect
-    CHECK(f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout})));  // a new one still works
+    CHECK(f.fh.deliver(f.c, f.clk, f.fh.packet(Disconnect{DisconnectReason::Timeout, 1})));  // a new one still works
     CHECK(f.c.state() == ClientState::Reconnecting);
 }
 
@@ -1454,7 +1464,7 @@ TEST(an_earlier_players_delayed_ack_never_erases_the_new_players_events) {
     fc.join(s, 1);
     const auto first = fc.accept.player_id;
     CHECK(s.host.send_event(first, 1, ev_payload(1), s.clk.now));
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     settle();
     s.host.update(s.clk.now);
     CHECK(s.host.slot_count() == 0);
@@ -1473,6 +1483,11 @@ TEST(an_earlier_players_delayed_ack_never_erases_the_new_players_events) {
     settle();
     s.host.update(s.clk.now);
     CHECK(s.host.unapplied_events(second) == 0);
+    fc.send(Disconnect{DisconnectReason::ClientQuit, first});  // the earlier leave, delayed: not the new player's
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.slot_count() == 1);
+    CHECK(s.host.stats().leaves_foreign == 1);
 }
 
 // Review #10 FB-10-04 / KI-37: explicit leave handshake (protocol v3).
@@ -1505,22 +1520,22 @@ TEST(host_repeats_disconnect_ack_for_a_released_slot) {
         }
         return n;
     };
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     CHECK(acks() >= 1);
     CHECK(s.host.slot_count() == 0 && s.host.stats().clean_leaves == 1);
     // The first DisconnectAck was lost: the client repeats its Disconnect and is confirmed again. The host keeps
     // the transport peer open during the leave window on every backend (on GNS closing it at once let the close
     // notice overtake the acks, KI-37). Repeats are answered at most once per 100 ms.
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     CHECK(acks() == 0);  // same instant as the first ack: rate-limited
     s.clk.now += 150'000;
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     CHECK(acks() >= 1);
     CHECK(s.host.stats().leave_acks_repeated == 1 && s.host.stats().clean_leaves == 1);
     // A stranger (not in a leave window) sending a Disconnect with the session id gets nothing: no reflection.
     TransportFakeClient stranger(s.host.port());
     stranger.h.session = fc.h.session;
-    stranger.send(Disconnect{DisconnectReason::ClientQuit});
+    stranger.quit();
     for (int i = 0; i < 10; ++i) {
         settle();
         s.host.update(s.clk.now);
@@ -1530,7 +1545,7 @@ TEST(host_repeats_disconnect_ack_for_a_released_slot) {
     CHECK(s.host.stats().leave_acks_repeated == 1);
     s.clk.now += 150'000;
     fc.h.session ^= 1;  // a Disconnect for another session is not acknowledged
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     CHECK(acks() == 0 && s.host.stats().leave_acks_repeated == 1);
     if (fc.t->capabilities().reports_disconnects) {  // ...and closes it after the window
         bool closed = false;
@@ -1586,10 +1601,10 @@ TEST(leave_ack_for_another_session_is_ignored) {
     CHECK(c.state() == ClientState::Connected);
     c.leave(clk.now);
     fh.h.session ^= 1;  // a DisconnectAck for a foreign session must not confirm the leave
-    fh.deliver(c, clk, fh.packet(DisconnectAck{}));
+    fh.deliver(c, clk, fh.packet(DisconnectAck{1}));
     CHECK(c.leaving() && !c.stats().leave_confirmed);
     fh.h.session ^= 1;
-    fh.deliver(c, clk, fh.packet(DisconnectAck{}));
+    fh.deliver(c, clk, fh.packet(DisconnectAck{1}));
     CHECK(!c.leaving() && c.stats().leave_confirmed);
 }
 
@@ -1605,7 +1620,7 @@ TEST(host_disconnect_during_a_leave_ends_it_unconfirmed) {
     fh.expect_request(c, clk);
     fh.accept(c, clk);
     c.leave(clk.now);
-    fh.deliver(c, clk, fh.packet(Disconnect{DisconnectReason::HostShutdown}));  // host shut down meanwhile
+    fh.deliver(c, clk, fh.packet(Disconnect{DisconnectReason::HostShutdown, 1}));  // host shut down meanwhile
     CHECK(c.state() == ClientState::Disconnected && !c.stats().leave_confirmed);
     CHECK(c.stats().leave_ms < 1000);  // not the full leave window
 }
@@ -1625,7 +1640,7 @@ TEST(rejoin_from_the_same_peer_during_the_leave_window_is_kept) {
     test::Session s;
     TransportFakeClient fc(s.host.port());
     fc.join(s, 501);
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     for (int i = 0; i < 10; ++i) {
         settle();
         s.host.update(s.clk.now);
@@ -1650,7 +1665,7 @@ TEST(lingering_peers_are_bounded) {
     for (int i = 0; i < 17; ++i) {  // 17 clean leaves inside one linger window: one more than kMaxLingering
         fcs.push_back(std::make_unique<TransportFakeClient>(s.host.port()));
         fcs.back()->join(s, 600 + static_cast<std::uint64_t>(i));
-        fcs.back()->send(Disconnect{DisconnectReason::ClientQuit});
+        fcs.back()->quit();
         for (int j = 0; j < 10 && s.host.slot_count() != 0; ++j) {
             settle();
             s.host.update(s.clk.now);
@@ -1667,7 +1682,7 @@ TEST(rejoined_player_survives_linger_cap_pressure) {
     test::Session s;
     TransportFakeClient a(s.host.port());
     a.join(s, 1001);
-    a.send(Disconnect{DisconnectReason::ClientQuit});
+    a.quit();
     for (int i = 0; i < 10 && s.host.slot_count() != 0; ++i) {
         settle();
         s.host.update(s.clk.now);
@@ -1679,7 +1694,7 @@ TEST(rejoined_player_survives_linger_cap_pressure) {
     for (int i = 0; i < 16; ++i) {  // 16 more clean leaves in the same window: the cap (16) is reached
         others.push_back(std::make_unique<TransportFakeClient>(s.host.port()));
         others.back()->join(s, 1100 + static_cast<std::uint64_t>(i));
-        others.back()->send(Disconnect{DisconnectReason::ClientQuit});
+        others.back()->quit();
         for (int j = 0; j < 10 && s.host.slot_count() != 1; ++j) {
             settle();
             s.host.update(s.clk.now);
@@ -1709,14 +1724,14 @@ TEST(disconnect_after_the_leave_window_is_not_answered) {
     test::Session s;
     TransportFakeClient fc(s.host.port());
     fc.join(s, 701);
-    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    fc.quit();
     for (int i = 0; i < 200; ++i) {  // 2 s: the window (1.5 s) ends
         s.clk.now += 10'000;
         s.host.update(s.clk.now);
         settle();
         drain(*fc.t);
     }
-    fc.send(Disconnect{DisconnectReason::ClientQuit});  // our last ack was lost and we try again, too late
+    fc.quit();  // our last ack was lost and we try again, too late
     bool acked = false;
     for (int i = 0; i < 10; ++i) {
         settle();
@@ -1748,7 +1763,7 @@ TEST(leave_survives_repeated_lost_acks) {
         for (auto& [from, p] : drain(*fh.t))
             if (std::holds_alternative<Disconnect>(p.message)) ++disconnects;
         // The host "acks" every Disconnect, but the first two acks are lost: it only gets through on the third.
-        if (disconnects >= 3 && c.leaving()) fh.deliver(c, clk, fh.packet(DisconnectAck{}));
+        if (disconnects >= 3 && c.leaving()) fh.deliver(c, clk, fh.packet(DisconnectAck{1}));
         CHECK(c.stats().leave_confirmed == !c.leaving());  // confirmed only by an ack that arrived
     }
     CHECK(c.stats().leave_confirmed && c.stats().leave_disconnects_sent >= 3);
@@ -1758,7 +1773,7 @@ TEST(lingering_peer_whose_process_ends_is_cleaned_up) {
     test::Session s;
     auto fc = std::make_unique<TransportFakeClient>(s.host.port());
     fc->join(s, 801);
-    fc->send(Disconnect{DisconnectReason::ClientQuit});
+    fc->quit();
     for (int i = 0; i < 10 && s.host.lingering_count() == 0; ++i) {
         settle();
         s.host.update(s.clk.now);
@@ -1785,8 +1800,8 @@ TEST(two_peers_leave_and_rejoin_at_once) {
     a.join(s, 901);
     b.join(s, 902);
     CHECK(s.host.slot_count() == 2);
-    a.send(Disconnect{DisconnectReason::ClientQuit});
-    b.send(Disconnect{DisconnectReason::ClientQuit});
+    a.quit();
+    b.quit();
     for (int i = 0; i < 10 && s.host.slot_count() != 0; ++i) {
         settle();
         s.host.update(s.clk.now);

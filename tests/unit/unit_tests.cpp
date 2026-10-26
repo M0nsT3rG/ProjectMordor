@@ -68,7 +68,7 @@ TEST(all_message_types_roundtrip) {
     CHECK(roundtrip(ConnectRequest{0x1122334455667788ull, 99}) == (ConnectRequest{0x1122334455667788ull, 99}));
     CHECK(roundtrip(ConnectAccept{77, 1, 2, 3, 30, 400}) == (ConnectAccept{77, 1, 2, 3, 30, 400}));
     CHECK(roundtrip(ConnectReject{RejectReason::ServerFull, 1}) == (ConnectReject{RejectReason::ServerFull, 1}));
-    CHECK(roundtrip(Disconnect{DisconnectReason::Timeout}) == (Disconnect{DisconnectReason::Timeout}));
+    CHECK(roundtrip(Disconnect{DisconnectReason::Timeout, 3}) == (Disconnect{DisconnectReason::Timeout, 3}));
     CHECK(roundtrip(Heartbeat{123456789}) == (Heartbeat{123456789}));
     CHECK(roundtrip(HeartbeatAck{987654321}) == (HeartbeatAck{987654321}));
     InputBatch b;
@@ -81,7 +81,7 @@ TEST(event_messages_roundtrip_and_respect_limits) {
     GameEvent e{7, 42, {1, 2, 3}, 5};
     CHECK(roundtrip(e) == e);
     CHECK(roundtrip(EventAck{123, 5}) == (EventAck{123, 5}));
-    CHECK(roundtrip(DisconnectAck{}) == (DisconnectAck{}));
+    CHECK(roundtrip(DisconnectAck{3}) == (DisconnectAck{3}));
     CHECK(encode(hdr(1), GameEvent{0, 1, {}}).empty());                                       // id 0 is invalid
     CHECK(encode(hdr(1), GameEvent{1, 1, std::vector<std::uint8_t>(kMaxEventPayload + 1)}).empty());  // too large
     auto bytes = encode(hdr(1), GameEvent{1, 1, {9}});

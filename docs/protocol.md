@@ -91,16 +91,19 @@ The host also refuses (`event_ack_invalid`) any `EventAck` above the highest eve
   - The host keeps the transport peer open for 1.5 s after the leave (KI-37), and closes it earlier if the client's transport goes first. At most 16 peers linger; the oldest is closed early beyond that, unless a player is using that peer again. A successful (re)join removes the peer from the linger list.
   - A host `Disconnect` (e.g. shutdown) received while the client is leaving ends the leave at once, unconfirmed. A `DisconnectAck` for another session is ignored.
 
-### Version 4 (2026-10-26): events and acks name their player (Codex, PR #24)
+### Version 4 (2026-10-26): per-player messages name their player (Codex, PR #24)
 
 | Type | Direction | Payload |
 |---|---|---|
 | 9 Event | H→C | `u32 event_id`, `u16 player`, `u16 kind`, `u16 len`, then `len` bytes |
 | 10 EventAck | C→H | `u32 applied_through`, `u16 player` |
+| 5 Disconnect | both | `u8 reason`, `u16 player`: the player leaving (client) or being told (host) |
+| 11 DisconnectAck | H→C | `u16 player`: whose leave this confirms |
 
 - **Why:** on UDP, a player who leaves and joins the same host session again reuses its transport peer, and the new player's stream starts again at id 1. Without the player, a delayed event of the earlier stream was delivered as the new one's, and a delayed ack erased the new player's events.
 - **Client:** drops an event for another player (`events_foreign`) before any id check, and sends no ack for it.
 - **Host:** ignores an ack for another player (`event_acks_foreign`).
+- **Leaving:** the client takes only its own player's `DisconnectAck` or `Disconnect` (others count as `stale_notices`), so a delayed ack of an earlier leave never confirms a later one. The host ignores a `Disconnect` for another player (`leaves_foreign`), and a repeated ack after release answers only the player whose leave window it is.
 - Player ids are never reused within a host session (they only increase), so a player id identifies the stream there. A token reconnect keeps both the player and its stream.
 
 ## Sessions, identities, sequencing

@@ -15,7 +15,7 @@ namespace mordor::net {
 inline constexpr std::array<std::uint8_t, 4> kMagic{'M', 'R', 'D', 'R'};
 // v2 (2026-10-24): GameEvent / EventAck, application-level reliable events (review #9 FB-9-02, KI-28).
 // v3 (2026-10-24): DisconnectAck, explicit leave handshake (review #10 FB-10-04, KI-37).
-inline constexpr std::uint16_t kProtocolVersion = 4;  // v4: GameEvent and EventAck carry their player
+inline constexpr std::uint16_t kProtocolVersion = 4;  // v4: events, acks and leave messages carry their player
 inline constexpr std::size_t kHeaderSize = 22;
 inline constexpr std::size_t kMaxPacketSize = 1200;  // stays under common internet MTU
 inline constexpr std::size_t kMaxPayloadSize = kMaxPacketSize - kHeaderSize;
@@ -78,6 +78,7 @@ struct ConnectReject {
 };
 struct Disconnect {
     DisconnectReason reason{};
+    std::uint16_t player = 0;  // v4: the player leaving (client) or being told (host); see GameEvent
     bool operator==(const Disconnect&) const = default;
 };
 struct Heartbeat {
@@ -129,6 +130,7 @@ struct EventAck {
 };
 // Confirms a client's Disconnect (review #10 FB-10-04): a clean leave is only "clean" once the host said so.
 struct DisconnectAck {
+    std::uint16_t player = 0;  // v4: whose leave this confirms
     bool operator==(const DisconnectAck&) const = default;
 };
 

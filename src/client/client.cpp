@@ -179,7 +179,7 @@ void Client::update(std::uint64_t now_us) {
             if (now_us - last_leave_send_us_ >= cfg_.leave_resend_us) {
                 last_leave_send_us_ = now_us;
                 ++stats_.leave_disconnects_sent;
-                if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us)) ++stats_.leave_disconnects_refused;
+                if (!send(Disconnect{DisconnectReason::ClientQuit, player_id_}, now_us)) ++stats_.leave_disconnects_refused;
             }
             break;
         }
@@ -316,6 +316,16 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
                   {kv("player", player_id_), kv("entity", entity_id_), kv("session", session_), kv("same_session", same_session),
                    kv("reconnect_ms", reconnect ? stats_.last_reconnect_ms : 0)});
         set_state(ClientState::Connected, "connect_accept");
+        return;
+    }
+    // v4: only this player's leave is confirmed, and only this player is told to go: after a leave and a fresh join
+    // in the same session, a delayed DisconnectAck or Disconnect of the earlier player reaches the same peer.
+    if (const auto* ack = std::get_if<DisconnectAck>(&p.message); ack && ack->player != player_id_) {
+        ++stats_.stale_notices;
+        return;
+    }
+    if (const auto* d = std::get_if<Disconnect>(&p.message); d && d->player != player_id_) {
+        ++stats_.stale_notices;
         return;
     }
     if (state_ == ClientState::Leaving && p.header.session == session_ && std::holds_alternative<DisconnectAck>(p.message)) {
@@ -509,7 +519,7 @@ void Client::leave(std::uint64_t now_us) {
     stats_.leave_ms = stats_.leave_disconnects_sent = stats_.leave_disconnects_refused = 0;
     auto send_disconnect = [&](Delivery d) {
         ++stats_.leave_disconnects_sent;
-        if (!send(Disconnect{DisconnectReason::ClientQuit}, now_us, d)) ++stats_.leave_disconnects_refused;
+        if (!send(Disconnect{DisconnectReason::ClientQuit, player_id_}, now_us, d)) ++stats_.leave_disconnects_refused;
     };
     if (transport_->capabilities().reliable_ordered) send_disconnect(Delivery::ReliableOrdered);
     send_disconnect(Delivery::Unreliable);
@@ -522,8 +532,8 @@ void Client::disconnect() {
     if (state_ == ClientState::Connected && transport_) {
         // Best effort on both paths: reliably where offered (survives loss while the connection lingers) AND a few
         // unreliable copies (not stuck behind earlier reliable data). The host ignores repeats (EXP-022).
-        if (transport_->capabilities().reliable_ordered) send(Disconnect{DisconnectReason::ClientQuit}, 0, Delivery::ReliableOrdered);
-        for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit}, 0);
+        if (transport_->capabilities().reliable_ordered) send(Disconnect{DisconnectReason::ClientQuit, player_id_}, 0, Delivery::ReliableOrdered);
+        for (int i = 0; i < kDisconnectRepeats; ++i) send(Disconnect{DisconnectReason::ClientQuit, player_id_}, 0);
     }
     if (transport_) transport_->flush_all();
     disconnect_reason_ = DisconnectReason::ClientQuit;

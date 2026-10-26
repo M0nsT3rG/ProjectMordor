@@ -41,7 +41,8 @@ struct HostStats {
     std::uint64_t events_queued = 0, events_transmitted = 0, events_retransmitted = 0, events_replayed = 0,
                   events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0,
                   events_send_refused = 0, event_acks_invalid = 0,
-                  event_acks_foreign = 0;  // acks of an earlier player's stream on the same peer (v4)
+                  event_acks_foreign = 0,  // acks of an earlier player's stream on the same peer (v4)
+                  leaves_foreign = 0;      // Disconnects of an earlier player on the same peer (v4)
     std::uint64_t clean_leaves = 0, leave_acks_repeated = 0;  // explicit leave handshake (FB-10-04)
     std::uint64_t leave_lingers_cut = 0;  // linger ended early because kMaxLingering were held (FB-11-03)
 };
@@ -114,7 +115,7 @@ private:
     void service_events(std::uint64_t now_us);
     net::SendResult send(Slot& s, const net::Message& m, std::uint64_t now_us, net::Delivery delivery = net::Delivery::Unreliable);
     void send_unconnected(net::PeerId to, const net::Message& m, std::uint64_t now_us);
-    void ack_leave(net::PeerId to, std::uint64_t now_us);
+    void ack_leave(net::PeerId to, std::uint16_t player, std::uint64_t now_us);
     net::SendResult transmit(net::PeerId to, const std::vector<std::uint8_t>& bytes, std::uint64_t now_us, net::Delivery delivery);
     void accept(Slot& s, std::uint64_t now_us);
     // close_transport_peer = false when the same transport peer is about to be reused (e.g. new client instance).
@@ -138,6 +139,7 @@ private:
     static constexpr std::size_t kMaxLingering = 16;
     struct Closing {
         net::PeerId peer;
+        std::uint16_t player;  // whose leave a repeated Disconnect may still confirm (v4)
         std::uint64_t close_at_us, last_ack_us;
     };
     std::vector<Closing> closing_;
