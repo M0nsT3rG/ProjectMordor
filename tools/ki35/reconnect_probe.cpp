@@ -14,6 +14,7 @@
 #include <memory>
 #include <string>
 #include <thread>
+#include <vector>
 
 #include "timer_resolution.hpp"
 
@@ -45,6 +46,8 @@ struct Cycle {
     bool armed = false;
     double notice = -1, inner = -1, first_hello = -1, hvr = -1, cookie_hello = -1, auth = -1;
     int hellos = 0, timers = 0;
+    double host_auth = -1;            // EXP-042: the host's own `authenticated` (it verified the client's binding)
+    std::vector<double> host_drops;   // EXP-042: the host's app_dropped_before_auth, one per dropped record
 };
 
 bool is_client_hello(std::string_view detail) { return detail == "22/0/1" || detail.starts_with("22/0/1,"); }
@@ -75,6 +78,7 @@ int main(int argc, char** argv) {
     harsh.duplicate = 0.05;
     harsh.seed = seed;
     bool aborted = false;  // the cycle loop stopped early
+    Cycle cur;             // filled by both sides' DTLS traces while armed
     {
         host::HostConfig hc;
         hc.transport = kind;
@@ -83,6 +87,14 @@ int main(int argc, char** argv) {
         hs->own_key = host_key;
         hs->pinned_peers = {spki_der(client_key)};
         hs->invitation = inv;
+        // EXP-042: the host's side of the reconnect handshake (one client, so every host session event is its).
+        hs->trace = [&cur](const char* ev, std::uint64_t now, std::uint32_t, std::string_view) {
+            if (!cur.armed || now < cur.t0) return;
+            const double ms = static_cast<double>(now - cur.t0) / 1000.0;
+            const std::string_view e(ev);
+            if (e == "app_dropped_before_auth") cur.host_drops.push_back(ms);
+            else if (e == "authenticated" && cur.host_auth < 0) cur.host_auth = ms;
+        };
         hc.secure = hs;
         Logger host_log("host", nullptr);
         host::Host h(hc, host_log);
@@ -98,7 +110,6 @@ int main(int argc, char** argv) {
         }
         const auto log_start = real_us();  // the client log's t_ms counts from here
         Logger client_log("client", clog);
-        Cycle cur;
         auto cs = std::make_shared<SecureTransportConfig>();
         cs->own_key = client_key;
         cs->pinned_peers = {spki_der(host_key)};
@@ -206,12 +217,15 @@ int main(int argc, char** argv) {
             cur.armed = false;
             if (std::string_view(outcome) == "timeout" && connected >= 0) outcome = "no_snapshot";  // reconnected, no snapshot
             const double loop_ms = static_cast<double>(real_us() - cur.t0) / 1000.0 / static_cast<double>(loops ? loops : 1);
+            std::string drops;  // EXP-042: the host's app_dropped_before_auth times, ms from t0
+            for (const double d : cur.host_drops) drops += (drops.empty() ? "" : ",") + std::to_string(d);
             std::printf("{\"cycle\":%d,\"log_ms\":%.1f,\"outcome\":\"%s\",\"reason\":\"%s\",\"notice\":%.1f,\"inner\":%.1f,"
                         "\"first_hello\":%.1f,\"hvr\":%.1f,\"cookie_hello\":%.1f,\"auth\":%.1f,\"connected\":%.1f,"
-                        "\"first_snapshot\":%.1f,\"hellos\":%d,\"timers\":%d,\"loop_ms\":%.2f}\n",
+                        "\"first_snapshot\":%.1f,\"hellos\":%d,\"timers\":%d,\"loop_ms\":%.2f,\"host_auth\":%.1f,"
+                        "\"host_drops\":[%s]}\n",
                         i, static_cast<double>(cur.t0 - log_start) / 1000.0, outcome, c->state_reason().c_str(), cur.notice,
                         cur.inner, cur.first_hello, cur.hvr, cur.cookie_hello, cur.auth, connected, first_snapshot,
-                        cur.hellos, cur.timers, loop_ms);
+                        cur.hellos, cur.timers, loop_ms, cur.host_auth, drops.c_str());
             std::fflush(stdout);
             if (std::string_view(outcome) != "ok" && c->state() != client::ClientState::Connected && !join()) {
                 std::fprintf(stderr, "rejoin after cycle %d failed: %s\n", i, c->state_reason().c_str());

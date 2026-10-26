@@ -47,12 +47,12 @@ def pct(xs: list[float], p: int) -> float | None:
     return round(s[min(len(s) - 1, int(p / 100 * len(s)))], 1) if s else None
 
 
-def tost(k: int, n: int, model: list[float]) -> str:
+def tost(k: int, n: int, model: list[float], delta: float = DELTA) -> str:
     """equivalent: the 90% interval inside [lo - delta, hi + delta]; different: the 95% interval misses [lo, hi]."""
     ci90, ci95 = wilson(k, n, Z90), wilson(k, n, Z95)
     if ci90 is None:
         return "no_data"
-    if model[0] - DELTA <= ci90[0] and ci90[1] <= model[1] + DELTA:
+    if model[0] - delta <= ci90[0] and ci90[1] <= model[1] + delta:
         return "equivalent"
     if ci95[1] < model[0] or ci95[0] > model[1]:
         return "different"
@@ -189,14 +189,14 @@ def summarize(cycles: list[dict], backend: str) -> dict:
             "loop_ms_p50": pct([c["loop_ms"] for c in cycles], 50)}
 
 
-def completeness(out: Path, per_batch_cycles: dict[str, list[dict]]) -> list[str]:
+def completeness(out: Path, per_batch_cycles: dict[str, list[dict]], batches=BATCHES) -> list[str]:
     """Why the recorded run is not the predeclared one (empty: complete). Verdicts are issued only when complete."""
     run_path = out / "run.json"
     if not run_path.exists():
         return ["no run.json"]
     run = json.loads(run_path.read_text(encoding="utf-8"))
     problems = []
-    want = [f"{b}-{s}" for b, s in BATCHES]
+    want = [f"{b}-{s}" for b, s in batches]
     if sorted(per_batch_cycles) != sorted(want):
         problems.append(f"batches {sorted(per_batch_cycles)} != {sorted(want)}")
     if run.get("cycles_per_batch") != 100:
