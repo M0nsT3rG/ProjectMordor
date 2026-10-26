@@ -44,6 +44,7 @@
 - **O1 and O2:** no difference shown on either backend. The P(> 3 s) difference is UDP [−0.024, +0.071] and GNS [−0.095, +0.049]; p95 and p99 show none either.
 - **O3, p50 cost:** latency-only GNS **+185 ms [+164, +202]**; UDP −198 [−302, +180]; harsh UDP −151 [−248, +108], GNS +33 [−139, +165].
 - **By the predeclared rule: do not recommend.** The flag stays off.
+- **Final Codex review** of the branch (`7ac60ba..e850cad`): clean. Code and tests are unchanged since the passing suite run on `def890c`.
 - **Reading:** gating removes exactly the waste it targets, but KI-35's tail is DTLS and, on GNS, establishment (EXP-041). The gate moves time from the session phase into a wait inside DTLS.
 
 ## 3. Questions
