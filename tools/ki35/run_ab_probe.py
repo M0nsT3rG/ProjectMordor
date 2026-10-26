@@ -106,7 +106,9 @@ def summarize(cycles: list[dict]) -> dict:
                                        "dist": {str(k): reqs.count(k) for k in sorted(set(reqs))}},
             "d1": {"k": sum(x["d1"] for x in el), "n": len(el)},
             "defects": sum(c["reorder"].get("d1", False) and c.get("gate_timeouts", 0) == 0 for c in rec
-                           if c.get("arm") == "on")}
+                           if c.get("arm") == "on"),
+            # Authenticated reconnects whose first request is not in the log: D1 unknown, never "no defect" (Codex).
+            "d1_unknown": sum(c["auth"] >= 0 and not c["reorder"].get("eligible") for c in rec)}
 
 
 def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
@@ -128,6 +130,8 @@ def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
             problems.append(f"{nm}: arm/profile not recorded as {a}/{p}")
         if any("host_drops" not in c for c in cs):
             problems.append(f"{nm}: no host trace")
+        if not (out / nm / "client.log").exists():
+            problems.append(f"{nm}: no client log")
         if run.get("exit_codes", {}).get(nm) != 0:
             problems.append(f"{nm}: exit {run.get('exit_codes', {}).get(nm)}")
     return problems
@@ -166,13 +170,16 @@ def judge(out: Path) -> dict:
                     r[f"O2_p{q}"] = {**b, "verdict": "incomplete" if problems else direction(b["ci95"])}
             v["rules"][key] = r
     defects = sum(s["defects"] for s in v["batches"].values())
+    unknown = sum(s["d1_unknown"] for k, s in v["batches"].items() if "-on-" in k)
     v["rules"]["O4_defects"] = defects
+    v["rules"]["O4_unassessable_reconnects"] = unknown  # in arm on: any > 0 blocks a recommendation
     harsh = [v["rules"].get(f"{b}-harsh") for b in ("udp", "gns")]
     harsh = [h for h in harsh if h]
     verdicts = [h[o]["verdict"] for h in harsh for o in ("O1_over_limit", "O2_p95", "O2_p99")]
     better = any(h["O1_over_limit"]["verdict"] == "on_better" or h["O2_p95"]["verdict"] == "on_better" for h in harsh)
     worse = any(x == "on_worse" for x in verdicts)
     v["rules"]["recommendation"] = ("incomplete" if problems else
+                                    "o4_unassessable" if unknown else
                                     "recommend" if better and not worse and defects == 0 else "do_not_recommend")
     return v
 

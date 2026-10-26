@@ -82,6 +82,23 @@ class Rules(unittest.TestCase):
             self.assertEqual(v["rules"]["udp-harsh"]["O1_over_limit"]["verdict"], "no_difference_shown")
             self.assertEqual(v["rules"]["recommendation"], "do_not_recommend")
 
+    def test_missing_request_evidence_never_hides_a_defect(self):  # Codex: unknown D1 is not "no defect"
+        for damage in ("missing", "empty", "no_requests"):
+            with tempfile.TemporaryDirectory() as tmp:
+                write_run(Path(tmp), slow_on=5, slow_off=40, defect=True)
+                log = Path(tmp) / "udp-4301-on-harsh" / "client.log"
+                if damage == "missing":
+                    log.unlink()
+                elif damage == "empty":
+                    log.write_text("", encoding="utf-8")
+                else:
+                    kept = [l for l in log.read_text(encoding="utf-8").splitlines() if "connect_request" not in l]
+                    log.write_text("\n".join(kept) + "\n", encoding="utf-8")
+                v = r.judge(Path(tmp))
+                self.assertNotEqual(v["rules"]["recommendation"], "recommend", damage)
+                if damage != "missing":
+                    self.assertGreater(v["rules"]["O4_unassessable_reconnects"], 0, damage)
+
     def test_an_incomplete_run_gets_no_verdict(self):
         with tempfile.TemporaryDirectory() as tmp:
             write_run(Path(tmp), drop_batch="gns-3-on-harsh")
