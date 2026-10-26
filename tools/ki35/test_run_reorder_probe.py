@@ -113,6 +113,36 @@ class Rules(unittest.TestCase):
             self.assertEqual(v["rules"]["udp"]["in_order_contrast"], "different")
             self.assertEqual(v["rules"]["udp"]["d1"]["verdict"], "equivalent")
 
+    def test_a_run_without_the_host_trace_is_incomplete(self):  # Codex: a pre-EXP-042 probe is not "no drops"
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0)
+            d = Path(tmp) / "gns-2"
+            lines = [json.loads(l) for l in (d / "cycles.jsonl").read_text(encoding="utf-8").splitlines()]
+            for c in lines:
+                del c["host_drops"], c["host_auth"]
+            (d / "cycles.jsonl").write_text("\n".join(json.dumps(c) for c in lines) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertFalse(v["complete"])
+            self.assertEqual(v["rules"]["udp"]["H"], "incomplete")
+
+    def test_per_batch_verdicts_respect_the_attribution_gate(self):  # Codex
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0)
+            d = Path(tmp) / "udp-4203"  # heterogeneous D1 and 70 unknown outcomes in this batch
+            lines = [json.loads(l) for l in (d / "cycles.jsonl").read_text(encoding="utf-8").splitlines()]
+            for c in lines:
+                c["host_drops"] = []
+            (d / "cycles.jsonl").write_text("\n".join(json.dumps(c) for c in lines) + "\n", encoding="utf-8")
+            log = [json.loads(l) for l in (d / "client.log").read_text(encoding="utf-8").splitlines()]
+            accepts = [e for e in log if e["evt"] == "connect_accept_received"]
+            drop = {e["t_ms"] for e in accepts[:70]}
+            (d / "client.log").write_text("\n".join(json.dumps(e) for e in log if e["t_ms"] not in drop or
+                                                     e["evt"] != "connect_accept_received") + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            u = v["rules"]["udp"]
+            self.assertEqual(u["first"]["verdict"], "not_assessable")  # pooled unknown share 70/300 > 10%
+            self.assertEqual(u["d1"]["verdict"], "heterogeneous")
+
     def test_incomplete_run_has_no_verdict(self):
         with tempfile.TemporaryDirectory() as tmp:
             write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0, drop_last=True)

@@ -38,10 +38,12 @@ def first_request_ms(c: dict, sent: list[float]) -> float | None:
 
 
 def classify(c: dict, sent: list[float]) -> dict:
+    if "host_drops" not in c:  # untraced (pre-EXP-042 probe): never counted as no drop; judge() marks the run incomplete
+        return {"eligible": False, "untraced": True}
     t1 = first_request_ms(c, sent)
     if t1 is None:
         return {"eligible": False}
-    drops = [c["log_ms"] + d for d in c.get("host_drops", [])]
+    drops = [c["log_ms"] + d for d in c["host_drops"]]
     d1 = any(D1_WINDOW_MS[0] <= d - t1 <= D1_WINDOW_MS[1] for d in drops)
     att = c["attribution"]
     out = {"eligible": True, "d1": d1, "drops": len(drops)}
@@ -99,6 +101,10 @@ def judge(out: Path) -> dict:
         per_batch[d.name] = summarize(cycles)
         pooled[d.name.split("-")[0]] += cycles
     problems = rc.completeness(out, raw, BATCHES)
+    # Without the host trace there is no D1 measurement: a run by a pre-EXP-042 probe must not read as "no drops" (Codex).
+    untraced = sorted(k for k, cs in raw.items() if any("host_drops" not in c or "host_auth" not in c for c in cs))
+    if untraced:
+        problems.append(f"no EXP-042 host trace in {untraced}")
     v = {"model_h": H, "model_intervals": MODEL, "in_order_d1": IN_ORDER_D1, "deltas": DELTAS, "complete": not problems,
          "incomplete_because": problems, "batches": per_batch,
          "pooled": {b: summarize(cs) for b, cs in pooled.items() if cs}, "rules": {}}
@@ -115,12 +121,13 @@ def judge(out: Path) -> dict:
                  "homogeneity_p": hom["udp"][name]}
             if problems:
                 r["verdict"] = "incomplete"
+            elif name != "d1" and not_assessable:  # the attribution gate comes before any verdict, pooled or per batch
+                r["verdict"] = "not_assessable"
             elif heterogeneous("udp", name):
                 r["verdict"] = "heterogeneous"  # predeclared: per batch only, never pooled
-                r["per_batch"] = {k: rc.tost(x["proportions"][name]["k"], x["proportions"][name]["n"], MODEL[name], 0.08)
+                r["per_batch"] = {k: ("not_assessable" if name != "d1" and (x["first_unknown_share"] or 0) > UNKNOWN_MAX
+                                      else rc.tost(x["proportions"][name]["k"], x["proportions"][name]["n"], MODEL[name], 0.08))
                                   for k, x in per_batch.items() if k.startswith("udp")}
-            elif name != "d1" and not_assessable:
-                r["verdict"] = "not_assessable"
             else:
                 r["verdict"] = rc.tost(pr["k"], pr["n"], MODEL[name], 0.08)
                 r["sensitivity"] = {str(dl): rc.tost(pr["k"], pr["n"], MODEL[name], dl) for dl in DELTAS}
