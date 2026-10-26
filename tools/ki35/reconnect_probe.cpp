@@ -4,7 +4,7 @@
 // the client is Connected again after Reconnecting. Defaults unchanged. One JSON line per cycle on stdout; the
 // client's own log (ConnectRequests and accepts, for the timestamp attribution) goes to the given file.
 // tools/ki35/run_reconnect_probe.py runs the predeclared batches and judges them (docs/soak-testing.md, EXP-041).
-//   ki35_reconnect_probe udp|gns CYCLES SEED CLIENT_LOG
+//   ki35_reconnect_probe udp|gns CYCLES SEED CLIENT_LOG [off|on] [harsh|latency]   (EXP-043 arm and profile)
 #include <openssl/evp.h>
 
 #include <chrono>
@@ -47,6 +47,7 @@ struct Cycle {
     double notice = -1, inner = -1, first_hello = -1, hvr = -1, cookie_hello = -1, auth = -1;
     int hellos = 0, timers = 0;
     double host_auth = -1;            // EXP-042: the host's own `authenticated` (it verified the client's binding)
+    int gate_timeouts = 0;            // EXP-043: client gate timeouts (no BindingAck within confirm_timeout)
     std::vector<double> host_drops;   // EXP-042: the host's app_dropped_before_auth, one per dropped record
 };
 
@@ -55,13 +56,20 @@ bool is_client_hello(std::string_view detail) { return detail == "22/0/1" || det
 }  // namespace
 
 int main(int argc, char** argv) {
-    if (argc != 5) {
-        std::fprintf(stderr, "usage: ki35_reconnect_probe udp|gns CYCLES SEED CLIENT_LOG\n");
+    // EXP-043: optional ARM (off | on: confirm_binding on host and client) and PROFILE (harsh | latency: the same
+    // delay without loss or duplicates). Defaults keep EXP-041/042's behaviour.
+    if (argc < 5 || argc > 7) {
+        std::fprintf(stderr, "usage: ki35_reconnect_probe udp|gns CYCLES SEED CLIENT_LOG [off|on] [harsh|latency]\n");
         return 2;
     }
     const TransportKind kind = std::string(argv[1]) == "gns" ? TransportKind::Gns : TransportKind::Udp;
     const int cycles = std::atoi(argv[2]);
     const std::uint64_t seed = std::strtoull(argv[3], nullptr, 10);
+    const std::string arm = argc > 5 ? argv[5] : "off", profile = argc > 6 ? argv[6] : "harsh";
+    if ((arm != "off" && arm != "on") || (profile != "harsh" && profile != "latency")) {
+        std::fprintf(stderr, "arm must be off|on and profile harsh|latency\n");
+        return 2;
+    }
     request_1ms_timer_resolution();
     EVP_PKEY* host_key = EVP_PKEY_Q_keygen(nullptr, nullptr, "EC", "P-256");
     EVP_PKEY* client_key = EVP_PKEY_Q_keygen(nullptr, nullptr, "EC", "P-256");
@@ -74,8 +82,8 @@ int main(int argc, char** argv) {
     ImpairmentConfig harsh;  // scripts/soak.ps1 profile 'harsh'
     harsh.latency_ms = 80;
     harsh.jitter_ms = 40;
-    harsh.loss = 0.15;
-    harsh.duplicate = 0.05;
+    harsh.loss = profile == "harsh" ? 0.15 : 0.0;  // "latency": delay only (EXP-043 prices the gate's round trip)
+    harsh.duplicate = profile == "harsh" ? 0.05 : 0.0;
     harsh.seed = seed;
     bool aborted = false;  // the cycle loop stopped early
     Cycle cur;             // filled by both sides' DTLS traces while armed
@@ -87,6 +95,7 @@ int main(int argc, char** argv) {
         hs->own_key = host_key;
         hs->pinned_peers = {spki_der(client_key)};
         hs->invitation = inv;
+        hs->confirm_binding = arm == "on";
         // EXP-042: the host's side of the reconnect handshake (one client, so every host session event is its).
         hs->trace = [&cur](const char* ev, std::uint64_t now, std::uint32_t, std::string_view) {
             if (!cur.armed || now < cur.t0) return;
@@ -114,6 +123,7 @@ int main(int argc, char** argv) {
         cs->own_key = client_key;
         cs->pinned_peers = {spki_der(host_key)};
         cs->invitation = inv;
+        cs->confirm_binding = arm == "on";
         cs->trace = [&cur](const char* ev, std::uint64_t now, std::uint32_t, std::string_view detail) {
             if (!cur.armed || now < cur.t0) return;
             const double ms = static_cast<double>(now - cur.t0) / 1000.0;
@@ -132,6 +142,8 @@ int main(int argc, char** argv) {
                 cur.inner = ms;
             } else if (e == "authenticated" && cur.auth < 0) {
                 cur.auth = ms;
+            } else if (e == "gate_timeout") {
+                ++cur.gate_timeouts;  // EXP-043: the client proceeded without the host's BindingAck
             }
         };
         client::ClientConfig cc;
@@ -222,10 +234,11 @@ int main(int argc, char** argv) {
             std::printf("{\"cycle\":%d,\"log_ms\":%.1f,\"outcome\":\"%s\",\"reason\":\"%s\",\"notice\":%.1f,\"inner\":%.1f,"
                         "\"first_hello\":%.1f,\"hvr\":%.1f,\"cookie_hello\":%.1f,\"auth\":%.1f,\"connected\":%.1f,"
                         "\"first_snapshot\":%.1f,\"hellos\":%d,\"timers\":%d,\"loop_ms\":%.2f,\"host_auth\":%.1f,"
-                        "\"host_drops\":[%s]}\n",
+                        "\"host_drops\":[%s],\"gate_timeouts\":%d,\"arm\":\"%s\",\"profile\":\"%s\"}\n",
                         i, static_cast<double>(cur.t0 - log_start) / 1000.0, outcome, c->state_reason().c_str(), cur.notice,
                         cur.inner, cur.first_hello, cur.hvr, cur.cookie_hello, cur.auth, connected, first_snapshot,
-                        cur.hellos, cur.timers, loop_ms, cur.host_auth, drops.c_str());
+                        cur.hellos, cur.timers, loop_ms, cur.host_auth, drops.c_str(), cur.gate_timeouts, arm.c_str(),
+                        profile.c_str());
             std::fflush(stdout);
             if (std::string_view(outcome) != "ok" && c->state() != client::ClientState::Connected && !join()) {
                 std::fprintf(stderr, "rejoin after cycle %d failed: %s\n", i, c->state_reason().c_str());
