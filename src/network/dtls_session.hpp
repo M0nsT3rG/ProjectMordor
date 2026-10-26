@@ -52,11 +52,13 @@ struct DtlsConfig {
     bool coalesce_records = true;              // KI-35 / FB-11-05: false restores OpenSSL's own packetization
     bool cookie_exchange = true;               // server: HelloVerifyRequest round trip (off only where the inner
                                                // transport already proves return routability, FB-15-01)
-    // EXP-043 experiment (FB-28-01), default off; both peers must enable it. Each side acknowledges the peer's
-    // verified binding with a BindingAck record, and becomes Authenticated only once it has verified the peer's
-    // binding AND received the peer's ack: so a client's first application record cannot reach a host that has not
-    // verified the client yet (EXP-042). Without an ack after confirm_timeout_us it proceeds as without the flag
-    // (gate_timeouts): never a hang with a peer that lacks it. Fail-closed checks are unchanged; nothing is buffered.
+    // EXP-043 experiment (FB-28-01), default off; both peers must enable it. The host (server) sends a BindingAck
+    // when it verifies the client's binding, which is the moment it starts accepting application data (the host
+    // never waits). The client becomes Authenticated only once it has verified the host's binding AND received that
+    // ack, so its first application record cannot reach a host that still drops it (EXP-042). Gating the host as
+    // well let a host ack while it still waited, and the client's record was dropped (FB-28-02 test). Without an
+    // ack after confirm_timeout_us the client proceeds as without the flag (gate_timeouts): never a hang with a
+    // host that lacks it. Fail-closed checks are unchanged; nothing is buffered.
     bool confirm_binding = false;
     std::uint64_t confirm_timeout_us = 2'000'000;
     // KI-35 diagnostics (review #10): called for every datagram and milestone BEFORE Authenticated. No secrets:
@@ -125,6 +127,8 @@ private:
     void send_binding(std::uint64_t now_us);
     void send_binding_ack();
     void maybe_authenticate(bool gate_expired);
+    bool gates() const { return cfg_.confirm_binding && !cfg_.server; }  // the client waits for the host's ack
+    bool acks() const { return cfg_.confirm_binding && cfg_.server; }    // the host acks the client's binding
     SendResult flush_out();  // Sent, or the first local refusal of a datagram
     void reject(std::string why);
     bool make_cookie(unsigned char* out, unsigned int* len, unsigned slots_back = 0) const;

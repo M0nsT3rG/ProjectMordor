@@ -69,9 +69,15 @@ struct World {
     test::SimClock clk;
     std::unique_ptr<host::Host> host;
     std::vector<std::unique_ptr<client::Client>> clients;
-    explicit World(TransportKind k, bool secure_host = true, host::HostConfig hc = {}) : kind(k) {
+    bool confirm = false;  // EXP-043 confirm_binding on the host and every client added
+    explicit World(TransportKind k, bool secure_host = true, host::HostConfig hc = {}, bool confirm_binding = false)
+        : kind(k), confirm(confirm_binding) {
         hc.transport = k;
-        if (secure_host) hc.secure = secure(host_key, {k1.spki(), k2.spki()}, inv);
+        if (secure_host) {
+            auto s = secure(host_key, {k1.spki(), k2.spki()}, inv);
+            s->confirm_binding = confirm;
+            hc.secure = s;
+        }
         host = std::make_unique<host::Host>(hc, test::test_logger("host"));
         std::string err;
         if (!host->start(&err)) throw test::CheckFailure("host start: " + err);
@@ -79,7 +85,11 @@ struct World {
     client::Client& add(const Key* key, std::vector<std::vector<std::uint8_t>> pins, client::ClientConfig cc = {}, Invitation i = {}) {
         cc.host = Endpoint::loopback(host->port());
         cc.transport = kind;
-        if (key) cc.secure = secure(*key, std::move(pins), i.id.empty() ? inv : i);
+        if (key) {
+            auto s = secure(*key, std::move(pins), i.id.empty() ? inv : i);
+            s->confirm_binding = confirm;
+            cc.secure = s;
+        }
         clients.push_back(std::make_unique<client::Client>(cc, test::test_logger("client")));
         std::string err;
         if (!clients.back()->start(&err)) throw test::CheckFailure("client start: " + err);
@@ -107,6 +117,22 @@ TEST(secure_game_session_runs_over_dtls_on_every_backend) {
         const auto* hs = secure_stats(*w.host->transport_for_test());
         CHECK(hs && hs->authenticated == 2 && hs->dropped_not_dtls == 0);
         std::printf("       %s: 2 players over DTLS, %llu snapshots at client a\n", to_string(k),
+                    static_cast<unsigned long long>(a.stats().snapshots_applied));
+    }
+}
+
+// EXP-043: the same game session with confirm_binding on both ends (an experiment, default off), on every backend.
+TEST(secure_game_session_runs_with_confirm_binding) {
+    for (auto k : backends()) {
+        World w(k, true, {}, true);
+        auto& a = w.add(&w.k1, {w.host_key.spki()});
+        auto& b = w.add(&w.k2, {w.host_key.spki()});
+        CHECK(w.run_until([&] { return a.state() == ClientState::Connected && b.state() == ClientState::Connected; }, 10 * kSec));
+        a.set_move(1, 0);
+        CHECK(w.run_until([&] { return a.stats().snapshots_applied > 20 && b.remote_entities().size() == 1; }, 5 * kSec));
+        const auto* hs = secure_stats(*w.host->transport_for_test());
+        CHECK(hs && hs->authenticated == 2 && hs->dropped_not_dtls == 0);
+        std::printf("       %s: 2 players over DTLS with confirm_binding, %llu snapshots at client a\n", to_string(k),
                     static_cast<unsigned long long>(a.stats().snapshots_applied));
     }
 }

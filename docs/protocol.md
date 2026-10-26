@@ -106,6 +106,19 @@ The host also refuses (`event_ack_invalid`) any `EventAck` above the highest eve
 - **Leaving:** the client takes only its own player's `DisconnectAck` or `Disconnect` (others count as `stale_notices`), so a delayed ack of an earlier leave never confirms a later one. The host ignores a `Disconnect` for another player (`leaves_foreign`), and a repeated ack after release answers only the player whose leave window it is.
 - Player ids are never reused within a host session (they only increase), so a player id identifies the stream there. A token reconnect keeps both the player and its stream.
 
+### Experimental: BindingAck (EXP-043, off by default)
+
+| Record (inside DTLS) | Direction | Payload |
+|---|---|---|
+| `0xB2` BindingAck | H→C | none: "I verified your binding; I accept your application data now" |
+
+- **Enabled by** `SecureTransportConfig::confirm_binding` (`DtlsConfig::confirm_binding`) on **both** ends. It is not negotiated. While it stays experimental there is no `kProtocolVersion` bump; adopting it as the default would need one.
+- **Host:** sends a BindingAck when it verifies the client's binding, and again with every binding reply. It never waits for anything new.
+- **Client:** becomes `Authenticated` (so it may send application data) only once it has verified the host's binding **and** received a BindingAck. Meanwhile it resends its own binding every 200 ms, as before.
+  - After `confirm_timeout_us` (2 s) without an ack it proceeds exactly as without the flag (`gate_timeouts`), so a host without the flag never blocks it.
+  - A BindingAck never authenticates on its own: the host's binding must still verify.
+- **Purpose:** the client's first record can no longer overtake its own binding to a host that drops it (EXP-042). Fail-closed checks are unchanged, and nothing is buffered before authentication.
+
 ## Sessions, identities, sequencing
 
 - **Session.** A random non-zero u32 chosen at host start. After acceptance, packets whose session differs are ignored.

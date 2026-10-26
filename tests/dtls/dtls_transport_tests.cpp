@@ -565,3 +565,154 @@ TEST(dtls_small_mtu_fragments_the_handshake_within_the_limit) {
         CHECK(l.host_s->stats().max_datagram_out <= 256 && l.client_s->stats().max_datagram_out <= 256);
     }
 }
+
+// EXP-043 / FB-28-02: confirm_binding (an experiment, default off; both ends). The host acks the client's verified
+// binding, which is when it starts accepting application data; the client becomes Authenticated only once it has
+// verified the host's binding AND received that ack. The host never waits.
+namespace {
+void confirm_both(Link& l, std::uint64_t timeout_us = 2'000'000) {
+    l.host_cfg.confirm_binding = l.client_cfg.confirm_binding = true;
+    l.host_cfg.confirm_timeout_us = l.client_cfg.confirm_timeout_us = timeout_us;
+}
+}  // namespace
+
+// The point of the experiment: the client is never Authenticated (so never sends application data) before the host
+// has verified the client's binding. Without the flag the client authenticates first (the host's binding arrives in
+// the host's last flight), which is what let EXP-042's first request reach a host that still dropped it.
+TEST(dtls_confirm_binding_client_waits_until_the_host_verified_it) {
+    for (auto k : backends()) {
+        ImpairmentConfig delay;  // ordered and lossless: only the ordering of the two Authenticated states matters
+        delay.latency_ms = 40;
+        Link l(k, delay);
+        confirm_both(l);
+        l.start_client();
+        int client_first = 0;
+        const bool authed = l.pump([&] {
+            if (l.client_s && l.client_s->state() == DtlsState::Authenticated &&
+                !(l.host_s && l.host_s->state() == DtlsState::Authenticated))
+                ++client_first;
+            return l.both(DtlsState::Authenticated);
+        }, 10000);
+        l.report("dtls_confirm_binding_client_waits_until_the_host_verified_it");
+        CHECK(authed);
+        CHECK(client_first == 0);
+        const auto& h = l.host_s->stats();
+        const auto& c = l.client_s->stats();
+        CHECK(h.binding_acks_sent >= 1 && c.binding_acks_received >= 1);
+        CHECK(c.binding_acks_sent == 0 && h.binding_acks_received == 0);  // the host never waits, the client never acks
+        CHECK(h.gate_timeouts == 0 && c.gate_timeouts == 0);
+        // The first application record the client sends now always finds an authenticated host.
+        CHECK(l.client_s->send(std::vector<std::uint8_t>{7}) == SendResult::Sent);
+        std::vector<std::vector<std::uint8_t>> got;
+        CHECK(l.pump([&] {
+            for (auto& m : l.host_s->take_received()) got.push_back(m);
+            return !got.empty();
+        }, 3000));
+        CHECK(h.app_dropped_before_auth == 0);
+    }
+}
+
+// An ack proves only that the host verified OUR binding. It never authenticates the host: a host whose own binding
+// never arrives (send_binding = false), but that acks the client's, leaves the client unauthenticated until
+// binding_timeout, fail-closed. The client cannot send meanwhile.
+TEST(dtls_confirm_binding_ack_never_authenticates_without_a_verified_binding) {
+    for (auto k : backends()) {
+        Link l(k);
+        confirm_both(l);
+        l.host_cfg.send_binding = false;  // acks the client's binding, never sends its own
+        l.client_cfg.binding_timeout_us = 1'500'000;
+        l.start_client();
+        bool ever_authenticated = false;
+        CHECK(l.pump([&] {
+            ever_authenticated |= l.client_s && l.client_s->state() == DtlsState::Authenticated;
+            return l.client_s && l.client_s->state() == DtlsState::Rejected;
+        }, 10000));
+        l.report("dtls_confirm_binding_ack_never_authenticates_without_a_verified_binding");
+        CHECK(!ever_authenticated);
+        CHECK(l.client_s->reason() == "binding_timeout");
+        CHECK(l.client_s->stats().binding_acks_received >= 1);  // the ack did arrive: it was not enough
+        CHECK(l.client_s->send(std::vector<std::uint8_t>{1}) == SendResult::Failed);
+    }
+}
+
+// An altered binding is rejected as before, with the flag on.
+TEST(dtls_confirm_binding_keeps_rejecting_an_altered_binding) {
+    for (auto k : backends()) {
+        Link l(k);
+        confirm_both(l);
+        l.host_cfg.corrupt_confirmation = true;
+        l.start_client();
+        CHECK(l.pump([&] { return l.client_s && l.client_s->state() == DtlsState::Rejected; }, 10000));
+        l.report("dtls_confirm_binding_keeps_rejecting_an_altered_binding");
+        CHECK(l.client_s->reason() == "binding_confirmation_mismatch");
+        CHECK(l.client_s->stats().app_in == 0);
+    }
+}
+
+// Premature records with the flag on: a client whose binding never reaches the host gets no ack, falls back after
+// confirm_timeout (gate_timeouts) and sends; the host drops every record, delivers none later, and fails closed.
+TEST(dtls_confirm_binding_premature_records_are_dropped_and_never_retained) {
+    for (auto k : backends()) {
+        Link l(k);
+        confirm_both(l, 300'000);
+        l.client_cfg.send_binding = false;
+        l.host_cfg.binding_timeout_us = 1'500'000;
+        l.start_client();
+        CHECK(l.pump([&] { return l.client_s->state() == DtlsState::Authenticated; }, 10000));
+        CHECK(l.client_s->stats().gate_timeouts == 1);
+        for (std::uint8_t i = 0; i < 5; ++i) CHECK(l.client_s->send(std::vector<std::uint8_t>{i}) == SendResult::Sent);
+        CHECK(l.pump([&] { return l.host_s->state() == DtlsState::Rejected; }, 5000));
+        l.report("dtls_confirm_binding_premature_records_are_dropped_and_never_retained");
+        CHECK(l.host_s->reason() == "binding_timeout");
+        CHECK(l.host_s->stats().app_in == 0);
+        CHECK(l.host_s->stats().app_dropped_before_auth >= 1);
+        CHECK(l.host_s->take_received().empty());
+    }
+}
+
+// A flag mismatch never hangs. A gated client with a host that never acks proceeds after confirm_timeout
+// (gate_timeouts), exactly as without the flag; a host with the flag and a client without it changes nothing.
+TEST(dtls_confirm_binding_mismatch_falls_back_without_hanging) {
+    for (auto k : backends()) {
+        for (const bool client_side : {true, false}) {
+            Link l(k);
+            (client_side ? l.client_cfg : l.host_cfg).confirm_binding = true;
+            (client_side ? l.client_cfg : l.host_cfg).confirm_timeout_us = 500'000;
+            l.start_client();
+            const bool authed = l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000);
+            l.report(client_side ? "mismatch (client gated)" : "mismatch (host acks, client ignores)");
+            CHECK(authed);
+            CHECK(l.client_s->stats().gate_timeouts == (client_side ? 1u : 0u));
+            CHECK(l.host_s->stats().gate_timeouts == 0);
+            if (!client_side) CHECK(l.client_s->stats().binding_acks_received == 0);  // ignored, unknown to it
+        }
+    }
+}
+
+// Loss, duplication, delay and reordering: both sides still authenticate (the client resends its binding while it
+// waits; every host reply repeats the ack), replayed acks change nothing, and the client's first record is not
+// dropped by the host unless the client's gate timed out.
+TEST(dtls_confirm_binding_survives_loss_jitter_reorder_and_duplication) {
+    for (auto k : backends()) {
+        Link l(k, bad_network());
+        confirm_both(l);
+        l.start_client();
+        bool sent = false;
+        const bool authed = l.pump([&] {
+            if (!sent && l.client_s && l.client_s->state() == DtlsState::Authenticated)
+                sent = l.client_s->send(std::vector<std::uint8_t>{9}) == SendResult::Sent;
+            return l.both(DtlsState::Authenticated);
+        }, 20000);
+        l.pump([] { return false; }, 1000);
+        l.report("dtls_confirm_binding_survives_loss_jitter_reorder_and_duplication");
+        CHECK(authed);
+        const auto& h = l.host_s->stats();
+        const auto& c = l.client_s->stats();
+        std::printf("       %s: acks sent %llu, received %llu, client gate timeouts %llu, host pre-auth drops %llu\n",
+                    to_string(k), static_cast<unsigned long long>(h.binding_acks_sent),
+                    static_cast<unsigned long long>(c.binding_acks_received), static_cast<unsigned long long>(c.gate_timeouts),
+                    static_cast<unsigned long long>(h.app_dropped_before_auth));
+        if (c.gate_timeouts == 0) CHECK(h.app_dropped_before_auth == 0);
+        CHECK(h.binding_sent <= 30 && c.binding_sent <= 30);  // bounded, as without the flag
+    }
+}

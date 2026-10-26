@@ -6,6 +6,22 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on reviews #27 and #28 (PR #25: EXP-041 and EXP-042, 2026-10-26)
+
+- **Status:** implemented on `feature/ki35-gns-establishment`. **The owner authorised the behaviour change behind a flag that is off by default** ("faz tudo da revisão #27/#28 … A/B do client-side gating atrás de uma flag desligada por omissão"). Record: EXP-043.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25). Source and evidence review only.
+- **Verdict:** keep KI-35 open; H stays formally inconclusive; designing and testing a fix is supported; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **#27 / #28 formal outcomes** | Yes: EXP-042's H is inconclusive by its own rule. | **Accepted** | Never relabelled. EXP-043 tests a fix, not H. |
+| **FB-28-01** A/B of client-side gating | **Yes, with one correction.** The client cannot know that the host verified its binding: the host's binding is sent when the host's handshake finishes, not in reply. Gating needs a signal, so a BindingAck record is added. A first design gated **both** sides, and a FB-28-02 test caught a flaw: a host could ack while it still waited, and the client's first record was dropped. **Final design:** only the host acks, at the moment it verifies the client's binding (when it starts accepting data; it never waits), and only the client gates on that ack. | **Accepted** | `DtlsConfig::confirm_binding` / `SecureTransportConfig::confirm_binding`, off by default, both ends must enable it. A 2 s fallback (`gate_timeouts`) means a mismatch never hangs. No host buffering. EXP-043 is predeclared before any run: arms off/on, harsh and latency-only profiles. |
+| **FB-28-02** Security and regressions | **Agreed.** | **Accepted** | 7 tests, both backends (`dtls_confirm_binding_*`, `secure_game_session_runs_with_confirm_binding`): the client never authenticates before the host verified it (red-before checked); an ack never authenticates without a verified binding; an altered binding is still rejected; premature records are dropped and never retained; a mismatch falls back without hanging; loss, jitter, reorder and duplication. Full suites with the flag off. EXP-043 measures the extra round trip instead of assuming it. |
+| **FB-28-03** The 0.04 P(D1) gap | **Agreed.** | **Accepted, deferred** | Exploratory only, after EXP-043. EXP-042's criteria are not touched. |
+| **FB-28-04** DTLS timers and cookie separately | **Agreed.** | **Accepted, deferred** | Separate predeclared experiments after EXP-043, one change each. |
+
+---
+
 ## Feedback on the EXP-037 follow-up review (PR #25, 2026-10-26)
 
 - **Status:** implemented (2026-10-26) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-041.
