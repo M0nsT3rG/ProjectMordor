@@ -200,7 +200,7 @@ try {
         }
         Remove-Item "$out/warmup-*.log" -ErrorAction SilentlyContinue
         $imp = '--latency-ms 40 --jitter-ms 20 --loss 0.1'
-        $h = Start-Process (Join-Path $bin 'mordor-host.exe') -ArgumentList "--port 47811 --duration-s 9 $imp --seed 5 --log $out/host.log" -PassThru -NoNewWindow
+        $h = Start-Process (Join-Path $bin 'mordor-host.exe') -ArgumentList "--port 47811 --duration-s 9 $imp --seed 5 --log `"$out/host.log`"" -PassThru -NoNewWindow
         $null = $h.Handle  # keeps ExitCode readable after exit
         # Freshly built executables can start seconds late (EXP-006); wait until the host is actually listening.
         $deadline = (Get-Date).AddSeconds(30)
@@ -208,10 +208,13 @@ try {
             if ((Get-Date) -gt $deadline -or $h.HasExited) { throw 'Host did not report host_started within 30 s' }
             Start-Sleep -Milliseconds 100
         }
-        $c1 = Start-Process (Join-Path $bin 'mordor-client.exe') -ArgumentList "--port 47811 --duration-s 6 --pattern circle $imp --seed 6 --log $out/client1.log" -PassThru -NoNewWindow
-        $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -ArgumentList "--port 47811 --duration-s 6 --pattern line $imp --seed 7 --log $out/client2.log" -PassThru -NoNewWindow
+        $c1 = Start-Process (Join-Path $bin 'mordor-client.exe') -ArgumentList "--port 47811 --duration-s 6 --pattern circle $imp --seed 6 --log `"$out/client1.log`"" -PassThru -NoNewWindow
+        $c2 = Start-Process (Join-Path $bin 'mordor-client.exe') -ArgumentList "--port 47811 --duration-s 6 --pattern line $imp --seed 7 --log `"$out/client2.log`"" -PassThru -NoNewWindow
         $null = $c1.Handle; $null = $c2.Handle
-        $c1.WaitForExit(); $c2.WaitForExit(); $h.WaitForExit()
+        # Bounded like every other wait (Codex, PR #24): a hung participant is dumped and killed, and fails the run.
+        foreach ($w in @(@($c1, 'e2e-client1'), @($c2, 'e2e-client2'), @($h, 'e2e-host'))) {
+            if ((Wait-Bounded $w[0] $w[1] 60) -ne 'exited') { $failed = $true }
+        }
         Write-Host "E2E exit codes: host=$($h.ExitCode) client1=$($c1.ExitCode) client2=$($c2.ExitCode)"
         if ($h.ExitCode -ne 0 -or $c1.ExitCode -ne 0 -or $c2.ExitCode -ne 0) { $failed = $true }
         $e2eExit = [ordered]@{ host = $h.ExitCode; client1 = $c1.ExitCode; client2 = $c2.ExitCode }

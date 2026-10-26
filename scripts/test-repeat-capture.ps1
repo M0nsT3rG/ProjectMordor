@@ -71,6 +71,27 @@ exit $(if ($n -eq 1 -and $mode -notin 'skip-transport', 'nested-unit' -and -not 
         Check ((@($run.ctest_runs | ForEach-Object { "$($_.dir):$($_.exit_code)" }) -join ',') -eq 'iter-1:1') "with the invocation and its exit code ($(@($run.ctest_runs | ForEach-Object { "$($_.dir):$($_.exit_code)" }) -join ','))"
     }
 
+    # Codex (PR #24): a real E2E run whose results directory has a space in it. The host and client log paths are
+    # quoted, so the run passes. Uses the real executables of the default build when they exist.
+    $realBin = Join-Path (Split-Path -Parent $PSScriptRoot) 'build/Release'
+    if ((Test-Path (Join-Path $realBin 'mordor-host.exe')) -and (Test-Path (Join-Path $realBin 'mordor-client.exe'))) {
+        $buildE2e = Join-Path $tmp 'build e2e'
+        New-Item -ItemType Directory -Force (Join-Path $buildE2e 'test-results'), (Join-Path $buildE2e 'Release') | Out-Null
+        foreach ($exe in 'mordor-host.exe', 'mordor-client.exe') { Copy-Item (Join-Path $realBin $exe) (Join-Path $buildE2e 'Release') }
+        Set-Content (Join-Path $buildE2e 'count.txt') 1  # the stand-in ctest then passes every suite
+        $logsE2e = Join-Path $tmp 'logs e2e'
+        New-Item -ItemType Directory $logsE2e | Out-Null
+        $threw = $false
+        try { & (Join-Path $PSScriptRoot 'test.ps1') -BuildDir $buildE2e -LogsDir $logsE2e -CtestCommand $fake -NoSelfCheck -E2E *>&1 | Out-Null }
+        catch { $threw = $true }
+        $runs = @(Get-ChildItem $logsE2e -Directory)
+        $run = if ($runs.Count -eq 1) { Get-Content (Join-Path $runs[0].FullName 'run.json') -Raw | ConvertFrom-Json }
+        Check (-not $threw -and $run -and $run.result -eq 'passed') "an E2E run under a path with a space passes ($(if ($run) { $run.result }))"
+        Check ($runs.Count -eq 1 -and (Test-Path (Join-Path $runs[0].FullName 'e2e/client2.log'))) 'and writes its logs there'
+    } else {
+        Write-Host '[SKIPPED] E2E under a path with a space: build/Release has no executables'
+    }
+
     # FB-19-02: a suite that writes no results fails the run even when ctest exits 0, and a stale file left by an
     # earlier invocation is never taken as this invocation's result.
     $logs4 = Join-Path $tmp 'logs4'
