@@ -40,7 +40,8 @@ struct HostStats {
     // Application-level reliable events (FB-9-02, KI-28).
     std::uint64_t events_queued = 0, events_transmitted = 0, events_retransmitted = 0, events_replayed = 0,
                   events_applied = 0, events_backpressure = 0, events_dropped_with_slot = 0,
-                  events_send_refused = 0, event_acks_invalid = 0;
+                  events_send_refused = 0, event_acks_invalid = 0,
+                  event_acks_foreign = 0;  // acks of an earlier player's stream on the same peer (v4)
     std::uint64_t clean_leaves = 0, leave_acks_repeated = 0;  // explicit leave handshake (FB-10-04)
     std::uint64_t leave_lingers_cut = 0;  // linger ended early because kMaxLingering were held (FB-11-03)
 };

@@ -78,14 +78,14 @@ TEST(all_message_types_roundtrip) {
 
 // Review #9 FB-9-02 (protocol v2): event messages round-trip; limits are enforced on both sides.
 TEST(event_messages_roundtrip_and_respect_limits) {
-    GameEvent e{7, 42, {1, 2, 3}};
+    GameEvent e{7, 42, {1, 2, 3}, 5};
     CHECK(roundtrip(e) == e);
-    CHECK(roundtrip(EventAck{123}) == (EventAck{123}));
+    CHECK(roundtrip(EventAck{123, 5}) == (EventAck{123, 5}));
     CHECK(roundtrip(DisconnectAck{}) == (DisconnectAck{}));
     CHECK(encode(hdr(1), GameEvent{0, 1, {}}).empty());                                       // id 0 is invalid
     CHECK(encode(hdr(1), GameEvent{1, 1, std::vector<std::uint8_t>(kMaxEventPayload + 1)}).empty());  // too large
     auto bytes = encode(hdr(1), GameEvent{1, 1, {9}});
-    bytes[kHeaderSize + 6] = 200;  // claimed payload length beyond the packet
+    bytes[kHeaderSize + 8] = 200;  // claimed payload length beyond the packet (id 4, player 2, kind 2 bytes before it)
     CHECK(!decode(bytes).packet);
 }
 

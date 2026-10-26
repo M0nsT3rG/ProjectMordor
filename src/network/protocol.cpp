@@ -69,11 +69,11 @@ bool write_payload(Writer& w, const Message& m) {
         },
         [&](const GameEvent& v) {
             if (v.event_id == 0 || v.payload.size() > kMaxEventPayload) return false;
-            w.u32(v.event_id); w.u16(v.kind); w.u16(static_cast<std::uint16_t>(v.payload.size()));
+            w.u32(v.event_id); w.u16(v.player); w.u16(v.kind); w.u16(static_cast<std::uint16_t>(v.payload.size()));
             for (auto b : v.payload) w.u8(b);
             return true;
         },
-        [&](const EventAck& v) { w.u32(v.applied_through); return true; },
+        [&](const EventAck& v) { w.u32(v.applied_through); w.u16(v.player); return true; },
         [&](const DisconnectAck&) { return true; },
     }, m);
 }
@@ -128,13 +128,13 @@ std::optional<Message> read_payload(MsgType t, Reader& r) {
             return v;
         }
         case MsgType::Event: {
-            GameEvent v; v.event_id = r.u32(); v.kind = r.u16();
+            GameEvent v; v.event_id = r.u32(); v.player = r.u16(); v.kind = r.u16();
             const auto n = r.u16();
             if (v.event_id == 0 || n > kMaxEventPayload) return std::nullopt;
             for (int i = 0; i < n && r.ok; ++i) v.payload.push_back(r.u8());
             return v;
         }
-        case MsgType::EventAck: return EventAck{r.u32()};
+        case MsgType::EventAck: return EventAck{r.u32(), r.u16()};
         case MsgType::DisconnectAck: return DisconnectAck{};
     }
     return std::nullopt;

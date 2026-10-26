@@ -163,7 +163,7 @@ void Client::update(std::uint64_t now_us) {
                 send(Heartbeat{now_us}, now_us);
                 // Re-confirm what the application applied: covers a lost ack (unreliable transport) and tells a
                 // host that replayed after a reconnect what it can forget (FB-9-02).
-                if (applied_through_ > 0) send(EventAck{applied_through_}, now_us, ack_delivery());
+                if (applied_through_ > 0) send(EventAck{applied_through_, player_id_}, now_us, ack_delivery());
             }
             break;
         }
@@ -370,9 +370,13 @@ void Client::handle(const Packet& p, std::uint64_t now_us) {
             set_state(ClientState::Disconnected, "host_disconnect");
         },
         [&](const GameEvent& ev) {
+            if (ev.player != player_id_) {  // a delayed event of an earlier player's stream on this session (v4)
+                ++stats_.events_foreign;
+                return;
+            }
             if (ev.event_id < next_event_) {  // already delivered (retransmit or replay): drop, re-confirm what is applied
                 ++stats_.events_duplicate;
-                if (applied_through_ > 0) send(EventAck{applied_through_}, now_us, ack_delivery());
+                if (applied_through_ > 0) send(EventAck{applied_through_, player_id_}, now_us, ack_delivery());
                 return;
             }
             if (ev.event_id != next_event_) {  // a gap: the host resends in order, never deliver out of order
@@ -393,7 +397,7 @@ void Client::ack_events_applied(std::uint32_t through_id, std::uint64_t now_us) 
     // Only what has been delivered can have been applied; acks never move backwards.
     if (through_id >= next_event_ || through_id <= applied_through_) return;
     applied_through_ = through_id;
-    if (state_ == ClientState::Connected) send(EventAck{applied_through_}, now_us, ack_delivery());
+    if (state_ == ClientState::Connected) send(EventAck{applied_through_, player_id_}, now_us, ack_delivery());
 }
 
 // EventAck is cumulative and idempotent, and re-sent with every heartbeat: Unreliable. Sending it ReliableOrdered

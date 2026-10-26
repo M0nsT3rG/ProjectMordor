@@ -110,7 +110,7 @@ bool Host::send_event(std::uint16_t player_id, std::uint16_t kind, std::span<con
             ++stats_.events_backpressure;
             return false;
         }
-        s.events.push_back({GameEvent{s.next_event_id++, kind, {payload.begin(), payload.end()}}, 0});
+        s.events.push_back({GameEvent{s.next_event_id++, kind, {payload.begin(), payload.end()}, s.player_id}, 0});
         ++stats_.events_queued;
         service_events(now_us);  // send now if the player is connected
         return true;
@@ -275,6 +275,10 @@ void Host::handle(PeerId from, const Packet& p, std::uint64_t now_us) {
             closing_.push_back({from, now_us + kLeaveLingerUs, now_us});
         },
         [&](const EventAck& a) {  // the client APPLICATION applied everything up to this id: forget those events
+            if (a.player != s->player_id) {  // a delayed ack of an earlier player on this peer (v4): not this stream
+                ++stats_.event_acks_foreign;
+                return;
+            }
             // Review #10 FB-10-01: an ack can only cover events this host actually sent in this session. Anything
             // beyond (a forged, corrupted or confused ack) is refused WHOLE, so it can never erase an event that
             // was never delivered (e.g. one queued while the player was away).
@@ -524,6 +528,7 @@ void Host::shutdown() {
                                kv("events_retransmitted", stats_.events_retransmitted), kv("events_replayed", stats_.events_replayed),
                                kv("events_dropped_with_slot", stats_.events_dropped_with_slot),
                                kv("events_send_refused", stats_.events_send_refused), kv("event_acks_invalid", stats_.event_acks_invalid),
+                               kv("event_acks_foreign", stats_.event_acks_foreign),
                                kv("clean_leaves", stats_.clean_leaves), kv("leave_acks_repeated", stats_.leave_acks_repeated),
                                kv("leave_lingers_cut", stats_.leave_lingers_cut)});
     if (const auto* ss = transport_ ? net::secure_stats(*transport_) : nullptr)  // secure mode (FB-8-03): no secrets

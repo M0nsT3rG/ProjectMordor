@@ -62,6 +62,7 @@ struct ClientStats {
     std::uint64_t leave_ms = 0;
     // Application-level reliable events (FB-9-02, KI-28).
     std::uint64_t events_received = 0, events_duplicate = 0, events_out_of_order = 0, events_discarded_new_session = 0;
+    std::uint64_t events_foreign = 0;  // events of an earlier player's stream in this session (v4)
 };
 
 // A consequential event from the host, delivered in order exactly once (FB-9-02).

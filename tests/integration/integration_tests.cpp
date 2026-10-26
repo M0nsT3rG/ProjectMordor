@@ -170,6 +170,60 @@ TEST(client_rejects_stale_snapshots) {
     CHECK(c.stats().snapshots_applied == 1);
 }
 
+// Codex pass on ea881d0 (PR #24, protocol v4): after a leave and a fresh join in the SAME host session, the new
+// player's event stream starts at id 1 again. A delayed event of the earlier player's stream is never delivered.
+TEST(client_never_delivers_an_earlier_players_delayed_event) {
+    UDP_ONLY("uses a raw UDP socket as a fake host; a GNS client only talks GNS");
+    UdpSocket fake;
+    CHECK(fake.open(Endpoint::loopback(0)));
+    client::ClientConfig cc;
+    cc.host = fake.local_endpoint();
+    client::Client c(cc, test::test_logger("client"));
+    CHECK(c.start());
+    test::SimClock clk;
+    Endpoint client_ep;
+    auto request = [&]() -> std::uint64_t {  // the client's next ConnectRequest nonce
+        for (int i = 0; i < 20; ++i) {
+            c.update(clk.now);
+            Endpoint from;
+            while (auto p = recv_packet(fake, from))
+                if (const auto* r = std::get_if<ConnectRequest>(&p->message)) {
+                    client_ep = from;
+                    return r->client_nonce;
+                }
+            clk.now += 50'000;
+        }
+        throw test::CheckFailure("no ConnectRequest");
+    };
+    Header h;
+    h.session = 77;
+    auto send = [&](const Message& m) {
+        ++h.sequence;
+        CHECK(fake.send_to(client_ep, encode(h, m)));
+        for (int i = 0; i < 50; ++i) {
+            c.update(clk.now);
+            std::this_thread::yield();
+        }
+    };
+    c.connect(clk.now);
+    send(ConnectAccept{request(), 1, 1, 5, 30, 0});
+    CHECK(c.state() == ClientState::Connected && c.player_id() == 1);
+    send(GameEvent{1, 9, {1}, 1});
+    CHECK(c.take_events().size() == 1);
+    c.leave(clk.now);
+    send(DisconnectAck{});
+    CHECK(c.state() == ClientState::Disconnected);
+    c.connect(clk.now);  // a fresh join: the host gives it a new player in the same session
+    send(ConnectAccept{request(), 2, 2, 6, 30, 0});
+    CHECK(c.state() == ClientState::Connected && c.player_id() == 2);
+    send(GameEvent{1, 9, {1}, 1});  // player 1's event, delayed in the network
+    CHECK(c.take_events().empty());
+    CHECK(c.stats().events_foreign == 1);
+    send(GameEvent{1, 9, {2}, 2});  // the new player's own first event
+    const auto got = c.take_events();
+    CHECK(got.size() == 1 && got[0].payload == std::vector<std::uint8_t>{2});
+}
+
 // Test 10
 TEST(protocol_version_mismatch_is_rejected) {
     test::Session s;
@@ -1371,25 +1425,54 @@ TEST(event_acks_beyond_what_was_sent_are_refused) {
     for (std::uint32_t i = 1; i <= 3; ++i) CHECK(s.host.send_event(player, 1, ev_payload(i), s.clk.now));
     settle();
     s.host.update(s.clk.now);
-    fc.send(EventAck{100});  // claims far more than was ever sent
+    fc.send(EventAck{100, player});  // claims far more than was ever sent
     settle();
     s.host.update(s.clk.now);
     CHECK(s.host.unapplied_events(player) == 3);
     CHECK(s.host.stats().event_acks_invalid == 1);
-    fc.send(EventAck{2});  // valid
+    fc.send(EventAck{2, player});  // valid
     settle();
     s.host.update(s.clk.now);
     CHECK(s.host.unapplied_events(player) == 1);
-    fc.send(EventAck{1});  // stale: nothing to do, not invalid
+    fc.send(EventAck{1, player});  // stale: nothing to do, not invalid
     settle();
     s.host.update(s.clk.now);
     CHECK(s.host.unapplied_events(player) == 1 && s.host.stats().event_acks_invalid == 1);
     // Queued after the last transmission (the host has not sent it yet when the ack arrives): never erased.
     CHECK(s.host.send_event(player, 1, ev_payload(4), s.clk.now));  // sent at once, highest_sent = 4
-    fc.send(EventAck{5});
+    fc.send(EventAck{5, player});
     settle();
     s.host.update(s.clk.now);
     CHECK(s.host.unapplied_events(player) == 2 && s.host.stats().event_acks_invalid == 2);
+}
+
+// Codex pass on ea881d0 (PR #24, protocol v4): a player who leaves and rejoins the same session on the same peer
+// starts a new event stream at id 1. A delayed ack of the earlier player's stream must not erase the new one's events.
+TEST(an_earlier_players_delayed_ack_never_erases_the_new_players_events) {
+    test::Session s;
+    TransportFakeClient fc(s.host.port());
+    fc.join(s, 1);
+    const auto first = fc.accept.player_id;
+    CHECK(s.host.send_event(first, 1, ev_payload(1), s.clk.now));
+    fc.send(Disconnect{DisconnectReason::ClientQuit});
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.slot_count() == 0);
+    fc.join(s, 2);  // a new player on the same transport peer and host session
+    const auto second = fc.accept.player_id;
+    CHECK(second != first);
+    CHECK(s.host.send_event(second, 1, ev_payload(1), s.clk.now));
+    settle();
+    s.host.update(s.clk.now);
+    fc.send(EventAck{1, first});  // the earlier stream's ack, delayed
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.unapplied_events(second) == 1);
+    CHECK(s.host.stats().event_acks_foreign == 1);
+    fc.send(EventAck{1, second});
+    settle();
+    s.host.update(s.clk.now);
+    CHECK(s.host.unapplied_events(second) == 0);
 }
 
 // Review #10 FB-10-04 / KI-37: explicit leave handshake (protocol v3).

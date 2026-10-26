@@ -15,7 +15,7 @@ namespace mordor::net {
 inline constexpr std::array<std::uint8_t, 4> kMagic{'M', 'R', 'D', 'R'};
 // v2 (2026-10-24): GameEvent / EventAck, application-level reliable events (review #9 FB-9-02, KI-28).
 // v3 (2026-10-24): DisconnectAck, explicit leave handshake (review #10 FB-10-04, KI-37).
-inline constexpr std::uint16_t kProtocolVersion = 3;
+inline constexpr std::uint16_t kProtocolVersion = 4;  // v4: GameEvent and EventAck carry their player
 inline constexpr std::size_t kHeaderSize = 22;
 inline constexpr std::size_t kMaxPacketSize = 1200;  // stays under common internet MTU
 inline constexpr std::size_t kMaxPayloadSize = kMaxPacketSize - kHeaderSize;
@@ -113,14 +113,18 @@ struct Snapshot {
 
 // Application-level reliable event (review #9 FB-9-02). Ids start at 1 per player and session and are
 // contiguous; the client delivers them in order exactly once and acknowledges only what its application applied.
+// Both carry the player whose stream they belong to (v4, Codex PR #24): on UDP a player who leaves and rejoins the
+// same session reuses its peer, and a delayed event or ack of the old stream must never count for the new one.
 struct GameEvent {
     std::uint32_t event_id = 0;
     std::uint16_t kind = 0;
     std::vector<std::uint8_t> payload;  // at most kMaxEventPayload bytes
+    std::uint16_t player = 0;
     bool operator==(const GameEvent&) const = default;
 };
 struct EventAck {
     std::uint32_t applied_through = 0;
+    std::uint16_t player = 0;
     bool operator==(const EventAck&) const = default;
 };
 // Confirms a client's Disconnect (review #10 FB-10-04): a clean leave is only "clean" once the host said so.
