@@ -37,7 +37,7 @@ Rules:
 | 1 ConnectRequest | C→H | `u64 client_nonce`, `u64 reconnect_token` (0 = new player) |
 | 2 ConnectAccept | H→C | `u64 client_nonce` (echo; the client ignores accepts for an older attempt), `u16 player_id`≠0, `u16 entity_id`≠0, `u64 reconnect_token`, `u16 tick_rate_hz` (1..240), `u32 server_tick` |
 | 3 ConnectReject | H→C | `u8 reason` (1 VersionMismatch, 2 ServerFull, 3 Malformed), `u16 host_version` |
-| 4 Disconnect | both | `u8 reason` (1 ClientQuit, 2 HostShutdown, 3 Timeout, 4 Kicked) |
+| 4 Disconnect | both | `u8 reason` (1 ClientQuit, 2 HostShutdown, 3 Timeout, 4 Kicked); `u16 player` since v4 |
 | 5 Heartbeat | C→H | `u64 send_time_us` |
 | 6 HeartbeatAck | H→C | `u64 echo_time_us` (copied from Heartbeat) |
 | 7 Input | C→H | `u8 n` (1..8), then n × {`u32 input_seq`, `f32 move_x`, `f32 move_z`}, oldest first; axes finite and within [−1, 1] |
@@ -97,7 +97,7 @@ The host also refuses (`event_ack_invalid`) any `EventAck` above the highest eve
 |---|---|---|
 | 9 Event | H→C | `u32 event_id`, `u16 player`, `u16 kind`, `u16 len`, then `len` bytes |
 | 10 EventAck | C→H | `u32 applied_through`, `u16 player` |
-| 5 Disconnect | both | `u8 reason`, `u16 player`: the player leaving (client) or being told (host) |
+| 4 Disconnect | both | `u8 reason`, `u16 player`: the player leaving (client) or being told (host) |
 | 11 DisconnectAck | H→C | `u16 player`: whose leave this confirms |
 
 - **Why:** on UDP, a player who leaves and joins the same host session again reuses its transport peer, and the new player's stream starts again at id 1. Without the player, a delayed event of the earlier stream was delivered as the new one's, and a delayed ack erased the new player's events.
