@@ -60,7 +60,48 @@ def proportions() -> dict[str, list[float]]:
     return out
 
 
+def udp_copies(rng: random.Random) -> list[float]:
+    """Arrival delays (ms) of one datagram through our UDP impairment (src/network/impairment.cpp, harsh): lost whole
+    with p = LOSS, else 1 copy (2 with p = DUPLICATE), each copy delayed 80 ms + U[0, 40] ms independently."""
+    if rng.random() < LOSS:
+        return []
+    return [80.0 + rng.uniform(0.0, 40.0) for _ in range(2 if rng.random() < DUPLICATE else 1)]
+
+
+def reorder_model(samples: int = 1_000_000, seed: int = 42) -> dict[str, float]:
+    """EXP-042: the client sends its binding and, right after it (same update, same send time), the first
+    ConnectRequest. The host drops application records that arrive before the binding (app_dropped_before_auth); a
+    tie goes to the binding (the impairment queue is stable). Each request copy the host processes gets its own
+    ConnectAccept back through the same impairment.
+      d1:            the host drops >= 1 copy of the first request
+      d1_in_order:   the same if delivery kept send order (the binding is only missing when it is lost): the contrast
+      first:         the first request completes the session (some copy processed and some accept arrives)
+      first_given_d1 / first_given_not_d1: the same, conditional"""
+    rng = random.Random(seed)
+    n = d1 = d1_order = first = first_d1 = n_d1 = first_nd1 = 0
+    for _ in range(samples):
+        b, r = udp_copies(rng), udp_copies(rng)
+        bmin = min(b) if b else float("inf")
+        dropped = [x for x in r if x < bmin]
+        processed = [x for x in r if x >= bmin]
+        ok = any(udp_copies(rng) for _ in processed)
+        n += 1
+        d1 += bool(dropped)
+        d1_order += (not b) and bool(r)
+        first += ok
+        if dropped:
+            n_d1 += 1
+            first_d1 += ok
+        else:
+            first_nd1 += ok
+    return {"d1": round(d1 / n, 4), "d1_in_order": round(d1_order / n, 4), "first": round(first / n, 4),
+            "first_given_d1": round(first_d1 / n_d1, 4), "first_given_not_d1": round(first_nd1 / (n - n_d1), 4)}
+
+
 def main() -> int:
+    if sys.argv[1:] == ["--reorder"]:
+        print(json.dumps(reorder_model()))
+        return 0
     rng = random.Random(36)
     samples = [establish_ms(rng) for _ in range(200_000)]
     out = {"model": "4-leg / 500 ms retry (F-GNS-003)", "attempt_success_p": round((1 - LOSS) ** 4, 4), **percentiles(samples),

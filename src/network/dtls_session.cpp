@@ -427,6 +427,7 @@ void DtlsSession::read_records(std::uint64_t now_us, std::uint64_t now_unix_s) {
         } else if (rec[0] == kTypeApp) {
             if (state_ != DtlsState::Authenticated) {
                 ++stats_.app_dropped_before_auth;  // fail closed: nothing before the binding is verified
+                if (cfg_.trace) cfg_.trace("app_dropped_before_auth", now_us, peer_.id, "");  // KI-35 / EXP-042
                 continue;
             }
             ++stats_.app_in;

@@ -709,6 +709,46 @@ This was written and committed **before** the first run, after the EXP-037 follo
   - That predicts about 0.31 on UDP and 0.5–0.55 on GNS, against 0.36 and 0.557 observed. It also explains EXP-037's fresh joins (0.353 and 0.547). Each lost first request costs a 500 ms retry on reconnect.
   - **This is a hypothesis.** Next: a predeclared experiment counting the host's `app_dropped_before_auth` per reconnect. Any fix (for example, the first request waits for an acknowledged binding, or the host holds at most one early record until the binding verifies, still fail-closed) is a later decision for the owner.
 
+## Predeclared experiment KI-35: does the first session request overtake the binding? (2026-10-26, EXP-042)
+
+This was written and committed **before** the first run. It tests EXP-041's post-hoc explanation and is measurement only. The single code change is one diagnostic trace event (`app_dropped_before_auth`) at the point where `DtlsSession` already drops and counts the record; behaviour is unchanged.
+
+**Hypothesis H.**
+- When its handshake finishes, the client sends its binding. In the same update it authenticates on the host's binding and sends the first ConnectRequest right after its own binding, with the same send time.
+- The host drops application records that arrive before the binding, and jitter reorders the two.
+- So the first request is often dropped, and a dropped one almost never completes the session.
+
+**Probe:** `tools/ki35/reconnect_probe.cpp`, unchanged from EXP-041 except that it also records the host's DTLS trace: the times of `app_dropped_before_auth` and of the host's `authenticated`. Same cycle, profile and defaults (5 s stall, harsh).
+
+**Measured per reconnect:**
+- **D1:** the host dropped at least one copy of the first request. That is a host drop 70–130 ms after the client logged the first sent ConnectRequest after authentication (one way is 80–120 ms; the next request comes 500 ms later).
+- **first:** the first request completed the session, attributed by timestamps as in EXP-041.
+- Reconnects without a logged first request are counted and excluded.
+
+**Model** (`tools/ki35/model.py --reorder`, UDP impairment semantics: loss per send, a duplicate with its own delay, 80 + U[0, 40] ms; 1,000,000 samples, seed 42). Each model interval is the value ± 0.002.
+
+| Quantity | H | If delivery kept send order |
+|---|---|---|
+| P(D1) | **0.4888** | 0.1274 |
+| P(first) | **0.3183** | – |
+| P(first \| D1) | **0.0208** | – |
+| P(first \| not D1) | **0.6028** | – |
+
+**Batches:** UDP seeds 4201, 4202 and 4203, and 3 GNS repetitions, 100 cycles each.
+
+**Decision rules, fixed now:**
+- **Completeness and homogeneity** as in EXP-041: verdicts only for a complete run, and per batch if the chi-square p < 0.01.
+- **UDP is the test** (its impairment is ours and modelled exactly). TOST with δ = 0.08 is primary; verdicts at δ = 0.05 and 0.10 are reported as sensitivity.
+  - **R1:** P(D1) is equivalent to H, and different from the in-order value (its 95% interval misses 0.1274).
+  - **R2:** P(first) is equivalent to H.
+  - **R3:** P(first | D1) and P(first | not D1) are each equivalent to H.
+  - **H is supported** if R1, R2 and R3 all hold. **H is refuted** if any is "different". Otherwise the result is **inconclusive**.
+- **GNS, directional only** (GNS jitter keeps order and reorders 20% of packets by a fixed delay, which is not modelled exactly):
+  - P_GNS(D1) < P_UDP(D1), with disjoint 95% intervals;
+  - and the upper 95% bound of P_GNS(first | D1) is below the lower 95% bound of P_GNS(first | not D1).
+- **Reported:** host `authenticated` minus the first request's arrival for D1 reconnects; the number of drops per reconnect.
+- No result changes a gate, a default or the protocol. A fix (for example, the first request waits until the binding is verified, or the host holds one early record, still fail-closed) is an owner decision afterwards.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
