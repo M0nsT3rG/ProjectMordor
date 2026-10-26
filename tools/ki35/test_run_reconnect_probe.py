@@ -48,6 +48,10 @@ class Attribution(unittest.TestCase):
         sent = [2400.0, 2900.0]
         self.assertEqual(r.attribute(c, sent, [2590.0]), {"attributed": True, "index": 0, "requests": 1})
 
+    def test_an_accept_logged_after_the_update_start_is_still_found(self):
+        c = cycle()  # connected at log 2600, but the accept was logged at 2603 (Codex)
+        self.assertEqual(r.attribute(c, [2400.0], [2603.0]), {"attributed": True, "index": 0, "requests": 1})
+
     def test_the_second_request_when_the_first_was_lost(self):
         c = cycle(connected=2200.0)  # connected at log 3200
         self.assertEqual(r.attribute(c, [2400.0, 2900.0], [3100.0])["index"], 1)

@@ -27,6 +27,7 @@ RTT_WINDOW_MS = (140.0, 260.0)    # harsh round trip 160-240 ms +/- 20 ms of pro
 UNATTRIBUTED_MAX = 0.10           # above: session_first not assessable
 GNS_FIRST_CYCLE_MS = 800.0        # inner Connected within the first 500 ms GNS cycle, from Reconnecting (EXP-036)
 RECOVERY_LIMIT_MS = 3000.0        # the soak's recovery limit (tools/soak/analyze.py)
+CYCLE_LIMIT_MS = 20000.0          # the probe's per-cycle limit (kCycleLimitUs)
 BATCHES = [("udp", 4101), ("udp", 4102), ("udp", 4103), ("gns", 1), ("gns", 2), ("gns", 3)]
 Z95, Z90 = 1.959964, 1.644854
 
@@ -95,7 +96,10 @@ def attribute(cycle: dict, sent: list[float], accepts: list[float]) -> dict:
         return {"attributed": False, "why": "not_authenticated"}
     if cycle["connected"] < 0:  # authenticated but never Connected: stays in the denominator, unattributed (Codex)
         return {"attributed": False, "why": "no_session"}
-    lo, hi = cycle["log_ms"] + cycle["auth"] - 2, cycle["log_ms"] + cycle["connected"] + 1
+    # The client logs connect_accept_received only for the accept that completes the reconnect: one per reconnect.
+    # Its log time can trail `connected` (sampled before the update) by several ms, so the cycle's own limit bounds
+    # it, not connected + 1 ms (Codex).
+    lo, hi = cycle["log_ms"] + cycle["auth"] - 2, cycle["log_ms"] + CYCLE_LIMIT_MS
     acc = next((a for a in accepts if lo <= a <= hi), None)
     if acc is None:
         return {"attributed": False, "why": "no_accept"}
