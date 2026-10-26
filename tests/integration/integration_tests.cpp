@@ -479,6 +479,24 @@ TEST(grace_expiry_never_closes_a_peer_a_new_player_reuses) {
     CHECK(s.host.stats().timeouts == 1);
 }
 
+// Codex pass on 4a7ec3f (PR #24): a Client reused with close() + start() + connect() gets a new transport, which must
+// come up again before the session's connect window runs (D-014): "transport up" is never inherited from the old one.
+TEST(reused_client_waits_for_its_new_transport) {
+    test::Session s;
+    auto& c = s.add_client();
+    CHECK(s.pump_until([&] { return c.state() == ClientState::Connected; }, 15 * kSec));
+    if (!c.transport_for_test()->capabilities().reports_disconnects)
+        throw test::SkipTest("needs a transport that reports its own establishment (UDP has none to wait for)");
+    s.host.shutdown();  // nobody answers the new transport
+    c.close();
+    std::string err;
+    CHECK(c.start(&err));
+    c.connect(s.clk.now);
+    const auto window = c.config().connect_timeout_us;
+    test::run_for(s.clk, nullptr, {&c}, window + kSec);
+    CHECK(c.state_reason() != "connect_timeout");  // the window had not started: the transport never came up
+}
+
 // Codex pass on c011a0c (PR #24): the same sharing, but the timed-out player comes back with its token from ANOTHER
 // address. Migrating its identity must not close the old peer, which the new player now uses.
 TEST(token_migration_never_closes_a_peer_a_new_player_reuses) {
