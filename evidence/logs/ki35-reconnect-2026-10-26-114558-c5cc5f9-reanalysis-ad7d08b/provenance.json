@@ -1,0 +1,18 @@
+{
+  "source": "evidence/logs/ki35-reconnect-2026-10-26-114558-c5cc5f9",
+  "analyser_commit": "ad7d08b",
+  "command": "python -I tools/ki35/run_reconnect_probe.py --analyze <source>",
+  "reason": "Third Codex review of the tooling (during the run): tail dominance named only the first phase on a 50/50 split; the field is now tail_dominant_phases. The source run and its verdict.json are unchanged.",
+  "rule_differences": {
+    "tail_dominant_phases": [
+      null,
+      [
+        "dtls"
+      ]
+    ],
+    "tail_dominant_phase": [
+      "dtls",
+      null
+    ]
+  }
+}

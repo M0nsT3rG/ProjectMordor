@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 105,
+  "count": 106,
   "records": [
     {
       "id": "EXP-001",
@@ -441,6 +441,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Fourth run of the integration gate, on the candidate head 3c618d9, after item 2 reached two consecutive clean Codex passes on that unchanged head (FB-24-01)."
+    },
+    {
+      "id": "EXP-041",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-041.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, FB-25-05..08: the phases of each stall reconnect of a secure client (the KI-35 path, not fresh joins); which phase makes slow reconnects slow; whether the DTLS, session and GNS mechanisms are equivalent to their models; which request completes the session."
     },
     {
       "id": "F-COMM-001",

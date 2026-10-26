@@ -1,0 +1,28 @@
+{
+  "id": "EXP-041",
+  "type": "experiment",
+  "date": "2026-10-26",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback, one process, real time, 1 ms loop (loop_ms p50 1.5)",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "KI-35, FB-25-05..08: the phases of each stall reconnect of a secure client (the KI-35 path, not fresh joins); which phase makes slow reconnects slow; whether the DTLS, session and GNS mechanisms are equivalent to their models; which request completes the session.",
+  "hypothesis": "Predeclared (docs/soak-testing.md, committed a4355dc before any run): TOST equivalence (delta 0.08, 90% Wilson) of dtls_no_timer [0.3771,0.3944], session_first [0.6141,0.628] (2-packet [0.7225,0.7334]) and gns_first_cycle [0.522,0.5378]; homogeneity before pooling; tail dominance; P(total > 3 s).",
+  "procedure": "tools/ki35/reconnect_probe.cpp: a secure Host and Client in one process, harsh profile, defaults unchanged. Each cycle: 1 s connected, a 5 s client stall (host and GNS thread running), then until the client is Connected again after Reconnecting (20 s limit). Phases from the stall end: notice, establish, dtls, session, total (the soak's recovery definition), first snapshot. Session request attributed by timestamps (accept 140-260 ms after exactly one sent request). tools/ki35/run_reconnect_probe.py: UDP seeds 4101-4103 and 3 GNS repetitions, 100 cycles each, bounded runs, verdicts only for a complete run. The tooling had three Codex reviews: two before the run (fixes: eligibility by phase, completeness check, same-update snapshot, abort exit code, accept association), one during it (tail dominance on a 50/50 split; analysis only, applied in a separate re-analysis directory).",
+  "expected_result": "All three mechanisms equivalent; DTLS dominates the tail (EXP-037).",
+  "observed_result": "600/600 reconnected; 0 timeouts, 0 failures, 0 no_reconnect, 0 unattributed. Verdicts (complete run; every proportion homogeneous across batches, p >= 0.019): dtls_no_timer EQUIVALENT on both (UDP 104/300 = 0.347, 90% [0.303,0.393]; GNS 115/300 = 0.383, 90% [0.338,0.430]); gns_first_cycle EQUIVALENT (158/300 = 0.527, 90% [0.479,0.574]); session_first DIFFERENT from both the 3- and the 2-packet model on both (UDP 108/300 = 0.36, 95% [0.308,0.416]; GNS 167/300 = 0.557, 95% [0.500,0.612]). Lag-1 autocorrelations within -0.08..0.07. Tail: DTLS is the largest phase in 26 of the 30 slowest UDP reconnects and 17 of 30 GNS (establish 10), so DTLS dominates on both. P(total > 3000 ms): UDP 25/300 = 0.083 [0.057,0.120], GNS 83/300 = 0.277 [0.229,0.330]. Total p50/p90/p95/p99 ms: UDP 1677/2857/3639/4353, GNS 2449/3790/4490/5517. Phases p50/p95: notice UDP 106/402, GNS 197/481; establish UDP 3/3, GNS 427/1852; dtls UDP 852/2557, GNS 820/2525; session UDP 695/1218, GNS 213/1210; cookie round trip p50 210 (UDP) / 196 (GNS) ms. Post-hoc, not a rule: the client sends its binding and, in the same update, authenticates on the host's binding (same flight) and sends the first ConnectRequest right after it; the host drops application records that arrive before the binding (app_dropped_before_auth, fail-closed). Jitter reorders those back-to-back datagrams (our UDP impairment: independent U[0,40] ms each, about half the time; GNS: reorder 20%), which predicts about 0.31 (UDP) and 0.5-0.55 (GNS) for session_first against 0.36 and 0.557 observed, and the same values as EXP-037's fresh joins.",
+  "evidence_paths": [
+    "evidence/logs/ki35-reconnect-2026-10-26-114558-c5cc5f9",
+    "evidence/logs/ki35-reconnect-2026-10-26-114558-c5cc5f9-reanalysis-ad7d08b",
+    "tools/ki35/reconnect_probe.cpp",
+    "tools/ki35/run_reconnect_probe.py",
+    "tools/ki35/model.py"
+  ],
+  "result": "PASSED",
+  "errors": "The session_first model was rejected by its rule (the experiment itself ran as predeclared). Delta was chosen with EXP-037's results known (disclosed). The reordering explanation is post-hoc and untested. One process, real time, loopback: not a real network. The run's own verdict.json predates the tail-dominance fix; the re-analysis directory carries the corrected field.",
+  "confidence": "medium",
+  "follow_up": "A predeclared experiment to test the reordering explanation: count the host's app_dropped_before_auth per reconnect and the request/binding arrival order. If confirmed, a candidate change (for an owner decision) is to stop wasting the first request without weakening fail-closed binding, e.g. the client sends its first request only after its own binding was acknowledged, or the host holds at most one early record until the binding verifies. Then DTLS timers and the cookie round trip, each in its own experiment (FB-25-07).",
+  "related": [
+    "EXP-037",
+    "EXP-036",
+    "EXP-027"
+  ]
+}

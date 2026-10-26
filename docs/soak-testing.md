@@ -682,6 +682,33 @@ This was written and committed **before** the first run, after the EXP-037 follo
   - Among the slowest 10% of `total`s, count which phase is largest. A phase **dominates the tail** if it is largest in at least 50% of them.
 - No result changes a gate, a default or the protocol, nor closes KI-35. DTLS timers and the cookie get their own experiments afterwards (FB-25-07).
 
+**EXP-041 result (`ki35-reconnect-2026-10-26-114558-c5cc5f9`, 600/600 reconnected).** Analysed with `ad7d08b`, whose only change is the 50/50 tail rule, in `…-reanalysis-ad7d08b`. The run is complete and every proportion is homogeneous across its batches (p ≥ 0.019).
+
+| Mechanism | Model | UDP | GNS | Verdict (TOST, δ = 0.08) |
+|---|---|---|---|---|
+| DTLS without a retransmission | 0.377–0.394 | 0.347, 90% [0.303, 0.393] | 0.383, 90% [0.338, 0.430] | **equivalent** (both) |
+| GNS inner within its first cycle | 0.522–0.538 | - | 0.527, 90% [0.479, 0.574] | **equivalent** |
+| Session: the first request completed it (attributed) | 0.614–0.628 (2-pkt 0.723–0.733) | 0.360, 95% [0.308, 0.416] | 0.557, 95% [0.500, 0.612] | **different** (both models) |
+
+- **Attribution:** 0 of 600 reconnects unattributed. No timeouts, failures or missed reconnects.
+- **Reconnect latency** (ms, p50 / p95 / p99):
+
+  | Phase | UDP | GNS |
+  |---|---|---|
+  | notice | 106 / 402 / 630 | 197 / 481 / 689 |
+  | establish | 3 / 3 / 3 | 427 / 1852 / 3264 |
+  | DTLS | 852 / 2557 / 3307 | 820 / 2525 / 3496 |
+  | session | 695 / 1218 / 2188 | 213 / 1210 / 1718 |
+  | **total** | **1677 / 3639 / 4353** | **2449 / 4490 / 5517** |
+
+- **Over the soak's 3 s limit:** UDP 8.3% [5.7, 12.0], GNS 27.7% [22.9, 33.0].
+- **The slowest 10% of reconnects:** DTLS **dominates the tail** on both backends: it is the largest phase in 26 of 30 on UDP, and in 17 of 30 on GNS (establishment in 10).
+- **Post-hoc, not a rule:** why the first session request so often fails.
+  - When its handshake finishes, the client sends its binding. In the same update it verifies the host's binding, which arrived in the same flight, and sends the first ConnectRequest **right after its binding**.
+  - The host drops application records that arrive before the binding (`app_dropped_before_auth`, fail-closed). Jitter reorders the two back-to-back datagrams: about half the time under our UDP impairment (independent U[0, 40] ms each), less on GNS (reorder 20%).
+  - That predicts about 0.31 on UDP and 0.5–0.55 on GNS, against 0.36 and 0.557 observed. It also explains EXP-037's fresh joins (0.353 and 0.547). Each lost first request costs a 500 ms retry on reconnect.
+  - **This is a hypothesis.** Next: a predeclared experiment counting the host's `app_dropped_before_auth` per reconnect. Any fix (for example, the first request waits for an acknowledged binding, or the host holds at most one early record until the binding verifies, still fail-closed) is a later decision for the owner.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

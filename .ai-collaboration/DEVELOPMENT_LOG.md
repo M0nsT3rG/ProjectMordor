@@ -2,6 +2,23 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-26: EXP-041, the KI-35 reconnect path (`feature/ki35-gns-establishment`, now up to date with `main`)
+
+- **Input:** the EXP-037 follow-up review on PR #25 (FB-25-05..08); the owner asked for all of it. Triaged in CHATGPT_FEEDBACK.md. Its integration warning was out of date: the three P2 findings had been fixed on `main` before the merge.
+- **Predeclared** (`a4355dc`, pushed before any run) and **tooled** (`fac860c`):
+  - stall reconnects in one process, measured per reconnect;
+  - session request attributed by timestamps;
+  - TOST equivalence with δ = 0.08; chi-square homogeneity before pooling; lag-1 autocorrelation;
+  - timeouts, p50 to p99, P(total > 3 s) and tail dominance.
+- **Codex reviewed the tooling three times before trusting a result:**
+  - before the run: eligibility by phase, verdicts only for a complete run, the same-update snapshot, the abort exit code, the accept association (`2316b93`, `c5cc5f9`);
+  - during the run: tail dominance on a 50/50 split (`ad7d08b`, analysis only, applied in a separate re-analysis directory).
+- **Result** (600/600 reconnected, 0 unattributed):
+  - DTLS and the GNS first cycle are **equivalent** to their models; the first session request is **different** (UDP 0.36, GNS 0.56).
+  - DTLS dominates the slowest 10%. Reconnects over 3 s: UDP 8.3%, GNS 27.7%.
+  - **Post-hoc:** the first request leaves right after the client's binding, jitter reorders them, and the host drops records before the binding. This predicts the observed values on both backends and EXP-037's.
+- **Next:** test that explanation, predeclared; then DTLS timers and the cookie (FB-25-07).
+
 ## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)
 
 - **Input:** the owner asked to fix Codex's 3 P2 findings on the candidate (passes 6 and 7 on `2217085`), with regressions, and then to get two consecutive clean Codex passes. Record: EXP-038.
