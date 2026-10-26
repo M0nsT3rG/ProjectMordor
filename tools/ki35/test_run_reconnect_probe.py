@@ -81,6 +81,19 @@ def write_run(root: Path, udp_timers=(0, 0, 0), cycles=100, exit_codes=None, dro
                                    encoding="utf-8")
 
 
+class Tail(unittest.TestCase):
+    def test_a_50_50_split_names_both_phases(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp))
+            d = Path(tmp) / "udp-4101"  # slowest 10% of udp (30 of 300): 15 DTLS-heavy and 15 establish-heavy
+            lines = [json.dumps(cycle(cycle=j, connected=9000.0, auth=8800.0, first_hello=600.0 if j % 2 else 8000.0,
+                                      notice=100.0, inner=600.0)) if j < 30 else json.dumps(cycle(cycle=j))
+                     for j in range(100)]
+            (d / "cycles.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertEqual(v["rules"]["udp"]["tail_dominant_phases"], ["dtls", "establish"])
+
+
 class Completeness(unittest.TestCase):
     def test_an_incomplete_run_gets_no_verdict(self):
         for kw in ({"drop_last": True}, {"exit_codes": {"udp-4102": 4}}, {"cycles": 40}):
@@ -127,7 +140,7 @@ class Eligibility(unittest.TestCase):
             self.assertTrue(v["complete"], v["incomplete_because"])
             self.assertEqual(v["rules"]["udp"]["dtls_no_timer"]["verdict"], "heterogeneous")
             self.assertEqual(v["rules"]["udp"]["session_first"]["verdict"], "not_assessable")  # no accepts logged
-            self.assertEqual(v["rules"]["udp"]["tail_dominant_phase"], "dtls")
+            self.assertEqual(v["rules"]["udp"]["tail_dominant_phases"], ["dtls"])
 
 
 if __name__ == "__main__":

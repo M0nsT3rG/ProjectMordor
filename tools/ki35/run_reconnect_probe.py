@@ -231,7 +231,8 @@ def judge(out: Path) -> dict:
             rules[name] = r
         dom = s["slowest_10pct_largest_phase"]
         n_slow = sum(dom.values())
-        rules["tail_dominant_phase"] = next((k for k, v in dom.items() if n_slow and v / n_slow >= 0.5), None)
+        # Every phase largest in at least half of the slowest 10%: a 50/50 split names both (Codex).
+        rules["tail_dominant_phases"] = sorted(k for k, v in dom.items() if n_slow and v / n_slow >= 0.5)
         verdict["rules"][backend] = rules
     return verdict
 
