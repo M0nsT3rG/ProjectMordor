@@ -132,9 +132,17 @@ def judge(out: Path) -> dict:
                 r["verdict"] = rc.tost(pr["k"], pr["n"], MODEL[name], 0.08)
                 r["sensitivity"] = {str(dl): rc.tost(pr["k"], pr["n"], MODEL[name], dl) for dl in DELTAS}
             rules[name] = r
-        ci = u["proportions"]["d1"]["wilson95"]
-        rules["in_order_contrast"] = ("no_data" if ci is None else
-                                      "different" if not (ci[0] <= IN_ORDER_D1 <= ci[1]) else "not_different")
+        def contrast(ci):
+            return "no_data" if ci is None else "different" if not (ci[0] <= IN_ORDER_D1 <= ci[1]) else "not_different"
+        # The same gates as every other verdict (Codex): incomplete, or per batch when UDP D1 is heterogeneous.
+        if problems:
+            rules["in_order_contrast"] = "incomplete"
+        elif heterogeneous("udp", "d1"):
+            rules["in_order_contrast"] = "heterogeneous"
+            rules["in_order_contrast_per_batch"] = {k: contrast(x["proportions"]["d1"]["wilson95"])
+                                                    for k, x in per_batch.items() if k.startswith("udp")}
+        else:
+            rules["in_order_contrast"] = contrast(u["proportions"]["d1"]["wilson95"])
         verdicts = [rules[n]["verdict"] for n in H]
         if problems:
             rules["H"] = "incomplete"
@@ -156,8 +164,11 @@ def judge(out: Path) -> dict:
         elif hetero:
             v["rules"]["gns"] = {"verdict": "heterogeneous", "inputs": hetero}  # no pooled directional judgement
         else:
+            gns_unknown = v["pooled"]["gns"]["first_unknown_share"] or 0
             v["rules"]["gns"] = {"d1_below_udp": bool(gd and ud and gd[1] < ud[0]),
-                                 "dropped_first_rarely_completes": bool(a and b and a[1] < b[0])}
+                                 # the attribution gate applies here too (Codex): missingness can repeat in every batch
+                                 "dropped_first_rarely_completes": ("not_assessable" if gns_unknown > UNKNOWN_MAX
+                                                                    else bool(a and b and a[1] < b[0]))}
     v["homogeneity_p"] = hom
     return v
 

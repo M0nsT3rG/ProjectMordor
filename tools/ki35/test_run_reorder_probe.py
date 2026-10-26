@@ -142,12 +142,27 @@ class Rules(unittest.TestCase):
             u = v["rules"]["udp"]
             self.assertEqual(u["first"]["verdict"], "not_assessable")  # pooled unknown share 70/300 > 10%
             self.assertEqual(u["d1"]["verdict"], "heterogeneous")
+            self.assertEqual(u["in_order_contrast"], "heterogeneous")  # never a pooled contrast then (Codex)
+            self.assertEqual(set(u["in_order_contrast_per_batch"]), {"udp-4201", "udp-4202", "udp-4203"})
+
+    def test_gns_direction_respects_the_attribution_gate(self):  # Codex: homogeneous but mostly unattributed
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0, d1_gns=0.15)
+            for b in ("gns-1", "gns-2", "gns-3"):
+                d = Path(tmp) / b
+                log = [json.loads(l) for l in (d / "client.log").read_text(encoding="utf-8").splitlines()]
+                kept = [e for i, e in enumerate(log) if e["evt"] != "connect_accept_received" or i % 5 == 0]
+                (d / "client.log").write_text("\n".join(json.dumps(e) for e in kept) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertEqual(v["rules"]["gns"]["dropped_first_rarely_completes"], "not_assessable")
+            self.assertIs(v["rules"]["gns"]["d1_below_udp"], True)
 
     def test_incomplete_run_has_no_verdict(self):
         with tempfile.TemporaryDirectory() as tmp:
             write_run(Path(tmp), d1_udp=0.49, first_given_d1=0.0, drop_last=True)
             v = r.judge(Path(tmp))
             self.assertEqual(v["rules"]["udp"]["H"], "incomplete")
+            self.assertEqual(v["rules"]["udp"]["in_order_contrast"], "incomplete")
             self.assertEqual(v["rules"]["gns"], "incomplete")
 
 
