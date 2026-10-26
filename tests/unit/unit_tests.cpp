@@ -3,6 +3,7 @@
 #include <numbers>
 #include <random>
 
+#include "client/event_order.hpp"
 #include "common/cli.hpp"
 #include "test_support.hpp"
 
@@ -319,4 +320,20 @@ TEST(interpolation_takes_short_path_for_yaw) {
     const float pi = std::numbers::pi_v<float>;
     const float r = sim::lerp_angle(pi - 0.1f, -pi + 0.1f, 0.5f);
     CHECK_NEAR(std::fabs(r), pi, 1e-4);  // through +-pi, not through 0
+}
+
+// Codex (PR #24): the client application's event-order check follows the stream: a reconnect to the same player
+// continues it, a new host session or a new player restarts it at id 1, and only real gaps or repeats count.
+TEST(event_order_check_follows_the_stream) {
+    client::EventOrderCheck c;
+    for (std::uint32_t id : {1u, 2u, 3u}) c.apply(7, 1, id);
+    c.apply(7, 1, 4);  // a token reconnect to the same player: the same stream
+    CHECK(c.errors == 0);
+    c.apply(9, 1, 1);  // the host restarted: a new session, ids again from 1
+    c.apply(9, 2, 1);  // a new player in that session (grace expired): again from 1
+    c.apply(9, 2, 2);
+    CHECK(c.errors == 0);
+    c.apply(9, 2, 4);  // a gap
+    c.apply(9, 2, 4);  // a repeat
+    CHECK(c.errors == 2);
 }
