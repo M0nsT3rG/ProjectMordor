@@ -296,6 +296,7 @@ private:
         d.mtu = inner_->capabilities().max_payload;
         d.handshake_timeout_us = cfg_.pending_lifetime_us;
         d.binding_timeout_us = cfg_.binding_timeout_us;
+        d.confirm_binding = cfg_.confirm_binding;
         return d;
     }
     std::size_t unreserved_pending() const {  // pending sessions of peers that have no established session

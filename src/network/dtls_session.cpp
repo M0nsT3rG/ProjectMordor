@@ -19,6 +19,7 @@ namespace {
 constexpr const char* kCiphers = "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-ECDSA-CHACHA20-POLY1305:ECDHE-ECDSA-AES256-GCM-SHA384";
 constexpr const char* kBindingLabel = "EXPORTER-mordor-invitation-binding";
 constexpr std::uint8_t kTypeBinding = 0xB1, kTypeApp = 0xA1;
+constexpr std::uint8_t kTypeBindingAck = 0xB2;  // confirm_binding only (EXP-043): "I verified your binding"
 constexpr std::size_t kConfirmationSize = 32;
 
 // Per-process random key for stateless-style cookies: HMAC(key, peer id/generation + remote endpoint).
@@ -366,6 +367,7 @@ void DtlsSession::service(std::uint64_t now_us, std::uint64_t now_unix_s) {
     if (state_ == DtlsState::Binding) {
         if (now_us - binding_started_us_ > cfg_.binding_timeout_us) return reject("binding_timeout");
         if (cfg_.send_binding && now_us - last_binding_us_ >= cfg_.binding_resend_us) send_binding(now_us);
+        if (cfg_.confirm_binding && peer_bound_ && now_us - peer_bound_us_ >= cfg_.confirm_timeout_us) maybe_authenticate(true);
     }
     drive(now_us, now_unix_s);
 }
@@ -413,12 +415,13 @@ void DtlsSession::read_records(std::uint64_t now_us, std::uint64_t now_unix_s) {
         }
         const std::span<const std::uint8_t> rec(buf.data(), static_cast<std::size_t>(n));
         if (rec[0] == kTypeBinding) {
-            const bool was_authenticated = state_ == DtlsState::Authenticated;
+            // Without confirm_binding, "bound" and Authenticated coincide, so this is the original condition.
+            const bool was_bound = peer_bound_;
             on_binding(rec.subspan(1), now_unix_s);
             if (state_ == DtlsState::Rejected) return;
             // A binding arriving after we are done means the peer has not seen ours yet (it resends until it
             // has): answer it. Not when this binding is the one that completed us, or both sides would echo.
-            if (was_authenticated && cfg_.send_binding) {
+            if (was_bound && cfg_.send_binding) {
                 const bool reply = now_us - last_binding_us_ >= cfg_.binding_resend_us;
                 if (cfg_.trace) cfg_.trace(reply ? "binding_reply" : "binding_reply_suppressed", now_us, peer_.id, "");
                 if (reply) send_binding(now_us);
@@ -432,6 +435,13 @@ void DtlsSession::read_records(std::uint64_t now_us, std::uint64_t now_unix_s) {
             }
             ++stats_.app_in;
             received_.emplace_back(rec.begin() + 1, rec.end());
+        } else if (rec[0] == kTypeBindingAck && cfg_.confirm_binding) {
+            // Only meaningful inside this authenticated DTLS session (a forger has no keys; replays are dropped by
+            // DTLS). It never authenticates by itself: the peer's binding must still be verified here.
+            ++stats_.binding_acks_received;
+            if (cfg_.trace && state_ != DtlsState::Authenticated) cfg_.trace("binding_ack_rx", now_us, peer_.id, "");
+            peer_acked_ = true;
+            maybe_authenticate(false);
         }
     }
 }
@@ -447,11 +457,29 @@ void DtlsSession::on_binding(std::span<const std::uint8_t> msg, std::uint64_t no
     if (cfg_.invitation.expires_unix_s <= now_unix_s) return reject("invitation_expired");
     // Both sides derived the value over THEIR invitation; equal only if the invitations and keys agree.
     if (CRYPTO_memcmp(msg.data() + used, confirmation_.data(), kConfirmationSize) != 0) return reject("binding_confirmation_mismatch");
-    peer_bound_ = true;
-    if (state_ == DtlsState::Binding) {
-        state_ = DtlsState::Authenticated;
-        if (cfg_.trace) cfg_.trace("authenticated", now_us_, peer_.id, "");
+    if (!peer_bound_) {
+        peer_bound_ = true;
+        peer_bound_us_ = now_us_;
+        if (cfg_.confirm_binding && cfg_.send_binding) send_binding_ack();
     }
+    maybe_authenticate(false);
+}
+
+void DtlsSession::maybe_authenticate(bool gate_expired) {
+    if (state_ != DtlsState::Binding || !peer_bound_) return;
+    if (cfg_.confirm_binding && !peer_acked_) {
+        if (!gate_expired) return;
+        ++stats_.gate_timeouts;  // a peer without the experiment (or a lost ack streak): proceed as without it
+        if (cfg_.trace) cfg_.trace("gate_timeout", now_us_, peer_.id, "");
+    }
+    state_ = DtlsState::Authenticated;
+    if (cfg_.trace) cfg_.trace("authenticated", now_us_, peer_.id, "");
+}
+
+void DtlsSession::send_binding_ack() {
+    const std::uint8_t m[1] = {kTypeBindingAck};
+    if (SSL_write(ssl_, m, 1) > 0) ++stats_.binding_acks_sent;
+    flush_out();
 }
 
 void DtlsSession::send_binding(std::uint64_t now_us) {
@@ -463,6 +491,7 @@ void DtlsSession::send_binding(std::uint64_t now_us) {
     if (SSL_write(ssl_, m.data(), static_cast<int>(m.size())) > 0) ++stats_.binding_sent;
     last_binding_us_ = now_us;
     flush_out();
+    if (cfg_.confirm_binding && peer_bound_) send_binding_ack();  // every resend repeats the ack: it may be lost
 }
 
 SendResult DtlsSession::send(std::span<const std::uint8_t> bytes, std::uint64_t now_us) {
