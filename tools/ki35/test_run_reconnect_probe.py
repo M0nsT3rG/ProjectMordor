@@ -13,7 +13,8 @@ import run_reconnect_probe as r  # noqa: E402
 def cycle(**over):
     c = {"cycle": 0, "log_ms": 1000.0, "outcome": "ok", "reason": "connect_accept", "notice": 100.0, "inner": 600.0,
          "first_hello": 600.0, "hvr": 800.0, "cookie_hello": 800.0, "auth": 1400.0, "connected": 1600.0,
-         "first_snapshot": 1650.0, "hellos": 2, "timers": 0, "loop_ms": 1.5}
+         "first_snapshot": 1650.0, "hellos": 2, "timers": 0, "loop_ms": 1.5,
+         "attribution": {"attributed": False, "why": "fixture"}}  # load_batch always sets it
     c.update(over)
     return c
 
@@ -58,7 +59,55 @@ class Attribution(unittest.TestCase):
         self.assertEqual(r.attribute(c2, [2400.0, 2450.0], [2620.0])["why"], "ambiguous")  # both 170/220 ms before
 
 
+def write_run(root: Path, udp_timers=(0, 0, 0), cycles=100, exit_codes=None, drop_last=False):
+    """A complete predeclared run: the 6 batches of 100 cycles, exit 0 (overrides make it incomplete)."""
+    codes = {}
+    for backend, seed in r.BATCHES:
+        name = f"{backend}-{seed}"
+        timers = udp_timers[[4101, 4102, 4103].index(seed)] if backend == "udp" else 0
+        d = root / name
+        d.mkdir()
+        n = cycles - 1 if drop_last and name == "gns-3" else cycles
+        lines = [json.dumps(cycle(cycle=j, timers=timers if j % 10 else 0)) for j in range(n)]
+        (d / "cycles.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+        (d / "client.log").write_text("", encoding="utf-8")
+        codes[name] = 0
+    codes.update(exit_codes or {})
+    (root / "run.json").write_text(json.dumps({"cycles_per_batch": cycles, "batches": r.BATCHES, "exit_codes": codes}),
+                                   encoding="utf-8")
+
+
+class Completeness(unittest.TestCase):
+    def test_an_incomplete_run_gets_no_verdict(self):
+        for kw in ({"drop_last": True}, {"exit_codes": {"udp-4102": 4}}, {"cycles": 40}):
+            with tempfile.TemporaryDirectory() as tmp:
+                write_run(Path(tmp), **kw)
+                v = r.judge(Path(tmp))
+                self.assertFalse(v["complete"], kw)
+                self.assertEqual(v["rules"]["udp"]["dtls_no_timer"]["verdict"], "incomplete", kw)
+
+    def test_a_directory_without_run_json_is_incomplete(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            d = Path(tmp) / "udp-4101"
+            d.mkdir()
+            (d / "cycles.jsonl").write_text(json.dumps(cycle()) + "\n", encoding="utf-8")
+            self.assertEqual(r.judge(Path(tmp))["incomplete_because"], ["no run.json"])
+
+
 class Eligibility(unittest.TestCase):
+    def test_a_reconnect_without_snapshot_keeps_its_total(self):
+        s = r.summarize([cycle(outcome="no_snapshot", first_snapshot=-1)], "udp")
+        self.assertEqual(s["latency_ms"]["total"]["n"], 1)
+        self.assertEqual(s["over_recovery_limit"]["k"], 0)       # Connected at 1600 ms is within 3 s
+        self.assertEqual(s["latency_ms"]["first_snapshot"]["n"], 0)
+
+    def test_authenticated_failures_stay_in_the_unattributed_share(self):
+        cs = [cycle() for _ in range(8)] + [cycle(outcome="timeout", connected=-1, first_snapshot=-1) for _ in range(2)]
+        for c in cs:
+            c["attribution"] = r.attribute(c, [2400.0], [2590.0])
+        s = r.summarize(cs, "udp")
+        self.assertEqual((s["unattributed"]["k"], s["unattributed"]["n"]), (2, 10))
+        self.assertEqual(s["over_recovery_limit"]["k"], 2)
     def test_proportions_never_condition_on_overall_success(self):
         cs = [cycle(), cycle(outcome="timeout", connected=-1, first_snapshot=-1, timers=3, auth=-1)]
         cs[0]["attribution"] = {"attributed": True, "index": 0}
@@ -69,13 +118,9 @@ class Eligibility(unittest.TestCase):
 
     def test_judge_marks_heterogeneous_batches_and_tail(self):
         with tempfile.TemporaryDirectory() as tmp:
-            for i, timers in enumerate((0, 0, 3)):
-                d = Path(tmp) / f"udp-{i}"
-                d.mkdir()
-                lines = [json.dumps(cycle(cycle=j, timers=timers if j % 10 else 0)) for j in range(60)]
-                (d / "cycles.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
-                (d / "client.log").write_text("", encoding="utf-8")
+            write_run(Path(tmp), udp_timers=(0, 0, 3))
             v = r.judge(Path(tmp))
+            self.assertTrue(v["complete"], v["incomplete_because"])
             self.assertEqual(v["rules"]["udp"]["dtls_no_timer"]["verdict"], "heterogeneous")
             self.assertEqual(v["rules"]["udp"]["session_first"]["verdict"], "not_assessable")  # no accepts logged
             self.assertEqual(v["rules"]["udp"]["tail_dominant_phase"], "dtls")

@@ -74,6 +74,7 @@ int main(int argc, char** argv) {
     harsh.loss = 0.15;
     harsh.duplicate = 0.05;
     harsh.seed = seed;
+    bool aborted = false;  // the cycle loop stopped early
     {
         host::HostConfig hc;
         hc.transport = kind;
@@ -174,6 +175,9 @@ int main(int argc, char** argv) {
             while (real_us() - cur.t0 < kCycleLimitUs) {
                 const auto now = real_us();
                 h.update(now);
+                // Before the update: a snapshot processed in the same update as the accept counts (Codex). Snapshots
+                // before the accept are not applied (not Connected), so any increase over this is after it.
+                const auto snaps_before = c->stats().snapshots_applied;
                 c->update(now);
                 ++loops;
                 const double ms = static_cast<double>(now - cur.t0) / 1000.0;
@@ -181,7 +185,7 @@ int main(int argc, char** argv) {
                 if (st == client::ClientState::Reconnecting && cur.notice < 0) cur.notice = ms;
                 if (st == client::ClientState::Connected && cur.notice >= 0 && connected < 0) {
                     connected = ms;
-                    snaps_at_connect = c->stats().snapshots_applied;
+                    snaps_at_connect = snaps_before;
                 }
                 if (connected >= 0 && c->stats().snapshots_applied > snaps_at_connect) {
                     first_snapshot = ms;
@@ -200,6 +204,7 @@ int main(int argc, char** argv) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
             }
             cur.armed = false;
+            if (std::string_view(outcome) == "timeout" && connected >= 0) outcome = "no_snapshot";  // reconnected, no snapshot
             const double loop_ms = static_cast<double>(real_us() - cur.t0) / 1000.0 / static_cast<double>(loops ? loops : 1);
             std::printf("{\"cycle\":%d,\"log_ms\":%.1f,\"outcome\":\"%s\",\"reason\":\"%s\",\"notice\":%.1f,\"inner\":%.1f,"
                         "\"first_hello\":%.1f,\"hvr\":%.1f,\"cookie_hello\":%.1f,\"auth\":%.1f,\"connected\":%.1f,"
@@ -210,6 +215,7 @@ int main(int argc, char** argv) {
             std::fflush(stdout);
             if (std::string_view(outcome) != "ok" && c->state() != client::ClientState::Connected && !join()) {
                 std::fprintf(stderr, "rejoin after cycle %d failed: %s\n", i, c->state_reason().c_str());
+                aborted = true;  // a truncated batch must not look complete (Codex)
                 break;
             }
         }
@@ -220,5 +226,6 @@ int main(int argc, char** argv) {
     EVP_PKEY_free(host_key);
     EVP_PKEY_free(client_key);
     gns_exit.done = true;
-    return gns_shutdown_for_exit() ? 0 : 3;  // KI-40: last
+    if (!gns_shutdown_for_exit()) return 3;  // KI-40: last
+    return aborted ? 4 : 0;
 }
