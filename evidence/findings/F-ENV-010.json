@@ -1,0 +1,34 @@
+{
+  "id": "F-ENV-010",
+  "type": "finding",
+  "date": "2026-10-27",
+  "game_build_compatibility": "Measured on the GOG release: exe SHA-256 8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722 (FileVersion 1.0.2445.0, GOG gameId 1324471032, buildId 55823353107546309). Not the Steam build (1.0.8874.0).",
+  "verification_scope": "locally_measured",
+  "confidence": "high",
+  "subsystem": "anti-tamper",
+  "claim": "The GOG executable shows none of the Steam build's wrapper indicators: its entry point is in .text and its sections are a conventional MSVC layout, with no .bind section, whereas the Steam build enters in .bind (entropy 7.947, F-ENV-003).",
+  "evidence": "pe_inventory.py on the GOG exe: entry_point_section .text; sections .text, .interpr, .rdata, .data, .pdata, .gfids, .tls, _RDATA, .SHARED, .rsrc, .reloc; COFF timestamp 2022-08-26; 37 import DLLs including steam_api64.dll. Steam build: entry .bind, 17 sections, COFF timestamp 2018-08-24, 21 import DLLs.",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory-gog.json",
+      "location": "pe"
+    },
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory.json",
+      "location": "files.ShadowOfWar.exe"
+    }
+  ],
+  "verification_method": "Read-only header parsing with the Phase 1 tool tools/environment/pe_inventory.py (the same measurement as F-ENV-003); no code was disassembled, unpacked or executed.",
+  "classification": "CONFIRMED",
+  "limitations": "The absence of the Steam build's wrapper indicators is not a proof that no protection exists. The steam_api64.dll import is expected for a game that uses the Steam API only when present; that it degrades gracefully without Steam is the owner's launch test, not shown here.",
+  "next_experiment": "The owner's launch without any store client (F-ENV-009); then D-008.",
+  "related": [
+    "F-ENV-009",
+    "F-ENV-003",
+    "F-COMM-017"
+  ]
+}

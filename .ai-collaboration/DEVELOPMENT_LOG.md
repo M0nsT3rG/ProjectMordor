@@ -2,6 +2,16 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Read-only check of the owner's GOG copy (`feature/d008-gog-inventory`)
+
+- **Input:** the owner bought and installed the GOG release and asked for a read-only check. Nothing was modified, executed or recorded about its location.
+- **F-ENV-009:**
+  - GOG store metadata is present (gameId 1324471032, buildId 55823353107546309), with GOG's uninstaller and no crack or emulator files.
+  - The executable is FileVersion 1.0.2445.0, 44,473,856 bytes, SHA-256 `8F84F4A6…`: a different build from the Steam one (1.0.8874.0).
+  - Valve's signed `steam_api64.dll` is shipped.
+- **F-ENV-010:** the Phase 1 header tool (`pe_inventory.py`, as for F-ENV-003) finds the entry point in `.text`, a conventional layout and no `.bind`. The Steam build enters in `.bind`. That is the absence of wrapper indicators, not a proof that no protection exists.
+- **Open:** the owner's launch test with no store client; D-008 (the owner's decision; G0 stays closed until then). Any later game-side work targets one build: offsets and layouts do not carry across.
+
 ## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)
 
 - **Input:** the owner asked to fix Codex's 3 P2 findings on the candidate (passes 6 and 7 on `2217085`), with regressions, and then to get two consecutive clean Codex passes. Record: EXP-038.

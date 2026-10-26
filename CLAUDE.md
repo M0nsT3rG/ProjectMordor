@@ -21,7 +21,7 @@ Research toward 2-player co-op for *Middle-earth: Shadow of War* (Steam app 3561
 M1–M10 are **NO-GO** until the user records both (D-007 is recorded; D-008 is pending, so G0 is still closed):
 
 - **D-007: decided 2026-10-25** (`docs/decisions.md`). The owner proceeds with interoperability work under EU Directive 2009/24/EC and personally accepts the legal risk, without qualified advice. Minimum necessary; every rule above still applies.
-- **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The GOG release is reportedly DRM-free, which is unverified.
+- **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The owner's GOG copy was checked read-only on 2026-10-27 (F-ENV-009/010): it is the GOG release, its executable has none of the Steam wrapper's indicators, and it is a different build (1.0.2445.0, SHA-256 `8F84F4A6…`) from the Steam one. That it runs with no store client is the owner's launch test. D-008 is not decided.
 
 Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 

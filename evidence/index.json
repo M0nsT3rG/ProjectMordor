@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 102,
+  "count": 104,
   "records": [
     {
       "id": "EXP-001",
@@ -903,6 +903,28 @@
       "scope": "locally_measured",
       "confidence": "low",
       "summary": "A per-user directory '%LOCALAPPDATA%/WB Games/Shadow of War' exists. Its contents were deliberately not inspected in Phase 1."
+    },
+    {
+      "id": "F-ENV-009",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-009.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "The owner's copy is the GOG release: GOG store metadata (goggame-1324471032.info/.hashdb/.script) and GOG's uninstaller are present, and no crack or Steam-emulator file is. Its executable is a different build from the Steam one (FileVersion 1.0.2445.0, 44,473,856 bytes, versus 1.0.8874.0 at about 114 MB). It still ships Valve's validly signed steam_api64.dll."
+    },
+    {
+      "id": "F-ENV-010",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-010.json",
+      "date": "2026-10-27",
+      "subsystem": "anti-tamper",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "The GOG executable shows none of the Steam build's wrapper indicators: its entry point is in .text and its sections are a conventional MSVC layout, with no .bind section, whereas the Steam build enters in .bind (entropy 7.947, F-ENV-003)."
     },
     {
       "id": "F-GNS-001",
