@@ -1,0 +1,40 @@
+{
+  "started": "2026-10-26T15:32:30",
+  "commit": "1683fe21948be38faa091f3b78f8af66e251409e",
+  "dirty": false,
+  "cycles_per_batch": 100,
+  "batches": [
+    [
+      "udp",
+      4201
+    ],
+    [
+      "udp",
+      4202
+    ],
+    [
+      "udp",
+      4203
+    ],
+    [
+      "gns",
+      1
+    ],
+    [
+      "gns",
+      2
+    ],
+    [
+      "gns",
+      3
+    ]
+  ],
+  "exit_codes": {
+    "udp-4201": 0,
+    "udp-4202": 0,
+    "udp-4203": 0,
+    "gns-1": 0,
+    "gns-2": 0,
+    "gns-3": 0
+  }
+}

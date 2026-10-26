@@ -1,0 +1,7 @@
+{
+  "source": "evidence/logs/ki35-reorder-2026-10-26-153230-1683fe2",
+  "analyser_commit": "7e148ce",
+  "command": "python -I tools/ki35/run_reorder_probe.py --analyze <source>",
+  "reason": "Third Codex review of the tooling (during the run): the in-order contrast and the GNS first-request direction now follow the completeness, homogeneity and attribution gates. The source run and its verdict.json are unchanged.",
+  "rule_differences": {}
+}

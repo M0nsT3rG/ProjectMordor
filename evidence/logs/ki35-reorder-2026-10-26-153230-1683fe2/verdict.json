@@ -1,0 +1,733 @@
+{
+  "model_h": {
+    "d1": 0.4886,
+    "first": 0.3067,
+    "first_given_d1": 0.0,
+    "first_given_not_d1": 0.5997
+  },
+  "model_intervals": {
+    "d1": [
+      0.4866,
+      0.4906
+    ],
+    "first": [
+      0.3047,
+      0.3087
+    ],
+    "first_given_d1": [
+      0.0,
+      0.002
+    ],
+    "first_given_not_d1": [
+      0.5977,
+      0.6017
+    ]
+  },
+  "in_order_d1": 0.1273,
+  "deltas": [
+    0.05,
+    0.08,
+    0.1
+  ],
+  "complete": true,
+  "incomplete_because": [],
+  "batches": {
+    "gns-1": {
+      "cycles": 100,
+      "eligible": 100,
+      "first_unknown": 0,
+      "first_unknown_share": 0.0,
+      "proportions": {
+        "d1": {
+          "k": 25,
+          "n": 100,
+          "p": 0.25,
+          "wilson90": [
+            0.186,
+            0.3272
+          ],
+          "wilson95": [
+            0.1755,
+            0.343
+          ],
+          "lag1": -0.0567
+        },
+        "first": {
+          "k": 46,
+          "n": 100,
+          "p": 0.46,
+          "wilson90": [
+            0.3802,
+            0.542
+          ],
+          "wilson95": [
+            0.3656,
+            0.5574
+          ],
+          "lag1": 0.1058
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 25,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0977
+          ],
+          "wilson95": [
+            0.0,
+            0.1332
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 46,
+          "n": 75,
+          "p": 0.6133,
+          "wilson90": [
+            0.5184,
+            0.7003
+          ],
+          "wilson95": [
+            0.5002,
+            0.7154
+          ],
+          "lag1": 0.0231
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 74,
+        "1": 23,
+        "2": 3
+      },
+      "binding_after_drop_ms": {
+        "n": 25,
+        "p50": 20.2,
+        "p95": 613.5
+      }
+    },
+    "gns-2": {
+      "cycles": 100,
+      "eligible": 100,
+      "first_unknown": 0,
+      "first_unknown_share": 0.0,
+      "proportions": {
+        "d1": {
+          "k": 25,
+          "n": 100,
+          "p": 0.25,
+          "wilson90": [
+            0.186,
+            0.3272
+          ],
+          "wilson95": [
+            0.1755,
+            0.343
+          ],
+          "lag1": -0.0167
+        },
+        "first": {
+          "k": 61,
+          "n": 100,
+          "p": 0.61,
+          "wilson90": [
+            0.5279,
+            0.6863
+          ],
+          "wilson95": [
+            0.512,
+            0.6998
+          ],
+          "lag1": -0.2674
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 25,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0977
+          ],
+          "wilson95": [
+            0.0,
+            0.1332
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 61,
+          "n": 75,
+          "p": 0.8133,
+          "wilson90": [
+            0.7289,
+            0.8759
+          ],
+          "wilson95": [
+            0.7107,
+            0.8854
+          ],
+          "lag1": -0.1447
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 75,
+        "1": 24,
+        "2": 1
+      },
+      "binding_after_drop_ms": {
+        "n": 25,
+        "p50": 242.6,
+        "p95": 522.2
+      }
+    },
+    "gns-3": {
+      "cycles": 100,
+      "eligible": 100,
+      "first_unknown": 1,
+      "first_unknown_share": 0.01,
+      "proportions": {
+        "d1": {
+          "k": 16,
+          "n": 100,
+          "p": 0.16,
+          "wilson90": [
+            0.1088,
+            0.2291
+          ],
+          "wilson95": [
+            0.101,
+            0.2442
+          ],
+          "lag1": -0.0317
+        },
+        "first": {
+          "k": 57,
+          "n": 99,
+          "p": 0.5758,
+          "wilson90": [
+            0.4931,
+            0.6544
+          ],
+          "wilson95": [
+            0.4774,
+            0.6685
+          ],
+          "lag1": 0.1003
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 16,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.1446
+          ],
+          "wilson95": [
+            0.0,
+            0.1936
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 57,
+          "n": 83,
+          "p": 0.6867,
+          "wilson90": [
+            0.5982,
+            0.7635
+          ],
+          "wilson95": [
+            0.5806,
+            0.7764
+          ],
+          "lag1": -0.0136
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 84,
+        "1": 14,
+        "2": 1,
+        "3": 1
+      },
+      "binding_after_drop_ms": {
+        "n": 16,
+        "p50": 201.6,
+        "p95": 1394.2
+      }
+    },
+    "udp-4201": {
+      "cycles": 100,
+      "eligible": 100,
+      "first_unknown": 0,
+      "first_unknown_share": 0.0,
+      "proportions": {
+        "d1": {
+          "k": 45,
+          "n": 100,
+          "p": 0.45,
+          "wilson90": [
+            0.3706,
+            0.5321
+          ],
+          "wilson95": [
+            0.3561,
+            0.5476
+          ],
+          "lag1": 0.0181
+        },
+        "first": {
+          "k": 36,
+          "n": 100,
+          "p": 0.36,
+          "wilson90": [
+            0.2857,
+            0.4417
+          ],
+          "wilson95": [
+            0.2727,
+            0.4576
+          ],
+          "lag1": 0.0395
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 45,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0567
+          ],
+          "wilson95": [
+            0.0,
+            0.0787
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 36,
+          "n": 55,
+          "p": 0.6545,
+          "wilson90": [
+            0.5441,
+            0.7505
+          ],
+          "wilson95": [
+            0.5225,
+            0.7664
+          ],
+          "lag1": 0.2141
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 54,
+        "1": 44,
+        "2": 1,
+        "3": 1
+      },
+      "binding_after_drop_ms": {
+        "n": 45,
+        "p50": 19.3,
+        "p95": 452.9
+      }
+    },
+    "udp-4202": {
+      "cycles": 100,
+      "eligible": 100,
+      "first_unknown": 0,
+      "first_unknown_share": 0.0,
+      "proportions": {
+        "d1": {
+          "k": 45,
+          "n": 100,
+          "p": 0.45,
+          "wilson90": [
+            0.3706,
+            0.5321
+          ],
+          "wilson95": [
+            0.3561,
+            0.5476
+          ],
+          "lag1": 0.0403
+        },
+        "first": {
+          "k": 31,
+          "n": 100,
+          "p": 0.31,
+          "wilson90": [
+            0.2398,
+            0.3902
+          ],
+          "wilson95": [
+            0.2278,
+            0.4063
+          ],
+          "lag1": -0.0653
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 45,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0567
+          ],
+          "wilson95": [
+            0.0,
+            0.0787
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 31,
+          "n": 55,
+          "p": 0.5636,
+          "wilson90": [
+            0.4532,
+            0.6681
+          ],
+          "wilson95": [
+            0.4327,
+            0.6863
+          ],
+          "lag1": -0.1646
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 55,
+        "1": 45
+      },
+      "binding_after_drop_ms": {
+        "n": 45,
+        "p50": 20.2,
+        "p95": 413.7
+      }
+    },
+    "udp-4203": {
+      "cycles": 100,
+      "eligible": 100,
+      "first_unknown": 0,
+      "first_unknown_share": 0.0,
+      "proportions": {
+        "d1": {
+          "k": 45,
+          "n": 100,
+          "p": 0.45,
+          "wilson90": [
+            0.3706,
+            0.5321
+          ],
+          "wilson95": [
+            0.3561,
+            0.5476
+          ],
+          "lag1": -0.2203
+        },
+        "first": {
+          "k": 33,
+          "n": 100,
+          "p": 0.33,
+          "wilson90": [
+            0.258,
+            0.4109
+          ],
+          "wilson95": [
+            0.2456,
+            0.4269
+          ],
+          "lag1": -0.0153
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 45,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0567
+          ],
+          "wilson95": [
+            0.0,
+            0.0787
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 33,
+          "n": 55,
+          "p": 0.6,
+          "wilson90": [
+            0.4891,
+            0.7015
+          ],
+          "wilson95": [
+            0.4681,
+            0.7188
+          ],
+          "lag1": 0.0788
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 55,
+        "1": 43,
+        "2": 2
+      },
+      "binding_after_drop_ms": {
+        "n": 45,
+        "p50": 19.3,
+        "p95": 486.7
+      }
+    }
+  },
+  "pooled": {
+    "udp": {
+      "cycles": 300,
+      "eligible": 300,
+      "first_unknown": 0,
+      "first_unknown_share": 0.0,
+      "proportions": {
+        "d1": {
+          "k": 135,
+          "n": 300,
+          "p": 0.45,
+          "wilson90": [
+            0.4034,
+            0.4975
+          ],
+          "wilson95": [
+            0.3947,
+            0.5066
+          ],
+          "lag1": -0.0472
+        },
+        "first": {
+          "k": 100,
+          "n": 300,
+          "p": 0.3333,
+          "wilson90": [
+            0.2902,
+            0.3794
+          ],
+          "wilson95": [
+            0.2824,
+            0.3885
+          ],
+          "lag1": -0.0017
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 135,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0196
+          ],
+          "wilson95": [
+            -0.0,
+            0.0277
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 100,
+          "n": 165,
+          "p": 0.6061,
+          "wilson90": [
+            0.5423,
+            0.6664
+          ],
+          "wilson95": [
+            0.5299,
+            0.6774
+          ],
+          "lag1": 0.0414
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 164,
+        "1": 132,
+        "2": 3,
+        "3": 1
+      },
+      "binding_after_drop_ms": {
+        "n": 135,
+        "p50": 19.3,
+        "p95": 486.7
+      }
+    },
+    "gns": {
+      "cycles": 300,
+      "eligible": 300,
+      "first_unknown": 1,
+      "first_unknown_share": 0.0033,
+      "proportions": {
+        "d1": {
+          "k": 66,
+          "n": 300,
+          "p": 0.22,
+          "wilson90": [
+            0.1833,
+            0.2617
+          ],
+          "wilson95": [
+            0.1768,
+            0.2703
+          ],
+          "lag1": -0.0262
+        },
+        "first": {
+          "k": 164,
+          "n": 299,
+          "p": 0.5485,
+          "wilson90": [
+            0.5009,
+            0.5952
+          ],
+          "wilson95": [
+            0.4918,
+            0.6039
+          ],
+          "lag1": -0.0095
+        },
+        "first_given_d1": {
+          "k": 0,
+          "n": 66,
+          "p": 0.0,
+          "wilson90": [
+            0.0,
+            0.0394
+          ],
+          "wilson95": [
+            -0.0,
+            0.055
+          ],
+          "lag1": null
+        },
+        "first_given_not_d1": {
+          "k": 164,
+          "n": 233,
+          "p": 0.7039,
+          "wilson90": [
+            0.6526,
+            0.7505
+          ],
+          "wilson95": [
+            0.6423,
+            0.7588
+          ],
+          "lag1": -0.0046
+        }
+      },
+      "drops_per_reconnect": {
+        "0": 233,
+        "1": 61,
+        "2": 5,
+        "3": 1
+      },
+      "binding_after_drop_ms": {
+        "n": 66,
+        "p50": 203.7,
+        "p95": 610.5
+      }
+    }
+  },
+  "rules": {
+    "udp": {
+      "d1": {
+        "k": 135,
+        "n": 300,
+        "wilson90": [
+          0.4034,
+          0.4975
+        ],
+        "wilson95": [
+          0.3947,
+          0.5066
+        ],
+        "homogeneity_p": 1.0,
+        "verdict": "inconclusive",
+        "sensitivity": {
+          "0.05": "inconclusive",
+          "0.08": "inconclusive",
+          "0.1": "equivalent"
+        }
+      },
+      "first": {
+        "k": 100,
+        "n": 300,
+        "wilson90": [
+          0.2902,
+          0.3794
+        ],
+        "wilson95": [
+          0.2824,
+          0.3885
+        ],
+        "homogeneity_p": 0.752014,
+        "verdict": "equivalent",
+        "sensitivity": {
+          "0.05": "inconclusive",
+          "0.08": "equivalent",
+          "0.1": "equivalent"
+        }
+      },
+      "first_given_d1": {
+        "k": 0,
+        "n": 135,
+        "wilson90": [
+          0.0,
+          0.0196
+        ],
+        "wilson95": [
+          -0.0,
+          0.0277
+        ],
+        "homogeneity_p": 1.0,
+        "verdict": "equivalent",
+        "sensitivity": {
+          "0.05": "equivalent",
+          "0.08": "equivalent",
+          "0.1": "equivalent"
+        }
+      },
+      "first_given_not_d1": {
+        "k": 100,
+        "n": 165,
+        "wilson90": [
+          0.5423,
+          0.6664
+        ],
+        "wilson95": [
+          0.5299,
+          0.6774
+        ],
+        "homogeneity_p": 0.617357,
+        "verdict": "equivalent",
+        "sensitivity": {
+          "0.05": "inconclusive",
+          "0.08": "equivalent",
+          "0.1": "equivalent"
+        }
+      },
+      "in_order_contrast": "different",
+      "H": "inconclusive"
+    },
+    "gns": {
+      "d1_below_udp": true,
+      "dropped_first_rarely_completes": true
+    }
+  },
+  "homogeneity_p": {
+    "udp": {
+      "d1": 1.0,
+      "first": 0.752014,
+      "first_given_d1": 1.0,
+      "first_given_not_d1": 0.617357
+    },
+    "gns": {
+      "d1": 0.207334,
+      "first": 0.082623,
+      "first_given_d1": 1.0,
+      "first_given_not_d1": 0.025003
+    }
+  }
+}

@@ -1,65 +1,53 @@
-# ChatGPT review request #27: EXP-041 (the KI-35 stall-reconnect path) and triage of the EXP-037 follow-up review
+# ChatGPT review request #28: EXP-042 (does the first session request overtake the binding?)
 
 - **Date:** 2026-10-26
 - **Requested by:** Claude Code
-- **Branch:** `feature/ki35-gns-establishment` (PR #25), now up to date with `main` (merge commit `debaf08`, no rebase). Not proposed for merging.
-- **Previous requests:** #1–#26 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); the EXP-037 follow-up review is triaged there too (FB-25-05..08 accepted; FB-25-07 deferred to its own experiments).
-- **Records:** `evidence/experiments/EXP-041.json`; the predeclaration and result are in `docs/soak-testing.md`.
+- **Branch:** `feature/ki35-gns-establishment` (PR #25). Not proposed for merging.
+- **Previous requests:** #1–#26 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). #27 (EXP-041) is still awaiting your reply; this request adds to it.
+- **Records:** `evidence/experiments/EXP-042.json`; the predeclaration, its amendment and the result are in `docs/soak-testing.md`.
 - **Please reply** as a comment on PR #25. Do not merge or push to `main`.
 
-## 1. Your integration follow-up: the three P2 findings
+## 1. Work performed
 
-They are **not** on `main`. All three were fixed on the candidate (`951fd77`) before PR #24 was merged, each with a regression. All four regressions passed on `3c618d9` (`tests-2026-10-26-090051-3c618d9`):
+- **What is tested:** EXP-041's post-hoc explanation. The client sends its first ConnectRequest right after its binding, jitter reorders the two, and the host drops the request before authentication. That wastes a 500 ms retry.
+- **Predeclared** in `b52044a` (pushed before any run) with a Monte Carlo model of our UDP impairment.
+- **Amended before any run** in `cae9512`, after a Codex review of the tooling:
+  - the model now counts only each DTLS record's earliest copy (OpenSSL's replay window drops repeats);
+  - a session that never completed counts as first = false;
+  - unknown attribution above 10% makes the first-request rules not assessable;
+  - refutation needs an actual "different" result;
+  - homogeneity gates every verdict.
+- **Instrumentation:** one diagnostic trace event where `DtlsSession` already drops records that arrive before the binding. Behaviour is unchanged.
+- **Measures:** D1 is a host drop 70–130 ms after the first sent request; "first" is the timestamp attribution from EXP-041.
+- **Codex** reviewed the tooling three times: twice before the run, and once during it. The last review was analysis only and was re-analysed in a separate directory; the rule results were identical.
 
-- **Client:** `begin_reconnect(…, peer_lost)` renews a peer that the backend reported gone.
-- **Secure transport:** `secure_transport.cpp` returns the inner `SendResult` instead of hiding a refusal.
-- **Host:** `close_unshared_peer` guards every peer close.
+## 2. Results (complete; 600 reconnects; 1 of 600 with an unknown completing request; all homogeneous, p ≥ 0.025)
 
-## 2. EXP-041: work performed
+| UDP | Model H | Observed | Verdict (δ = 0.08) |
+|---|---|---|---|
+| P(D1) | 0.4886 (in order 0.1273) | 0.450, 90% [0.403, 0.498] | inconclusive; equivalent at δ = 0.10; in-order rejected |
+| P(first) | 0.3067 | 0.333 | equivalent |
+| P(first \| D1) | 0 | 0 / 135 | equivalent |
+| P(first \| not D1) | 0.5997 | 0.606 | equivalent |
 
-- **Predeclared before any run** (`a4355dc`, pushed first) and tooled in `fac860c`.
-- **Probe:** a secure Host and Client in one process, harsh profile, defaults unchanged. Each cycle is 1 s connected, then a **5 s client stall** as in the soak, then the reconnect.
-- **Phases per reconnect, from the stall end:** notice, establish, DTLS, session, total (the soak's recovery definition) and first snapshot.
-- **FB-25-08, which request the accept completed:** decided by timestamps only. The accept must arrive 140–260 ms after exactly one sent request (a harsh round trip of 160–240 ms ± 20 ms). No request IDs and no protocol change.
-- **FB-25-06, statistics:**
-  - TOST equivalence with δ = 0.08: the 90% Wilson interval must lie inside [model − δ, model + δ]. "Different" if the 95% interval misses the model; otherwise inconclusive.
-  - A chi-square homogeneity test across the batches before pooling (df = 2, exact p).
-  - Lag-1 autocorrelation is disclosed.
-  - Verdicts are given only for a complete run.
-  - **δ was chosen with EXP-037's results known.**
-- **Batches:** UDP seeds 4101–4103 and 3 GNS repetitions, 100 cycles each.
-- **Codex reviewed the tooling three times:**
-  - twice before the run, finding eligibility, completeness, same-update snapshot, abort-status and accept-association defects, all fixed with regressions;
-  - once during it, finding the tail rule on a 50/50 split. That one is analysis only, so it was applied in a separate re-analysis directory; the run's own verdict is kept.
-- **The final Codex review of the branch** found two analysis failure paths: a cut last client-log line aborted the analysis, and a tail verdict was issued for an incomplete run. Both are fixed with regressions, and they do not change the recorded run's rules. Suites and E2E passed on `bdbaf9f` (`tests-2026-10-26-131207-bdbaf9f`).
+- **H is inconclusive by its rule:** only R1 narrowly fails equivalence.
+- **GNS:** P(D1) is 0.22, below UDP's 0.45, and a dropped first request never completes (0/66 against 164/233): both directional rules hold.
+- **Across both backends,** no dropped first request completed: 0 of 201.
+- **Not explained:** D1 runs about 0.04 below the model.
+- **A coincidence, checked:** the three UDP batches each had exactly 45 D1 reconnects, but their per-cycle sequences differ.
+- **Tests:** suites and E2E passed on `7e148ce`.
 
-## 3. Results (`ki35-reconnect-2026-10-26-114558-c5cc5f9`; analysis `…-reanalysis-ad7d08b`)
+## 3. Questions
 
-The run was complete: 600/600 reconnected, with no timeout, failure or missed reconnect, and 0 unattributed. Every proportion was homogeneous across its batches (p ≥ 0.019), and the lag-1 autocorrelations were between −0.08 and 0.07.
+1. Would you read this as enough to design a fix, given that R1 is inconclusive only on its margin while R3's sharp prediction (0/201) and the rejected in-order alternative point the same way? Or should R1 be re-run with a larger n first?
+2. **A fix that stays fail-closed.** Candidates, each an owner decision and each needing its own predeclared experiment:
+   - (a) the client sends its first ConnectRequest only once its binding is known verified (it costs one round trip, about 200 ms, less than the 500 ms retry);
+   - (b) the host holds at most one early application record per pending session, unprocessed and discarded unless the binding verifies.
 
-| Mechanism | Model | UDP | GNS | Verdict |
-|---|---|---|---|---|
-| DTLS without a retransmission | 0.377–0.394 | 0.347, 90% [0.303, 0.393] | 0.383, 90% [0.338, 0.430] | **equivalent** |
-| GNS first cycle | 0.522–0.538 | - | 0.527, 90% [0.479, 0.574] | **equivalent** |
-| First session request completed it | 0.614–0.628 (2-pkt 0.723–0.733) | 0.360, 95% [0.308, 0.416] | 0.557, 95% [0.500, 0.612] | **different** |
+   Which do you consider safer?
+3. Candidates for the D1 gap: the impairment's flush order within one poll, the 70–130 ms window, or binding duplicates. Which is worth checking?
 
-- **Total recovery** (p50 / p95 / p99, ms): UDP 1677 / 3639 / 4353; GNS 2449 / 4490 / 5517.
-- **Over the soak's 3 s limit:** UDP 8.3% [5.7, 12.0]; GNS 27.7% [22.9, 33.0].
-- **Tail:** DTLS dominates the slowest 10% on both backends: UDP 26/30; GNS 17/30, with establishment 10/30.
-- **Post-hoc, not a rule:**
-  - When the client's handshake finishes, it sends its binding. In the same update it verifies the host's binding (same flight) and sends the first ConnectRequest **right after its binding**.
-  - The host drops application records that arrive before the binding (`app_dropped_before_auth`, fail-closed). Jitter reorders those two back-to-back datagrams: our UDP impairment applies an independent U[0, 40] ms to each, so about half the time; on GNS, reorder is 20%.
-  - That predicts about 0.31 on UDP and 0.5–0.55 on GNS, against 0.36 and 0.557 observed. It also predicts EXP-037's fresh joins (0.353, 0.547). Each lost first request costs a 500 ms retry.
+## 4. Open issues
 
-## 4. Questions
-
-1. Next experiment: count the host's `app_dropped_before_auth` per reconnect, and the arrival order of binding and request, with predeclared rules. Is that the right test of the reordering explanation?
-2. If it is confirmed, which candidate would you consider safe without weakening fail-closed binding? Each would be an owner decision, not part of the measurement:
-   - (a) the client sends its first request only once its own binding is known to be verified;
-   - (b) the host holds at most one early application record per pending session, unprocessed until the binding verifies, and discards it otherwise.
-3. With δ disclosed as chosen after EXP-037, would you rather see a sensitivity table (δ = 0.05, 0.08, 0.10) in the next experiment, predeclared?
-
-## 5. Open issues
-
-- **KI-35:** open. Reconnect recovery over 3 s happens in 8–28% of harsh reconnects; DTLS and, on GNS, establishment carry the tail.
-- **Still open:** FB-25-07 (separate DTLS timer and cookie experiments), KI-43, D-008 / G0 (closed). No merge of PR #25 is requested.
+- **KI-35:** open. **FB-25-07:** DTLS timers and the cookie are still to do, each in its own experiment.
+- **Also open:** KI-43; D-008 / G0 (closed). No merge is requested.

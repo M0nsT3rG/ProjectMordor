@@ -1,0 +1,28 @@
+{
+  "id": "EXP-042",
+  "type": "experiment",
+  "date": "2026-10-26",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback, one process, real time, 1 ms loop",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "KI-35: test EXP-041's post-hoc explanation that the first session request of a reconnect overtakes the client's binding (back-to-back datagrams reordered by jitter) and is dropped by the host before authentication, which wastes a 500 ms retry.",
+  "hypothesis": "Predeclared (b52044a) and amended before any run (cae9512, Codex review of the tooling; DTLS replay suppression): UDP P(D1) = 0.4886 (in order: 0.1273), P(first) = 0.3067, P(first|D1) = 0, P(first|not D1) = 0.5997 (Monte Carlo of our UDP impairment, model value +/- 0.002); TOST delta 0.08 primary (0.05/0.10 sensitivity); H supported if R1-R3 all equivalent and the in-order contrast is different, refuted only by a 'different'; GNS directional: P_GNS(D1) < P_UDP(D1) and P_GNS(first|D1) < P_GNS(first|not D1).",
+  "procedure": "tools/ki35/reconnect_probe.cpp (EXP-041 probe) with the host's DTLS trace recorded (one diagnostic trace event added where DtlsSession already drops pre-binding application records: no behaviour change). Same stall cycle, harsh profile, defaults. D1: a host drop 70-130 ms after the first sent ConnectRequest after authentication. first: timestamp attribution as EXP-041; a session that never completed is first = false. tools/ki35/run_reorder_probe.py: UDP seeds 4201-4203 and 3 GNS repetitions, 100 cycles each. The tooling had three Codex reviews: two before the run (the model's duplicate handling against DTLS replay suppression, known failures, refutation, homogeneity, attribution and trace gates), one during it (gates on the in-order contrast and the GNS direction; analysis only, applied in a separate re-analysis directory with identical rule results).",
+  "expected_result": "H supported on UDP; GNS directional rules hold.",
+  "observed_result": "Complete run, 600/600 reconnects eligible, 1 of 600 with an unknown completing request; every proportion homogeneous (p >= 0.025). UDP: P(D1) = 135/300 = 0.450, 90% [0.403, 0.498], 95% [0.395, 0.507]: INCONCLUSIVE at delta 0.08 (the 90% lower bound 0.403 misses the required 0.407; equivalent at 0.10, inconclusive at 0.05), not different from H, and different from the in-order value 0.127. P(first) = 100/300 = 0.333, EQUIVALENT. P(first|D1) = 0/135, 95% upper 0.028, EQUIVALENT: no dropped first request ever completed. P(first|not D1) = 100/165 = 0.606, EQUIVALENT. H: INCONCLUSIVE by the predeclared rule (R1 only). GNS: P(D1) = 66/300 = 0.22 < UDP (disjoint intervals); P(first|D1) = 0/66 vs P(first|not D1) = 164/233 = 0.704: both directional rules hold. At the host, the binding arrived a median 19 ms after the dropped request on UDP (p95 487 ms, binding lost and resent) and 204 ms on GNS. The three UDP batches each had exactly 45 D1 reconnects: checked, the per-cycle sequences differ between seeds (a coincidence).",
+  "evidence_paths": [
+    "evidence/logs/ki35-reorder-2026-10-26-153230-1683fe2",
+    "evidence/logs/ki35-reorder-2026-10-26-153230-1683fe2-reanalysis-7e148ce",
+    "evidence/logs/tests-2026-10-26-165606-7e148ce",
+    "tools/ki35/reconnect_probe.cpp",
+    "tools/ki35/run_reorder_probe.py",
+    "tools/ki35/model.py"
+  ],
+  "result": "PARTIAL",
+  "errors": "H is inconclusive by its rule: R1's equivalence narrowly fails at delta 0.08 (P(D1) 0.45 against 0.489). The other rules hold, the in-order alternative is rejected, and the sharpest prediction (a dropped first request never completes) held in 201 of 201 cases on both backends. Why D1 is ~0.04 below the model is not known (candidates: the impairment flush order within one poll, the 70-130 ms window, binding duplicates). One process, loopback, simulated impairment.",
+  "confidence": "medium",
+  "follow_up": "The mechanism is established well enough to design a fix experiment, which is an owner decision because it touches the secure session start: (a) the client sends its first ConnectRequest only after its binding is known verified, or (b) the host keeps at most one early application record per pending session, unprocessed and discarded unless the binding verifies (fail-closed kept). Expected gain: the ~45% (UDP) / ~22% (GNS) of reconnects that lose the first request save ~500 ms. Then DTLS timers and the cookie round trip (FB-25-07).",
+  "related": [
+    "EXP-041",
+    "EXP-037"
+  ]
+}

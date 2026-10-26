@@ -763,6 +763,22 @@ This was written and committed **before** the first run. It tests EXP-041's post
 - **H is refuted only by an actual "different" result.** It is **supported** only if R1–R3 are all equivalent and the in-order contrast is "different". Missing data or an unestablished contrast is **inconclusive**.
 - **Homogeneity applies everywhere.** A heterogeneous UDP proportion gets per-batch verdicts only. The GNS directional rules are not judged if any proportion they use (UDP D1, GNS D1, GNS P(first | D1), GNS P(first | not D1)) is heterogeneous.
 
+**EXP-042 result (`ki35-reorder-2026-10-26-153230-1683fe2`).** The run was complete, and analysed with `7e148ce` (gates only; the rule results are identical) in `…-reanalysis-7e148ce`. 600 reconnects; 1 of 600 had an unknown completing request; every proportion was homogeneous (p ≥ 0.025).
+
+| UDP (the test) | H | Observed | Verdict (δ = 0.08) |
+|---|---|---|---|
+| R1 P(D1) | 0.4886 | 0.450, 90% [0.403, 0.498] | **inconclusive** (equivalent at δ = 0.10, inconclusive at 0.05); in-order 0.127 **rejected** |
+| R2 P(first) | 0.3067 | 0.333 | **equivalent** |
+| R3 P(first \| D1) | 0 | **0 / 135** | **equivalent** |
+| R3 P(first \| not D1) | 0.5997 | 0.606 | **equivalent** |
+
+- **H is inconclusive by its predeclared rule.** Only R1's equivalence fails narrowly: the 90% lower bound is 0.403 against the required 0.407. Every other rule holds, and the in-order alternative is rejected.
+- **The sharpest prediction held without exception:** no dropped first request ever completed the session, 0 of 135 on UDP and 0 of 66 on GNS.
+- **GNS, directional:** both rules hold. P(D1) is 0.22, below UDP's 0.45, and a dropped first request never completes (0/66), while an undropped one does in 70% (164/233).
+- **At the host,** the binding arrived a median 19 ms after the dropped request on UDP (p95 487 ms, when the binding was lost and resent), and 204 ms on GNS.
+- **Not explained:** D1 runs about 0.04 below the model. The three UDP batches each had exactly 45 D1 reconnects; their per-cycle sequences differ, so this is a coincidence.
+- **For KI-35:** a lost first request costs a 500 ms retry, in about 45% of harsh UDP reconnects and 22% on GNS. A fix that keeps fail-closed binding is the next step, and an owner decision: either the client waits until its binding is verified before the first request, or the host holds at most one early record unprocessed until the binding verifies.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

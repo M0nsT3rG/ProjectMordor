@@ -2,6 +2,23 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-26: EXP-042, does the first session request overtake the binding? (`feature/ki35-gns-establishment`)
+
+- **Input:** the owner asked to test EXP-041's post-hoc explanation.
+- **Predeclared before any run, then amended before any run:**
+  - predeclared in `b52044a`, pushed first; amended in `cae9512` after a Codex review of the tooling;
+  - the model is a Monte Carlo of our UDP impairment;
+  - the amendment accounts for DTLS replay suppression (only a record's earliest copy counts). It also covers known failures, refutation, homogeneity and the attribution and trace gates.
+- **Instrumentation:** one diagnostic trace event where `DtlsSession` already drops records that arrive before the binding. Behaviour is unchanged.
+- **Result** (`ki35-reorder-2026-10-26-153230-1683fe2`, complete):
+  - On UDP, P(first), P(first | D1) = 0 (0/135) and P(first | not D1) are **equivalent** to the model, and the in-order alternative is rejected.
+  - P(D1) = 0.45 narrowly misses equivalence with 0.489, so **H is inconclusive by its rule**.
+  - On GNS both directional rules hold.
+  - Across both backends, no dropped first request ever completed (0/201).
+- **Codex:** three tooling reviews (two before the run, one during it, analysis only, re-analysed separately with identical rule results).
+- **Tests:** suites and E2E passed on `7e148ce`.
+- **Next:** a fail-closed fix that stops wasting the first request (an owner decision); then DTLS timers and the cookie (FB-25-07).
+
 ## 2026-10-26: EXP-041, the KI-35 reconnect path (`feature/ki35-gns-establishment`, now up to date with `main`)
 
 - **Input:** the EXP-037 follow-up review on PR #25 (FB-25-05..08); the owner asked for all of it. Triaged in CHATGPT_FEEDBACK.md. Its integration warning was out of date: the three P2 findings had been fixed on `main` before the merge.
