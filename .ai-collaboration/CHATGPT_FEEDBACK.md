@@ -6,6 +6,22 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on the EXP-037 follow-up review (PR #25, 2026-10-26)
+
+- **Status:** implemented (2026-10-26) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-041.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25). Source and evidence review only.
+- **Verdict:** research progress acknowledged; not approval to merge PR #25; KI-35 and D-008/G0 stay open.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-25-05** (high) Measure the real reconnect | **Yes.** EXP-037 timed fresh joins: no stall, no notice, no token, a 250 ms retry instead of 500 ms. | **Accepted** | EXP-041 measures stall reconnects in one process (`tools/ki35/reconnect_probe.cpp`). Each cycle stalls the client for 5 s, as the soak does, then times the phases notice, establish, DTLS and session, the total (the soak's recovery definition), and the first snapshot. Measurement only: protocol and defaults unchanged. |
+| **FB-25-06** (medium) Stronger statistics | **Yes.** Overlapping Wilson intervals cannot show agreement; batches share a process (and, on GNS, unseedable process-global loss). | **Accepted** | Predeclared before the run: TOST equivalence with margin δ = 0.08 (90% Wilson inside [model − δ, model + δ]), "different" if the 95% interval misses the model, otherwise inconclusive; a chi-square homogeneity test across batches (df = 2, exact p = e^(−X²/2)) before pooling; lag-1 autocorrelation disclosed; per batch and pooled; timeouts; p50/p90/p95/p99/max. **δ was chosen with EXP-037's results known; this is disclosed.** |
+| **FB-25-07** (medium) DTLS timers and cookie separately | **Agreed.** | **Accepted, deferred** | Each gets its own predeclared experiment after EXP-041, comparing p95/p99, failures and totals, with security unchanged. EXP-041 only reports the cookie round trip descriptively. No GNS dependency change without the owner. |
+| **FB-25-08** (medium) Which request did the accept complete | **Yes.** Harsh round trips are 160–240 ms (our UDP impairment: 80 ms + U[0, 40] ms one way; GNS has the same budget), and reconnect requests are 500 ms apart, so at most one sent request fits an accept's window. | **Accepted** | The accept is attributed by timestamps only: the sent requests whose send time is 140–260 ms before the client's `connect_accept_received` (round trip ± 20 ms of processing). Exactly one is attributed; zero or several are reported as unattributed. No request IDs and no protocol change. |
+| **Follow-up:** do the three P2 findings remain on `main`? | **No, the premise is out of date.** All three were fixed on the candidate (`951fd77`) before the merge. The fixes are on `main` (`src/client/client.cpp` `begin_reconnect(…, peer_lost)`, `secure_transport.cpp` returning the inner `SendResult`, `host.cpp` `close_unshared_peer`), and their four regressions passed on `3c618d9` (`tests-2026-10-26-090051-3c618d9`). | **Verified; no action** | Also recorded in review request #27. |
+
+---
+
 ## Feedback on review #25 (PR #25: KI-35 investigation, EXP-036)
 
 - **Status:** implemented (2026-10-25) on `feature/ki35-gns-establishment`; the owner asked for all of it.

@@ -631,6 +631,57 @@ or gate change.
   - There was no GNS shutdown guard on startup-error exits. Every batch exited 0, so none was taken.
 - **For KI-35:** DTLS dominates the slow tail and behaves as its loss model predicts. Its timing is the next candidate: the retransmission back-off (250 ms initial, doubling, capped at 1 s), and the cookie round trip (EXP-027). The session phase should be re-measured on the reconnect path, counting the request whose accept completed the session.
 
+## Predeclared experiment KI-35: phases of each stall reconnect (2026-10-26, EXP-041)
+
+This was written and committed **before** the first run, after the EXP-037 follow-up review (FB-25-05..08). It is measurement only: no protocol, default or gate change. The margin δ below was chosen after EXP-037's results were known; this is disclosed.
+
+**Question.** On the path KI-35 is about (a stalled client's secure reconnect), which phase makes slow reconnects slow? Do the DTLS, session and GNS mechanisms match their packet-level models when judged by equivalence, not by overlap?
+
+**Probe** (`tools/ki35/reconnect_probe.cpp`, GNS build):
+- A secure Host and Client run in one process, in real time (a 1 ms loop at 1 ms timer resolution, with the power-throttling opt-out; `loop_ms` is recorded), under the harsh profile. Defaults are unchanged: client and host timeouts 3 s, reconnect retry 500 ms, reconnect window 15 s.
+- **Cycle:**
+  1. 1 s connected.
+  2. A **5 s stall**, as in the soak: the client is not updated, while the host and the GNS thread run.
+  3. Then both are updated until the client is `Connected` again after having been `Reconnecting`.
+  4. 1 s connected.
+- **Bad cycles:**
+  - A cycle not reconnected within 20 s of the stall end is a **timeout**. A client left `Failed` is replaced by a fresh join before the next cycle.
+  - A cycle that never left `Connected` is **no_reconnect**. It is counted and excluded from the phases.
+- **Per reconnect, from the stall end t0:**
+  - The phases:
+    - `notice`: t0 to `Reconnecting`;
+    - `establish`: to the first ClientHello sent after that;
+    - `dtls`: to `authenticated`;
+    - `session`: to `Connected`.
+  - `total` (t0 to `Connected`: the soak's recovery definition) and `first_snapshot` (t0 to the first snapshot applied after `Connected`).
+  - Descriptive: `cookie_ms` (first ClientHello to the ClientHello with the cookie), client DTLS timers and ClientHellos before authentication, and on GNS the inner `Connected`.
+- **Session attribution (FB-25-08), by timestamps only:**
+  - Take the client's `connect_accept_received` log time A, and the ConnectRequests actually sent (`sent: true`) after authentication.
+  - A request is a candidate cause if A − its send time is in **[140, 260] ms**: the harsh round trip of 160–240 ms ± 20 ms of processing. Exactly one candidate means attributed. Zero or several means unattributed.
+  - `session_first` means the attributed request is the first one sent after authentication.
+
+**Batches:** UDP seeds 4101, 4102 and 4103, and 3 GNS repetitions (GNS loss cannot be seeded); 100 cycles each.
+
+**Models** (`tools/ki35/model.py` `proportions()`, unchanged; [without, with] duplicates):
+- `dtls_no_timer` [0.3771, 0.3944];
+- `session_first` [0.6141, 0.628], with the 2-packet alternative [0.7225, 0.7334];
+- GNS `gns_first_cycle` [0.522, 0.5378]: inner `Connected` within 800 ms of `Reconnecting`.
+
+**Decision rules, fixed now:**
+- **Homogeneity first.** For each proportion and backend, run a chi-square test across the 3 batches (df = 2, exact p = e^(−X²/2)). If p < 0.01 the batches are **heterogeneous**: no pooled verdict, only per batch.
+- **Equivalence (TOST, α = 0.05, δ = 0.08)** on the pooled count:
+  - **equivalent** if the 90% Wilson interval lies inside [model_without − δ, model_with + δ];
+  - **different** if the 95% Wilson interval misses [model_without, model_with];
+  - otherwise **inconclusive**.
+  - For the session, judge both the 3-packet and the 2-packet model.
+  - If more than 10% of reconnects are unattributed, `session_first` is **not assessable**.
+- **Independence:** the trials of a batch run in one process, one after another. The lag-1 autocorrelation of each 0/1 outcome is reported per batch; it is not a rule.
+- **Tail (FB-25-02, FB-25-07):**
+  - Per backend and per batch: n, timeouts, no_reconnect, and p50 / p90 / p95 / p99 / max of every phase, `total` and `first_snapshot`.
+  - P(`total` > 3000 ms, the soak's recovery limit) with a 95% Wilson interval.
+  - Among the slowest 10% of `total`s, count which phase is largest. A phase **dominates the tail** if it is largest in at least 50% of them.
+- No result changes a gate, a default or the protocol, nor closes KI-35. DTLS timers and the cookie get their own experiments afterwards (FB-25-07).
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
