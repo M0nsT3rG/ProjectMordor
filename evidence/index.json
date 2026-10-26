@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 100,
+  "count": 101,
   "records": [
     {
       "id": "EXP-001",
@@ -397,6 +397,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Second run of the integration gate (docs/integration-gate.md) after Codex passes 6 and 7 on candidate 2217085 found 3 P2 defects, plus 1 more found by the combined pass on the fixed head; record what it establishes before the two consecutive clean Codex passes (FB-24-01)."
+    },
+    {
+      "id": "EXP-039",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-039.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "Third run of the integration gate items 3-5, on 3607613: the candidate after the fixes found by the combined Codex passes on 9904293..40b02c5 (peer sharing on token migration, a reused client, protocol v4 per-player event and leave messages, the CMake manifest cache, E2E log quoting and bounded E2E waits)."
     },
     {
       "id": "F-COMM-001",

@@ -44,6 +44,8 @@ The candidate head must include every stacked follow-up (#23 and later): the int
 
 | 2026-10-26 | `9904293` (the same branch, with 4 more fixes) | **Not yet passed.** Items 1 and 3–7 pass, and item 5 is 12/12. Item 2: Codex passes 6 and 7 on `2217085` found 3 P2 defects, and the combined pass on the fixed head found 1 more. All 4 are fixed with regressions. Two consecutive clean passes on the final head are pending. Item 9: owner. | `evidence/experiments/EXP-038.json` |
 
+| 2026-10-26 | `3607613` (the same branch, after 6 more combined-pass fixes) | **Not yet passed.** Items 4 and 5 pass (soak 12/12). Item 3 failed once on `packet_loss_does_not_break_session` (GNS, 25% loss, 5 s connect window): not reproduced in 40 repetitions, filed as KI-43; a passing suite run on the final head is still needed. Item 2 pending (Codex usage limit). | `evidence/experiments/EXP-039.json` |
+
 ### Item details for `9904293`
 
 1. **Candidate:** `9904293`. No uncommitted source. Commits after it change only documents and evidence.
