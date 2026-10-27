@@ -306,5 +306,163 @@ class Classify(unittest.TestCase):
             self.assertEqual((root / "sub" / "b.sav").stat().st_mtime_ns, before)
 
 
+class TierA(unittest.TestCase):  # EXP-048: the real-session tool's pure parts
+    def test_game_written_patterns(self):
+        w = ["user/*_ShadowOfWar.sav", "user/render.cfg", "logs"]
+        self.assertTrue(se.game_written("user/<id>_1_ShadowOfWar.sav", w))
+        self.assertTrue(se.game_written("user/render.cfg", w))
+        self.assertTrue(se.game_written("logs/a/b.log", w))  # a bare label covers everything under it
+        self.assertFalse(se.game_written("user/CloudStorage/x_ShadowOfWar.sav", w))  # a pattern keeps its depth
+        self.assertFalse(se.game_written("user/CloudStorage/featured-stm.1", w))
+        self.assertFalse(se.game_written("install/game/new.log", w))
+        s = good_session(game_written=["saves/*.sav", "logs"])
+        s["after"] = json.loads(json.dumps(s["after"]))
+        s["after"]["saves"]["new.sav"] = {"size": 1, "sha256": "X"}
+        self.assertEqual(se.classify(s)[0], "PASS")
+        s["after"]["saves"]["new.dat"] = {"size": 1, "sha256": "X"}
+        self.assertEqual(se.classify(s)[0], "FAIL")
+
+    def test_meta_only_and_single_file_roots(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "inst").mkdir()
+            (Path(tmp) / "inst" / "a.dat").write_bytes(b"x" * 10)
+            (Path(tmp) / "one.cfg").write_text("k=1\n", encoding="utf-8")
+            snap = se.snapshot({"install": Path(tmp) / "inst", "one": Path(tmp) / "one.cfg"}, {"install"})
+            self.assertEqual(set(snap["install"]["a.dat"]), {"size", "mtime_ns"})
+            self.assertIn("sha256", snap["one"]["one.cfg"])
+
+    def test_scan_and_redact(self):
+        import datetime as dt
+        import os
+        import tier_a
+        with tempfile.TemporaryDirectory() as tmp:
+            user = Path(tmp) / "user"
+            user.mkdir()
+            (user / "render.cfg").write_text("WindowPosition 0 0 0\nWidth 1920\n", encoding="utf-8")
+            (user / "x_ShadowOfWar.sav").write_text("position 1 2 3\n", encoding="utf-8")  # saves are never read
+            log = user / "game.log"
+            log.write_text("12:00:05 position 0 0 0\n", encoding="utf-8")  # kept from another day
+            before = tier_a.scan({"user": user})[0]
+            log.write_text("12:00:05 position 0 0 0\n10:00:05 player position: 1.5, -2, 3\nposition 4 5 6\n",
+                           encoding="utf-8")
+            (user / "big.log").write_bytes(b"x" * (tier_a.TEXT_MAX + 1))
+            after, scanned, unread = tier_a.scan({"user": user})
+            self.assertEqual(scanned, ["user/game.log", "user/render.cfg"])
+            self.assertEqual(unread, [f"user/big.log (over {tier_a.TEXT_MAX} bytes)"])  # never silently skipped
+            obs = tier_a.observations(after, before, dt.datetime(2026, 10, 27, 10, 0, 0))
+            self.assertEqual(obs[0], {"t": 5.0, "pos": [1.5, -2.0, 3.0], "source": "user/game.log"})
+            self.assertIsNone(obs[1]["t"])  # no clock on the line: classify calls it invalid, never PASS
+            self.assertEqual(len(obs), 2)  # the old line does not count
+            old = {k: os.environ.get(k) for k in ("COMPUTERNAME", "USERNAME")}
+            os.environ.update(COMPUTERNAME="DESKTOP-TEST01", USERNAME="José")
+            try:
+                doc = {"a": str(user / "DESKTOP-TEST01_1_ShadowOfWar.sav"), "b": "4e57de68_ShadowOfWar.sav",
+                       "c": "user/OLD-PC_2_ShadowOfWar.sav", "d": "user/José.log"}
+                out = tier_a.redact(doc, {"%LOCALAPPDATA%": Path(tmp)})
+                os.environ["USERNAME"] = "123"  # Codex pass 4: numbers and the predeclared patterns stay intact
+                kept = tier_a.redact({"pos": [123.0, 1, 2], "game_written": ["user/*_ShadowOfWar.sav"]}, {})
+            finally:
+                for k, v in old.items():
+                    os.environ.pop(k) if v is None else os.environ.update({k: v})
+            text = json.dumps(out, ensure_ascii=False)
+            for leak in (tmp, "DESKTOP-TEST01", "4e57de68", "OLD-PC", "José"):
+                self.assertNotIn(leak, text)
+            self.assertEqual(len(set(out.values())), 4)  # distinct ids stay distinct
+            self.assertEqual(kept, {"pos": [123.0, 1, 2], "game_written": ["user/*_ShadowOfWar.sav"]})
+
+    def test_unreadable_numbers_and_links_are_never_skipped(self):  # Codex pass 2
+        import datetime as dt
+        import tier_a
+        with tempfile.TemporaryDirectory() as tmp:
+            user = Path(tmp) / "user"
+            user.mkdir()
+            (user / "game.log").write_text("10:00:01 position 0 0 1e6\n", encoding="utf-8")
+            after, _, unread = tier_a.scan({"user": user})
+            obs = tier_a.observations(after, [], dt.datetime(2026, 10, 27, 10, 0, 0))
+            self.assertEqual(obs, [{"t": 1.0, "pos": None, "source": "user/game.log"}])  # invalid, not [0, 0, 1]
+            (user / "a_ShadowOfWar.sav").write_text("position 1 2 3\n", encoding="utf-8")
+            try:
+                (user / "backup.txt").symlink_to(user / "a_ShadowOfWar.sav")
+            except OSError:
+                self.skipTest("symlinks need a privilege on this machine")
+            after, scanned, unread = tier_a.scan({"user": user})
+            self.assertNotIn("user/backup.txt", scanned)
+            self.assertIn("user/backup.txt (a link, or not checkable: not read)", unread)
+
+    def test_decide_missing_exit_evidence_is_inconclusive_not_fail(self):  # Codex pass 2
+        import tier_a
+        rec = good_session(exit={"code": None, "closed_by_menu": True})
+        partial = [{"image": "ShadowOfWar.exe", "started_in_trace": True, "exited_in_trace": False, "exit_code": None}]
+        self.assertEqual(tier_a.decide(rec, partial, [])[0], "INCONCLUSIVE")
+        self.assertEqual(tier_a.decide(rec, [], [])[0], "INCONCLUSIVE")  # never launched
+        seen = [dict(partial[0], exited_in_trace=True, exit_code="0")]
+        self.assertEqual(tier_a.decide(good_session(exit={"code": 0, "closed_by_menu": True}), seen, []), ("PASS", []))
+        self.assertEqual(tier_a.decide(good_session(exit={"code": 0, "closed_by_menu": None}), seen, [])[0],
+                         "INCONCLUSIVE")  # the owner's answer is missing
+        self.assertEqual(tier_a.decide(good_session(exit={"code": 0, "closed_by_menu": False}), seen, [])[0], "FAIL")
+        self.assertEqual(tier_a.decide(good_session(exit={"code": 3, "closed_by_menu": True}),
+                                       [dict(seen[0], exit_code="3")], [])[0], "FAIL")  # the code comes from the trace
+        self.assertEqual(tier_a.decide(good_session(exit={"code": 0, "closed_by_menu": True}), seen, ["user/x.log"])[0],
+                         "INCONCLUSIVE")
+        two = [dict(seen[0], exit_code="3"), seen[0]]  # Codex pass 3: one of two instances exited non-zero
+        self.assertEqual(tier_a.decide(good_session(exit={"code": None, "closed_by_menu": True}), two, [])[0], "FAIL")
+
+    def test_codex_pass_3(self):
+        import datetime as dt
+        import os
+        import subprocess
+        import tier_a
+        line = [("user/game.log", "10:00:01 position .5 2 3")]
+        self.assertEqual(tier_a.observations(line, [], dt.datetime(2026, 10, 27, 10))[0]["pos"], [0.5, 2.0, 3.0])
+        for bad in ("0 0 1.#INF", "0 0 1.#QNAN", "0 0 1e6", "0 0 3)", "nan nan nan", "-nan 0 0", "inf 0 0"):  # Codex 5, 6
+            line = f"10:00:01 position {bad}"
+            self.assertTrue(tier_a.CANDIDATE.search(line), bad)  # never dropped before validation
+            obs = tier_a.observations([("user/game.log", line)], [], dt.datetime(2026, 10, 27, 10))
+            self.assertIsNone(obs[0]["pos"], bad)
+        with tempfile.TemporaryDirectory() as tmp:  # Codex pass 6: a failed lookup is not a confirmed non-file
+            self.assertIsNone(se.regular(Path(tmp) / "vanished.nfo"))
+            self.assertFalse(se.regular(Path(tmp)))
+            (Path(tmp) / "f").write_bytes(b"1")
+            self.assertTrue(se.regular(Path(tmp) / "f"))
+        static = good_session()["observations"]  # Codex pass 5: a movement FAIL needs otherwise sound evidence
+        static = static[:3] + [dict(o, pos=[0, 0, 0]) for o in static[3:]]
+        seen = [{"image": "ShadowOfWar.exe", "started_in_trace": True, "exited_in_trace": True, "exit_code": "0"}]
+        self.assertEqual(tier_a.decide(good_session(observations=static), seen, [])[0], "FAIL")
+        self.assertEqual(tier_a.decide(good_session(observations=static), seen, ["user/gpu.nfo (PermissionError)"])[0],
+                         "INCONCLUSIVE")
+        old = os.environ.get("USERNAME")
+        os.environ["USERNAME"] = "Ed"
+        try:
+            doc = {"exit": {"closed_by_menu": True}, "verdict": "unexpected_contact", "who": "C:/Users/Ed/x", "c": "covered"}
+            self.assertEqual(tier_a.redact(doc, {}), dict(doc, who="C:/Users/<redacted>/x"))
+        finally:
+            os.environ.pop("USERNAME") if old is None else os.environ.update(USERNAME=old)
+        late = [("user/game.log", "00:00:05 position 1 2 3")]  # Codex pass 4: across midnight
+        self.assertEqual(tier_a.observations(late, [], dt.datetime(2026, 10, 27, 23, 59, 50))[0]["t"], 15.0)
+        with tempfile.TemporaryDirectory() as tmp:
+            user = Path(tmp) / "user"
+            (user / "CloudStorage").mkdir(parents=True)
+            (user / "CloudStorage" / "a").write_bytes(b"1")
+            (user / "a_ShadowOfWar.sav").write_text("position 1 2 3\n", encoding="utf-8")
+            os.link(user / "a_ShadowOfWar.sav", user / "backup.txt")  # a hard link to a save
+            outside = Path(tmp) / "outside"
+            outside.mkdir()
+            (outside / "x.log").write_text("position 1 2 3\n", encoding="utf-8")
+            j = subprocess.run(["cmd", "/c", "mklink", "/J", str(user / "linked"), str(outside)], capture_output=True)
+            _, scanned, unread = tier_a.scan({"user": user})
+            self.assertIn("user/backup.txt (a link: not followed)", unread)
+            self.assertNotIn("user/backup.txt", scanned)
+            if j.returncode == 0:  # a junction is never entered, and is recorded
+                self.assertIn("user/linked (folder not listable)", unread)
+                self.assertNotIn("user/linked/x.log", scanned)
+                self.assertEqual(tier_a.scan({"user": user / "linked"})[2], ["user/. (folder not listable)"])  # a linked root
+                self.assertIn("error", se.snapshot({"user": user / "linked"})["user"]["./__unlistable__"])
+        before = {"user": {"CloudStorage/a": {"size": 1, "sha256": "A"}, "r.cfg": {"size": 1, "sha256": "R"}}}
+        after = {"user": {"CloudStorage/__unlistable__": {"error": "unlistable folder"}, "r.cfg": {"size": 1, "sha256": "R"}}}
+        self.assertEqual(se.changes(before, after), {"added": [], "removed": [], "changed": []})
+        s = good_session(before=before, after=after, game_written=["user/r.cfg"])
+        self.assertEqual(se.classify(s)[0], "INCONCLUSIVE")  # lost access is unreadable evidence, not a removal
+
+
 if __name__ == "__main__":
     unittest.main()

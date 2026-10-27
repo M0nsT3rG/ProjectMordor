@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 109,
+  "count": 111,
   "records": [
     {
       "id": "EXP-001",
@@ -441,6 +441,17 @@
       "scope": "-",
       "confidence": "high",
       "summary": "Measure which network mechanisms the M1 ETW monitor attributes to a target process (FB-34-01), before the owner decides on tier A: IPv6, a TCP attempt that never connects, a DNS lookup with no connection, very short flows, a child process, and lost events. Never touches the game."
+    },
+    {
+      "id": "EXP-048",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-048.json",
+      "date": "2026-10-27",
+      "subsystem": "experiment",
+      "status": "NOT_RUN",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "M1 tier A (docs/m1-criteria.md section 8): can the player character's world position be observed reproducibly from what the pinned GOG build exposes by itself (its own text files, read read-only), without changing anything in the game, its files, its saves or its process, while network monitoring covers the whole run?"
     },
     {
       "id": "F-COMM-001",
@@ -980,6 +991,17 @@
       "scope": "locally_measured",
       "confidence": "medium",
       "summary": "The pinned GOG set (base game + Expansion Pass + High Resolution Texture Pack, exe SHA-256 F16DC949...) starts and is playable with no Steam client and no GOG Galaxy client running."
+    },
+    {
+      "id": "F-ENV-014",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-014.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "The game's own folders hold no log file. The per-user folder %LOCALAPPDATA%/WB Games/Shadow of War holds the saves (<uid>_ShadowOfWar.sav and <uid>_<n>_ShadowOfWar.sav, under two uids: one from the earlier Steam install, one the GOG copy wrote at the owner's launch test), render.cfg, gpu.nfo and a CloudStorage folder of 10 WB promotional files tagged '-stm', last written 2026-10-23/24 (before the GOG install). The GOG install has only 'game' and 'x64' folders; its config- or log-like files are store and installer metadata (goggame-*.info, goglog.ini, unins*), EULA.txt, and game/projectconsole.cfg and game/SKU.cfg. Documents/WB Games holds only Shadow of Mordor's settings (another game)."
     },
     {
       "id": "F-GNS-001",

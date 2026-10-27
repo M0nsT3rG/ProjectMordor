@@ -104,20 +104,24 @@ def run_case(name: str, fault: str | None, tmp: Path) -> dict:
         outcome, why = session.classify(rec)
         return {"outcome": outcome, "reasons": why, "network": None}
     work = tmp / name / "net"
-    netwatch.start(work)
     args = [sys.executable, "-I", str(HERE / "standin.py"), "--log", str(roots["logs"] / "game.log"),
             "--mode", {"static": "static", "no_positions": "none"}.get(fault, "moving")]
     args += ["--contact"] if fault == "contact" else []
     args += ["--exit", "1"] if fault == "exit_1" else []
-    p = subprocess.Popen(args)
-    if fault == "dll_during":
-        (inst / "x64" / "bink2w64.dll").write_bytes(b"changed during the session")
-    if fault == "config_during":
-        (roots["config"] / "render.cfg").write_text("fixture=2\n", encoding="utf-8")
-    if fault == "save_removed":
-        (roots["saves"] / "slot1.sav").unlink()
-    code = p.wait(timeout=60)
-    netwatch.stop(work, end_canary=fault != "no_end_canary")
+    try:
+        netwatch.start(work)
+        p = subprocess.Popen(args)
+        if fault == "dll_during":
+            (inst / "x64" / "bink2w64.dll").write_bytes(b"changed during the session")
+        if fault == "config_during":
+            (roots["config"] / "render.cfg").write_text("fixture=2\n", encoding="utf-8")
+        if fault == "save_removed":
+            (roots["saves"] / "slot1.sav").unlink()
+        code = p.wait(timeout=60)
+        netwatch.stop(work, end_canary=fault != "no_end_canary")
+    except BaseException:  # interrupted or failed: never leave the trace running or its raw files (FB-35-04)
+        netwatch.abort(work)
+        raise
     rec["network"] = netwatch.analyze(work, [], [p.pid])
     rec["build_end"] = build(inst, pin)
     rec["after"] = session.snapshot(roots)

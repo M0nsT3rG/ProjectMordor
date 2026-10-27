@@ -117,11 +117,15 @@ def main(argv: list[str]) -> int:
     try:
         for name, (args, tiny, check) in CASES.items():
             work, log, status = tmp / name, tmp / f"{name}.log", tmp / f"{name}.status.json"
-            netwatch.start(work, tiny_buffers=tiny)
-            p = subprocess.Popen([sys.executable, "-I", str(HERE / "standin.py"), "--log", str(log), "--mode", "none",
-                                  "--status", str(status), *args])
-            p.wait(timeout=600)
-            netwatch.stop(work)
+            try:
+                netwatch.start(work, tiny_buffers=tiny)
+                p = subprocess.Popen([sys.executable, "-I", str(HERE / "standin.py"), "--log", str(log), "--mode",
+                                      "none", "--status", str(status), *args])
+                p.wait(timeout=600)
+                netwatch.stop(work)
+            except BaseException:  # interrupted or failed: never leave the trace running or its raw files (FB-35-04)
+                netwatch.abort(work)
+                raise
             r = netwatch.analyze(work, [], [p.pid])
             st = json.loads(status.read_text(encoding="utf-8")) if status.is_file() else {}
             if up:

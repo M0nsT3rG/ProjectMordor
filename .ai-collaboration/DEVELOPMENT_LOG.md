@@ -2,6 +2,21 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #35 follow-up: the M1 tier A predeclaration (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** review #35 and its follow-up on [PR #26](https://github.com/M0nsT3rG/ProjectMordor/pull/26). The prerequisites are met, so the final tier A predeclaration can be prepared for the owner's approval. The owner asked for the instructions to be carried out and will run the test.
+- **F-ENV-014:** a metadata-only listing of the game's folders, approved by the owner. The game writes no log file.
+  - The per-user folder holds the saves, render.cfg, gpu.nfo and a CloudStorage folder from the Steam era.
+  - Save names carry the machine name and an 8-hex-digit id, which are never recorded.
+  - Documents/WB Games is Shadow of Mordor's.
+- **FB-35-04:** Ctrl+C or an error in the dry run or the coverage run left the system-wide trace running. `netwatch.abort` now stops it and deletes the raw files.
+- **EXP-048 (NOT_RUN) and `docs/m1-criteria.md` §8:**
+  - exact folders, permitted reads and game-written files (`label/<glob>` patterns in `session.game_written`);
+  - actions guided by beeps, tolerances, backup and gates.
+  - The hypothesis is Tier A INCONCLUSIVE / NO DATA.
+- **Tool:** `tools/m1/tier_a.py`, which the owner runs elevated. It refuses to start without elevation, with Galaxy, Steam or the game open, or without a confirmed save backup. Its evidence holds no paths, names or save ids. 20 self-checks.
+- **Open:** the owner's approval of §8, then session 1.
+
 ## 2026-10-27: Elevated runs of EXP-045 and EXP-046 (`feature/d008-gog-inventory`, PR #26)
 
 - **Who:** the owner ran both tools from an elevated PowerShell on `b500439`, after EXP-044 and its test battery on the KI-35 branch had finished. The game was never touched.

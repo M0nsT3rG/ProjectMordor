@@ -70,7 +70,10 @@ def canary(tag: str) -> int:
 
 
 def run_canary(tag: str) -> int | None:
-    p = subprocess.run([sys.executable, "-I", __file__, "canary", tag], capture_output=True, text=True, timeout=30)
+    try:
+        p = subprocess.run([sys.executable, "-I", __file__, "canary", tag], capture_output=True, text=True, timeout=30)
+    except subprocess.TimeoutExpired:  # a missing canary is lost coverage; it must not skip stopping the trace
+        return None
     return int(p.stdout.strip()) if p.returncode == 0 and p.stdout.strip().isdigit() else None
 
 
@@ -124,6 +127,12 @@ def stop(work: Path, end_canary: bool = True) -> int:
         state["decoded"] = t.returncode == 0
     (work / "state.json").write_text(json.dumps(state) + "\n", encoding="utf-8")
     return 0 if state["trace_stopped"] and state.get("decoded") else 2
+
+
+def abort(work: Path) -> list[str]:
+    """An interrupted or failed run (FB-35-04): stop the system-wide trace, delete the raw files, return any left."""
+    subprocess.run(["logman", "stop", SESSION, "-ets"], capture_output=True)
+    return cleanup(work)
 
 
 def ip_family(text: str | None) -> str:

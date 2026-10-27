@@ -6,6 +6,22 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #35 and its follow-up (PR #26: EXP-046 and the elevated runs)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`. The owner asked for ChatGPT's instructions to be carried out, and will test M1 when it is ready. M1 has not started.
+- **Sources:** [review #35](https://github.com/M0nsT3rG/ProjectMordor/pull/26#issuecomment-6437961599), written before the elevated results, and its [follow-up](https://github.com/M0nsT3rG/ProjectMordor/pull/26#issuecomment-6438030133), written after them. Both are source and evidence reviews; ChatGPT ran nothing.
+- **Verdict:** the prerequisites are met. Claude Code may prepare the final, narrow tier A predeclaration for the owner's separate approval before any game-side run.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-35-01** Elevated fixture-only gates | **Yes.** The owner's elevated runs on `b500439` give EXP-045 11/11 for the predeclared reasons, and EXP-046 7/7 MATCH. | **Accepted** | Both recorded PASSED (`949770f`). Nothing about the real game is inferred from them. |
+| **FB-35-02** Coverage limitations | **Agreed.** Unplugging the network does not repair missing attribution. | **Accepted** | No mechanism was missed in EXP-046. §4a already names delegated traffic as a blind spot, and a clean record is not claimed as proof of no activity. No raw-socket or ICMP case was added. |
+| **FB-35-03** Loss interpretation | **Yes.** The forced loss happened (164,760 events) and gave not_covered. | **Accepted** | Any lost event stays not covered, never PASS. |
+| **FB-35-04** Raw trace on interruption; evidence privacy | **Partly a gap.** In the dry run and the coverage experiment, Ctrl+C or an error between the trace start and its stop left the system-wide trace running, and its raw file locked, until the next start. The listing also showed that save names carry identifiers: the machine name and an 8-hex-digit id. | **Accepted** | `netwatch.abort` stops the trace and deletes the raw files. `dryrun.py` and `coverage.py` call it on any exception. `tier_a.py` always stops and analyzes the trace, Ctrl+C included. Its evidence replaces local paths, the machine and user names, and save ids, and keeps only the changes, not the full snapshots. |
+| **Follow-up: prepare the tier A predeclaration** | **Done after a metadata-only listing** the owner approved (F-ENV-014). The game writes no log file. | **Accepted** | `docs/m1-criteria.md` §8 and EXP-048 (NOT_RUN): exact folders, permitted reads, game-written files, actions with beeps, tolerances, monitoring, backup, and gates. Tool: `tools/m1/tier_a.py`. The hypothesis is Tier A NO DATA. It awaits the owner's approval. |
+
+---
+
 ## Feedback on review #34 (PR #26: M1 network monitoring and the elevated dry run)
 
 - **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.

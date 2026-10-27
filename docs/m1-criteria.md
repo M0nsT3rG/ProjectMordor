@@ -1,6 +1,6 @@
 # M1 criteria: read-only observation of game state (draft for the owner's decision)
 
-- **Status: draft, 2026-10-27** (updated for review #32). Nothing in M1 has started. M1 begins only after the owner approves this document. Tier B (below) needs a second, separate approval.
+- **Status: draft, 2026-10-27** (updated for reviews #32–#35; tier A predeclaration in §8). Nothing in M1 has started. M1 begins only after the owner approves this document. Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -120,5 +120,57 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 ## 7. Decisions needed from the owner
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
-2. Approval of this document for M1 **tier A**, after the dry run and the coverage experiment (§6a) have run elevated and ChatGPT has reviewed them.
+2. Approval of this document for M1 **tier A**, with the predeclaration in §8. The dry run and the coverage experiment (§6a) passed elevated, and ChatGPT reviewed them (review #35 and its follow-up).
+
+## 8. Tier A predeclaration (EXP-048; awaiting the owner's approval)
+
+Fixed before any session, after a metadata-only listing of the game's folders that the owner approved (F-ENV-014). No game-side run happens before the owner approves this section.
+
+- **Folders (labels):**
+  - `user`: `%LOCALAPPDATA%/WB Games/Shadow of War`. It holds the saves, render.cfg, gpu.nfo and CloudStorage, and is shared with the earlier Steam install. Files are hashed; saves are hashed but never read.
+  - `install`: the GOG folder, found through GOG's registry entry. It is recorded by size and modification time, because its data is too large to hash twice; `x64` is hashed by the build check.
+  - `Documents/WB Games` holds only another game (Shadow of Mordor) and is not used.
+- **Permitted reads:**
+  - files ending `.cfg .ini .log .txt .json .xml .nfo`, up to 4 MB, in both folders;
+  - opened read-only;
+  - never a `.sav`, never `x64`.
+- **Game-written (`GAME_WRITTEN`):**
+  - `user/*_ShadowOfWar.sav`, `user/render.cfg` and `user/gpu.nfo`, at that depth only;
+  - anything else added or changed is an unexpected write: CloudStorage (new WB content), the install, a new file. The tool never writes to either folder.
+- **What counts as an observed position:** a line with a label (`pos`, `position`, `loc`, `location`), then three numbers, and a clock time `HH:MM:SS` on the same line.
+  - Only lines that were **not** in the permitted files before the session count: an old log cannot pass.
+  - Its time is relative to t=0.
+  - A line without a clock is an invalid observation (INCONCLUSIVE, never PASS).
+  - These count as unreadable evidence (INCONCLUSIVE, never PASS):
+    - a permitted file that cannot be read, before or after the session;
+    - a file over 4 MB;
+    - a link, which is never followed;
+    - a folder that cannot be listed.
+  - A labelled line whose numbers cannot be read exactly (for example `1e6`) is an invalid observation, never a truncated one.
+  - Nothing else is interpreted.
+- **Procedure:** `python -I tools/m1/tier_a.py --session N`, run by the owner from an elevated PowerShell.
+  - **Before:**
+    1. The owner copies the saves aside offline.
+    2. GOG Galaxy, Steam and the game must be closed. The tool refuses otherwise.
+    3. The build check must exit 0, or the session is NOT RUN.
+    4. The tool takes the snapshots and starts the trace. If the trace does not start, the game is not launched.
+  - **The run:**
+    1. The owner launches `ShadowOfWar.exe` directly, loads a save and stands in an open place.
+    2. The owner presses Enter in the console. t=0 is 10 s later.
+    3. **One beep:** stand still, 0–30 s.
+    4. **Two beeps:** walk forward without stopping, 30–60 s.
+    5. **Three beeps:** done. The owner quits through the game's menu.
+  - **After:**
+    1. The tool asks whether the game was closed through its menu, showed any integrity, tamper or debugger warning, or crashed.
+    2. It stops and analyzes the trace, which is then deleted.
+    3. It re-runs the build check and the snapshots, reads the permitted files and classifies the session (§6).
+  - Ctrl+C, or an error at any point after the trace is started, still stops the trace and deletes its raw files. The session ends INCONCLUSIVE, or FAIL if a FAIL condition was seen.
+  - A game the trace never saw has no observed exit. That is missing evidence (INCONCLUSIVE), not an unclean exit.
+  - The tool refuses to start if its evidence folder would sit inside the game's folders.
+- **Tolerances:**
+  - `still_max` 0.5;
+  - `move_min` 5.0 (game units);
+  - `min_obs` 3 per action.
+- **Evidence:** `evidence/logs/m1-tier-a-<time>-s<N>/session.json`. It holds the outcome and reasons, the changes (not the full snapshots), the files scanned, the observations, the exit and the reduced network record. It has no local paths, no machine or user names and no save ids.
+- **Expected (the hypothesis, not a result):** session 1 ends **Tier A INCONCLUSIVE / NO DATA**, because the game writes no log file (F-ENV-014). If so, and every other gate is sound, tier A ends after that one session (§3), and the owner decides whether a tier B predeclaration is written. **Go** needs 3 PASS sessions. Any FAIL, or any other INCONCLUSIVE, stops the series.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.
