@@ -8,13 +8,14 @@
   "game_exe_sha256": "N/A (the dry run never touches the game, its files or its saves)",
   "procedure": "python -I tools/m1/dryrun.py, once without elevation (Claude Code) and once from an elevated PowerShell (the owner; the auto-mode classifier refused an elevation launched by Claude Code). Each case builds a fixture install, fixture config, log and save folders, takes a build check and a snapshot, starts the trace (netwatch start), runs the stand-in, injects its fault, stops the trace (netwatch stop), analyzes it for the stand-in PID, re-checks and re-snapshots, reads the positions from the fixture log and classifies with session.classify. Expected outcomes are fixed in tools/m1/dryrun.py CASES before the runs. The output is evidence/logs/m1-dryrun-<time>-<elevated|not-elevated>/result.json; raw traces are deleted. Before the runs, four read-only Codex passes over the tools found 20 defects (false passes, PID reuse, truncated or unreadable trace files, raw-trace cleanup, invalid tolerances, coordinates and action intervals, order-dependent endpoints, port recording); all were fixed with self-checks in tools/m1/test_m1.py (14 tests).",
   "expected_result": "all_match true in both runs.",
-  "observed_result": "Not run yet (predeclared).",
+  "observed_result": "Without elevation (Claude Code, clean commit 16a2b7e): all 11 cases matched their expected outcome (evidence/logs/m1-dryrun-2026-10-27-023424-not-elevated). The trace could not start, so baseline, ambiguous provenance, no data, position not following, online contact and lost monitoring were INCONCLUSIVE; start build changed NOT RUN; DLL changed, unexpected write, save removed and unclean exit FAIL. The elevated run, which must give the baseline PASS and the online-contact FAIL, has not run yet: it waits for the owner, after EXP-044 on the KI-35 branch, because system-wide network tracing could disturb that timing experiment.",
   "evidence_paths": [
+    "evidence/logs/m1-dryrun-2026-10-27-023424-not-elevated",
     "tools/m1/dryrun.py",
     "docs/m1-criteria.md"
   ],
-  "result": "NOT_RUN",
-  "errors": "None yet.",
+  "result": "PARTIAL",
+  "errors": "The elevated half is pending. A trace launched elevated by Claude Code was refused by the auto-mode classifier, so the owner runs it.",
   "confidence": "medium",
   "follow_up": "ChatGPT review of the method and the dry run; then the owner's decision on M1 tier A. The real-game game_written folders, tolerances and actions are fixed in the M1 predeclaration, not here.",
   "related": [

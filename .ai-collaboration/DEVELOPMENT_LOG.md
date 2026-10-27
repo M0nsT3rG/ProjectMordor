@@ -2,6 +2,22 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #33 follow-up: M1 network monitoring and the dry run (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #33](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, without starting M1.
+- **FB-33-01:** `check_gog_build.py` `main` is run end to end for each outcome, with its exit code and evidence file checked (10 self-checks).
+- **FB-33-02:**
+  - `tools/m1/netwatch.py` uses Windows' own event tracing (`logman`/`tracerpt`).
+  - The event format comes from a probe that the owner ran elevated: a canary process's TCP connect, UDP send and DNS query, each with its PID.
+  - Coverage is proven by canaries, zero lost events, and the target's start and exit inside the window. Processes are keyed by sequence number.
+  - The raw trace is deleted afterwards; the record holds no addresses.
+- **FB-33-03:** `tools/m1/session.py` holds the outcome rules; `tools/m1/dryrun.py` runs EXP-045, 11 fault-injection cases on fixtures.
+  - Four Codex passes before the runs found 20 defects; all are fixed (14 self-checks).
+  - **Not elevated: 11/11 match.** The elevated run is the owner's, after EXP-044.
+- **FB-33-04:** found while writing the record format: the game autosaves and writes logs. The predeclaration now lists the game-written folders. A change elsewhere, or any removal, is a FAIL.
+- **Elevation:** the auto-mode classifier refused an elevated launch by Claude Code, so the owner runs elevated steps.
+- **Open:** the elevated dry run; ChatGPT's answer to #34; then the owner's decision on tier A; the second player's copy.
+
 ## 2026-10-27: Review #32 follow-up: a fail-closed pin check and M1 outcomes (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** [PR #26 review #32](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, without starting M1.
