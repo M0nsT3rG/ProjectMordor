@@ -567,7 +567,7 @@ class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
             def broken(*_, **__):
                 raise RuntimeError("tracerpt output unreadable")
 
-            def session(n, start=0, play_=play(), analyze=lambda *_: clean):
+            def session(n, start=0, play_=play(), analyze=lambda *_: clean, left=()):
                 calls.clear()
                 env = {"LOCALAPPDATA": str(t / "local"), "TEMP": str(t / "temp"), "TMP": str(t / "temp"),
                        "COMPUTERNAME": "DESKTOP-T", "USERNAME": "Tester"}
@@ -582,10 +582,12 @@ class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
                         mock.patch.object(tier_a.gog, "verdict", lambda _: ("VERIFIED", 0)), \
                         mock.patch.object(tier_a.netwatch, "start", lambda w: calls.append("start") or start), \
                         mock.patch.object(tier_a.netwatch, "stop", lambda w: calls.append("stop") or 0), \
-                        mock.patch.object(tier_a.netwatch, "abort", lambda w: calls.append("abort") or []), \
+                        mock.patch.object(tier_a.netwatch, "abort", lambda w: calls.append("abort") or list(left)), \
                         mock.patch.object(tier_a.netwatch, "analyze", analyze):
                     e.pop("TMPDIR", None)
                     rc = tier_a.main(["--session", str(n), "--repo", str(t / "repo")])
+                if rc == 2:
+                    return rc, None, list(calls)
                 out = next((t / "repo" / "evidence" / "logs").glob(f"m1-tier-a-*-s{n}")) / "session.json"
                 text = out.read_text(encoding="utf-8")
                 for leak in (tmp, "4e57de68", "DESKTOP-T", "Tester", "0badf00d"):
@@ -620,6 +622,35 @@ class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
 
             with mock.patch.object(tier_a, "redact", broken), self.assertRaises(RuntimeError):
                 session(6)  # the evidence cannot be written: the run stops loudly, after the trace is gone
+
+            # Codex pass 7: session 6's folder stands for a session killed with its console
+            stale = [d for d in (t / "temp").iterdir() if d.name.startswith("mordor-m1-tier-a-")]
+            self.assertEqual(len(stale), 1)
+            rc, doc, seq = session(7, left=["trace.etl"])  # its raw trace cannot be deleted: refused
+            self.assertEqual((rc, doc, seq), (2, None, ["abort"]))
+            self.assertFalse(list((t / "repo" / "evidence" / "logs").glob("m1-tier-a-*-s7")))
+            rc, doc, seq = session(8)  # stopped and deleted before anything else
+            self.assertEqual(seq[:2], ["abort", "start"])
+            self.assertFalse(stale[0].exists())
+
+    def test_codex_pass_7(self):
+        import tier_a
+        with tempfile.TemporaryDirectory() as tmp:  # a UTF-16 file is read, or reported, never seen as empty
+            user = Path(tmp)
+            (user / "a.log").write_bytes("10:00:01 position 1 2 3\n".encode("utf-16"))  # with a BOM
+            (user / "b.nfo").write_bytes("10:00:01 position 1 2 3\n".encode("utf-16-le"))  # without one
+            (user / "c.cfg").write_bytes(b"\xef\xbb\xbfposition 1 2 3\n")  # UTF-8 with a BOM
+            (user / "d.txt").write_bytes(b"position \xff 1 2 3\n")  # not UTF-8
+            found, scanned, unread = tier_a.scan({"user": user})
+            self.assertEqual(scanned, ["user/a.log", "user/c.cfg"])
+            self.assertEqual([f for f, _ in found], ["user/a.log", "user/c.cfg"])
+            self.assertEqual(unread, ["user/b.nfo (not UTF-8 or UTF-16 text)", "user/d.txt (not UTF-8 or UTF-16 text)"])
+        before = {"user": {"0badf00d_ShadowOfWar.sav.bak": {"size": 1, "sha256": "A"}}}
+        after = {"user": dict(before["user"], **{"0badf00d_1_ShadowOfWar.sav": {"size": 1, "sha256": "B"}})}
+        rec = good_session(before=before, after=after, game_written=tier_a.GAME_WRITTEN)
+        self.assertEqual(tier_a.decide(rec, SEEN, [])[0], "FAIL")  # a backup's name does not vouch for its id
+        out = tier_a.redact({"a": "user/backup4E57DE68.cfg", "b": "about ab"}, {}, known={"4e57de68", "ab"})
+        self.assertEqual(out, {"a": "user/backup<id1>.cfg", "b": "about <id2>"})  # a short id stays whole-token
 
 
 if __name__ == "__main__":

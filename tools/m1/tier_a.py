@@ -13,6 +13,7 @@ user names, no save ids) and never overwrites one.
 from __future__ import annotations
 
 import argparse
+import codecs
 import datetime as dt
 import json
 import os
@@ -80,14 +81,28 @@ def scan(roots: dict[str, Path]) -> tuple[list[tuple[str, str]], list[str], list
                 if p.stat().st_size > TEXT_MAX:
                     unread.append(f"{rel} (over {TEXT_MAX} bytes)")
                     continue
-                with p.open("r", encoding="utf-8", errors="replace") as f:  # read-only
-                    lines = f.readlines()
+                text = decoded(p.read_bytes())  # read-only
             except OSError as e:
                 unread.append(f"{rel} ({type(e).__name__})")
                 continue
+            if text is None:
+                unread.append(f"{rel} (not UTF-8 or UTF-16 text)")
+                continue
             scanned.append(rel)
-            found += [(rel, line.rstrip("\r\n")) for line in lines if CANDIDATE.search(line)]
+            found += [(rel, line) for line in text.splitlines() if CANDIDATE.search(line)]
     return found, scanned, unread
+
+
+def decoded(data: bytes) -> str | None:
+    """UTF-8 (with or without a BOM) or UTF-16 with a BOM. Anything else is unreadable evidence, never guessed: a
+    UTF-16 file read as UTF-8 hides its labels and would look like a file with no position (Codex pass 7)."""
+    enc = next((e for bom, e in ((codecs.BOM_UTF8, "utf-8-sig"), (codecs.BOM_UTF16_LE, "utf-16"),
+                                 (codecs.BOM_UTF16_BE, "utf-16")) if data.startswith(bom)), "utf-8")
+    try:
+        text = data.decode(enc)
+    except UnicodeDecodeError:
+        return None
+    return None if "\x00" in text else text  # UTF-16 without a BOM, or UTF-32
 
 
 def observations(after: list[tuple[str, str]], before: list[tuple[str, str]], t0_wall: dt.datetime | None) -> list[dict]:
@@ -132,9 +147,10 @@ def decide(rec: dict, games: list[dict], unread: list[str]) -> tuple[str, list[s
     outcome, reasons = session.classify(dict(rec, exit=observed))
     # The save pattern covers both uids' saves (Steam's and GOG's); a save under an id that had none before is not
     # one the game was nominated to write (FB-36-01).
-    old = {m.group(0) for f in rec["before"].get("user", {}) if (m := SAVE_ID.search(f))}
+    # Whole save names only: a "<id>_ShadowOfWar.sav.bak" must not vouch for its id (Codex pass 7).
+    old = {m["id"] for f in rec["before"].get("user", {}) if (m := SAVE_NAME.fullmatch(f))}
     added = session.changes(rec["before"], rec["after"])["added"] if rec["after"] else []
-    new = [f for f in added if (m := SAVE_ID.search(f)) and m.group(0) not in old]
+    new = [f for f in added if (m := SAVE_NAME.fullmatch(f.removeprefix("user/"))) and m["id"] not in old]
     if new:
         outcome, reasons = "FAIL", [f"unexpected write: a save under a new id: {f}" for f in new] + reasons
     gaps = missing + [f"unreadable evidence: {u}" for u in unread]
@@ -153,6 +169,7 @@ def no_data(outcome: str, reasons: list[str]) -> bool:
 
 # The id before "_ShadowOfWar.sav" or "_<slot>_ShadowOfWar.sav": an 8-hex-digit uid or a machine name (F-ENV-014).
 SAVE_ID = re.compile(r"(?<![^/\\\s])[^/\\\s]+?(?=_(?:\d+_)?ShadowOfWar\.sav)", re.I)  # a whole name's start
+SAVE_NAME = re.compile(r"(?P<id>[^/\\\s]+?)_(?:\d+_)?ShadowOfWar\.sav", re.I)  # a save at the folder's top
 
 
 def redact(doc, paths: dict[str, Path], keep=("game_written",), known=()):
@@ -194,7 +211,8 @@ def redact(doc, paths: dict[str, Path], keep=("game_written",), known=()):
         if isinstance(o, str):
             o = plain(o)
             for v in sorted(ids, key=len, reverse=True):  # longest first: one id may contain another
-                o = whole(v, ids[v], o)
+                # Inside other names too ("backup4e57de68.cfg", Codex pass 7); a very short one only whole.
+                o = re.sub(re.escape(v), ids[v], o, flags=re.I) if len(v) >= 4 else whole(v, ids[v], o)
             return o
         return o
     return fix(doc)
@@ -290,6 +308,15 @@ def main(argv: list[str]) -> int:
     if not temps:
         print("Refused: TEMP is not set. Nothing was done.")
         return 2
+    # A session killed with its console never ran its clean-up: its trace kept running into its own folder, which a
+    # new session would not look at (Codex pass 7). Stop it and delete it, or refuse.
+    for old in sorted(p for p in temps[0].glob("mordor-m1-tier-a-*") if p.is_dir()):
+        if left := netwatch.abort(old / "net"):
+            print(f"Refused: an earlier session's raw trace could not be deleted ({', '.join(left)} in {old}). "
+                  "Delete it, then run again. Nothing else was done.")
+            return 2
+        shutil.rmtree(old, ignore_errors=True)
+        print(f"Deleted an earlier, interrupted session's trace folder: {old.name}")
     stamp = dt.datetime.now().strftime("%Y-%m-%d-%H%M%S")
     out_dir = out_root / f"m1-tier-a-{stamp}-s{a.session}"
     out_dir.mkdir(parents=True, exist_ok=False)  # evidence is immutable

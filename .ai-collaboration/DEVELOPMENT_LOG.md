@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Codex pass 7 on EXP-048 (`feature/d008-gog-inventory`, PR #26)
+
+- **Run:** the owner asked for it after the usage limit reset. Read-only, on `e1683ec`.
+- **Found 4 defects. All 4 reproduced and fixed, with regressions:**
+  1. A UTF-16 permitted file was decoded as UTF-8. Its labels became unreadable and the file counted as scanned, so a session could establish NO DATA falsely. Now only UTF-8 or UTF-16 with a BOM is read; anything else is unreadable evidence.
+  2. `SAVE_ID` also matched `<id>_ShadowOfWar.sav.bak`, so a backup could vouch for a new id. Ids now come only from whole save names (`SAVE_NAME`).
+  3. A known id inside a longer name (`backup4e57de68.cfg`) was not redacted. Ids of 4 characters or more are now replaced anywhere.
+  4. A session killed with its console left its trace running into its own temporary folder, which the next session never looked at. Before each session the tool now stops the trace and deletes earlier sessions' folders, and refuses to start if a raw file cannot be deleted.
+- **Tests:** 28 self-checks, 1 skipped. The new and extended tests fail against `e1683ec`.
+- **Open:** the owner's approval of §8; session 1 after the KI-35 run.
+
 ## 2026-10-27: Review #37 triage (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** [review #37](https://github.com/M0nsT3rG/ProjectMordor/pull/26). §8 can go to the owner, conditionally. Comparing save ids with the before-snapshot is accepted. No code changes were requested.
