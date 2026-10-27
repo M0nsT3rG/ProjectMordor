@@ -53,6 +53,7 @@ struct Link {
     std::uint64_t client_clock_offset_s = 0;  // to simulate a client whose wall clock is ahead
     int service_every_ms = 0;                 // > 0: service() only this often (late / irregular scheduling)
     std::uint64_t service_calls = 0;
+    std::vector<std::vector<std::uint8_t>> client_rx;  // every datagram delivered to the client (replay tests)
     std::chrono::steady_clock::time_point last_service{};
 
     explicit Link(TransportKind k, ImpairmentConfig imp = {}) : kind(k) {
@@ -115,8 +116,10 @@ struct Link {
             ev.clear();
             client_t->poll(now_us(), ev);
             for (auto& e : ev)
-                if (e.kind == TransportEvent::Kind::Message && client_s && e.peer == to_host)
+                if (e.kind == TransportEvent::Kind::Message && client_s && e.peer == to_host) {
+                    client_rx.push_back(e.bytes);
                     client_s->on_datagram(e.bytes, now_us(), now_unix() + client_clock_offset_s);
+                }
             const auto now = std::chrono::steady_clock::now();
             if (service_every_ms == 0 || now - last_service >= std::chrono::milliseconds(service_every_ms)) {
                 last_service = now;
@@ -714,5 +717,119 @@ TEST(dtls_confirm_binding_survives_loss_jitter_reorder_and_duplication) {
                     static_cast<unsigned long long>(h.app_dropped_before_auth));
         if (c.gate_timeouts == 0) CHECK(h.app_dropped_before_auth == 0);
         CHECK(h.binding_sent <= 30 && c.binding_sent <= 30);  // bounded, as without the flag
+    }
+}
+
+// FB-29-03: BindingAck lifecycle. A delayed, duplicated, replayed or cross-session ack never authenticates an
+// unverified peer, never crosses sessions and never causes a second transition. Both backends.
+
+// A delayed ack: the client's gate times out first (it proceeds as without the flag), then the ack arrives and
+// changes nothing.
+TEST(dtls_confirm_binding_late_ack_after_the_gate_changes_nothing) {
+    for (auto k : backends()) {
+        ImpairmentConfig slow;
+        slow.latency_ms = 150;  // the ack needs a round trip after the client verified the host's binding
+        Link l(k, slow);
+        confirm_both(l, 100'000);  // shorter than that round trip: the gate expires first
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        CHECK(l.pump([&] { return l.client_s->stats().binding_acks_received >= 1; }, 3000));  // the late ack arrived
+        l.report("dtls_confirm_binding_late_ack_after_the_gate_changes_nothing");
+        CHECK(l.client_s->stats().gate_timeouts == 1);
+        CHECK(l.client_s->state() == DtlsState::Authenticated);
+        CHECK(l.client_s->reason().empty());
+    }
+}
+
+// Duplicated datagrams and replayed acks: DTLS drops a record it already read, so an ack is counted at most once
+// per ack the host actually sent, and replaying everything the client ever received changes no state and delivers
+// nothing twice.
+TEST(dtls_confirm_binding_duplicated_and_replayed_acks_are_inert) {
+    for (auto k : backends()) {
+        ImpairmentConfig dup;
+        dup.duplicate = 0.9;
+        dup.seed = 7;
+        Link l(k, dup);
+        confirm_both(l);
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        CHECK(l.host_s->send(std::vector<std::uint8_t>{5}) == SendResult::Sent);
+        std::size_t got = 0;
+        l.pump([&] { got += l.client_s->take_received().size(); return false; }, 500);
+        const auto acks = l.client_s->stats().binding_acks_received;
+        const auto app_in = l.client_s->stats().app_in;
+        l.report("dtls_confirm_binding_duplicated_and_replayed_acks_are_inert");
+        CHECK(acks >= 1 && acks <= l.host_s->stats().binding_acks_sent);  // duplicates never counted twice
+        CHECK(got == 1);
+        const auto captured = l.client_rx;  // replay every datagram the client received, ack included
+        for (const auto& d : captured) l.client_s->on_datagram(d, now_us(), now_unix());
+        CHECK(l.client_s->state() == DtlsState::Authenticated);
+        CHECK(l.client_s->stats().binding_acks_received == acks);
+        CHECK(l.client_s->stats().app_in == app_in);
+        CHECK(l.client_s->take_received().empty());
+    }
+}
+
+namespace {
+bool epoch0(const std::vector<std::uint8_t>& d) { return d.size() > 4 && d[3] == 0 && d[4] == 0; }  // plaintext
+}  // namespace
+
+// Reconnect boundary: the previous session's encrypted records (its binding and ack) replayed into a new client
+// session cannot authenticate it nor count as its ack (different keys); the new session then authenticates on its
+// own host's binding and ack, without a gate timeout.
+TEST(dtls_confirm_binding_an_old_sessions_ack_never_crosses_into_a_new_session) {
+    for (auto k : backends()) {
+        Link l(k);
+        confirm_both(l);
+        l.start_client();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+        const auto old = l.client_rx;
+        l.client_t->close_peer(l.to_host);
+        l.client_s.reset();
+        l.start_client();
+        int replayed = 0;
+        for (const auto& d : old)
+            if (!epoch0(d)) {  // the encrypted ones: binding, ack (handshake flights: the next test)
+                l.client_s->on_datagram(d, now_us(), now_unix());
+                ++replayed;
+            }
+        CHECK(replayed >= 1);
+        CHECK(l.client_s->state() != DtlsState::Authenticated);
+        CHECK(l.client_s->stats().binding_acks_received == 0);
+        const auto* first_host = l.host_s.get();
+        CHECK(l.pump([&] { return l.both(DtlsState::Authenticated) && l.host_s.get() != first_host; }, 10000));
+        l.report("dtls_confirm_binding_an_old_sessions_ack_never_crosses_into_a_new_session");
+        CHECK(l.client_s->stats().gate_timeouts == 0);
+        CHECK(l.client_s->confirmation() == l.host_s->confirmation());
+    }
+}
+
+
+// Found while writing the test above (KI-44, independent of BindingAck: the same with the flag off): the previous
+// session's PLAINTEXT handshake flights injected into a new handshake make it fail closed. The client is rejected
+// (handshake_failed), never authenticated by them; that connection attempt is lost and the client retries.
+TEST(dtls_old_handshake_flights_injected_into_a_new_handshake_fail_closed) {
+    for (auto k : backends()) {
+        for (const bool confirm : {false, true}) {
+            Link l(k);
+            if (confirm) confirm_both(l);
+            l.start_client();
+            CHECK(l.pump([&] { return l.both(DtlsState::Authenticated); }, 10000));
+            const auto old = l.client_rx;
+            l.client_t->close_peer(l.to_host);
+            l.client_s.reset();
+            l.start_client();
+            for (const auto& d : old)
+                if (epoch0(d)) l.client_s->on_datagram(d, now_us(), now_unix());
+            bool ever_authenticated = false;
+            l.pump([&] {
+                ever_authenticated |= l.client_s->state() == DtlsState::Authenticated;
+                return l.client_s->state() == DtlsState::Rejected;
+            }, 6000);
+            l.report(confirm ? "old flights (confirm on)" : "old flights (confirm off)");
+            CHECK(!ever_authenticated);
+            CHECK(l.client_s->state() == DtlsState::Rejected);
+            CHECK(l.client_s->stats().app_in == 0);
+        }
     }
 }

@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #29 (PR #25: EXP-043, 2026-10-26)
+
+- **Status:** implemented (2026-10-27) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-044.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-26T23:59Z). Source and evidence review only.
+- **Verdict:** EXP-043 is a useful negative result; "do not recommend" stands; KI-35 open; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-29-01** Keep `confirm_binding` research-only | **Yes:** off by default, documented as experimental in `docs/protocol.md`, never enabled outside tests and the A/B. | **Accepted** | It stays off and research-only. Removing it before any production merge is recorded as acceptable; promoting it needs a demonstrated end-to-end benefit and the owner. |
+| **FB-29-02** Next: a predeclared DTLS retransmission-timer experiment | **Yes:** EXP-041 shows DTLS as the largest phase in most of the slowest reconnects on both backends. | **Accepted** | EXP-044 is predeclared before any run: timer arms against today's back-off, end-to-end recovery p50/p95/p99, P(> 3 s), handshake retransmissions and attempts, bytes and CPU, failures, matched impairment. The cookie round trip stays a separate, later experiment. No default change without the owner. |
+| **FB-29-03** BindingAck security regressions | **Agreed.** | **Accepted** | 3 new tests, both backends: a late ack after the gate changes nothing; duplicated and replayed acks are inert (counted at most once per ack sent, no transition, nothing delivered twice); an old session's binding and ack never cross into a new session. The unsolicited ack without a verified binding was already covered and is now red-before checked. Fail-closed is unchanged. **Found while writing them (KI-44, independent of BindingAck):** an old session's plaintext handshake flights injected into a new handshake make that attempt fail closed (never authenticate); pinned by a test with the flag on and off. |
+| **FB-29-04** Keep EXP-043's verdict; report it as negative | **Yes.** | **Accepted** | The result heading in `docs/soak-testing.md` now says negative. The session-phase gain is explicitly not a total-recovery gain, with the unchanged default and the intervals. |
+
+---
+
 ## Feedback on reviews #27 and #28 (PR #25: EXP-041 and EXP-042, 2026-10-26)
 
 - **Status:** implemented on `feature/ki35-gns-establishment`. **The owner authorised the behaviour change behind a flag that is off by default** ("faz tudo da revisão #27/#28 … A/B do client-side gating atrás de uma flag desligada por omissão"). Record: EXP-043.

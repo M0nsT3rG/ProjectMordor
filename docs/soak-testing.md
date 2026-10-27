@@ -806,7 +806,7 @@ This was written and committed **before** any run, after reviews #27/#28 (FB-28-
 - **Reported:** session-phase p50/p95; ConnectRequests per reconnect; timeouts and failures per arm; gate timeouts.
 - **Recommendation for the owner, not automatic.** Recommend adoption only if O1 or O2-p95 shows **on better** on at least one backend, **on worse** appears on no backend for O1 or O2, and O4 has no defect. Otherwise do not recommend. KI-35 stays open either way until the soak gate says otherwise.
 
-**EXP-043 result (`ki35-ab-2026-10-26-184205-a68552d`, complete).** 1200 harsh and 200 latency-only reconnects. There were no timeouts, failures or gate timeouts, and every batch was homogeneous (p ≥ 0.013).
+**EXP-043 result: negative (`ki35-ab-2026-10-26-184205-a68552d`, complete).** No improvement in total recovery was shown, so the default stays off (FB-29-04). The faster session phase moves time into DTLS; it is not a recovery gain. 1200 harsh and 200 latency-only reconnects. There were no timeouts, failures or gate timeouts, and every batch was homogeneous (p ≥ 0.013).
 
 | | UDP off | UDP on | GNS off | GNS on |
 |---|---|---|---|---|
