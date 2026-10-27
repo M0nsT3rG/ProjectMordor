@@ -91,6 +91,18 @@ class Rules(unittest.TestCase):
             self.assertFalse(v["complete"])
             self.assertEqual(v["rules"]["reading"], "incomplete")
 
+    def test_an_empty_host_trace_is_incomplete_not_cheap(self):  # Codex pass 2
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), slow_flat=5, slow_off=40)
+            p = Path(tmp) / "udp-4401-flat-harsh" / "cycles.jsonl"
+            cs = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines()]
+            for c in cs:
+                c.update(host_auth=-1.0, host_tx=0, host_timers=0)
+            p.write_text("\n".join(json.dumps(c) for c in cs) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertFalse(v["complete"])
+            self.assertEqual(v["rules"]["reading"], "incomplete")
+
     def test_the_cost_guard_is_exact_at_the_limit(self):  # Codex: a rounded 1.5004 passed
         self.assertTrue(judged(slow_flat=5, slow_off=40, flat_tx=(8, 4))["rules"]["guards"]["C1_cost"])  # 12/8 = 1.5
         v = judged(slow_flat=5, slow_off=40, flat_tx=(8, 4), bump_batch="udp-4401-flat-harsh")  # 3601/300 vs 2400/300

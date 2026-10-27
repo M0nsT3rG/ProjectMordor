@@ -118,8 +118,10 @@ int main(int argc, char** argv) {
             const std::string_view e(ev);
             if (e == "app_dropped_before_auth") cur.host_drops.push_back(ms);
             else if (e == "authenticated" && cur.host_auth < 0) cur.host_auth = ms;
-            else if (e == "timer") ++cur.host_timers;  // traced only before the host session authenticates
-            else if (e == "tx") ++cur.host_tx;         // likewise (the stateless HelloVerifyRequest included)
+            // EXP-044 cost window: until the host authenticated this reconnect. A late duplicate ClientHello can still
+            // reach the stateless listener after that and be answered with a traced HelloVerifyRequest (Codex).
+            else if (e == "timer" && cur.host_auth < 0) ++cur.host_timers;
+            else if (e == "tx" && cur.host_auth < 0) ++cur.host_tx;  // the HelloVerifyRequest included
         };
         hc.secure = hs;
         Logger host_log("host", nullptr);
@@ -148,7 +150,7 @@ int main(int argc, char** argv) {
             const std::string_view e(ev);
             // After t0 only the reconnect's new handshake traces: an authenticated session traces nothing. The first
             // ClientHello can leave in the same update that enters Reconnecting, so no notice gate here.
-            if (e == "tx") ++cur.client_tx;  // traced only before the client authenticates
+            if (e == "tx" && cur.auth < 0) ++cur.client_tx;  // EXP-044 cost window: until the client authenticated
             if (e == "tx" && is_client_hello(detail)) {
                 ++cur.hellos;
                 if (cur.first_hello < 0) cur.first_hello = ms;

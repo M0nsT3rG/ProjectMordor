@@ -52,6 +52,13 @@ def summarize(cycles: list[dict]) -> dict:
             "cpu_ms_per_cycle": mean(cpu)}
 
 
+def traced(c: dict) -> bool:
+    """A successful reconnect authenticated on both sides and each side sent at least one handshake datagram."""
+    counts = [c[f] for f in ("client_tx", "host_tx", "host_timers", "timers", "hellos")]
+    return (all(isinstance(x, int) and x >= 0 for x in counts) and c["client_tx"] >= 1 and c["host_tx"] >= 1
+            and c["hellos"] >= 1 and c["first_hello"] >= 0 and c["auth"] >= 0 and c["host_auth"] >= 0)
+
+
 def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
     run_path = out / "run.json"
     if not run_path.exists():
@@ -71,6 +78,9 @@ def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
             problems.append(f"{nm}: arm/profile not recorded as {a}/{p}")
         if any(f not in c for c in cs for f in TRACE_FIELDS):
             problems.append(f"{nm}: no host trace or cost fields")
+        elif any(not traced(c) for c in cs if c["outcome"] == "ok"):
+            # Fields present but empty: a missing trace would read as a lower cost (Codex pass 2).
+            problems.append(f"{nm}: a successful reconnect without trace evidence of both sides")
         if not (out / nm / "client.log").exists():
             problems.append(f"{nm}: no client log")
         if run.get("exit_codes", {}).get(nm) != 0:
