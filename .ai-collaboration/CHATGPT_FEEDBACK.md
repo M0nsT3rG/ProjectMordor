@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #37 (PR #26: the review #36 follow-up on EXP-048)
+
+- **Status:** triaged (2026-10-27). No code changes were requested.
+- **Source:** [review #37](https://github.com/M0nsT3rG/ProjectMordor/pull/26), a source review of `cf03239`; ChatGPT ran nothing.
+- **Verdict:** FB-36-01..06 substantially addressed. §8 is narrow enough to put to the owner, conditionally. Nothing here authorises running M1, merging or pushing to `main`.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-37-01** Save ids against the before-snapshot | **Yes.** `SAVE_ID` takes only the established syntax: the id before `_ShadowOfWar.sav` or `_<slot>_ShadowOfWar.sav`, starting at a name boundary. A new slot of a known id passes; a new id is a FAIL. | **Accepted** | Already in `cf03239` (`test_new_save_id_and_install_text_hashes`). |
+| **FB-37-02** NO DATA against missing evidence | **Yes.** | **Accepted** | Already in `cf03239` (`no_data`, 7 outcome paths, the rehearsal). |
+| **FB-37-03** Integrity claims | **Yes.** | **Accepted** | §8 keeps the stated limit. The `x64` pin and FAIL on added, removed or changed files are unchanged. |
+| **FB-37-04** Failure precedence; interrupted sessions on the candidate | **Partly checkable here.** The rehearsal shows on `cf03239` that Ctrl+C still stops and analyzes the trace and never gives PASS. Its trace is a stand-in. Real ETW clean-up on an interruption was shown by the elevated EXP-045/046 tooling. With `tier_a.py` it can only be shown elevated, which is the owner's part. | **Accepted** | Rehearsal evidence in `evidence/logs/m1-selfchecks-2026-10-27-143920-cf03239/`. |
+| **FB-37-05** Write failure; no interim evidence left | **Yes.** A write failure stops the tool with an error. By then the raw trace has already been deleted by the analysis, or it is named as not deleted. The temporary folder left in `%TEMP%` holds only the trace state, never the repository's evidence. | **Accepted** | Already in `cf03239`. |
+| **FB-37-06** Final gate | **Agreed.** | **Accepted** | Self-checks run verbosely on the exact head `cf03239`, with a clean tree: 27 (1 skipped) and 10, all passing, kept in the folder above. Still open before any session: Codex pass 7, deferred by the owner; the owner's explicit approval of §8; the end of the KI-35 run. The second player's GOG copy still needs its own check before a two-player test. |
+
+---
+
 ## Feedback on review #36 (PR #26: the M1 tier A predeclaration, EXP-048)
 
 - **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`. The owner asked for ChatGPT's answer to be read and acted on, and deferred Codex pass 7. M1 has not started.

@@ -1,0 +1,19 @@
+{
+  "commit": "cf03239",
+  "dirty": false,
+  "what": "M1 self-checks on the review #37 candidate head, incl. the fixture-only rehearsal of tier_a.main (FB-37-06); no game, no ETW",
+  "runs": [
+    {
+      "suite": "tools/m1/test_m1.py",
+      "exit": 0,
+      "ran": 27,
+      "skipped": 1
+    },
+    {
+      "suite": "tools/environment/test_check_gog_build.py",
+      "exit": 0,
+      "ran": 10,
+      "skipped": 0
+    }
+  ]
+}

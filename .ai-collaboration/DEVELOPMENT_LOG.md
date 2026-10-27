@@ -2,6 +2,12 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #37 triage (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [review #37](https://github.com/M0nsT3rG/ProjectMordor/pull/26). §8 can go to the owner, conditionally. Comparing save ids with the before-snapshot is accepted. No code changes were requested.
+- **Done:** the self-checks were run verbosely on the exact head `cf03239`, with a clean tree, and kept as evidence: `evidence/logs/m1-selfchecks-2026-10-27-143920-cf03239/`, 27 (1 skipped) and 10, all passing, the fixture-only rehearsal included.
+- **Open before session 1:** Codex pass 7 (deferred by the owner), the owner's explicit approval of §8, the end of the KI-35 run.
+
 ## 2026-10-27: Review #36 follow-up: EXP-048 changes before approval (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** [review #36](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Conditional: make the outcome tests, the privacy checks and a fixture-only rehearsal before the owner approves §8. All six items accepted (triage in CHATGPT_FEEDBACK.md).
