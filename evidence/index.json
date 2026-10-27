@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 108,
+  "count": 109,
   "records": [
     {
       "id": "EXP-001",
@@ -474,6 +474,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "KI-35, reviews #27/#28 (FB-28-01/02): does client-side gating (confirm_binding: the host acks the client's verified binding; the client authenticates only after that ack) improve stall-reconnect recovery, at what cost, and does it stay secure? Owner-authorised behaviour change behind a flag that is off by default."
+    },
+    {
+      "id": "EXP-044",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-044.json",
+      "date": "2026-10-27",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #29 (FB-29-02): does the growth of the DTLS handshake retransmission timer drive the stall-reconnect recovery tail? Bounding A/B: off (250 ms initial, doubling, 1 s cap) against flat (250 ms cap, no growth), on host and client. No default change."
     },
     {
       "id": "F-COMM-001",

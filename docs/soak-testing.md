@@ -866,6 +866,31 @@ This was written and committed **before** any tooling or run, after review #29 (
   - Otherwise **"the timer cap is not KI-35's lever"**, and the cookie round trip (FB-28-04) is next.
   - KI-35 stays open either way until the soak gate says otherwise.
 
+**EXP-044 result: "growth matters" (`ki35-timer-2026-10-27-015836-75eb568`, complete, run on `75eb568`, clean).** With no back-off growth, the slow tail shrinks on both backends, at no measurable wire cost. The median does not move. 1200 harsh and 200 latency-only reconnects; no timeouts, failures or reconnects that never started; every harsh arm homogeneous (p ≥ 0.218). Re-analysing the directory gives an identical verdict.
+
+| harsh | UDP off | UDP flat | GNS off | GNS flat |
+|---|---|---|---|---|
+| P(total > 3 s) | 20/300 | 11/300 | 103/300 | **57/300** |
+| Total p50 / p95 / p99 (ms) | 1878 / 3349 / 4548 | 1782 / **2905** / **3577** | 2547 / 4412 / 5683 | 2369 / **3800** / **4705** |
+| DTLS phase p50 / p95 / p99 (ms) | 848 / 2295 / 3571 | 866 / 1772 / 1994 | 818 / 2484 / 3958 | 816 / 1504 / 1812 |
+| Handshake datagrams per reconnect | 10.69 | 11.02 | 10.30 | 10.14 |
+| Timer fires (both sides) / ClientHellos per reconnect | 1.93 / 2.96 | 2.35 / 3.13 | 2.00 / 3.08 | 1.93 / 2.95 |
+
+- **O1, P(total > 3 s):** GNS **flat better**, −0.153, 95% [−0.222, −0.083]. UDP no difference shown, [−0.068, +0.006].
+- **O2:** flat better on both backends.
+  - p95: UDP −444 ms [−953, −9], GNS −612 [−1280, −227];
+  - p99: UDP −971 [−1601, −417], GNS −979 [−3040, −336].
+- **O3, p50 (reported):**
+  - harsh total: UDP −96 ms [−222, +42], GNS −178 [−295, +40]; DTLS phase: UDP +18 [−27, +157], GNS −2 [−37, +33];
+  - latency only total: UDP +33 [−43, +444], GNS −10 [−36, +16].
+  - On the clean path, timer fires per reconnect were 0.06 (off) vs 0.10 (flat) on UDP and 0.06 vs 0.00 on GNS. With a loopback RTT of 160–240 ms, the 250 ms timer barely fired spuriously.
+- **Guards:** C1 datagram ratio UDP 1.030, GNS 0.985 (limit 1.5); C2 0 events in each category in both arms. Both hold.
+- **Reported:** CPU per cycle 54.5 vs 50.1 ms (UDP) and 43.7 vs 45.1 ms (GNS). The probe loop dominates it.
+- **Reading, by the predeclared rule: "growth matters."** The DTLS tail is driven by back-off growth: flat cuts the DTLS p99 roughly in half on both backends.
+  - **No default changes.** `flat` is a bounding arm. RFC 6347 §4.2.4.1 recommends doubling to avoid congestion on real links. This loopback impairment does not model congestion, nor paths whose RTT exceeds 250 ms, where a flat 250 ms timer would retransmit every flight.
+  - **KI-35 is not fixed.** Even with flat, 19% of harsh GNS reconnects take over 3 s: GNS establishment and the session phase remain (EXP-041).
+  - **Next, by the rule:** predeclare a milder setting (for example a 500 ms cap) before any run, including a path whose RTT exceeds the timer. Adopting any setting is an owner decision.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

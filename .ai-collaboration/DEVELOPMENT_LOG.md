@@ -2,6 +2,20 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: review #29 and EXP-044, DTLS retransmission back-off (`feature/ki35-gns-establishment`)
+
+- **Input:** review #29 on PR #25 (FB-29-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md. The owner asked for all of it.
+- **FB-29-03:** 3 BindingAck security tests on both backends (late, duplicated or replayed, and cross-session acks). Writing them found KI-44.
+- **FB-29-04:** EXP-043 is reported as negative.
+- **EXP-044 (FB-29-02):** predeclared before any tooling (`fb90806`).
+  - `SecureTransportConfig::retransmit_max_us` is plumbed to the DTLS session; the default is unchanged. A new test proves the cap reaches the session on both backends (red-before checked).
+  - The probe also records host timer fires, handshake datagrams per side and CPU; `tools/ki35/run_timer_probe.py` applies the rules (16 self-tests).
+  - Codex reviewed the tooling 7 times before the run. Six passes found evidence-gate or classification defects, each fixed with a red-before regression; the seventh approved.
+- **Run on `75eb568`:** complete, 1400 reconnects, no timeouts or failures.
+  - flat (250 ms cap) against off (doubling to 1 s): GNS P(> 3 s) 103/300 to 57/300; p95 and p99 better on both backends; DTLS p99 roughly halved; the median unchanged; the same datagram cost.
+  - **Reading by the predeclared rule: "growth matters."** No default changed: flat is a bounding arm, and RFC 6347 recommends doubling.
+- **Next for KI-35:** predeclare a milder setting (for example a 500 ms cap), then the cookie (FB-28-04). Adoption is the owner's decision.
+
 ## 2026-10-26: EXP-043, A/B of client-side gating (`feature/ki35-gns-establishment`)
 
 - **Input:** reviews #27/#28. The owner authorised the behaviour change behind a flag that is off by default. Triaged in CHATGPT_FEEDBACK.md.
