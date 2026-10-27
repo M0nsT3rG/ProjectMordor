@@ -437,7 +437,7 @@
       "path": "evidence/experiments/EXP-046.json",
       "date": "2026-10-27",
       "subsystem": "experiment",
-      "status": "NOT_RUN",
+      "status": "PARTIAL",
       "scope": "-",
       "confidence": "medium",
       "summary": "Measure which network mechanisms the M1 ETW monitor attributes to a target process (FB-34-01), before the owner decides on tier A: IPv6, a TCP attempt that never connects, a DNS lookup with no connection, very short flows, a child process, and lost events. Never touches the game."

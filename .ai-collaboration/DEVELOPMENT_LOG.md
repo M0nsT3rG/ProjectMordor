@@ -2,6 +2,29 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #34 follow-up: ETW coverage experiment and raw-trace lifecycle (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #34](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it.
+- **FB-34-01:** EXP-046 was predeclared (`60ae022`) before its runs. `tools/m1/coverage.py` covers 7 mechanisms:
+  - IPv6 loopback;
+  - a TCP attempt that never connects;
+  - UDP to 2001:db8::1;
+  - a DNS lookup only;
+  - 50 short flows;
+  - a child process's send;
+  - forced event loss.
+
+  A MATCH needs the claimed protocol (from the ETW task name), the IP family and proven coverage. Contacts now carry the protocol, the family and whether a child sent them. **Not elevated: 7/7 not covered**, as expected.
+- **FB-34-02/03:** `docs/m1-criteria.md` says what a clean record does not prove, and asks for the owner's offline save copy.
+- **FB-34-04:**
+  - A kept or undeletable raw trace is a FAIL (stop condition 10).
+  - A trace never starts beside old raw files.
+  - New command: `netwatch.py cleanup`.
+- **EXP-045:** each case now also needs its predeclared reason. Re-run not elevated on `60ae022`: 11/11.
+- **Codex:** three passes. The first found 5 defects and the second 4, all fixed (17 self-checks); the third was clean.
+- **Found on the way:** Python's `ipaddress` classes the documentation ranges as `is_private`. That does not matter, because any non-loopback peer counts.
+- **Open:** the owner's elevated runs of EXP-045 and EXP-046 after EXP-044; ChatGPT's answer to #35.
+
 ## 2026-10-27: Review #33 follow-up: M1 network monitoring and the dry run (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** [PR #26 review #33](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, without starting M1.

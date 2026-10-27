@@ -8,13 +8,14 @@
   "game_exe_sha256": "N/A (the experiment never touches the game, its files or its saves)",
   "procedure": "python -I tools/m1/coverage.py, once without elevation (Claude Code) and once from an elevated PowerShell (the owner), after EXP-044 on the KI-35 branch has finished. Each case: netwatch start (tiny buffers for the loss case only), the stand-in with that case's action, netwatch stop, netwatch analyze for the stand-in PID, the predeclared check in tools/m1/coverage.py CASES; any raw trace file left is a MISMATCH. Output evidence/logs/m1-coverage-<time>-<elevated|not-elevated>/result.json. PID reuse is covered by the unit tests in tools/m1/test_m1.py; traffic another process makes on the target's behalf is a documented limitation (docs/m1-criteria.md section 4a), not tested.",
   "expected_result": "No MISMATCH in either run; every NOT_APPLICABLE or NOT_DEMONSTRATED case is reported with its reason.",
-  "observed_result": "Not run yet (predeclared).",
+  "observed_result": "Without elevation (Claude Code, clean commit 60ae022): 7/7 not_covered, as expected (evidence/logs/m1-coverage-2026-10-27-031603-not-elevated); every stand-in action got through the OS, IPv6 to 2001:db8::1 included. No raw trace left. The elevated run is the owner's, after EXP-044.",
   "evidence_paths": [
+    "evidence/logs/m1-coverage-2026-10-27-031603-not-elevated",
     "tools/m1/coverage.py",
     "docs/m1-criteria.md"
   ],
-  "result": "NOT_RUN",
-  "errors": "None yet.",
+  "result": "PARTIAL",
+  "errors": "The elevated half is pending.",
   "confidence": "medium",
   "follow_up": "ChatGPT review of both runs, then the owner's decision on M1 tier A.",
   "related": [

@@ -97,7 +97,7 @@ Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed)
   - a stateless cookie (KI-30);
   - an independent review;
   - a LAN test. Until authentication is implemented and reviewed: loopback or trusted lab networks only.
-- **Gate G0:** open since 2026-10-27 (D-007 and D-008: the GOG build). M1's criteria are drafted in `docs/m1-criteria.md` (per-session PASS/FAIL/INCONCLUSIVE/NOT RUN, eight stop conditions, reviews #30 and #32) with ETW network monitoring (§4a) and a dry run on fixtures (EXP-045; not elevated 11/11, the elevated run is the owner's). The owner's approval of tier A comes after the elevated dry run and ChatGPT's answer to request #34. M1 has not started. The second player's GOG copy also needs its read-only check.
+- **Gate G0:** open since 2026-10-27 (D-007 and D-008: the GOG build). M1's criteria are drafted in `docs/m1-criteria.md` (per-session PASS/FAIL/INCONCLUSIVE/NOT RUN, eight stop conditions, reviews #30 and #32) with ETW network monitoring (§4a), a dry run on fixtures (EXP-045, not elevated 11/11) and an ETW coverage experiment (EXP-046, not elevated 7/7 not covered). The elevated runs of both are the owner's, after EXP-044. The owner's approval of tier A comes after them and ChatGPT's answer to request #35. M1 has not started. The second player's GOG copy also needs its read-only check.
 - **LAN test:** approval for a temporary firewall rule.
 
 ## Next tasks (no user input needed)
