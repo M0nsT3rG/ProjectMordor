@@ -117,6 +117,31 @@ class Check(unittest.TestCase):
             install(Path(tmp))
             self.assertEqual(c.main(["--path", tmp, "--no-write"]), 3)  # the real PIN never matches a fixture
 
+    def test_main_exit_code_per_outcome(self):  # FB-33-01: each outcome reaches its exit code and the evidence file
+        cases = [(None, 0, "VERIFIED"),
+                 (lambda r: (r / "goggame-42.info").write_text("{", encoding="utf-8"), 5, "INCOMPLETE"),  # present, unparseable
+                 (lambda r: (r / "goggame-42.info").unlink(), 3, "MISMATCH"),  # required file missing
+                 (lambda r: [p.unlink() for p in (r / "x64").iterdir()] and (r / "x64").rmdir(), 3, "MISMATCH"),
+                 (lambda r: (r / "x64" / "steam_api64.dll").write_bytes(b"changed"), 3, "MISMATCH")]
+        saved = c.PIN, c.version_info
+        c.PIN, c.version_info = PIN, GOOD_VERSION
+        try:
+            for mutate, code, result in cases:
+                with tempfile.TemporaryDirectory() as tmp:
+                    root, repo = Path(tmp) / "game", Path(tmp) / "repo"
+                    root.mkdir()
+                    (repo / "evidence").mkdir(parents=True)
+                    install(root)
+                    if mutate:
+                        mutate(root)
+                    self.assertEqual(c.main(["--path", str(root), "--repo", str(repo)]), code, result)
+                    out = json.loads((repo / "evidence" / "gog-build.json").read_text(encoding="utf-8"))
+                    self.assertEqual((out["result"], out["install"]), (result, "<GOG>"))
+                    text = (repo / "evidence" / "gog-build.json").read_text(encoding="utf-8")
+                    self.assertNotIn(Path(tmp).name, text)  # no local path in the evidence
+        finally:
+            c.PIN, c.version_info = saved
+
 
 if __name__ == "__main__":
     unittest.main()

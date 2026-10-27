@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #33 (PR #26: fail-closed checks and M1 tier A outcomes)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Source and evidence review only.
+- **Verdict:** review #32 substantively addressed; tier A is close to an owner go/no-go but not approved. Nothing authorises a merge or M1.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-33-01** Missing versus unreadable | **Agreed**; this was already the rule. | **Accepted** | A new self-check runs `main` end to end on fixtures for each outcome and checks the exit code and the written evidence: VERIFIED 0; present but unparseable `.info` INCOMPLETE 5; missing `.info`, missing `x64` or a changed DLL MISMATCH 3; not installed 4. 10 self-checks. |
+| **FB-33-02** An operational network check | **Yes.** A point-in-time view (Resource Monitor, polling `Get-NetTCPConnection`) misses short connections and cannot attribute UDP destinations. Windows' own event tracing records every event with its process ID; a format probe on this machine (canary process, owner-run elevated) showed TCP connect, UDP send and DNS query events with the PID, and `Total Events Lost 0` in the summary. | **Accepted** | `tools/m1/netwatch.py` and `docs/m1-criteria.md` §4a: ETW via `logman`/`tracerpt` (built in), Kernel-Network + DNS-Client + Kernel-Process; targets by image and their child processes; coverage proven by start and end canaries, zero lost events and the game's start and exit inside the window; any non-loopback traffic or DNS lookup by a target is unexpected; the raw trace is deleted after analysis and the record holds no addresses. Monitoring failure is INCONCLUSIVE and a stop (condition 9). Starting a trace needs an elevated prompt: the owner runs it. |
+| **FB-33-03** Dry run of the gates | **Agreed.** | **Accepted** | EXP-045, predeclared and committed before its runs: `tools/m1/dryrun.py`, 11 fault-injection cases on fixtures with a stand-in process, expected against actual; never the game. Results below. |
+| **FB-33-04** Scope and order of approval | **Agreed.** Writing the record format surfaced one real gap: the game autosaves and appends to its logs, so "every save hash unchanged" would fail every honest session. | **Accepted** | §4 and §6: the predeclaration lists the game-written folders; a change elsewhere or any removal is a FAIL, and our tools only open files read-only. Tier A approval is now explicitly after the elevated dry run and ChatGPT's review of it (§7). Three PASS sessions for go; NO DATA stays INCONCLUSIVE. |
+
+---
+
 ## Feedback on review #32 (PR #26: the GOG build pin and the M1 criteria)
 
 - **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.

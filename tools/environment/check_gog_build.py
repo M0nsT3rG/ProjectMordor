@@ -169,7 +169,7 @@ def main(argv: list[str]) -> int:
         print(f"GOG release not installed on this machine ({why or 'path is not a directory'}): game-side work is "
               "blocked here (D-008).")
         return 4
-    r = check(install)
+    r = check(install, PIN, version_info)  # module globals at call time, so the self-checks can substitute them
     result, code = verdict(r)
     out = {"checked_at": dt.datetime.now(dt.timezone.utc).isoformat(timespec="seconds"), "install": "<GOG>",
            "pinned": PIN, "result": result, **r}

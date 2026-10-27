@@ -41,6 +41,8 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ./scripts/inventory.ps1        # read-only game discovery + GOG build pin check (D-008) + evidence validate/index
 python -I tools/environment/check_gog_build.py   # exit 0 verified, 3 mismatch, 5 incomplete (both block game-side work), 4 not installed
 python -I tools/environment/test_check_gog_build.py
+python -I tools/m1/test_m1.py      # M1 tier A tools: netwatch (ETW network monitor), session (outcome rules)
+python -I tools/m1/dryrun.py       # EXP-045 dry run on fixtures, never the game; elevated for the network part
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
 ./scripts/test.ps1 -Repeat 3   # ctest (unit 19, integration 60, network 17, transport 19 contract tests)
 ./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (25), gns spike (7), dtls (61)

@@ -1,0 +1,23 @@
+{
+  "id": "EXP-045",
+  "type": "experiment",
+  "date": "2026-10-27",
+  "objective": "Dry run of the M1 tier A gates without the game (FB-33-03): show that the build check, the read-only snapshots, the ETW network monitoring and the outcome rules give the predeclared outcome for a clean session and for each injected fault, before the owner decides on tier A.",
+  "hypothesis": "Run elevated, all 11 cases give their expected outcome: baseline PASS; start build changed NOT RUN; DLL changed during the session, unexpected write, save removed, position not following the movement, unexpected online contact (one UDP datagram to TEST-NET-1 192.0.2.1) and unclean exit FAIL; ambiguous provenance, no data and lost monitoring (no end canary) INCONCLUSIVE. Run without elevation, the trace cannot start, so every case that depends on network coverage is INCONCLUSIVE (baseline, position not following, online contact, lost monitoring, ambiguous provenance, no data), NOT RUN stays NOT RUN, and the other FAIL cases stay FAIL.",
+  "environment": "Windows 11 Pro x64, Python 3.15, logman and tracerpt from Windows; fixtures in a temporary directory; the stand-in is tools/m1/standin.py, not the game",
+  "game_exe_sha256": "N/A (the dry run never touches the game, its files or its saves)",
+  "procedure": "python -I tools/m1/dryrun.py, once without elevation (Claude Code) and once from an elevated PowerShell (the owner; the auto-mode classifier refused an elevation launched by Claude Code). Each case builds a fixture install, fixture config, log and save folders, takes a build check and a snapshot, starts the trace (netwatch start), runs the stand-in, injects its fault, stops the trace (netwatch stop), analyzes it for the stand-in PID, re-checks and re-snapshots, reads the positions from the fixture log and classifies with session.classify. Expected outcomes are fixed in tools/m1/dryrun.py CASES before the runs. The output is evidence/logs/m1-dryrun-<time>-<elevated|not-elevated>/result.json; raw traces are deleted. Before the runs, four read-only Codex passes over the tools found 20 defects (false passes, PID reuse, truncated or unreadable trace files, raw-trace cleanup, invalid tolerances, coordinates and action intervals, order-dependent endpoints, port recording); all were fixed with self-checks in tools/m1/test_m1.py (14 tests).",
+  "expected_result": "all_match true in both runs.",
+  "observed_result": "Not run yet (predeclared).",
+  "evidence_paths": [
+    "tools/m1/dryrun.py",
+    "docs/m1-criteria.md"
+  ],
+  "result": "NOT_RUN",
+  "errors": "None yet.",
+  "confidence": "medium",
+  "follow_up": "ChatGPT review of the method and the dry run; then the owner's decision on M1 tier A. The real-game game_written folders, tolerances and actions are fixed in the M1 predeclaration, not here.",
+  "related": [
+    "EXP-040"
+  ]
+}
