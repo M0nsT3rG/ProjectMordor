@@ -1,16 +1,18 @@
 {
-  "checked_at": "2026-10-27T00:05:40+00:00",
+  "checked_at": "2026-10-27T00:10:41+00:00",
   "install": "<GOG>",
   "pinned": {
     "game_id": "1324471032",
     "build_id": "55823353107546309",
     "file_version": "1.0.2445.0",
-    "sha256": "8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722"
+    "sha256": "F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8",
+    "addons": {
+      "1911721374": "Expansion Pass",
+      "1946859450": "High Resolution Texture Pack"
+    }
   },
-  "result": "MISMATCH",
-  "problems": [
-    "exe SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8 != pinned 8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722"
-  ],
+  "result": "pinned build",
+  "problems": [],
   "facts": {
     "game_id": "1324471032",
     "build_id": "55823353107546309",

@@ -19,13 +19,13 @@
       "location": "pe (the base exe, for comparison)"
     }
   ],
-  "game_build_compatibility": "GOG release with the Expansion Pass and the High Resolution Texture Pack: exe SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8 (FileVersion 1.0.2445.0). Not the build pinned by D-008 (8F84F4A6...).",
+  "game_build_compatibility": "GOG release with the Expansion Pass and the High Resolution Texture Pack: exe SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8 (FileVersion 1.0.2445.0). The build D-008 pins since the owner's amendment of 2026-10-27; the base exe 8F84F4A6... is no longer the target.",
   "verification_method": "Read-only: file listing and times, the add-ons' own GOG metadata and registry entries, Get-FileHash, FileVersion, and the Phase 1 header tool; nothing was modified or executed.",
   "classification": "CONFIRMED",
   "verification_scope": "locally_measured",
   "confidence": "high",
   "limitations": "Same FileVersion, different binary: version strings do not identify a GOG build, only the hash does. Which installer step replaced the exe is inferred from file times (the Expansion Pass, 00:40), not logged. The owner's launch test (F-ENV-011) was on the base exe or the new one: not known.",
-  "next_experiment": "The owner decides whether D-008 pins the new exe (base game + Expansion Pass + HD Texture Pack); if so, the launch test is repeated on it, and the second player installs the same add-ons.",
+  "next_experiment": "The owner repeats the launch test on this exe (D-008 amendment); the second player installs the same three GOG products and passes check_gog_build.py.",
   "related": [
     "F-ENV-009",
     "F-ENV-010",

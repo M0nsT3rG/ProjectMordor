@@ -20,9 +20,11 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from discover_game import PROXY_DLLS, sha256, version_info  # noqa: E402
 
-# Pinned by D-008 (2026-10-27); a change here is a new decision, never an update to make a check pass.
+# Pinned by D-008 as amended by the owner (2026-10-27): the base game + Expansion Pass + HD Texture Pack, whose
+# installer replaced the exe (F-ENV-012). A change here is a new decision, never an update to make a check pass.
 PIN = {"game_id": "1324471032", "build_id": "55823353107546309", "file_version": "1.0.2445.0",
-       "sha256": "8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722"}
+       "sha256": "F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8",
+       "addons": {"1911721374": "Expansion Pass", "1946859450": "High Resolution Texture Pack"}}
 # Files that are not part of the GOG release: Steam emulators and cracks (F-ENV-009's rejected-copy lesson).
 FOREIGN = ["steam_emu.ini", "steam_settings", "steam_api64.cdx", "codex64.dll", "steam_appid.txt", "steamclient64.dll",
            "c000005.dll", "cream_api.ini", "SmartSteamEmu.ini", "goldberg_emulator", "OnlineFix.ini"]
@@ -56,6 +58,14 @@ def check(install: Path, pin: dict = PIN) -> dict:
             problems.append(f"gameId {meta.get('gameId')} != {pin['game_id']}")
         if meta.get("buildId") != pin["build_id"]:
             problems.append(f"buildId {meta.get('buildId')} != {pin['build_id']}")
+    for addon_id, name in pin.get("addons", {}).items():  # part of the pinned set (D-008 amendment)
+        ainfo = install / f"goggame-{addon_id}.info"
+        if not ainfo.is_file():
+            problems.append(f"pinned add-on missing: {name} (goggame-{addon_id}.info)")
+            continue
+        ameta = json.loads(ainfo.read_text(encoding="utf-8"))
+        if ameta.get("buildId") != pin["build_id"] or ameta.get("rootGameId") != pin["game_id"]:
+            problems.append(f"add-on {name}: buildId {ameta.get('buildId')} / rootGameId {ameta.get('rootGameId')} not pinned")
     exe = install / "x64" / "ShadowOfWar.exe"
     if not exe.is_file():
         problems.append("no x64/ShadowOfWar.exe")

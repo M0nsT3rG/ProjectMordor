@@ -14,7 +14,7 @@ All of M1–M10 depend on interacting with the running game or analysing its cod
 
 - The user records a decision in `docs/decisions.md` covering points 2 and 3.
 - A target and method exist that require no circumvention of any protection. One candidate is a DRM-free release: third parties say the GOG version has no DRM (F-COMM-017), and both players would need such copies.
-  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided on 2026-10-27: this GOG build is the target.**
+  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided on 2026-10-27: this GOG build is the target.** Amended the same day: the target is the installed set with the Expansion Pass and the HD Texture Pack, whose installer replaced the exe (F-ENV-012, SHA-256 `F16DC949…`). The launch test is to be repeated on it.
 
 **Until G0 passes, M1–M10 are NO-GO, and no game-side experiment is designed.**
 
