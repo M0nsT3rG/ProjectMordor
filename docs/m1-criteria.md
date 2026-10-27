@@ -9,7 +9,7 @@
 - **Only the build pinned by D-008.** `tools/environment/check_gog_build.py` (run by `scripts/inventory.ps1`) must exit 0 at the **start and the end** of every M1 session.
   - Exit 3 means a different build or foreign files, and the session stops.
   - Exit 4 means the release is not installed, and the session stops.
-- **The pinned set** (D-008, amended 2026-10-27): base game + Expansion Pass + High Resolution Texture Pack, exe SHA-256 `F16DC949…` (F-ENV-012). The check passes on it. M1 still waits for the owner's launch test on this exe.
+- **The pinned set** (D-008, amended 2026-10-27): base game + Expansion Pass + High Resolution Texture Pack, exe SHA-256 `F16DC949…` (F-ENV-012). The check passes on it, and the owner's launch test on it passed (F-ENV-013).
 - **Nothing measured on another build carries over:** not the Steam build, not another GOG build, not third-party offsets (D-005). A new build means a new check and a new decision.
 
 ## 2. The question M1 answers
@@ -71,6 +71,6 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 
 ## 7. Decisions needed from the owner
 
-1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`). Still pending: the owner's launch test on it. The second player installs the same three GOG products.
+1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
 2. Approval of this document for M1 **tier A**.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.

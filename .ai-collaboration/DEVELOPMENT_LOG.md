@@ -15,7 +15,8 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - The pin is unchanged: re-pinning is the owner's decision.
 - **FB-30-02/03:** `docs/m1-criteria.md` is a draft. It defines one value (the player position); tier A (the game's own files, without changing them) before tier B (read-only process observation, separate approval); the fingerprint, the evidence, privacy, go and no-go, and the stop conditions. M1 has not started.
 - **D-008 amended (owner, 2026-10-27):** pin the installed set (base + Expansion Pass + HD Texture Pack, exe `F16DC949…`). `check_gog_build.py` now also requires the two add-ons with the pinned buildId (7 self-checks) and passes on this machine.
-- **Open:** the owner's launch test on the pinned exe; approving M1 tier A; the second player's copy.
+- **F-ENV-013:** the owner reports that the pinned set (with the Expansion Pass) starts and plays with Steam and GOG Galaxy closed.
+- **Open:** approving M1 tier A; the second player's copy.
 
 ## 2026-10-27: Read-only check of the owner's GOG copy (`feature/d008-gog-inventory`)
 

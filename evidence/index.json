@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 106,
+  "count": 107,
   "records": [
     {
       "id": "EXP-001",
@@ -947,6 +947,17 @@
       "scope": "locally_measured",
       "confidence": "high",
       "summary": "After the read-only check of F-ENV-009, two official GOG add-ons were installed into the same GOG release: the Expansion Pass (gameId 1911721374) and the High Resolution Texture Pack (gameId 1946859450), both with buildId 55823353107546309 and rootGameId 1324471032. The Expansion Pass installer replaced ShadowOfWar.exe with a different executable of the same FileVersion (1.0.2445.0): 44,474,880 bytes, SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8, COFF timestamp 2022-09-09 (the base exe: 44,473,856 bytes, SHA-256 8F84F4A6..., 2022-08-26). Its header layout is unchanged: entry point in .text, the same 11 sections, no wrapper indicators."
+    },
+    {
+      "id": "F-ENV-013",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-013.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "medium",
+      "summary": "The pinned GOG set (base game + Expansion Pass + High Resolution Texture Pack, exe SHA-256 F16DC949...) starts and is playable with no Steam client and no GOG Galaxy client running."
     },
     {
       "id": "F-GNS-001",

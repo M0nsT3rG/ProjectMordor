@@ -1,0 +1,28 @@
+{
+  "id": "F-ENV-013",
+  "type": "finding",
+  "date": "2026-10-27",
+  "subsystem": "platform",
+  "claim": "The pinned GOG set (base game + Expansion Pass + High Resolution Texture Pack, exe SHA-256 F16DC949...) starts and is playable with no Steam client and no GOG Galaxy client running.",
+  "evidence": "The owner launched the installed copy, with the Expansion Pass installed, with Steam and GOG Galaxy closed, and reported that it starts and plays (in chat, 2026-10-27). tools/environment/check_gog_build.py passed on that install the same day (evidence/gog-build.json).",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/gog-build.json",
+      "location": "result, facts"
+    }
+  ],
+  "game_build_compatibility": "GOG set pinned by D-008 (amended): exe SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8 (FileVersion 1.0.2445.0).",
+  "verification_method": "Owner's manual launch test on the dev machine, reported in chat. Not observed or automated by Claude Code.",
+  "classification": "CONFIRMED",
+  "verification_scope": "locally_measured",
+  "confidence": "medium",
+  "limitations": "A single manual test by the owner on one machine. Online features (never touched, rule 3) were not part of it. The second player's copy is not yet checked.",
+  "next_experiment": "The owner approves M1 tier A (docs/m1-criteria.md); the second player's copy passes check_gog_build.py before any two-player test.",
+  "related": [
+    "F-ENV-011",
+    "F-ENV-012",
+    "F-ENV-009"
+  ]
+}

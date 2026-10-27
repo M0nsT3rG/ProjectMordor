@@ -25,7 +25,7 @@
   "verification_scope": "locally_measured",
   "confidence": "high",
   "limitations": "Same FileVersion, different binary: version strings do not identify a GOG build, only the hash does. Which installer step replaced the exe is inferred from file times (the Expansion Pass, 00:40), not logged. The owner's launch test (F-ENV-011) was on the base exe or the new one: not known.",
-  "next_experiment": "The owner repeats the launch test on this exe (D-008 amendment); the second player installs the same three GOG products and passes check_gog_build.py.",
+  "next_experiment": "Done: the owner's launch test on this exe passed (F-ENV-013). The second player installs the same three GOG products and passes check_gog_build.py.",
   "related": [
     "F-ENV-009",
     "F-ENV-010",

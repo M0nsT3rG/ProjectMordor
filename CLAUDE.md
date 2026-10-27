@@ -23,7 +23,7 @@ Research toward 2-player co-op for *Middle-earth: Shadow of War* (Steam app 3561
 - **D-007: decided 2026-10-25** (`docs/decisions.md`). The owner proceeds with interoperability work under EU Directive 2009/24/EC and personally accepts the legal risk, without qualified advice. Minimum necessary; every rule above still applies.
 - **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The owner's GOG copy was checked read-only on 2026-10-27 (F-ENV-009/010): it is the GOG release, its executable has none of the Steam wrapper's indicators, and it is a different build (1.0.2445.0, SHA-256 `8F84F4A6…`) from the Steam one. The owner reports that it runs with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided 2026-10-27: the target is this GOG build.** Both players need it; the second copy gets the same read-only check.
   - **Amended 2026-10-27:** the Expansion Pass installer replaced the exe (F-ENV-012), and the owner chose to pin the installed set. `check_gog_build.py` checks the exe hash and the two add-ons. The base exe `8F84F4A6…` is no longer the target.
-  - Game-side work waits for the owner's launch test on the pinned exe. M1's criteria are a draft in `docs/m1-criteria.md`, and M1 has not started.
+  - The owner's launch test on the pinned exe passed (F-ENV-013). M1's criteria are a draft in `docs/m1-criteria.md` awaiting the owner's approval of tier A; M1 has not started.
 
 Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 
