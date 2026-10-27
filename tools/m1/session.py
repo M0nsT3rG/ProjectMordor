@@ -63,10 +63,13 @@ def regular(p: Path) -> bool | None:
     return stat.S_ISREG(st.st_mode)
 
 
-def snapshot(roots: dict[str, Path], meta_only: set[str] = frozenset()) -> dict:
+def snapshot(roots: dict[str, Path], meta_only: set[str] = frozenset(), hash_ext: set[str] = frozenset(),
+             hash_max: int = 0) -> dict:
     """A root may be a folder (recursive) or one file. Labels in meta_only record size and mtime, never open a file:
     for the game's install, whose data is too large to hash twice per session (its x64 folder is hashed by the
-    build check). A folder that cannot be listed is recorded as unreadable."""
+    build check). That is a low-assurance change signal, not proof of unchanged content (FB-36-03), so files there
+    ending in hash_ext, up to hash_max bytes (the small text files a session reads), are still hashed. A folder that
+    cannot be listed is recorded as unreadable."""
     snap = {}
     for label, root in roots.items():
         paths, errors = walk(root)
@@ -80,8 +83,8 @@ def snapshot(roots: dict[str, Path], meta_only: set[str] = frozenset()) -> dict:
                 files[rel] = {"error": "link or not checkable"}
                 continue
             try:
-                if label in meta_only:
-                    st = p.stat()
+                st = p.stat()
+                if label in meta_only and not (p.suffix.lower() in hash_ext and st.st_size <= hash_max):
                     files[rel] = {"size": st.st_size, "mtime_ns": st.st_mtime_ns}
                     continue
                 h = hashlib.sha256()

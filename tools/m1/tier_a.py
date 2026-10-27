@@ -130,6 +130,13 @@ def decide(rec: dict, games: list[dict], unread: list[str]) -> tuple[str, list[s
     missing += ["whether the game was closed through its menu was not recorded"] if menu is None and games else []
     observed = {"code": nonzero[0] if nonzero else 0, "closed_by_menu": True if menu is None else menu}
     outcome, reasons = session.classify(dict(rec, exit=observed))
+    # The save pattern covers both uids' saves (Steam's and GOG's); a save under an id that had none before is not
+    # one the game was nominated to write (FB-36-01).
+    old = {m.group(0) for f in rec["before"].get("user", {}) if (m := SAVE_ID.search(f))}
+    added = session.changes(rec["before"], rec["after"])["added"] if rec["after"] else []
+    new = [f for f in added if (m := SAVE_ID.search(f)) and m.group(0) not in old]
+    if new:
+        outcome, reasons = "FAIL", [f"unexpected write: a save under a new id: {f}" for f in new] + reasons
     gaps = missing + [f"unreadable evidence: {u}" for u in unread]
     # A position that did not follow the actions is a FAIL only on otherwise sound evidence (section 6).
     if gaps and (outcome == "PASS" or (outcome == "FAIL" and all(r.startswith(MOVEMENT) for r in reasons))):
@@ -137,12 +144,22 @@ def decide(rec: dict, games: list[dict], unread: list[str]) -> tuple[str, list[s
     return outcome, reasons + gaps
 
 
-SAVE_ID = re.compile(r"[^/\\\s]+(?=_(?:\d+_)?ShadowOfWar\.sav)", re.I)
+def no_data(outcome: str, reasons: list[str]) -> bool:
+    """Tier A INCONCLUSIVE / NO DATA, established: no position, and nothing else missing (FB-36-02). A session whose
+    monitoring or evidence failed is INCONCLUSIVE too, but it cannot close tier A."""
+    nothing = lambda r: r.startswith("no data:") or re.fullmatch(r"too few observations in .* s: 0", r)  # noqa: E731
+    return outcome == "INCONCLUSIVE" and any(r.startswith("no data:") for r in reasons) and all(map(nothing, reasons))
 
 
-def redact(doc, paths: dict[str, Path], keep=("game_written",)):
-    """No local paths, no machine or user names, no save ids (any save name prefix, from this machine or another).
-    Works on the strings of the record, never on numbers, and leaves the predeclared patterns (`keep`) as they are."""
+# The id before "_ShadowOfWar.sav" or "_<slot>_ShadowOfWar.sav": an 8-hex-digit uid or a machine name (F-ENV-014).
+SAVE_ID = re.compile(r"(?<![^/\\\s])[^/\\\s]+?(?=_(?:\d+_)?ShadowOfWar\.sav)", re.I)  # a whole name's start
+
+
+def redact(doc, paths: dict[str, Path], keep=("game_written",), known=()):
+    """No local paths, no machine or user names, no save ids (any save name prefix, from this machine or another,
+    plus the `known` ids read from the save names on disk), wherever they appear: in a path in either slash style or
+    escaped, in another file's name, in an error message. Works on the strings of the record, never on numbers, and
+    leaves the predeclared patterns (`keep`) as they are."""
     def strings(o):
         if isinstance(o, dict):
             for k, v in o.items():
@@ -155,15 +172,19 @@ def redact(doc, paths: dict[str, Path], keep=("game_written",)):
             yield o
     names = {os.environ.get("COMPUTERNAME", ""), os.environ.get("USERNAME", "")} - {""}
 
+    def whole(v: str, by: str, s: str) -> str:  # whole tokens only: a short name must not eat into "closed"
+        return re.sub(rf"(?<![A-Za-z0-9]){re.escape(v)}(?![A-Za-z0-9])", by, s, flags=re.I)
+
     def plain(s: str) -> str:
-        for token, p in paths.items():  # longest first, both slash styles
-            for form in {str(p), p.as_posix()}:
-                s = s.replace(form, token)
-        for v in names:  # whole names only: a short user name must not eat into "closed" or "covered"
-            s = re.sub(rf"(?<![A-Za-z0-9]){re.escape(v)}(?![A-Za-z0-9])", "<redacted>", s, flags=re.I)
+        for token, p in paths.items():  # longest first; Windows paths ignore case
+            for form in {str(p), p.as_posix(), str(p).replace("\\", "\\\\")}:
+                s = re.sub(re.escape(form), lambda _: token, s, flags=re.I)
+        for v in names:
+            s = whole(v, "<redacted>", s)
         return s
-    ids = {v: f"<id{i}>" for i, v in enumerate(sorted({m for s in strings(doc) for m in SAVE_ID.findall(plain(s))}
-                                                     - {"<redacted>", "*"}), 1)}
+    found = {m for s in strings(doc) for m in SAVE_ID.findall(plain(s))} | set(known)
+    found -= {"<redacted>", "*", ""} | {v for v in found if v.lower() in {n.lower() for n in names}}
+    ids = {v: f"<id{i}>" for i, v in enumerate(sorted(found), 1)}
 
     def fix(o):
         if isinstance(o, dict):
@@ -171,7 +192,10 @@ def redact(doc, paths: dict[str, Path], keep=("game_written",)):
         if isinstance(o, list):
             return [fix(v) for v in o]
         if isinstance(o, str):
-            return SAVE_ID.sub(lambda m: ids.get(m.group(0), m.group(0)), plain(o))
+            o = plain(o)
+            for v in sorted(ids, key=len, reverse=True):  # longest first: one id may contain another
+                o = whole(v, ids[v], o)
+            return o
         return o
     return fix(doc)
 
@@ -273,7 +297,7 @@ def main(argv: list[str]) -> int:
     tmp = Path(tempfile.mkdtemp(prefix="mordor-m1-tier-a-", dir=temps[0]))  # the checked folder, never a fallback
     work = tmp / "net"
     rec = {"build_start": gog.verdict(gog.check(install))[1], "build_end": None,
-           "before": session.snapshot(roots, {"install"}), "after": {}, "game_written": GAME_WRITTEN,
+           "before": session.snapshot(roots, {"install"}, TEXT, TEXT_MAX), "after": {}, "game_written": GAME_WRITTEN,
            "actions": ACTIONS, "tolerances": TOLERANCES, "operator_stops": [], "observations": [], "network": None,
            "exit": {"code": None, "closed_by_menu": None}}  # None: not recorded
     scanned, unread, t0_wall, games = [], [], None, []
@@ -294,7 +318,11 @@ def main(argv: list[str]) -> int:
                 except BaseException:
                     rec["operator_stops"].append("interrupted")
                     netwatch.abort(work)
-                rec["network"] = netwatch.analyze(work, [GAME], [])  # deletes the raw trace on every path
+                try:
+                    rec["network"] = netwatch.analyze(work, [GAME], [])  # deletes the raw trace on every path
+                except BaseException as e:  # FB-36-05: still recorded, with any raw file that is left
+                    rec["network"] = {"raw_not_deleted": netwatch.abort(work), "verdict": "not_covered",
+                                      "coverage_problems": [f"the trace analysis failed ({type(e).__name__})"]}
             else:
                 rec["network"] = {"raw_not_deleted": netwatch.abort(work), "verdict": "not_covered",
                                   "coverage_problems": ["the trace did not start; the game was not launched"]}
@@ -305,14 +333,15 @@ def main(argv: list[str]) -> int:
         games = [t for t in rec["network"].get("targets", []) if t["image"].lower() == GAME.lower()]
         rec["exit"]["code"] = exit_code(games[0]) if len(games) == 1 else None
         rec["build_end"] = gog.verdict(gog.check(install))[1]
-        rec["after"] = session.snapshot(roots, {"install"})
+        rec["after"] = session.snapshot(roots, {"install"}, TEXT, TEXT_MAX)
         lines_after, scanned, unread = scan(roots)
         unread = sorted(set(unread_before) | set(unread))  # a file unread before has no baseline: old lines look new
         rec["observations"] = observations(lines_after, lines_before, t0_wall)
     outcome, reasons = decide(rec, games, unread)
     net = rec["network"] or {}
     doc = {"experiment": "EXP-048", "session": a.session, "commit": head, "dirty": dirty, "outcome": outcome,
-           "reasons": reasons, "build_start": rec["build_start"], "build_end": rec["build_end"],
+           "no_data_established": no_data(outcome, reasons), "reasons": reasons,
+           "build_start": rec["build_start"], "build_end": rec["build_end"],
            "changes": session.changes(rec["before"], rec["after"]) if rec["after"] else None,
            "files": {k: len(v) for k, v in rec["before"].items()}, "game_written": GAME_WRITTEN, "actions": ACTIONS,
            "tolerances": TOLERANCES, "scanned": scanned, "observations": rec["observations"], "exit": rec["exit"],
@@ -321,10 +350,18 @@ def main(argv: list[str]) -> int:
                                                 "contacts", "dns", "targets", "raw_kept", "raw_not_deleted")}}
     paths = dict(sorted({"%TEMP%": tmp, "<install>": install, "%LOCALAPPDATA%": Path(os.environ["LOCALAPPDATA"])}.items(),
                         key=lambda kv: -len(str(kv[1]))))
-    text = json.dumps(redact(doc, paths), indent=2, ensure_ascii=False) + "\n"
-    (out_dir / "session.json").write_text(text, encoding="utf-8")
+    known = {m.group(0) for snap in (rec["before"], rec["after"]) for f in snap.get("user", {})
+             if (m := SAVE_ID.search(f))}
+    try:
+        text = json.dumps(redact(doc, paths, known=known), indent=2, ensure_ascii=False) + "\n"
+        (out_dir / "session.json").write_text(text, encoding="utf-8")
+    except BaseException:  # FB-36-05: say what is left, delete nothing more
+        left = net.get("raw_not_deleted") or "none"
+        print(f"\nThe evidence was NOT written. Raw trace files not deleted: {left}. Left for you to check: {tmp}")
+        raise
     shutil.rmtree(tmp, ignore_errors=True)  # only the trace state is left: analyze deleted the raw trace or failed
-    print(f"\nSession {a.session}: {outcome}" + "".join(f"\n  - {r}" for r in reasons))
+    print(f"\nSession {a.session}: {outcome}" + (" (Tier A NO DATA, established)" if doc["no_data_established"] else "")
+          + "".join(f"\n  - {r}" for r in reasons))
     print(f"Evidence: {out_dir.relative_to(a.repo).as_posix()}/session.json")
     return 0 if outcome == "PASS" else 1
 

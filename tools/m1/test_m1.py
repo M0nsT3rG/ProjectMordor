@@ -464,5 +464,163 @@ class TierA(unittest.TestCase):  # EXP-048: the real-session tool's pure parts
         self.assertEqual(se.classify(s)[0], "INCONCLUSIVE")  # lost access is unreadable evidence, not a removal
 
 
+SEEN = [{"image": "ShadowOfWar.exe", "started_in_trace": True, "exited_in_trace": True, "exit_code": "0"}]
+
+
+class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
+    def test_missing_evidence_is_never_a_clean_exit_nor_masks_a_crash(self):  # FB-36-04
+        import tier_a
+        unseen = [dict(SEEN[0], exited_in_trace=False, exit_code=None)]
+        none = {"code": None, "closed_by_menu": None}
+        cases = {  # (record changes, games, expected)
+            "never started": ({"exit": none}, [], "INCONCLUSIVE"),
+            "exit not seen": ({"exit": dict(none, closed_by_menu=True)}, unseen, "INCONCLUSIVE"),
+            "menu unanswered": ({"exit": none}, SEEN, "INCONCLUSIVE"),
+            "crash unanswered": ({"operator_stops": ["unanswered: crash"]}, SEEN, "INCONCLUSIVE"),
+            "interrupted": ({"operator_stops": ["interrupted"]}, SEEN, "INCONCLUSIVE"),
+            "exit not seen, crash reported": ({"exit": none, "operator_stops": ["crash"]}, unseen, "FAIL"),
+            "recorded non-zero exit": ({"exit": none}, [dict(SEEN[0], exit_code="-1073741819")], "FAIL"),
+        }
+        for name, (over, games, want) in cases.items():
+            got, reasons = tier_a.decide(good_session(**over), games, [])
+            self.assertEqual(got, want, name)
+            self.assertFalse(tier_a.no_data(got, reasons), name)  # none of these can close tier A
+        none_seen = good_session(observations=[], game_written=["saves", "logs", "config"])
+        got, reasons = tier_a.decide(none_seen, SEEN, [])
+        self.assertTrue(tier_a.no_data(got, reasons), reasons)  # FB-36-02: valid, fully covered, no position
+        self.assertFalse(tier_a.no_data(*tier_a.decide(none_seen, SEEN, ["user/gpu.nfo (PermissionError)"])))
+        self.assertFalse(tier_a.no_data(*tier_a.decide(dict(none_seen, network={"verdict": "not_covered",
+                                                                               "coverage_problems": ["x"]}), SEEN, [])))
+
+    def test_redaction_variants(self):  # FB-36-05
+        import os
+        import tier_a
+        from unittest import mock
+        root = Path("C:/Users/Tester/AppData/Local")
+        with mock.patch.dict(os.environ, {"COMPUTERNAME": "DESKTOP-T", "USERNAME": "Tester"}):
+            doc = {"lower": "c:/users/tester/appdata/local/WB Games/x.cfg",
+                   "escaped": "OSError: [WinError 5] 'C:\\\\Users\\\\Tester\\\\AppData\\\\Local\\\\WB Games'",
+                   "short": "C:\\Users\\TESTER~1\\AppData", "slots": ["user/4e57de68_1_ShadowOfWar.sav",
+                                                                      "user/4e57de68_2_ShadowOfWar.sav"],
+                   "other": "user/4e57de68.bak (PermissionError)", "bare": "uid 0badf00d seen",
+                   "host": "user/DESKTOP-T_ShadowOfWar.sav", "keep": "covered, closed, 30-60 s"}
+            out = tier_a.redact(doc, {"%LOCALAPPDATA%": root}, known={"0badf00d"})
+        text = json.dumps(out)
+        for leak in ("Tester", "tester", "TESTER", "4e57de68", "0badf00d", "DESKTOP-T"):
+            self.assertNotIn(leak, text)
+        self.assertEqual(out["slots"][0].replace("_1_", "_2_"), out["slots"][1])  # one uid, one token, any slot
+        self.assertEqual(out["keep"], doc["keep"])
+
+    def test_new_save_id_and_install_text_hashes(self):  # FB-36-01, FB-36-03
+        import tier_a
+        before = {"user": {"4e57de68_1_ShadowOfWar.sav": {"size": 1, "sha256": "A"}}}
+        after = {"user": dict(before["user"], **{"4e57de68_2_ShadowOfWar.sav": {"size": 1, "sha256": "B"}})}
+        rec = good_session(before=before, after=after, game_written=tier_a.GAME_WRITTEN)
+        self.assertNotIn("new id", " ".join(tier_a.decide(rec, SEEN, [])[1]))  # a new slot of a known id
+        after["user"]["0badf00d_ShadowOfWar.sav"] = {"size": 1, "sha256": "C"}
+        outcome, reasons = tier_a.decide(rec, SEEN, [])
+        self.assertEqual(outcome, "FAIL")
+        self.assertIn("unexpected write: a save under a new id: user/0badf00d_ShadowOfWar.sav", reasons)
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "game").mkdir()
+            (Path(tmp) / "game" / "SKU.cfg").write_text("a\n", encoding="utf-8")
+            (Path(tmp) / "game" / "big.arc").write_bytes(b"x" * 10)
+            snap = se.snapshot({"install": Path(tmp)}, {"install"}, tier_a.TEXT, tier_a.TEXT_MAX)["install"]
+            self.assertIn("sha256", snap["game/SKU.cfg"])  # read by the session: hashed at both ends
+            self.assertEqual(set(snap["game/big.arc"]), {"size", "mtime_ns"})
+
+    def test_orchestrator_rehearsal(self):  # FB-36-06: main() on fixtures, with every failure path
+        import datetime as dt
+        import os
+        import tier_a
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp:
+            t = Path(tmp)
+            user = t / "local" / "WB Games" / "Shadow of War"
+            (user / "CloudStorage").mkdir(parents=True)
+            (user / "CloudStorage" / "a-stm").write_bytes(b"1")
+            (user / "4e57de68_1_ShadowOfWar.sav").write_bytes(b"s1")
+            (user / "DESKTOP-T_ShadowOfWar.sav").write_bytes(b"s2")
+            (user / "render.cfg").write_text("Width 1920\n", encoding="utf-8")
+            install = t / "install"
+            (install / "game").mkdir(parents=True)
+            (install / "game" / "SKU.cfg").write_text("a\n", encoding="utf-8")
+            (install / "x64").mkdir()
+            (install / "x64" / "a.dll").write_bytes(b"d")
+            (t / "repo" / "evidence" / "logs").mkdir(parents=True)
+            (t / "temp").mkdir()
+            calls = []
+            clean = {"verdict": "clean", "coverage": "covered", "coverage_problems": [], "raw_not_deleted": [],
+                     "raw_kept": False, "contacts": [], "dns": [], "canaries": {}, "events_lost": 0, "targets": SEEN}
+
+            def play(save=b"s1+"):
+                def run(rec):
+                    calls.append("play")
+                    (user / "4e57de68_1_ShadowOfWar.sav").write_bytes(save)
+                    rec["exit"]["closed_by_menu"] = True
+                    return dt.datetime.now()
+                return run
+
+            def interrupted(rec):
+                raise KeyboardInterrupt
+
+            def broken(*_, **__):
+                raise RuntimeError("tracerpt output unreadable")
+
+            def session(n, start=0, play_=play(), analyze=lambda *_: clean):
+                calls.clear()
+                env = {"LOCALAPPDATA": str(t / "local"), "TEMP": str(t / "temp"), "TMP": str(t / "temp"),
+                       "COMPUTERNAME": "DESKTOP-T", "USERNAME": "Tester"}
+                with mock.patch.dict(os.environ, env) as e, \
+                        mock.patch.object(tier_a.dryrun, "elevated", lambda: True), \
+                        mock.patch.object(tier_a.dryrun, "git_state", lambda _: ("c0ffee", False)), \
+                        mock.patch.object(tier_a, "running", lambda _: []), \
+                        mock.patch.object(tier_a, "ask", lambda _: True), \
+                        mock.patch.object(tier_a, "play", play_), \
+                        mock.patch.object(tier_a.gog, "registry_path", lambda: (install, "")), \
+                        mock.patch.object(tier_a.gog, "check", lambda _: {}), \
+                        mock.patch.object(tier_a.gog, "verdict", lambda _: ("VERIFIED", 0)), \
+                        mock.patch.object(tier_a.netwatch, "start", lambda w: calls.append("start") or start), \
+                        mock.patch.object(tier_a.netwatch, "stop", lambda w: calls.append("stop") or 0), \
+                        mock.patch.object(tier_a.netwatch, "abort", lambda w: calls.append("abort") or []), \
+                        mock.patch.object(tier_a.netwatch, "analyze", analyze):
+                    e.pop("TMPDIR", None)
+                    rc = tier_a.main(["--session", str(n), "--repo", str(t / "repo")])
+                out = next((t / "repo" / "evidence" / "logs").glob(f"m1-tier-a-*-s{n}")) / "session.json"
+                text = out.read_text(encoding="utf-8")
+                for leak in (tmp, "4e57de68", "DESKTOP-T", "Tester", "0badf00d"):
+                    self.assertNotIn(leak, text, n)
+                return rc, json.loads(text), list(calls)
+
+            rc, doc, seq = session(1)
+            self.assertEqual((rc, doc["outcome"], doc["no_data_established"]), (1, "INCONCLUSIVE", True), doc["reasons"])
+            self.assertEqual(seq, ["start", "play", "stop"])
+            self.assertEqual(doc["changes"]["changed"], ["user/<id1>_1_ShadowOfWar.sav"])
+            self.assertEqual(list(t.joinpath("temp").iterdir()), [])  # nothing left in TEMP
+
+            rc, doc, seq = session(2, start=2)  # the trace did not start: the game is never launched
+            self.assertEqual((doc["outcome"], doc["no_data_established"]), ("INCONCLUSIVE", False))
+            self.assertEqual(seq, ["start", "abort"])
+
+            rc, doc, seq = session(3, play_=interrupted)  # Ctrl+C: the trace is still stopped and analyzed
+            self.assertEqual((doc["outcome"], doc["no_data_established"]), ("INCONCLUSIVE", False))
+            self.assertEqual((seq, doc["operator_stops"]), (["start", "stop"], ["interrupted"]))
+
+            rc, doc, seq = session(4, analyze=broken)  # FB-36-05: a failed analysis is recorded, never a crash
+            self.assertEqual((doc["outcome"], doc["no_data_established"]), ("INCONCLUSIVE", False))
+            self.assertEqual(seq, ["start", "play", "stop", "abort"])
+            self.assertIn("the trace analysis failed (RuntimeError)", doc["network"]["coverage_problems"])
+
+            def new_id(rec):
+                (user / "0badf00d_ShadowOfWar.sav").write_bytes(b"n")
+                return play()(rec)
+            rc, doc, _ = session(5, play_=new_id)
+            self.assertEqual(doc["outcome"], "FAIL")
+            self.assertIn("unexpected write: a save under a new id: user/<id1>_ShadowOfWar.sav", doc["reasons"])
+
+            with mock.patch.object(tier_a, "redact", broken), self.assertRaises(RuntimeError):
+                session(6)  # the evidence cannot be written: the run stops loudly, after the trace is gone
+
+
 if __name__ == "__main__":
     unittest.main()

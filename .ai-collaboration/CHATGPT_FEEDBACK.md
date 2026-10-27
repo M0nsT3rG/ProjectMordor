@@ -6,6 +6,23 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #36 (PR #26: the M1 tier A predeclaration, EXP-048)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`. The owner asked for ChatGPT's answer to be read and acted on, and deferred Codex pass 7. M1 has not started.
+- **Source:** [review #36](https://github.com/M0nsT3rG/ProjectMordor/pull/26), a source review; ChatGPT ran nothing.
+- **Verdict:** conditional, changes requested before approval. §8 is a sufficiently narrow draft. One valid NO DATA session closes tier A. Size and time for the non-`x64` install are a low-assurance signal only.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-36-01** Scope; CloudStorage; exact save patterns | **Yes.** `user/*_ShadowOfWar.sav` matched the saves of both ids in the folder, so a save under a new id would have passed as game-written. | **Accepted, one part done differently** | A save under an id that had no save before the session is now an unexpected write (FAIL). CloudStorage stays unexpected, and the patterns are never broadened after a session (§8). **Done differently:** ChatGPT suggested recording the exact expected save names in an owner-only preflight. That file would hold the identifiers. Instead the tool compares the ids with the before-snapshot in memory, which gives the same check. |
+| **FB-36-02** One NO DATA session | **Agreed.** Before this, a session with failed monitoring and no position was also INCONCLUSIVE, and nothing told it apart from a valid NO DATA session. | **Accepted** | `session.json` records `no_data_established` (`tier_a.no_data`). It is true only when no position is the session's only reason. Any other gap keeps it false, and such a session does not close tier A. Tier B is never automatic. |
+| **FB-36-03** Non-x64 install integrity | **Agreed.** Size and time cannot detect a same-size, same-time change. | **Accepted** | `session.snapshot(hash_ext, hash_max)`: the install's permitted text files (the ones a session reads) are hashed at both ends. The limit is stated in §8: nothing is claimed about the content of the other non-`x64` files. |
+| **FB-36-04** Missing exit and outcomes | **Partly.** `session.classify` alone does give FAIL for an unknown exit code. But `tier_a.decide` already passes it only an observed code, and it had regressions since Codex pass 2 (never started, exit not seen, menu answer missing). Not yet tested: an interrupted run, an unanswered crash question, and a missing exit together with a crash the owner reported. | **Accepted** | `Review36.test_missing_evidence_is_never_a_clean_exit_nor_masks_a_crash`: 7 paths. Each is INCONCLUSIVE, except a reported crash or a recorded non-zero exit, which stay FAIL, and none can establish NO DATA. Against the previous code, the new test file errors (red before). |
+| **FB-36-05** Privacy and resilience | **Yes, three gaps.** (1) A save id was replaced only directly before `_ShadowOfWar.sav`. In another file's name or a message it leaked, and with a slot the id and slot became one token. (2) Path replacement was case-sensitive and missed escaped backslashes. (3) An exception in the trace analysis ended the tool with no evidence. | **Accepted** | (1) `SAVE_ID` takes the id alone. Ids found on disk (`known`) are replaced wherever they appear. (2) Paths are replaced case-insensitively, in both slash styles and escaped. (3) A failed analysis is recorded as not covered, with any raw file left. A failed evidence write names the raw files left and the temporary folder it kept, then stops. `test_redaction_variants` covers lower case, escaped paths, 8.3 names, slots, `.bak` names, bare ids, and the machine name. |
+| **FB-36-06** Final preflight | **Agreed.** | **Accepted; Codex pass 7 deferred by the owner** | `test_orchestrator_rehearsal` runs `tier_a.main` on fixtures. It covers a valid NO DATA session, a trace that never started (the game is not launched), Ctrl+C, a failed analysis, a save under a new id, and an evidence write that fails. In each case it checks the call order and that no path, name or id leaks. 27 self-checks, 1 skipped (a symbolic link needs a privilege). Codex pass 7 has not run: the owner deferred it, and it runs on the final head before any session. No session overlaps the KI-35 run. |
+
+---
+
 ## Feedback on review #35 and its follow-up (PR #26: EXP-046 and the elevated runs)
 
 - **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`. The owner asked for ChatGPT's instructions to be carried out, and will test M1 when it is ready. M1 has not started.

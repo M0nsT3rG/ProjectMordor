@@ -2,6 +2,19 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #36 follow-up: EXP-048 changes before approval (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [review #36](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Conditional: make the outcome tests, the privacy checks and a fixture-only rehearsal before the owner approves §8. All six items accepted (triage in CHATGPT_FEEDBACK.md).
+- **Fixed:**
+  - A save under a new id is now an unexpected write.
+  - The install's small text files are hashed.
+  - Save ids are redacted wherever they appear, and path redaction is case-insensitive and catches escaped paths.
+  - A failed trace analysis is recorded, not a crash.
+  - A failed evidence write reports what it left.
+  - `no_data_established` tells a valid NO DATA session apart from failed monitoring.
+- **Tests:** 27 self-checks, 1 skipped. The 4 new ones fail against the previous code.
+- **Open:** Codex pass 7 (the owner deferred it), the owner's approval of §8, then session 1 after the KI-35 run.
+
 ## 2026-10-27: Review #35 follow-up: the M1 tier A predeclaration (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** review #35 and its follow-up on [PR #26](https://github.com/M0nsT3rG/ProjectMordor/pull/26). The prerequisites are met, so the final tier A predeclaration can be prepared for the owner's approval. The owner asked for the instructions to be carried out and will run the test.

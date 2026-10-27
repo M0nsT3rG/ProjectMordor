@@ -121,6 +121,8 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
 2. Approval of this document for M1 **tier A**, with the predeclaration in §8. The dry run and the coverage experiment (§6a) passed elevated, and ChatGPT reviewed them (review #35 and its follow-up).
+   - Review #36 called §8 a sufficiently narrow draft, once its changes were made. They are made: the outcome tests, the privacy checks and a fixture-only rehearsal of the tool.
+   - Before session 1, Codex pass 7 still runs on the final head (the owner deferred it).
 
 ## 8. Tier A predeclaration (EXP-048; awaiting the owner's approval)
 
@@ -128,7 +130,8 @@ Fixed before any session, after a metadata-only listing of the game's folders th
 
 - **Folders (labels):**
   - `user`: `%LOCALAPPDATA%/WB Games/Shadow of War`. It holds the saves, render.cfg, gpu.nfo and CloudStorage, and is shared with the earlier Steam install. Files are hashed; saves are hashed but never read.
-  - `install`: the GOG folder, found through GOG's registry entry. It is recorded by size and modification time, because its data is too large to hash twice; `x64` is hashed by the build check.
+  - `install`: the GOG folder, found through GOG's registry entry. It is recorded by size and modification time, because its data is too large to hash twice; `x64` is hashed by the build check. The text files a session may read (the permitted extensions, up to 4 MB) are hashed at both ends (FB-36-03).
+    - **Limit:** size and time are a low-assurance change signal. They establish nothing about the content of the other non-`x64` files. A file added or removed, or a size or time that changes, is still an unexpected write or a removal.
   - `Documents/WB Games` holds only another game (Shadow of Mordor) and is not used.
 - **Permitted reads:**
   - files ending `.cfg .ini .log .txt .json .xml .nfo`, up to 4 MB, in both folders;
@@ -137,6 +140,8 @@ Fixed before any session, after a metadata-only listing of the game's folders th
 - **Game-written (`GAME_WRITTEN`):**
   - `user/*_ShadowOfWar.sav`, `user/render.cfg` and `user/gpu.nfo`, at that depth only;
   - anything else added or changed is an unexpected write: CloudStorage (new WB content), the install, a new file. The tool never writes to either folder.
+  - The save pattern covers the saves of both ids in the folder (the earlier Steam install's and the GOG copy's). A save under an id that had no save before the session is an unexpected write (FB-36-01). The ids are compared in memory and never recorded.
+  - These patterns are fixed. They are never broadened after a session has been seen.
 - **What counts as an observed position:** a line with a label (`pos`, `position`, `loc`, `location`), then three numbers, and a clock time `HH:MM:SS` on the same line.
   - Only lines that were **not** in the permitted files before the session count: an old log cannot pass.
   - Its time is relative to t=0.
@@ -166,11 +171,19 @@ Fixed before any session, after a metadata-only listing of the game's folders th
     3. It re-runs the build check and the snapshots, reads the permitted files and classifies the session (§6).
   - Ctrl+C, or an error at any point after the trace is started, still stops the trace and deletes its raw files. The session ends INCONCLUSIVE, or FAIL if a FAIL condition was seen.
   - A game the trace never saw has no observed exit. That is missing evidence (INCONCLUSIVE), not an unclean exit.
+  - A trace analysis that fails is recorded as monitoring that did not cover the session, with any raw file left (FB-36-05).
+  - If the evidence itself cannot be written, the tool stops with an error. It names the raw files that were not deleted and the temporary folder it kept, and it deletes nothing more.
   - The tool refuses to start if its evidence folder would sit inside the game's folders.
 - **Tolerances:**
   - `still_max` 0.5;
   - `move_min` 5.0 (game units);
   - `min_obs` 3 per action.
 - **Evidence:** `evidence/logs/m1-tier-a-<time>-s<N>/session.json`. It holds the outcome and reasons, the changes (not the full snapshots), the files scanned, the observations, the exit and the reduced network record. It has no local paths, no machine or user names and no save ids.
-- **Expected (the hypothesis, not a result):** session 1 ends **Tier A INCONCLUSIVE / NO DATA**, because the game writes no log file (F-ENV-014). If so, and every other gate is sound, tier A ends after that one session (§3), and the owner decides whether a tier B predeclaration is written. **Go** needs 3 PASS sessions. Any FAIL, or any other INCONCLUSIVE, stops the series.
+  - The redaction is case-insensitive.
+  - It covers paths with either slash style or escaped backslashes, and any save id from the folder.
+  - Ids are replaced wherever they appear: in another file's name, in an error message, in a plain string (FB-36-05).
+- **Expected (the hypothesis, not a result):** session 1 ends **Tier A INCONCLUSIVE / NO DATA**, because the game writes no log file (F-ENV-014). If so, and every other gate is sound, tier A ends after that one session (§3), and the owner decides whether a tier B predeclaration is written.
+  - `session.json` records this as `no_data_established`. It is true only when the session is INCONCLUSIVE and no position is its only reason (with the zero counts per action that follow from it).
+  - A session whose monitoring or evidence failed is INCONCLUSIVE too, but it cannot establish NO DATA, so it does not close tier A (FB-36-02).
+  - Tier B is never started automatically. **Go** needs 3 PASS sessions. Any FAIL, or any other INCONCLUSIVE, stops the series.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.
