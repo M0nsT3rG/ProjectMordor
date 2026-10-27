@@ -2,6 +2,13 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: The owner approves M1 tier A (`feature/d008-gog-inventory`, PR #26)
+
+- **Decision:** the owner approved `docs/m1-criteria.md` §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). The approval follows reviews #36 and #37 and Codex passes 7 and 8.
+- **What it allows:** EXP-048 session 1, which the owner runs elevated after the KI-35 experiment on PR #25 has finished.
+- **What it does not allow:** tier B. Any later change to §8 or to the session tools needs a new approval.
+- **EXP-048:** still NOT_RUN.
+
 ## 2026-10-27: Codex pass 8 on EXP-048 (`feature/d008-gog-inventory`, PR #26)
 
 - **Run:** the owner asked for it, to check the pass 7 fixes. Read-only, on `25edf8a`.

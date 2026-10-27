@@ -1,6 +1,6 @@
-# M1 criteria: read-only observation of game state (draft for the owner's decision)
+# M1 criteria: read-only observation of game state (tier A approved by the owner)
 
-- **Status: draft, 2026-10-27** (updated for reviews #32–#35; tier A predeclaration in §8). Nothing in M1 has started. M1 begins only after the owner approves this document. Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). No session has run yet; session 1 is the owner's, after the KI-35 experiment. Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -120,12 +120,12 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 ## 7. Decisions needed from the owner
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
-2. Approval of this document for M1 **tier A**, with the predeclaration in §8. The dry run and the coverage experiment (§6a) passed elevated, and ChatGPT reviewed them (review #35 and its follow-up).
+2. ~~Approval of this document for M1 **tier A**, with the predeclaration in §8~~: **approved 2026-10-27** by the owner in chat ("Aprovo o §8 dos critérios da M1 para o nível A"), as of commit `6f2ed04` (code `e171fe0`). The owner runs session 1 after the KI-35 experiment on PR #25 has finished. Any later change to §8 or to `tools/m1/tier_a.py`, `session.py` or `netwatch.py` needs a new approval. The dry run and the coverage experiment (§6a) passed elevated, and ChatGPT reviewed them (review #35 and its follow-up).
    - Review #36 called §8 a sufficiently narrow draft, once its changes were made. They are made: the outcome tests, the privacy checks and a fixture-only rehearsal of the tool.
    - Review #37 found §8 ready for the owner's review, conditionally.
    - Codex pass 7 (2026-10-27) found 4 defects, all fixed with regressions: a UTF-16 file read as having no position, a `.sav.bak` vouching for a new id, an id embedded in a longer name, and an earlier killed session's raw trace. Codex pass 8 checked those fixes and found 1 defect, also fixed: a save id equal to the machine name still leaked inside a longer name.
 
-## 8. Tier A predeclaration (EXP-048; awaiting the owner's approval)
+## 8. Tier A predeclaration (EXP-048; approved by the owner, 2026-10-27)
 
 Fixed before any session, after a metadata-only listing of the game's folders that the owner approved (F-ENV-014). No game-side run happens before the owner approves this section.
 
