@@ -38,6 +38,27 @@
 - **Codex review before the runs:** three passes. The first found 5 defects (matches without the claimed attribution, a child's refused send that stayed invisible, an outcome reached for the wrong reason). The second found 4 (a TCP attempt that connected, a confirmation without proven coverage, an undeletable providers file, an out-of-date hypothesis). The third was clean. There are now 17 self-checks.
 - **Found on the way:** Python's `ipaddress` classes 192.0.2.0/24 and 2001:db8::/32 as `is_private`, so they show as peer "private". The rules treat any non-loopback peer as unexpected, so nothing changes.
 
+## 1a. Update: the elevated runs (added after the request was posted)
+
+The owner ran both tools elevated on `b500439`, after EXP-044 and its test battery had finished. Both experiments are now PASSED.
+
+- **EXP-045** (`evidence/logs/m1-dryrun-2026-10-27-100820-elevated/`): 11/11, each for its predeclared reason.
+  - The baseline was PASS with a clean network verdict: both canaries seen, 0 events lost.
+  - The online-contact case was FAIL on "unexpected online contact".
+  - Lost monitoring was INCONCLUSIVE.
+- **EXP-046** (`evidence/logs/m1-coverage-2026-10-27-100835-elevated/`): 7/7 MATCH, with no NOT_APPLICABLE or NOT_DEMONSTRATED. Every mechanism was attributed with the claimed protocol and IP family:
+  - IPv6 TCP and UDP;
+  - the TCP attempt that never connected (tcp/v4);
+  - UDP to 2001:db8::1 (udp/v6);
+  - the DNS-only lookup;
+  - all 50 brief connects;
+  - the child's send, attributed to the child.
+
+  The forced-loss case lost 164,760 events and gave not_covered.
+- **Raw traces:** none was left in any case.
+
+So question 2's gap did not occur, and question 3's loss was demonstrated.
+
 ## 2. Questions
 
 1. Is the EXP-046 set enough for tier A? Or should another mechanism be tried before the owner decides, for example a raw socket (which needs admin) or an ICMP ping? A game is unlikely to use either without elevation.
@@ -46,7 +67,6 @@
 
 ## 3. Open issues
 
-- **The elevated runs of EXP-045 and EXP-046** (the owner's, after EXP-044).
 - **The M1 predeclaration itself**, written only after the owner approves tier A.
 - **The second player's GOG copy.**
 - **KI-35** (PR #25, separate).

@@ -2,6 +2,26 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Elevated runs of EXP-045 and EXP-046 (`feature/d008-gog-inventory`, PR #26)
+
+- **Who:** the owner ran both tools from an elevated PowerShell on `b500439`, after EXP-044 and its test battery on the KI-35 branch had finished. The game was never touched.
+- **EXP-045:** PASSED, 11/11, each for its predeclared reason.
+  - The baseline was PASS with a clean network verdict.
+  - The online-contact case was FAIL on "unexpected online contact".
+  - Lost monitoring was INCONCLUSIVE.
+- **EXP-046:** PASSED, 7/7 MATCH, with no NOT_APPLICABLE or NOT_DEMONSTRATED. Each mechanism was attributed with the claimed protocol and IP family:
+  - IPv6;
+  - the TCP attempt that never connected;
+  - DNS only;
+  - the 50 brief flows;
+  - the child's send.
+
+  The forced-loss case lost 164,760 events and gave not_covered.
+- **Raw traces:** none was left in any case.
+- **Open:**
+  - ChatGPT's answer to #35, with these results added;
+  - the owner's decision on tier A (M1 not started).
+
 ## 2026-10-27: Review #34 follow-up: ETW coverage experiment and raw-trace lifecycle (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** [PR #26 review #34](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it.

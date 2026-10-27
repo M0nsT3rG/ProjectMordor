@@ -1,0 +1,3833 @@
+{
+  "experiment": "EXP-046",
+  "elevated": true,
+  "commit": "b500439",
+  "dirty": true,
+  "game_touched": false,
+  "cases": [
+    {
+      "case": "ipv6_loopback_attributed",
+      "verdict": "MATCH",
+      "why": "verdict clean, IPv6 TCP True, IPv6 UDP True",
+      "stand_in": {
+        "loop6_tcp": "sent",
+        "loop6_udp": "sent"
+      },
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "events_lost": 0,
+        "contacts": [
+          {
+            "event_id": "26",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64967",
+            "dport": "64966",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "27",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64966",
+            "dport": "64967",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "28",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64967",
+            "dport": "64966",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "29",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64966",
+            "dport": "64967",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "29",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64967",
+            "dport": "64966",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "31",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64966",
+            "dport": "64967",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "34",
+            "proto": "tcp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "64966",
+            "dport": "64967",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "58",
+            "proto": "udp",
+            "ip": "v6",
+            "peer": "loopback",
+            "sport": "52990",
+            "dport": "9",
+            "from_child": false,
+            "count": 1
+          }
+        ],
+        "dns": [],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    },
+    {
+      "case": "tcp_attempt_never_connects",
+      "verdict": "MATCH",
+      "why": "verdict unexpected_contact, public tcp/v4 True",
+      "stand_in": {
+        "tcp 192.0.2.1": "attempted, never connected"
+      },
+      "network": {
+        "verdict": "unexpected_contact",
+        "coverage_problems": [],
+        "events_lost": 0,
+        "contacts": [
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "private",
+            "sport": "64972",
+            "dport": "9",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "16",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "private",
+            "sport": "64972",
+            "dport": "9",
+            "from_child": false,
+            "count": 1
+          }
+        ],
+        "dns": [],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    },
+    {
+      "case": "ipv6_public_udp",
+      "verdict": "MATCH",
+      "why": "verdict unexpected_contact, public udp/v6 True",
+      "stand_in": {
+        "udp 2001:db8::1": "sent"
+      },
+      "network": {
+        "verdict": "unexpected_contact",
+        "coverage_problems": [],
+        "events_lost": 0,
+        "contacts": [
+          {
+            "event_id": "58",
+            "proto": "udp",
+            "ip": "v6",
+            "peer": "public",
+            "sport": "62832",
+            "dport": "9",
+            "from_child": false,
+            "count": 1
+          }
+        ],
+        "dns": [],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    },
+    {
+      "case": "dns_lookup_only",
+      "verdict": "MATCH",
+      "why": "verdict unexpected_contact, dns ['mordor-test.invalid']",
+      "stand_in": {
+        "dns mordor-test.invalid": "asked"
+      },
+      "network": {
+        "verdict": "unexpected_contact",
+        "coverage_problems": [],
+        "events_lost": 0,
+        "contacts": [],
+        "dns": [
+          {
+            "name": "mordor-test.invalid",
+            "count": 2
+          }
+        ],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    },
+    {
+      "case": "brief_flows_then_contact",
+      "verdict": "MATCH",
+      "why": "verdict unexpected_contact, loopback TCP connects attributed 50 of 50",
+      "stand_in": {
+        "brief": "sent",
+        "udp 192.0.2.1": "sent"
+      },
+      "network": {
+        "verdict": "unexpected_contact",
+        "coverage_problems": [],
+        "events_lost": 0,
+        "contacts": [
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53356",
+            "dport": "53355",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53360",
+            "dport": "53357",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53362",
+            "dport": "53361",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53364",
+            "dport": "53363",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53366",
+            "dport": "53365",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53368",
+            "dport": "53367",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53370",
+            "dport": "53369",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53372",
+            "dport": "53371",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53374",
+            "dport": "53373",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53376",
+            "dport": "53375",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53378",
+            "dport": "53377",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53380",
+            "dport": "53379",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53382",
+            "dport": "53381",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53384",
+            "dport": "53383",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53386",
+            "dport": "53385",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53388",
+            "dport": "53387",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53390",
+            "dport": "53389",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53392",
+            "dport": "53391",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53394",
+            "dport": "53393",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53396",
+            "dport": "53395",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53398",
+            "dport": "53397",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53400",
+            "dport": "53399",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53402",
+            "dport": "53401",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53404",
+            "dport": "53403",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53406",
+            "dport": "53405",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53408",
+            "dport": "53407",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53410",
+            "dport": "53409",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53412",
+            "dport": "53411",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53414",
+            "dport": "53413",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53416",
+            "dport": "53415",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53418",
+            "dport": "53417",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53420",
+            "dport": "53419",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53422",
+            "dport": "53421",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53424",
+            "dport": "53423",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53426",
+            "dport": "53425",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53428",
+            "dport": "53427",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53430",
+            "dport": "53429",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53432",
+            "dport": "53431",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53434",
+            "dport": "53433",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53436",
+            "dport": "53435",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53438",
+            "dport": "53437",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53440",
+            "dport": "53439",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53442",
+            "dport": "53441",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53444",
+            "dport": "53443",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53446",
+            "dport": "53445",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53448",
+            "dport": "53447",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53450",
+            "dport": "53449",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53452",
+            "dport": "53451",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53454",
+            "dport": "53453",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "10",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53456",
+            "dport": "53455",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53355",
+            "dport": "53356",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53357",
+            "dport": "53360",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53361",
+            "dport": "53362",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53363",
+            "dport": "53364",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53365",
+            "dport": "53366",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53367",
+            "dport": "53368",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53369",
+            "dport": "53370",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53371",
+            "dport": "53372",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53373",
+            "dport": "53374",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53375",
+            "dport": "53376",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53377",
+            "dport": "53378",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53379",
+            "dport": "53380",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53381",
+            "dport": "53382",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53383",
+            "dport": "53384",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53385",
+            "dport": "53386",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53387",
+            "dport": "53388",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53389",
+            "dport": "53390",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53391",
+            "dport": "53392",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53393",
+            "dport": "53394",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53395",
+            "dport": "53396",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53397",
+            "dport": "53398",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53399",
+            "dport": "53400",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53401",
+            "dport": "53402",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53403",
+            "dport": "53404",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53405",
+            "dport": "53406",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53407",
+            "dport": "53408",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53409",
+            "dport": "53410",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53411",
+            "dport": "53412",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53413",
+            "dport": "53414",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53415",
+            "dport": "53416",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53417",
+            "dport": "53418",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53419",
+            "dport": "53420",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53421",
+            "dport": "53422",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53423",
+            "dport": "53424",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53425",
+            "dport": "53426",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53427",
+            "dport": "53428",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53429",
+            "dport": "53430",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53431",
+            "dport": "53432",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53433",
+            "dport": "53434",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53435",
+            "dport": "53436",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53437",
+            "dport": "53438",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53439",
+            "dport": "53440",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53441",
+            "dport": "53442",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53443",
+            "dport": "53444",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53445",
+            "dport": "53446",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53447",
+            "dport": "53448",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53449",
+            "dport": "53450",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53451",
+            "dport": "53452",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53453",
+            "dport": "53454",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "11",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53455",
+            "dport": "53456",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53356",
+            "dport": "53355",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53360",
+            "dport": "53357",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53362",
+            "dport": "53361",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53364",
+            "dport": "53363",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53366",
+            "dport": "53365",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53368",
+            "dport": "53367",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53370",
+            "dport": "53369",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53372",
+            "dport": "53371",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53374",
+            "dport": "53373",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53376",
+            "dport": "53375",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53378",
+            "dport": "53377",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53380",
+            "dport": "53379",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53382",
+            "dport": "53381",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53384",
+            "dport": "53383",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53386",
+            "dport": "53385",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53388",
+            "dport": "53387",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53390",
+            "dport": "53389",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53392",
+            "dport": "53391",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53394",
+            "dport": "53393",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53396",
+            "dport": "53395",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53398",
+            "dport": "53397",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53400",
+            "dport": "53399",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53402",
+            "dport": "53401",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53404",
+            "dport": "53403",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53406",
+            "dport": "53405",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53408",
+            "dport": "53407",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53410",
+            "dport": "53409",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53412",
+            "dport": "53411",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53414",
+            "dport": "53413",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53416",
+            "dport": "53415",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53418",
+            "dport": "53417",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53420",
+            "dport": "53419",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53422",
+            "dport": "53421",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53424",
+            "dport": "53423",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53426",
+            "dport": "53425",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53428",
+            "dport": "53427",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53430",
+            "dport": "53429",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53432",
+            "dport": "53431",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53434",
+            "dport": "53433",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53436",
+            "dport": "53435",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53438",
+            "dport": "53437",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53440",
+            "dport": "53439",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53442",
+            "dport": "53441",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53444",
+            "dport": "53443",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53446",
+            "dport": "53445",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53448",
+            "dport": "53447",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53450",
+            "dport": "53449",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53452",
+            "dport": "53451",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53454",
+            "dport": "53453",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "12",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53456",
+            "dport": "53455",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53355",
+            "dport": "53356",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53356",
+            "dport": "53355",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53357",
+            "dport": "53360",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53360",
+            "dport": "53357",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53361",
+            "dport": "53362",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53362",
+            "dport": "53361",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53363",
+            "dport": "53364",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53364",
+            "dport": "53363",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53365",
+            "dport": "53366",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53366",
+            "dport": "53365",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53367",
+            "dport": "53368",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53368",
+            "dport": "53367",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53369",
+            "dport": "53370",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53370",
+            "dport": "53369",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53371",
+            "dport": "53372",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53372",
+            "dport": "53371",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53373",
+            "dport": "53374",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53374",
+            "dport": "53373",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53375",
+            "dport": "53376",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53376",
+            "dport": "53375",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53377",
+            "dport": "53378",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53378",
+            "dport": "53377",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53379",
+            "dport": "53380",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53380",
+            "dport": "53379",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53381",
+            "dport": "53382",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53382",
+            "dport": "53381",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53383",
+            "dport": "53384",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53384",
+            "dport": "53383",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53385",
+            "dport": "53386",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53386",
+            "dport": "53385",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53387",
+            "dport": "53388",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53388",
+            "dport": "53387",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53389",
+            "dport": "53390",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53390",
+            "dport": "53389",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53391",
+            "dport": "53392",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53392",
+            "dport": "53391",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53393",
+            "dport": "53394",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53394",
+            "dport": "53393",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53395",
+            "dport": "53396",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53396",
+            "dport": "53395",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53397",
+            "dport": "53398",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53398",
+            "dport": "53397",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53399",
+            "dport": "53400",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53400",
+            "dport": "53399",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53401",
+            "dport": "53402",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53402",
+            "dport": "53401",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53403",
+            "dport": "53404",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53404",
+            "dport": "53403",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53405",
+            "dport": "53406",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53406",
+            "dport": "53405",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53407",
+            "dport": "53408",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53408",
+            "dport": "53407",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53409",
+            "dport": "53410",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53410",
+            "dport": "53409",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53411",
+            "dport": "53412",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53412",
+            "dport": "53411",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53413",
+            "dport": "53414",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53414",
+            "dport": "53413",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53415",
+            "dport": "53416",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53416",
+            "dport": "53415",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53417",
+            "dport": "53418",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53418",
+            "dport": "53417",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53419",
+            "dport": "53420",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53420",
+            "dport": "53419",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53421",
+            "dport": "53422",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53422",
+            "dport": "53421",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53423",
+            "dport": "53424",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53424",
+            "dport": "53423",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53425",
+            "dport": "53426",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53426",
+            "dport": "53425",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53427",
+            "dport": "53428",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53428",
+            "dport": "53427",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53429",
+            "dport": "53430",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53430",
+            "dport": "53429",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53431",
+            "dport": "53432",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53432",
+            "dport": "53431",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53433",
+            "dport": "53434",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53434",
+            "dport": "53433",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53435",
+            "dport": "53436",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53436",
+            "dport": "53435",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53437",
+            "dport": "53438",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53438",
+            "dport": "53437",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53439",
+            "dport": "53440",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53440",
+            "dport": "53439",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53441",
+            "dport": "53442",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53442",
+            "dport": "53441",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53443",
+            "dport": "53444",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53444",
+            "dport": "53443",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53445",
+            "dport": "53446",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53446",
+            "dport": "53445",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53447",
+            "dport": "53448",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53448",
+            "dport": "53447",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53449",
+            "dport": "53450",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53450",
+            "dport": "53449",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53451",
+            "dport": "53452",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53452",
+            "dport": "53451",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53453",
+            "dport": "53454",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53454",
+            "dport": "53453",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53455",
+            "dport": "53456",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "13",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53456",
+            "dport": "53455",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53355",
+            "dport": "53356",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53357",
+            "dport": "53360",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53361",
+            "dport": "53362",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53363",
+            "dport": "53364",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53365",
+            "dport": "53366",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53367",
+            "dport": "53368",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53369",
+            "dport": "53370",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53371",
+            "dport": "53372",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53373",
+            "dport": "53374",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53375",
+            "dport": "53376",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53377",
+            "dport": "53378",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53379",
+            "dport": "53380",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53381",
+            "dport": "53382",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53383",
+            "dport": "53384",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53385",
+            "dport": "53386",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53387",
+            "dport": "53388",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53389",
+            "dport": "53390",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53391",
+            "dport": "53392",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53393",
+            "dport": "53394",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53395",
+            "dport": "53396",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53397",
+            "dport": "53398",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53399",
+            "dport": "53400",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53401",
+            "dport": "53402",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53403",
+            "dport": "53404",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53405",
+            "dport": "53406",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53407",
+            "dport": "53408",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53409",
+            "dport": "53410",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53411",
+            "dport": "53412",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53413",
+            "dport": "53414",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53415",
+            "dport": "53416",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53417",
+            "dport": "53418",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53419",
+            "dport": "53420",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53421",
+            "dport": "53422",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53423",
+            "dport": "53424",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53425",
+            "dport": "53426",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53427",
+            "dport": "53428",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53429",
+            "dport": "53430",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53431",
+            "dport": "53432",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53433",
+            "dport": "53434",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53435",
+            "dport": "53436",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53437",
+            "dport": "53438",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53439",
+            "dport": "53440",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53441",
+            "dport": "53442",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53443",
+            "dport": "53444",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53445",
+            "dport": "53446",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53447",
+            "dport": "53448",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53449",
+            "dport": "53450",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53451",
+            "dport": "53452",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53453",
+            "dport": "53454",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "15",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53455",
+            "dport": "53456",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53355",
+            "dport": "53356",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53357",
+            "dport": "53360",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53361",
+            "dport": "53362",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53363",
+            "dport": "53364",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53365",
+            "dport": "53366",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53367",
+            "dport": "53368",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53369",
+            "dport": "53370",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53371",
+            "dport": "53372",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53373",
+            "dport": "53374",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53375",
+            "dport": "53376",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53377",
+            "dport": "53378",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53379",
+            "dport": "53380",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53381",
+            "dport": "53382",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53383",
+            "dport": "53384",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53385",
+            "dport": "53386",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53387",
+            "dport": "53388",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53389",
+            "dport": "53390",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53391",
+            "dport": "53392",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53393",
+            "dport": "53394",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53395",
+            "dport": "53396",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53397",
+            "dport": "53398",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53399",
+            "dport": "53400",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53401",
+            "dport": "53402",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53403",
+            "dport": "53404",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53405",
+            "dport": "53406",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53407",
+            "dport": "53408",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53409",
+            "dport": "53410",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53411",
+            "dport": "53412",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53413",
+            "dport": "53414",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53415",
+            "dport": "53416",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53417",
+            "dport": "53418",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53419",
+            "dport": "53420",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53421",
+            "dport": "53422",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53423",
+            "dport": "53424",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53425",
+            "dport": "53426",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53427",
+            "dport": "53428",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53429",
+            "dport": "53430",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53431",
+            "dport": "53432",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53433",
+            "dport": "53434",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53435",
+            "dport": "53436",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53437",
+            "dport": "53438",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53439",
+            "dport": "53440",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53441",
+            "dport": "53442",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53443",
+            "dport": "53444",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53445",
+            "dport": "53446",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53447",
+            "dport": "53448",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53449",
+            "dport": "53450",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53451",
+            "dport": "53452",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53453",
+            "dport": "53454",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "18",
+            "proto": "tcp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "53455",
+            "dport": "53456",
+            "from_child": false,
+            "count": 1
+          },
+          {
+            "event_id": "42",
+            "proto": "udp",
+            "ip": "v4",
+            "peer": "private",
+            "sport": "54076",
+            "dport": "9",
+            "from_child": false,
+            "count": 1
+          }
+        ],
+        "dns": [],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    },
+    {
+      "case": "child_process_contact",
+      "verdict": "MATCH",
+      "why": "verdict unexpected_contact, child UDP attributed True",
+      "stand_in": {
+        "child": 0,
+        "child udp 192.0.2.1": "sent"
+      },
+      "network": {
+        "verdict": "unexpected_contact",
+        "coverage_problems": [],
+        "events_lost": 0,
+        "contacts": [
+          {
+            "event_id": "42",
+            "proto": "udp",
+            "ip": "v4",
+            "peer": "private",
+            "sport": "49415",
+            "dport": "9",
+            "from_child": true,
+            "count": 1
+          }
+        ],
+        "dns": [],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          },
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    },
+    {
+      "case": "forced_event_loss",
+      "verdict": "MATCH",
+      "why": "verdict not_covered, events lost 164760",
+      "stand_in": {
+        "flood": 200000
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "events lost: 164760"
+        ],
+        "events_lost": 164760,
+        "contacts": [
+          {
+            "event_id": "42",
+            "proto": "udp",
+            "ip": "v4",
+            "peer": "loopback",
+            "sport": "62574",
+            "dport": "9",
+            "from_child": false,
+            "count": 35317
+          }
+        ],
+        "dns": [],
+        "targets": [
+          {
+            "image": "python.exe",
+            "started_in_trace": true,
+            "exited_in_trace": true,
+            "exit_code": "0"
+          }
+        ]
+      }
+    }
+  ],
+  "no_mismatch": true
+}

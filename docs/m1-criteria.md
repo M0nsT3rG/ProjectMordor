@@ -115,7 +115,7 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 
 ## 6a. Dry run before approval (FB-33-03)
 
-`tools/m1/dryrun.py` (EXP-045) runs all of the above on fixtures in a temporary folder, with a stand-in process instead of the game: build checks, snapshots, a real trace, the log read and the outcome rules. Each of its 11 cases injects one fault and states its expected outcome first. Run elevated, the baseline must PASS and every fault must give its outcome; run without elevation, every case that needs the network must come out INCONCLUSIVE. It never touches the game, its files or its saves. The owner approves tier A only after it passes elevated, together with the coverage experiment EXP-046 (`tools/m1/coverage.py`, FB-34-01).
+`tools/m1/dryrun.py` (EXP-045) runs all of the above on fixtures in a temporary folder, with a stand-in process instead of the game: build checks, snapshots, a real trace, the log read and the outcome rules. Each of its 11 cases injects one fault and states its expected outcome first. Run elevated, the baseline must PASS and every fault must give its outcome; run without elevation, every case that needs the network must come out INCONCLUSIVE. It never touches the game, its files or its saves. The owner approves tier A only after it passes elevated, together with the coverage experiment EXP-046 (`tools/m1/coverage.py`, FB-34-01). Both passed elevated on 2026-10-27 (EXP-045 11/11, EXP-046 7/7; the owner's runs on `b500439`).
 
 ## 7. Decisions needed from the owner
 

@@ -1,0 +1,260 @@
+{
+  "experiment": "EXP-045",
+  "elevated": true,
+  "commit": "b500439",
+  "dirty": false,
+  "game_touched": false,
+  "cases": [
+    {
+      "case": "baseline",
+      "fault": null,
+      "expected": "PASS",
+      "actual": "PASS",
+      "match": true,
+      "required_reason": null,
+      "reasons": [],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "start_build_changed",
+      "fault": "exe_before",
+      "expected": "NOT RUN",
+      "actual": "NOT RUN",
+      "match": true,
+      "required_reason": "start build check",
+      "reasons": [
+        "start build check exit 3"
+      ],
+      "network": null
+    },
+    {
+      "case": "dll_changed_mid_session",
+      "fault": "dll_during",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "match": true,
+      "required_reason": "end build check",
+      "reasons": [
+        "end build check exit 3 (exe or DLL changed, or unverifiable)"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "unexpected_write",
+      "fault": "config_during",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "match": true,
+      "required_reason": "unexpected write: config/",
+      "reasons": [
+        "unexpected write: config/render.cfg"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "save_removed",
+      "fault": "save_removed",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "match": true,
+      "required_reason": "removed: saves/",
+      "reasons": [
+        "removed: saves/slot1.sav"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "ambiguous_provenance",
+      "fault": "no_source",
+      "expected": "INCONCLUSIVE",
+      "actual": "INCONCLUSIVE",
+      "match": true,
+      "required_reason": "ambiguous provenance",
+      "reasons": [
+        "ambiguous provenance at t=1",
+        "ambiguous provenance at t=2",
+        "ambiguous provenance at t=3",
+        "ambiguous provenance at t=11",
+        "ambiguous provenance at t=12",
+        "ambiguous provenance at t=13"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "no_data",
+      "fault": "no_positions",
+      "expected": "INCONCLUSIVE",
+      "actual": "INCONCLUSIVE",
+      "match": true,
+      "required_reason": "no data",
+      "reasons": [
+        "no data: no position observed (Tier A INCONCLUSIVE / NO DATA)",
+        "too few observations in still 0-5 s: 0",
+        "too few observations in move 10-15 s: 0"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "position_does_not_follow",
+      "fault": "static",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "match": true,
+      "required_reason": "did not follow",
+      "reasons": [
+        "position did not follow the movement (10-15 s)"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "unexpected_online_contact",
+      "fault": "contact",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "match": true,
+      "required_reason": "unexpected online contact",
+      "reasons": [
+        "unexpected online contact"
+      ],
+      "network": {
+        "verdict": "unexpected_contact",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [
+          {
+            "event_id": "42",
+            "proto": "udp",
+            "ip": "v4",
+            "peer": "private",
+            "sport": "63723",
+            "dport": "9",
+            "from_child": false,
+            "count": 1
+          }
+        ],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "lost_monitoring",
+      "fault": "no_end_canary",
+      "expected": "INCONCLUSIVE",
+      "actual": "INCONCLUSIVE",
+      "match": true,
+      "required_reason": "end canary not fully seen",
+      "reasons": [
+        "network monitoring: end canary not fully seen"
+      ],
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "end canary not fully seen"
+        ],
+        "canaries": {
+          "start": true,
+          "end": false
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    },
+    {
+      "case": "unclean_exit",
+      "fault": "exit_1",
+      "expected": "FAIL",
+      "actual": "FAIL",
+      "match": true,
+      "required_reason": "no clean exit",
+      "reasons": [
+        "no clean exit (code 1, closed by menu: True)"
+      ],
+      "network": {
+        "verdict": "clean",
+        "coverage_problems": [],
+        "canaries": {
+          "start": true,
+          "end": true
+        },
+        "events_lost": 0,
+        "contacts": [],
+        "raw_not_deleted": []
+      }
+    }
+  ],
+  "all_match": true
+}
