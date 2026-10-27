@@ -297,6 +297,7 @@ private:
         d.handshake_timeout_us = cfg_.pending_lifetime_us;
         d.binding_timeout_us = cfg_.binding_timeout_us;
         d.confirm_binding = cfg_.confirm_binding;
+        d.retransmit_max_us = cfg_.retransmit_max_us;
         return d;
     }
     std::size_t unreserved_pending() const {  // pending sessions of peers that have no established session

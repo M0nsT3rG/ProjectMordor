@@ -362,6 +362,37 @@ TEST(secure_failed_handshake_closes_the_inner_peer) {
     }
 }
 
+// EXP-044 plumbing: SecureTransportConfig::retransmit_max_us reaches the DTLS session. Against a listener that never
+// answers, the default back-off (250 ms, 500 ms, then 1 s) fires 3 timers in 2.1 s; a 250 ms cap fires about 8.
+TEST(secure_retransmit_cap_reaches_the_dtls_session) {
+    CHECK(SecureTransportConfig{}.retransmit_max_us == DtlsConfig{}.retransmit_max_us);  // same default
+    for (auto k : backends()) {
+        std::string err;
+        auto plain = make_transport(k, {}, &err);
+        CHECK(plain && plain->open(Endpoint::loopback(0), true, &err));
+        int timers[2] = {0, 0};
+        for (int arm = 0; arm < 2; ++arm) {
+            Key host_key, player;
+            auto ccfg = *secure(player, {host_key.spki()}, invite());
+            if (arm == 1) ccfg.retransmit_max_us = 250'000;
+            int& n = timers[arm];
+            ccfg.trace = [&n](const char* ev, std::uint64_t, std::uint32_t, std::string_view) { n += std::string_view(ev) == "timer"; };
+            auto c = open_secure(k, ccfg, false);
+            CHECK(c->connect(Endpoint::loopback(plain->local_endpoint().port)).has_value());
+            for (const auto t0 = real_us(); real_us() - t0 < 2'100'000;) {
+                std::vector<TransportEvent> e;
+                c->poll(real_us(), e);
+                plain->poll(real_us(), e);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        }
+        std::printf("       %s: DTLS timers in 2.1 s: %d with the default back-off, %d with a 250 ms cap\n", to_string(k),
+                    timers[0], timers[1]);
+        CHECK(timers[0] >= 2 && timers[0] <= 4);
+        CHECK(timers[1] >= 6);
+    }
+}
+
 // Pre-authentication state is bounded: more unpinned handshakes than max_pending_total are refused, each pending
 // session expires, and afterwards a legitimate player still gets in.
 TEST(secure_pending_sessions_are_capped_and_expire) {

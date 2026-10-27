@@ -204,28 +204,29 @@ def judge(out: Path) -> dict:
     return v
 
 
-def main(argv: list[str]) -> int:
+def main(argv: list[str], batches=BATCHES, judge=judge, prefix: str = "ki35-ab", doc: str = __doc__) -> int:
+    """Runs `batches` in order into a fresh evidence directory and judges it (EXP-043; EXP-044 reuses it)."""
     if argv[:1] == ["--analyze"] and len(argv) == 2:
         print(json.dumps(judge(Path(argv[1])), indent=2))
         return 0
     if not argv or not Path(argv[0]).is_file():
-        print(__doc__)
+        print(doc)
         return 2
     git = lambda *a: subprocess.run(["git", *a], cwd=ROOT, capture_output=True, text=True).stdout.strip()
     commit = git("rev-parse", "HEAD")
     dirty = bool(git("status", "--porcelain", "--", ".", ":(exclude)evidence"))
     started = datetime.datetime.now()
-    out = ROOT / "evidence" / "logs" / f"ki35-ab-{started:%Y-%m-%d-%H%M%S}-{commit[:7]}{'-dirty' if dirty else ''}"
+    out = ROOT / "evidence" / "logs" / f"{prefix}-{started:%Y-%m-%d-%H%M%S}-{commit[:7]}{'-dirty' if dirty else ''}"
     out.mkdir(parents=True)  # raises if it exists: evidence is never overwritten
     exe = str(Path(argv[0]).resolve())
     codes = {}
-    for b, s, a, p, n in BATCHES:
+    for b, s, a, p, n in batches:
         d = out / name(b, s, a, p)
         d.mkdir()
         codes[d.name] = run_bounded([exe, b, str(n), str(s), str(d / "client.log"), a, p], d / "cycles.jsonl", 7200)
         print(f"{d.name}: exit {codes[d.name]}, {len(rc.load_cycles(d))} cycles", flush=True)
         (out / "run.json").write_text(json.dumps({"started": started.isoformat(timespec="seconds"), "commit": commit, "dirty": dirty,
-                                                  "batches": BATCHES, "exit_codes": codes}, indent=2) + "\n", encoding="utf-8")
+                                                  "batches": batches, "exit_codes": codes}, indent=2) + "\n", encoding="utf-8")
     verdict = judge(out)
     (out / "verdict.json").write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8")
     print(json.dumps(verdict["rules"], indent=2))

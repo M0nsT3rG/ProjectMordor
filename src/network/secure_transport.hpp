@@ -60,7 +60,10 @@ struct SecureTransportConfig {
     bool skip_cookie_when_inner_proves_routability = false;
     // EXP-043 experiment (FB-28-01), default off, both ends: see DtlsConfig::confirm_binding.
     bool confirm_binding = false;
-    std::function<std::uint64_t()> unix_clock;               // wall-clock seconds; default std::time
+    // EXP-044 experiment variable (FB-29-02): the DTLS handshake retransmission cap, both ends. Same default as
+    // DtlsConfig::retransmit_max_us (a test pins that they match).
+    std::uint32_t retransmit_max_us = 1'000'000;
+    std::function<std::uint64_t()> unix_clock;              // wall-clock seconds; default std::time
     // KI-35 diagnostics: handed to every DTLS session (see DtlsConfig::trace). No secrets.
     std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;
 };
