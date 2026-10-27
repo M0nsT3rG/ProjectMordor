@@ -53,10 +53,14 @@ def summarize(cycles: list[dict]) -> dict:
 
 
 def traced(c: dict) -> bool:
-    """A successful reconnect authenticated on both sides and each side sent at least one handshake datagram."""
-    counts = [c[f] for f in ("client_tx", "host_tx", "host_timers", "timers", "hellos")]
-    return (all(isinstance(x, int) and x >= 0 for x in counts) and c["client_tx"] >= 1 and c["host_tx"] >= 1
-            and c["hellos"] >= 1 and c["first_hello"] >= 0 and c["auth"] >= 0 and c["host_auth"] >= 0)
+    """The trace evidence a cycle's phases imply. Counts are non-negative integers; a client that completed its
+    handshake saw both sides send; a reconnect that reached Connected also authenticated on the host (Codex pass 3:
+    no_snapshot cycles reach Connected too)."""
+    if not all(isinstance(c[f], int) and c[f] >= 0 for f in ("client_tx", "host_tx", "host_timers", "timers", "hellos")):
+        return False
+    if c["auth"] >= 0 and not (c["client_tx"] >= 1 and c["host_tx"] >= 1 and c["hellos"] >= 1 and c["first_hello"] >= 0):
+        return False
+    return c["connected"] < 0 or (c["auth"] >= 0 and c["host_auth"] >= 0)
 
 
 def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
@@ -78,9 +82,9 @@ def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
             problems.append(f"{nm}: arm/profile not recorded as {a}/{p}")
         if any(f not in c for c in cs for f in TRACE_FIELDS):
             problems.append(f"{nm}: no host trace or cost fields")
-        elif any(not traced(c) for c in cs if c["outcome"] == "ok"):
-            # Fields present but empty: a missing trace would read as a lower cost (Codex pass 2).
-            problems.append(f"{nm}: a successful reconnect without trace evidence of both sides")
+        elif not all(traced(c) for c in cs):
+            # Fields present but empty: a missing trace would read as a lower cost (Codex passes 2 and 3).
+            problems.append(f"{nm}: a reconnect without the trace evidence its phases imply")
         if not (out / nm / "client.log").exists():
             problems.append(f"{nm}: no client log")
         if run.get("exit_codes", {}).get(nm) != 0:
