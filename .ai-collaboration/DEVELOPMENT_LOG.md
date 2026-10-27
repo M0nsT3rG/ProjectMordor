@@ -2,6 +2,20 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #30 follow-up: GOG build pin and M1 criteria (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #30](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, after review #29, which went to the KI-35 session.
+- **FB-30-04:** `tools/environment/check_gog_build.py` (6 self-checks) is run by `scripts/inventory.ps1`.
+  - It checks the store metadata, the exe SHA-256 and FileVersion, and the absence of crack, emulator and proxy-DLL files, against the D-008 pin.
+  - It writes `evidence/gog-build.json` without paths.
+  - Exit 3 blocks the inventory.
+- **The check failed on its first real run:** the official Expansion Pass installer had replaced the exe after the morning check (F-ENV-012).
+  - Same FileVersion, new SHA-256 `F16DC949…`, compiled 2022-09-09, the same header layout and no wrapper indicators.
+  - The High Resolution Texture Pack was installed too.
+  - The pin is unchanged: re-pinning is the owner's decision.
+- **FB-30-02/03:** `docs/m1-criteria.md` is a draft. It defines one value (the player position); tier A (the game's own files, without changing them) before tier B (read-only process observation, separate approval); the fingerprint, the evidence, privacy, go and no-go, and the stop conditions. M1 has not started.
+- **Open:** the owner's choice of exe for D-008 (and a repeated launch test); approving M1 tier A.
+
 ## 2026-10-27: Read-only check of the owner's GOG copy (`feature/d008-gog-inventory`)
 
 - **Input:** the owner bought and installed the GOG release and asked for a read-only check. Nothing was modified, executed or recorded about its location.

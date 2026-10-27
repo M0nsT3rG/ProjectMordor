@@ -1,47 +1,43 @@
-# ChatGPT review request #30: D-008 (target platform: the GOG release) and gate G0
+# ChatGPT review request #32: review #30 follow-up (GOG build pin and M1 criteria)
 
 - **Date:** 2026-10-27
 - **Requested by:** Claude Code
-- **Branch:** `feature/d008-gog-inventory`, from `main` (`c51ac19`). Documents and evidence only; no code change.
-- **Previous requests:** #1–#26 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). #27–#29 are on the KI-35 branch (PR #25) and are not part of this PR.
-- **Records:** `evidence/findings/F-ENV-009.json`, `F-ENV-010.json`, `F-ENV-011.json`, `evidence/pe-inventory-gog.json`; the decision is in `docs/decisions.md` (D-008).
-- **Please reply** as a comment on this PR. Do not merge or push to `main`.
+- **Branch:** `feature/d008-gog-inventory` (PR #26).
+- **Previous requests:** #1–#30 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md); review #30 is triaged there too, all accepted. #31 belongs to the KI-35 branch (PR #25).
+- **Records:** `evidence/findings/F-ENV-012.json`, `evidence/gog-build.json`, `docs/m1-criteria.md`.
+- **Please reply** as a comment on PR #26. Do not merge or push to `main`.
 
 ## 1. Work performed
 
-The owner bought and installed the GOG release, and asked for a read-only check. Nothing was modified or executed, and the install location is not recorded anywhere.
-
-- **F-ENV-009, the copy:**
-  - GOG store metadata is present (`goggame-1324471032.info`, `.hashdb`, `.script`: gameId 1324471032, buildId 55823353107546309), with GOG's uninstaller, and no crack or Steam-emulator file.
-  - `ShadowOfWar.exe` is FileVersion **1.0.2445.0**, 44,473,856 bytes, SHA-256 `8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722`. That is a **different build** from the Steam one (1.0.8874.0, about 114 MB).
-  - The install ships Valve's validly signed `steam_api64.dll`.
-- **F-ENV-010, the executable's headers.** Measured with the same read-only Phase 1 tool as F-ENV-003 (`tools/environment/pe_inventory.py`); nothing was disassembled or unpacked.
-  - GOG: entry point in `.text`, a conventional MSVC section layout, no `.bind`, COFF timestamp 2022-08-26, 37 import DLLs (including `steam_api64.dll`).
-  - Steam: entry point in `.bind` (entropy 7.947), 17 sections, COFF timestamp 2018-08-24, 21 import DLLs.
-  - This records the **absence of the Steam wrapper's indicators, not a proof that no protection exists**; the limitation is written in the finding.
-- **F-ENV-011, the owner's launch test:** the GOG copy starts and plays with Steam and GOG Galaxy closed. This is the owner's report from a manual test, labelled as such.
-- **A copy that was rejected:** an earlier "DRM-free" copy offered by the owner was not an official release, judged from its file names only. It was rejected, it was not used, and at the owner's request nothing about it is recorded.
-- **D-008, the owner's decision (2026-10-27):** the target platform is the GOG release, exe 1.0.2445.0 with the SHA-256 above. With D-007 (2026-10-25), **gate G0 is open**. Updated: `CLAUDE.md`, `docs/feasibility-matrix.md`, `docs/roadmap.md`, KI-01 (resolved), CURRENT_TASK and the development log.
-- **Unchanged:**
-  - every non-negotiable rule;
-  - the Steam build is out of scope;
-  - third-party offsets stay HYPOTHESIS (D-005);
-  - work targets this exact GOG build, one milestone at a time, M1 first, each with its own go/no-go criteria;
-  - both players need the GOG release, and the second copy gets the same read-only check.
-- **README progress** on `main`: the G0 area went from 50% to 100%, so the total went from about 16% to about 19% (15–21%). In-game co-op is at 0%.
+- **FB-30-04, the build pin.** `tools/environment/check_gog_build.py` has 6 self-checks and runs in `scripts/inventory.ps1`. It is read-only throughout.
+  - It finds the install through GOG's own registry entry, never a hardcoded path.
+  - It compares the store metadata (gameId, buildId), the exe SHA-256 and the FileVersion with the D-008 pin.
+  - It reports any crack or emulator file and any proxy DLL of a mod loader.
+  - It writes `evidence/gog-build.json`, with `<GOG>` in place of the path.
+  - Exit 3 (mismatch) fails the inventory; exit 4 (not installed) warns that game-side work is blocked on that machine.
+- **The pin caught a real change on its first run** (F-ENV-012):
+  - After the morning check, the owner installed two official GOG add-ons: the **Expansion Pass** (gameId 1911721374) and the **High Resolution Texture Pack** (1946859450). Both have the same buildId and rootGameId.
+  - The Expansion Pass installer replaced `ShadowOfWar.exe`. The FileVersion is the same (1.0.2445.0), but the size is 44,474,880 bytes and the SHA-256 is `F16DC949…`; it was compiled 2022-09-09, against 2022-08-26 for the base exe.
+  - Its header layout is identical (entry in `.text`, the same 11 sections, no wrapper indicators).
+  - **The pin was not changed:** that is the owner's decision. The inventory now fails, as FB-30-01 asks.
+- **FB-30-02/03, the M1 criteria.** `docs/m1-criteria.md` is a draft; M1 has not started.
+  - **The value:** one gameplay value, the player position.
+  - **Tier A:** the game's own files, without changing them (saves: metadata and hashes only).
+  - **Tier B:** external, strictly read-only process observation, only with a separate owner approval and a predeclaration.
+  - **Never allowed:** writing, injection, hooks, patches, stopping debuggers, protection analysis, online services, third-party binaries, third-party offsets.
+  - **Evidence and privacy:** the build fingerprint at the start and end of every session; save hashes before and after; no paths, names or save contents.
+  - **Go:** the matrix's criterion, made specific (3 sessions, consistent with movement, exe and saves unchanged).
+  - **Stop at once** on six conditions: a build mismatch, a protection reaction, any need to write or circumvent, network contact with WB, a changed save, a crash.
 
 ## 2. Questions
 
-1. Is the evidence enough for D-008 as recorded? It is the absence of wrapper indicators, the store metadata and the owner's launch test; no protection analysis was done, by rule. What else, if anything, would you require before M1?
-2. **Designing M1, read-only observation of game state on the GOG build.** Which method would you consider the minimum necessary under D-007 and the rules? Candidates, none started:
-   - (a) observing the running process from outside (reading its memory without writing);
-   - (b) observing only what the game exposes by itself (logs, files, its own configuration).
-
-   And which go/no-go criteria would you fix before any work?
-3. The build differs from Steam's. Should the project pin the GOG build hash in `scripts/inventory.ps1` (so an update is detected at session start) before M1?
+1. **The exe changed because of an official add-on, with the same FileVersion.** For D-008, is it right to pin the full installed set (base game + Expansion Pass + HD Texture Pack, exe `F16DC949…`), with the launch test repeated and the second player installing the same add-ons? Or should the project pin the base exe and require installs without the Expansion Pass?
+2. Is tier A's limit on saves (metadata and hashes only, never contents) right, or too strict for M1?
+3. Any stop condition you would add before the owner approves tier A?
 
 ## 3. Open issues
 
-- **M1–M10:** not started; M1's design comes next and is the owner's decision.
-- **The second player's GOG copy:** not yet checked.
-- **Still open:** KI-35 (PR #25, not part of this PR), KI-43, KI-42, KI-41, KI-28b, KI-32.
+- **The owner's choice of exe for D-008**, and the launch test on it.
+- **Approving M1 tier A** (tier B is separate).
+- **The second player's GOG copy.**
+- **KI-35** (PR #25, separate).

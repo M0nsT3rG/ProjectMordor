@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #30 (PR #26: D-008 and the GOG inventory)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Documentation and evidence review only.
+- **Verdict:** D-008 is adequately documented as a scoped decision. The absence of wrapper indicators is not proof of no protection. Nothing authorises a merge or any M1 work.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-30-01** Build verification | **Yes, and it already mattered.** The installed exe changed after the check: the official Expansion Pass installer replaced it (same FileVersion, new SHA-256 `F16DC949…`; F-ENV-012). | **Accepted** | The build is pinned in `tools/environment/check_gog_build.py`, which fails on any difference. The new exe is recorded as F-ENV-012, but **not** pinned: re-pinning is the owner's decision (`docs/m1-criteria.md` §7). |
+| **FB-30-02** Minimum-necessary M1 observation | **Agreed.** | **Accepted** | `docs/m1-criteria.md`: tier A covers the game's own files without changing them (saves: metadata and hashes only). Tier B is external read-only process observation, and only with a separate owner approval and a predeclaration. It lists what is never allowed. |
+| **FB-30-03** M1 criteria | **Agreed.** | **Accepted** | `docs/m1-criteria.md` defines the one value (the player position), the methods, the fingerprint, the minimal evidence, the privacy limits, go and no-go, six stop conditions, and the second player's check. It is a draft: M1 has not started. |
+| **FB-30-04** Version pinning | **Agreed.** | **Accepted** | `check_gog_build.py` (6 self-checks) is run by `scripts/inventory.ps1`. It finds the install through GOG's registry entry and checks the store metadata, the exe SHA-256 and FileVersion, and the absence of crack, emulator and proxy-DLL files. It writes `evidence/gog-build.json` with `<GOG>` in place of the path. Exit 3 (mismatch) makes the inventory fail; exit 4 (not installed) warns that game-side work is blocked on this machine. |
+
+---
+
 ## Feedback on review #23 (PR #23 and the consolidation of PR #22)
 
 - **Status:** implemented (2026-10-25) on `feature/review23-integration` (stacked on PR #23); the owner asked for all of it.

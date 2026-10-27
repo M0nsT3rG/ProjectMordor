@@ -42,6 +42,7 @@ Each entry gives the context, the decision, the alternatives considered and how 
   - A third-party "DRM-free" copy offered earlier was not an official release and was not used.
   - Waiting for qualified legal advice remains the owner's option (D-007).
 - **Revisit** if the GOG build changes (an update: re-run the read-only check and record the new hash), if a protection is found in it, or if the owner's legal position changes.
+- **Update 2026-10-27 (same day):** installing the official Expansion Pass replaced the exe: same FileVersion 1.0.2445.0, new SHA-256 `F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8`, same header layout (F-ENV-012). The pin is **not** changed by Claude Code, and `tools/environment/check_gog_build.py` fails until the owner decides which exe D-008 pins.
 
 ## D-001: Networking prototype on raw Winsock2 UDP, no third-party dependency (2026-10-23)
 

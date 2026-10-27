@@ -22,6 +22,7 @@ Research toward 2-player co-op for *Middle-earth: Shadow of War* (Steam app 3561
 
 - **D-007: decided 2026-10-25** (`docs/decisions.md`). The owner proceeds with interoperability work under EU Directive 2009/24/EC and personally accepts the legal risk, without qualified advice. Minimum necessary; every rule above still applies.
 - **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The owner's GOG copy was checked read-only on 2026-10-27 (F-ENV-009/010): it is the GOG release, its executable has none of the Steam wrapper's indicators, and it is a different build (1.0.2445.0, SHA-256 `8F84F4A6…`) from the Steam one. The owner reports that it runs with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided 2026-10-27: the target is this GOG build.** Both players need it; the second copy gets the same read-only check.
+  - **The installed exe changed** when the official Expansion Pass was installed (F-ENV-012: SHA-256 `F16DC949…`, same FileVersion). `check_gog_build.py` therefore reports a MISMATCH. Game-side work stays blocked until the owner decides which exe D-008 pins. M1's criteria are a draft in `docs/m1-criteria.md`, and M1 has not started.
 
 Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 
@@ -36,7 +37,8 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ## Commands
 
 ```powershell
-./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
+./scripts/inventory.ps1        # read-only game discovery + GOG build pin check (D-008) + evidence validate/index
+python -I tools/environment/check_gog_build.py   # exit 0 pinned build, 3 mismatch (game-side work blocked), 4 not installed
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
 ./scripts/test.ps1 -Repeat 3   # ctest (unit 19, integration 60, network 17, transport 19 contract tests)
 ./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (25), gns spike (7), dtls (61)
