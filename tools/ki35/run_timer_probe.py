@@ -36,16 +36,17 @@ def summarize(cycles: list[dict]) -> dict:
     totals = [ab.total_ms(c) for c in rec]
     over = sum(t > ab.LIMIT_MS for t in totals)
     dtls = [c["auth"] - c["first_hello"] for c in rec if c["auth"] >= 0 and c["first_hello"] >= 0]
-    # Cycle 0's CPU includes the start and the initial join: only differences between consecutive cycles count.
-    cpu = [b["cpu_ms"] - a["cpu_ms"] for a, b in zip(cycles, cycles[1:]) if a["cpu_ms"] >= 0 and b["cpu_ms"] >= 0]
+    cpu = [c["cpu_delta"] for c in cycles if c.get("cpu_delta") is not None]  # set per batch by load()
+    dgrams = [c["client_tx"] + c["host_tx"] for c in rec]
     return {"cycles": len(cycles), "reconnects": len(rec), "no_reconnect": len(cycles) - len(rec),
             "timeouts": sum(c["outcome"] == "timeout" for c in rec), "failed": sum(c["outcome"] == "failed" for c in rec),
-            "not_ok": sum(c["outcome"] != "ok" for c in cycles),  # C2: every outcome but ok, no_reconnect included
+            "no_snapshot": sum(c["outcome"] == "no_snapshot" for c in rec),  # reported; not a C2 event
             "total_ms": {f"p{q}": rc.pct(totals, q) for q in (50, 90, 95, 99)},
             "over_limit": {"k": over, "n": len(totals), "p": round(over / len(totals), 4) if totals else None,
                            "wilson95": rc.wilson(over, len(totals))},
             "dtls_ms": {f"p{q}": rc.pct(dtls, q) for q in (50, 95, 99)},
-            "datagrams_per_reconnect": mean([c["client_tx"] + c["host_tx"] for c in rec]),
+            "datagrams": {"sum": sum(dgrams), "n": len(dgrams)},  # C1 uses these, unrounded (Codex)
+            "datagrams_per_reconnect": mean(dgrams),
             "timers_per_reconnect": mean([c["timers"] + c["host_timers"] for c in rec]),
             "hellos_per_reconnect": mean([c["hellos"] for c in rec]),
             "cpu_ms_per_cycle": mean(cpu)}
@@ -77,8 +78,20 @@ def completeness(out: Path, raw: dict[str, list[dict]]) -> list[str]:
     return problems
 
 
+C2_EVENTS = ("timeout", "failed", "no_reconnect")  # the predeclared ones, compared one by one (no offsetting)
+
+
+def load(d: Path) -> list[dict]:
+    cycles = rc.load_cycles(d)
+    # Cumulative CPU per process: differences only within this batch (one process); cycle 0 includes the start.
+    for a, b in zip(cycles, cycles[1:]):
+        if a.get("cpu_ms", -1) >= 0 and b.get("cpu_ms", -1) >= 0:
+            b["cpu_delta"] = b["cpu_ms"] - a["cpu_ms"]
+    return cycles
+
+
 def judge(out: Path) -> dict:
-    raw = {d.name: rc.load_cycles(d) for d in sorted(p for p in out.iterdir() if p.is_dir())}
+    raw = {d.name: load(d) for d in sorted(p for p in out.iterdir() if p.is_dir())}
     problems = completeness(out, raw)
     v = {"complete": not problems, "incomplete_because": problems,
          "batches": {k: summarize(cs) for k, cs in raw.items()} if not problems else {}, "pooled": {}, "rules": {}}
@@ -100,23 +113,33 @@ def judge(out: Path) -> dict:
             if profile == "harsh":
                 o1 = ab.newcombe(po["flat"]["over_limit"]["k"], po["flat"]["over_limit"]["n"],
                                  po["off"]["over_limit"]["k"], po["off"]["over_limit"]["n"])
-                hom = {a: rc.homogeneity_p([(v["batches"][k]["over_limit"]["k"], v["batches"][k]["over_limit"]["n"])
-                                            for k in raw if k.startswith(backend + "-") and k.endswith(f"-{a}-harsh")])
-                       for a in ARMS}
+                hom = {}
+                for a in ARMS:
+                    counts = [(v["batches"][k]["over_limit"]["k"], v["batches"][k]["over_limit"]["n"])
+                              for k in raw if k.startswith(backend + "-") and k.endswith(f"-{a}-harsh")]
+                    # All 3 batches must be assessable; a batch without reconnects makes it unknown (Codex).
+                    hom[a] = rc.homogeneity_p(counts) if len(counts) == 3 and all(n for _, n in counts) else None
                 hetero = any(h is not None and h < rc.HOMOGENEITY_P for h in hom.values())
                 r["homogeneity_p"] = hom
-                r["O1_over_limit"] = {"diff_ci95": o1, "verdict": "heterogeneous" if hetero else direction(o1)}
+                r["O1_over_limit"] = {"diff_ci95": o1, "verdict": "unassessable" if None in hom.values() else
+                                      "heterogeneous" if hetero else direction(o1)}
                 for q in (95, 99):
                     b = ab.boot_diff(flat_t, off_t, q)
                     r[f"O2_p{q}"] = {**b, "verdict": direction(b["ci95"])}
-                d_off, d_flat = po["off"]["datagrams_per_reconnect"], po["flat"]["datagrams_per_reconnect"]
-                ratio = round(d_flat / d_off, 3) if d_off and d_flat is not None else None
-                r["C1_datagram_ratio"] = ratio
-                r["C2_not_ok"] = {a: po[a]["not_ok"] for a in ARMS}
-                guards["C1_cost"] &= ratio is not None and ratio <= COST_RATIO_MAX  # unknown cost never passes
-                guards["C2_robustness"] &= po["flat"]["not_ok"] <= po["off"]["not_ok"]
+                d_off, d_flat = po["off"]["datagrams"], po["flat"]["datagrams"]
+                ok_cost = d_off["sum"] > 0 and d_off["n"] > 0 and d_flat["n"] > 0
+                # Unrounded: sum_flat / n_flat <= 1.5 * sum_off / n_off (Codex: a rounded 1.5004 passed).
+                r["C1_datagram_ratio"] = round(d_flat["sum"] / d_flat["n"] / (d_off["sum"] / d_off["n"]), 4) if ok_cost else None
+                guards["C1_cost"] &= ok_cost and d_flat["sum"] * d_off["n"] <= COST_RATIO_MAX * d_off["sum"] * d_flat["n"]
+                c2 = {a: {e: sum(c["outcome"] == e for c in arms[a]) for e in C2_EVENTS} for a in ARMS}
+                r["C2_events"] = c2
+                guards["C2_robustness"] &= all(c2["flat"][e] <= c2["off"][e] for e in C2_EVENTS)
             v["rules"][key] = r
     harsh = [v["rules"][f"{b}-harsh"] for b in ("udp", "gns")]
+    if any(h["O1_over_limit"]["verdict"] == "unassessable" for h in harsh):
+        v["rules"]["guards"] = guards
+        v["rules"]["reading"] = "unassessable"  # never growth_matters through O1 or O2 (Codex)
+        return v
     better = any(h["O1_over_limit"]["verdict"] == "flat_better" or h["O2_p95"]["verdict"] == "flat_better" for h in harsh)
     worse = any(h[o]["verdict"] == "flat_worse" for h in harsh for o in ("O1_over_limit", "O2_p95", "O2_p99"))
     v["rules"]["guards"] = guards

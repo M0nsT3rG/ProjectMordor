@@ -17,7 +17,8 @@ def cycle(j, arm, profile, connected=1500.0, outcome="ok", tx=(4, 4)):
             "host_timers": 1, "client_tx": tx[0], "host_tx": tx[1], "cpu_ms": 100.0 * (j + 1)}
 
 
-def write_run(root: Path, slow_flat=10, slow_off=30, flat_tx=(4, 4), flat_failures=0, drop_batch="", drop_field=""):
+def write_run(root: Path, slow_flat=10, slow_off=30, flat_tx=(4, 4), flat_failures=0, drop_batch="", drop_field="",
+              bump_batch="", off_no_snapshot=0, no_reconnect_batches=()):
     codes = {}
     for b, s, a, p, n in r.BATCHES:
         nm = r.ab.name(b, s, a, p)
@@ -28,8 +29,13 @@ def write_run(root: Path, slow_flat=10, slow_off=30, flat_tx=(4, 4), flat_failur
         slow = (slow_flat if a == "flat" else slow_off) if p == "harsh" else 0
         lines = []
         for j in range(n):
+            last = p == "harsh" and j >= n - (flat_failures if a == "flat" else off_no_snapshot)
+            outcome = ("no_reconnect" if nm in no_reconnect_batches else
+                       ("timeout" if a == "flat" else "no_snapshot") if last else "ok")
             c = cycle(j, a, p, connected=4000.0 if j < slow else 1500.0, tx=flat_tx if a == "flat" else (4, 4),
-                      outcome="timeout" if a == "flat" and p == "harsh" and j >= n - flat_failures else "ok")
+                      outcome=outcome)
+            if nm == bump_batch and j == 0:
+                c["client_tx"] += 1
             if drop_field and j == 0:
                 c.pop(drop_field)
             lines.append(json.dumps(c))
@@ -85,9 +91,29 @@ class Rules(unittest.TestCase):
             self.assertFalse(v["complete"])
             self.assertEqual(v["rules"]["reading"], "incomplete")
 
-    def test_cpu_counts_only_differences_between_cycles(self):
-        s = r.summarize([cycle(j, "off", "harsh") for j in range(3)])
-        self.assertEqual(s["cpu_ms_per_cycle"], 100.0)
+    def test_the_cost_guard_is_exact_at_the_limit(self):  # Codex: a rounded 1.5004 passed
+        self.assertTrue(judged(slow_flat=5, slow_off=40, flat_tx=(8, 4))["rules"]["guards"]["C1_cost"])  # 12/8 = 1.5
+        v = judged(slow_flat=5, slow_off=40, flat_tx=(8, 4), bump_batch="udp-4401-flat-harsh")  # 3601/300 vs 2400/300
+        self.assertFalse(v["rules"]["guards"]["C1_cost"])
+        self.assertEqual(v["rules"]["reading"], "timer_cap_not_the_lever")
+
+    def test_missing_snapshots_never_offset_extra_timeouts(self):  # Codex
+        v = judged(slow_flat=5, slow_off=40, flat_failures=3, off_no_snapshot=3)
+        self.assertFalse(v["rules"]["guards"]["C2_robustness"])
+        self.assertEqual(v["rules"]["reading"], "timer_cap_not_the_lever")
+
+    def test_unknown_homogeneity_is_never_a_favourable_reading(self):  # Codex
+        empty = ("udp-4402-off-harsh", "udp-4403-off-harsh", "udp-4402-flat-harsh", "udp-4403-flat-harsh")
+        v = judged(slow_flat=5, slow_off=40, no_reconnect_batches=empty)
+        self.assertTrue(v["complete"])
+        self.assertEqual(v["rules"]["udp-harsh"]["O1_over_limit"]["verdict"], "unassessable")
+        self.assertEqual(v["rules"]["reading"], "unassessable")
+
+    def test_cpu_counts_only_differences_within_a_batch(self):  # Codex: pooled batches are separate processes
+        v = judged()
+        self.assertEqual(v["batches"]["udp-4401-off-harsh"]["cpu_ms_per_cycle"], 100.0)
+        self.assertEqual(v["pooled"]["udp-harsh"]["off"]["cpu_ms_per_cycle"], 100.0)
+        s = v["pooled"]["udp-harsh"]["off"]
         self.assertEqual(s["datagrams_per_reconnect"], 8.0)
         self.assertEqual(s["timers_per_reconnect"], 2.0)
 
