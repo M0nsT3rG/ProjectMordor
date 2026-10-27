@@ -49,6 +49,18 @@ CASES = {
     "lost_monitoring": ("no_end_canary", "INCONCLUSIVE", "INCONCLUSIVE"),
     "unclean_exit": ("exit_1", "FAIL", "FAIL"),
 }
+# The outcome must come for the right reason (Codex, review #34): a reason substring per case, (elevated, not elevated).
+NO_TRACE = "the trace did not start"
+REASONS = {
+    "baseline": (None, NO_TRACE), "start_build_changed": ("start build check", "start build check"),
+    "dll_changed_mid_session": ("end build check", "end build check"),
+    "unexpected_write": ("unexpected write: config/", "unexpected write: config/"),
+    "save_removed": ("removed: saves/", "removed: saves/"),
+    "ambiguous_provenance": ("ambiguous provenance", "ambiguous provenance"), "no_data": ("no data", "no data"),
+    "position_does_not_follow": ("did not follow", "did not follow"),
+    "unexpected_online_contact": ("unexpected online contact", NO_TRACE),
+    "lost_monitoring": ("end canary not fully seen", NO_TRACE), "unclean_exit": ("no clean exit", "no clean exit"),
+}
 POS = re.compile(r"^pos t=(\d+) (\S+) (\S+) (\S+)$")
 
 
@@ -119,7 +131,8 @@ def run_case(name: str, fault: str | None, tmp: Path) -> dict:
     outcome, why = session.classify(rec)
     net = rec["network"]
     return {"outcome": outcome, "reasons": why,
-            "network": {k: net.get(k) for k in ("verdict", "coverage_problems", "canaries", "events_lost", "contacts")}}
+            "network": {k: net.get(k) for k in ("verdict", "coverage_problems", "canaries", "events_lost", "contacts",
+                                                     "raw_not_deleted")}}
 
 
 def git_state(repo: Path) -> tuple[str, bool]:
@@ -142,10 +155,12 @@ def main(argv: list[str]) -> int:
     try:
         for name, (fault, exp_up, exp_down) in CASES.items():
             expected = exp_up if up else exp_down
+            must = REASONS[name][0 if up else 1]
             r = run_case(name, fault, tmp)
             results.append({"case": name, "fault": fault, "expected": expected, "actual": r["outcome"],
-                            "match": r["outcome"] == expected, "reasons": r["reasons"], "network": r["network"]})
-            print(f"{name}: expected {expected}, actual {r['outcome']}{'' if r['outcome'] == expected else '  <-- MISMATCH'}")
+                            "match": r["outcome"] == expected and (must is None or any(must in x for x in r["reasons"])),
+                            "required_reason": must, "reasons": r["reasons"], "network": r["network"]})
+            print(f"{name}: expected {expected}, actual {r['outcome']}{'' if results[-1]['match'] else '  <-- MISMATCH'}")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     ok = all(x["match"] for x in results)

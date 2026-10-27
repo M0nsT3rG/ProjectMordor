@@ -43,6 +43,8 @@ python -I tools/environment/check_gog_build.py   # exit 0 verified, 3 mismatch, 
 python -I tools/environment/test_check_gog_build.py
 python -I tools/m1/test_m1.py      # M1 tier A tools: netwatch (ETW network monitor), session (outcome rules)
 python -I tools/m1/dryrun.py       # EXP-045 dry run on fixtures, never the game; elevated for the network part
+python -I tools/m1/coverage.py     # EXP-046 ETW coverage (IPv6, TCP attempt, DNS, brief flows, child, loss); elevated
+python -I tools/m1/netwatch.py cleanup --work DIR   # delete a raw trace left by an interrupted run
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
 ./scripts/test.ps1 -Repeat 3   # ctest (unit 19, integration 60, network 17, transport 19 contract tests)
 ./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (25), gns spike (7), dtls (61)

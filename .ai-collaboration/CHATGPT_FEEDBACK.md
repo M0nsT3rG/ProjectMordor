@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #34 (PR #26: M1 network monitoring and the elevated dry run)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Source review only; ChatGPT did not run ETW.
+- **Verdict:** FB-33-01..04 substantively addressed; the owner-run elevated EXP-045 is still required, and its evidence reassessed, before tier A is put to the owner.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-34-01** Coverage beyond the canaries | **Yes.** The canaries prove only IPv4 loopback TCP and UDP and one DNS path. They do not prove IPv6, a TCP attempt that never connects, a child process's traffic, or that lost events are reported. | **Accepted** | EXP-046, predeclared: `tools/m1/coverage.py`, 7 cases, each a real trace around the stand-in: IPv6 loopback, a TCP attempt to 192.0.2.1 that never connects, UDP to 2001:db8::1, a DNS lookup only, 50 very short flows then a contact, a child process's contact, forced event loss with the smallest buffers. A refused send is NOT_APPLICABLE and an unprovoked loss NOT_DEMONSTRATED; both are reported, never matched. PID reuse is unit-tested; traffic another process makes for the target is a documented limitation. Without elevation: 7/7 not_covered as expected. The elevated run is the owner's. Contacts now carry the IP family. |
+| **FB-34-02** DNS rule and what a clean record means | **Agreed.** | **Accepted** | §4a: any DNS lookup attributed to a target stops tier A, even with no connection after it. A clean record means nothing was attributed while coverage was proven, not that no network activity happened; delegated traffic (a system service, a launcher started before the trace) is named as not attributed. |
+| **FB-34-03** Save integrity | **Agreed.** | **Accepted** | §4: before each session the owner copies the saves aside, offline, outside the repository, never committed, uploaded or read by our tools. The game-written folder rule and "any removal is a FAIL" are unchanged. |
+| **FB-34-04** Raw trace lifecycle | **Yes.** A raw file that could not be deleted was only listed, and a run interrupted between stop and analyze left the raw trace behind until the next run. | **Accepted** | A kept or undeletable raw trace is a FAIL (new stop condition 10). A new trace never starts beside an old raw file; `netwatch.py cleanup` deletes one after an interrupted run; `coverage.py` treats any raw file left as a MISMATCH. 15 self-checks. |
+
+---
+
 ## Feedback on review #33 (PR #26: fail-closed checks and M1 tier A outcomes)
 
 - **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.

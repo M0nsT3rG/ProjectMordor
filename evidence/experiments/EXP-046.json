@@ -1,0 +1,23 @@
+{
+  "id": "EXP-046",
+  "type": "experiment",
+  "date": "2026-10-27",
+  "objective": "Measure which network mechanisms the M1 ETW monitor attributes to a target process (FB-34-01), before the owner decides on tier A: IPv6, a TCP attempt that never connects, a DNS lookup with no connection, very short flows, a child process, and lost events. Never touches the game.",
+  "hypothesis": "Run elevated: IPv6 loopback traffic is attributed (both an IPv6 TCP and an IPv6 UDP contact, protocol from the ETW task name, verdict clean); a TCP connect attempt to 192.0.2.1 that never completes, a UDP datagram to 2001:db8::1, a DNS lookup of a .invalid name, 50 very short loopback TCP connections followed by a UDP datagram to 192.0.2.1, and a UDP datagram sent by a child process are all unexpected_contact with the claimed protocol and IP family attributed (the child's send to the child, the 50 connects all attributed); every MATCH also needs proven coverage (canaries, no loss, no PID reuse); a TCP attempt that connected is NOT_APPLICABLE; 200000 loopback datagrams with the smallest trace buffers lose events and give not_covered. A case where the OS refuses to send is NOT_APPLICABLE; a loss that does not occur is NOT_DEMONSTRATED; both are reported, never counted as a match. Run without elevation: every case is not_covered.",
+  "environment": "Windows 11 Pro x64, Python 3.15, logman and tracerpt from Windows; the stand-in is tools/m1/standin.py, not the game; destinations are documentation addresses (RFC 5737, RFC 3849) and .invalid names",
+  "game_exe_sha256": "N/A (the experiment never touches the game, its files or its saves)",
+  "procedure": "python -I tools/m1/coverage.py, once without elevation (Claude Code) and once from an elevated PowerShell (the owner), after EXP-044 on the KI-35 branch has finished. Each case: netwatch start (tiny buffers for the loss case only), the stand-in with that case's action, netwatch stop, netwatch analyze for the stand-in PID, the predeclared check in tools/m1/coverage.py CASES; any raw trace file left is a MISMATCH. Output evidence/logs/m1-coverage-<time>-<elevated|not-elevated>/result.json. PID reuse is covered by the unit tests in tools/m1/test_m1.py; traffic another process makes on the target's behalf is a documented limitation (docs/m1-criteria.md section 4a), not tested.",
+  "expected_result": "No MISMATCH in either run; every NOT_APPLICABLE or NOT_DEMONSTRATED case is reported with its reason.",
+  "observed_result": "Not run yet (predeclared).",
+  "evidence_paths": [
+    "tools/m1/coverage.py",
+    "docs/m1-criteria.md"
+  ],
+  "result": "NOT_RUN",
+  "errors": "None yet.",
+  "confidence": "medium",
+  "follow_up": "ChatGPT review of both runs, then the owner's decision on M1 tier A.",
+  "related": [
+    "EXP-045"
+  ]
+}

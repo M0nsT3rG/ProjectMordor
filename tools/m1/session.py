@@ -73,6 +73,8 @@ def classify(s: dict) -> tuple[str, list[str]]:
     for snap in (s["before"], s["after"]):
         unsure += [f"unreadable evidence: {lab}/{f}" for lab, fs in snap.items() for f, m in fs.items() if "error" in m]
     net = s["network"] or {"verdict": "not_covered", "coverage_problems": ["no network record"]}
+    if net.get("raw_kept") or net.get("raw_not_deleted"):  # FB-34-04: other processes' traffic left on disk
+        fail.append(f"raw trace kept or not deleted: {net.get('raw_not_deleted') or 'kept'}")
     if net["verdict"] == "unexpected_contact":
         fail.append("unexpected online contact")
     elif net["verdict"] != "clean":

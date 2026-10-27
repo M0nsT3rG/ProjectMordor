@@ -49,6 +49,8 @@ Per session (`tools/m1/session.py` holds the record format and the outcome rules
 - how the game ended: its exit code (from the trace) and whether the player closed it through its menu;
 - the network record (§4a).
 
+**Before each session the owner copies the saves aside** (FB-34-03): an offline backup made by the owner, kept outside the repository, never committed or uploaded, and never read by our tools. The experiment tools never modify the live saves.
+
 The evidence goes in `evidence/` as experiment records, with no local paths.
 
 ## 4a. Network monitoring (FB-33-02)
@@ -57,8 +59,9 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 - **Per process:** each event carries its process ID. The targets are the processes whose image is `ShadowOfWar.exe`, plus their child processes (a crash reporter, for example).
 - **Window:** the trace starts before the game is launched and stops after it has exited. Starting and stopping need an elevated prompt (an owner action, as for the dry run).
 - **Coverage is proven, not assumed.** A canary process makes one loopback TCP connect, one loopback UDP send and one DNS lookup of a reserved name (`mordor-canary-start.invalid`, `mordor-canary-end.invalid`) right after the start and right before the stop. Coverage requires both canaries fully seen, no lost events, and the game's start **and** exit inside the trace. Anything less is `not_covered`.
-- **Unexpected contact:** any non-loopback traffic by a target, or any DNS lookup by a target. WB services are the main concern, but anything counts. Loopback traffic is recorded and allowed.
-- **Recording:** the raw trace holds every process's traffic on the machine, so it stays under `%TEMP%` and is deleted after the analysis. The record keeps only, per target: event kinds, the peer as loopback/private/public, both ports of the event (which one is remote depends on its direction), the DNS names it looked up, and the counts. No addresses, no other processes.
+- **Unexpected contact:** any non-loopback traffic by a target, or any DNS lookup by a target, even with no connection after it (FB-34-02). WB services are the main concern, but anything counts. Loopback traffic is recorded and allowed.
+- **What a clean record means, and what it does not** (FB-34-02): it means no such event was **attributed to a target** while coverage was proven. It is not proof that no network activity happened. Traffic another process makes on the game's behalf (a system service, a launcher started before the trace) is not attributed to the game, and a mechanism the providers do not report would not be seen. EXP-046 measures which mechanisms are attributed (IPv6, a TCP attempt that never connects, a DNS lookup, very short flows, a child process, lost events); the record says what was proven, not more.
+- **Recording:** the raw trace holds every process's traffic on the machine, so it stays under `%TEMP%` and is deleted after the analysis, on every path (FB-34-04). `--keep-raw` is for debugging only: a session record with a kept or undeletable raw file is a FAIL (condition 10). A new trace never starts beside an old raw file, and `netwatch.py cleanup` deletes one left by an interrupted run. The record keeps only, per target: event kinds, the peer as loopback/private/public, both ports of the event (which one is remote depends on its direction), the DNS names it looked up, and the counts. No addresses, no other processes.
 - **Monitoring failure** (the trace does not start or cannot be decoded, a canary is missing, events are lost, the game is not fully inside the window, or a target's PID was reused during the trace, which makes attribution ambiguous): the session is INCONCLUSIVE and stops (condition 9), never PASS. Processes are tracked by their sequence number, which Windows never reuses.
 - **A contact that was seen is a FAIL even when coverage is incomplete:** losing other events never hides one that was recorded.
 - **Rule 3 is unchanged:** a contact with WB services is a stop; we never initiate one.
@@ -78,7 +81,7 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 | Outcome | Meaning |
 |---|---|
 | **PASS** | Every requirement below holds, and the position behaved as the player's actions predict. |
-| **FAIL** | Any of stop conditions 2–6 and 8, a failing end build check, or a position that did not follow the actions while the evidence was otherwise sound. A FAIL condition wins over everything except NOT RUN. |
+| **FAIL** | Any of stop conditions 2–6, 8 and 10, a failing end build check, or a position that did not follow the actions while the evidence was otherwise sound. A FAIL condition wins over everything except NOT RUN. |
 | **INCONCLUSIVE** | No FAIL condition, but the evidence cannot decide: no position in the permitted data (Tier A INCONCLUSIVE / NO DATA), ambiguous provenance (condition 7), too few observations per action, unreadable evidence, or network monitoring that did not cover the session (condition 9). |
 | **NOT RUN** | The start build check did not exit 0, so the session never started. Nothing about the game is concluded from it. |
 
@@ -106,15 +109,16 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 6. the game crashes or exits uncleanly: FAIL;
 7. the provenance of an observed value is ambiguous (we cannot say which permitted file it came from): INCONCLUSIVE;
 8. read-only operation cannot be confirmed for a method (then that method is not used): FAIL;
-9. network monitoring did not cover the session, or the evidence could not be read: INCONCLUSIVE.
+9. network monitoring did not cover the session, or the evidence could not be read: INCONCLUSIVE;
+10. a raw trace was kept or could not be deleted (other processes' traffic left on disk): FAIL.
 - **Two players:** the second player's copy gets the same read-only check (`check_gog_build.py` exit 0 on that machine) before any two-player test.
 
 ## 6a. Dry run before approval (FB-33-03)
 
-`tools/m1/dryrun.py` (EXP-045) runs all of the above on fixtures in a temporary folder, with a stand-in process instead of the game: build checks, snapshots, a real trace, the log read and the outcome rules. Each of its 11 cases injects one fault and states its expected outcome first. Run elevated, the baseline must PASS and every fault must give its outcome; run without elevation, every case that needs the network must come out INCONCLUSIVE. It never touches the game, its files or its saves. The owner approves tier A only after it passes elevated.
+`tools/m1/dryrun.py` (EXP-045) runs all of the above on fixtures in a temporary folder, with a stand-in process instead of the game: build checks, snapshots, a real trace, the log read and the outcome rules. Each of its 11 cases injects one fault and states its expected outcome first. Run elevated, the baseline must PASS and every fault must give its outcome; run without elevation, every case that needs the network must come out INCONCLUSIVE. It never touches the game, its files or its saves. The owner approves tier A only after it passes elevated, together with the coverage experiment EXP-046 (`tools/m1/coverage.py`, FB-34-01).
 
 ## 7. Decisions needed from the owner
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
-2. Approval of this document for M1 **tier A**, after the dry run (§6a) has passed elevated and ChatGPT has reviewed it.
+2. Approval of this document for M1 **tier A**, after the dry run and the coverage experiment (§6a) have run elevated and ChatGPT has reviewed them.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.

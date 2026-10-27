@@ -15,14 +15,18 @@ import session as se  # noqa: E402
 NS = "http://schemas.microsoft.com/win/2004/08/events/event"
 
 
-def ev(prov, eid, exec_pid, **data):
+def ev(prov, eid, exec_pid, task="", **data):
     d = "".join(f'<Data Name="{k}">{v}</Data>' for k, v in data.items())
+    info = f"<RenderingInfo Culture=\"en-US\"><Task>{task}</Task></RenderingInfo>" if task else ""
     return (f'<Event xmlns="{NS}"><System><Provider Name="{prov}" /><EventID>{eid}</EventID>'
-            f'<Execution ProcessID="{exec_pid}" ThreadID="1" /></System><EventData>{d}</EventData></Event>')
+            f'<Execution ProcessID="{exec_pid}" ThreadID="1" /></System><EventData>{d}</EventData>{info}</Event>')
 
 
-def net(eid, pid, daddr="127.0.0.1", dport=9):
-    return ev(nw.NET, eid, pid, PID=f"   {pid}", size="13", daddr=daddr, saddr="127.0.0.1", dport=dport, sport="5")
+def net(eid, pid, daddr="127.0.0.1", dport=9, udp=None):
+    udp = eid in ("42", "43", "58", "59") if udp is None else udp  # as tracerpt renders the task on this machine
+    return ev(nw.NET, eid, pid, task="KERNEL_NETWORK_TASK_UDPIP" if udp else "KERNEL_NETWORK_TASK_TCPIP",
+              PID=f"   {pid}", size="13", daddr=daddr, saddr="127.0.0.1" if ":" not in daddr else "::1", dport=dport,
+              sport="5")
 
 
 def canary_events(pid, tag):
@@ -129,6 +133,23 @@ class Netwatch(unittest.TestCase):
             self.assertEqual(r["raw_not_deleted"], ["trace.etl"])
             self.assertFalse((Path(tmp) / "trace.xml").exists())
 
+    def test_raw_trace_lifecycle(self):  # FB-34-04
+        with tempfile.TemporaryDirectory() as tmp:
+            work = Path(tmp)
+            for n in nw.RAW:
+                (work / n).write_bytes(b"old")
+            self.assertEqual(nw.cleanup(work), [])
+            self.assertEqual(sorted(p.name for p in work.iterdir()), [])
+            (work / "trace.xml").mkdir()  # an undeletable leftover from an interrupted run
+            self.assertEqual(nw.start(work), 2)  # never starts a new trace beside an old one
+            state = json.loads((work / "state.json").read_text(encoding="utf-8"))
+            self.assertEqual((state["trace_started"], state["stale_raw_left"]), (False, ["trace.xml"]))
+        with tempfile.TemporaryDirectory() as tmp:  # Codex pass 2: an undeletable providers.txt
+            (Path(tmp) / "providers.txt").mkdir()
+            self.assertEqual(nw.start(Path(tmp)), 2)
+        r = self.run_case(canary_events(100, "start") + GAME + canary_events(101, "end"))
+        self.assertEqual((r["raw_kept"], r["raw_not_deleted"], r["contacts"][0]["ip"]), (False, [], "v4"))
+
     def test_a_seen_contact_fails_even_without_coverage(self):  # Codex: lost events never hide a recorded contact
         body = canary_events(100, "start") + GAME + [net("42", 500, daddr="192.0.2.1")] + canary_events(101, "end")
         self.assertEqual(self.run_case(body, lost=1)["verdict"], "unexpected_contact")
@@ -143,6 +164,47 @@ class Netwatch(unittest.TestCase):
             (Path(tmp) / "trace.etl").write_bytes(b"raw")  # decoding failed: an .etl but no .xml
             self.assertEqual(nw.analyze(Path(tmp), ["ShadowOfWar.exe"], [])["verdict"], "not_covered")
             self.assertFalse((Path(tmp) / "trace.etl").exists())
+
+
+class CoverageChecks(unittest.TestCase):  # EXP-046: a MATCH needs the claimed attribution (Codex, review #34)
+    def c(self, proto, ip, peer="public", child=False, eid="12"):
+        return {"event_id": eid, "proto": proto, "ip": ip, "peer": peer, "sport": "5", "dport": "9",
+                "from_child": child, "count": 1}
+
+    def test_no_false_confirmation(self):
+        import coverage as cv
+        sent = {"loop6_tcp": "sent", "loop6_udp": "sent"}
+        two_tcp = {"verdict": "clean", "contacts": [self.c("tcp", "v6", "loopback", eid="28"),
+                                                     self.c("tcp", "v6", "loopback", eid="29")], "dns": []}
+        self.assertEqual(cv.covered_clean_with_v6(two_tcp, sent)[0], "MISMATCH")  # no IPv6 UDP attributed
+        dns_only = {"verdict": "unexpected_contact", "contacts": [], "dns": [{"name": "x", "count": 1}]}
+        for check in (cv.contact("tcp", "v4"), cv.contact("udp", "v6"), cv.child):
+            self.assertEqual(check(dns_only, {})[0], "MISMATCH")
+        parent_only = {"verdict": "unexpected_contact", "coverage": "covered", "contacts": [self.c("udp", "v4")],
+                       "dns": [], "targets": [{}, {}]}
+        self.assertEqual(cv.child(parent_only, {"child": 0})[0], "MISMATCH")  # the child's own send is required
+        self.assertEqual(cv.child(dict(parent_only, contacts=[self.c("udp", "v4", child=True)]), {"child": 0})[0],
+                         "MATCH")
+        self.assertEqual(cv.child(parent_only, {"child udp 192.0.2.1": "refused by the OS (10051)"})[0],
+                         "NOT_APPLICABLE")
+        tcp = {"verdict": "unexpected_contact", "coverage": "covered", "contacts": [self.c("tcp", "v4")], "dns": []}
+        attempt = cv.contact("tcp", "v4", never_connects=True)
+        self.assertEqual(attempt(tcp, {"tcp 192.0.2.1": "attempted, never connected"})[0], "MATCH")
+        self.assertEqual(attempt(tcp, {"tcp 192.0.2.1": "connected"})[0], "NOT_APPLICABLE")  # Codex pass 2
+        self.assertEqual(attempt(tcp, {})[0], "MISMATCH")
+        ambiguous = dict(tcp, coverage="not_covered")  # e.g. a reused PID: attribution is not proven
+        self.assertEqual(attempt(ambiguous, {"tcp 192.0.2.1": "attempted, never connected"})[0], "MISMATCH")
+        self.assertEqual(cv.loss({"verdict": "clean", "events_lost": 0}, {})[0], "NOT_DEMONSTRATED")
+
+    def test_protocol_and_child_attribution_from_the_trace(self):
+        body = canary_events(100, "start") + GAME + proc(777, "Reporter.exe", parent=500, parent_seq=5000) \
+            + [net("42", 777, daddr="192.0.2.1"), net("28", 500, daddr="::1")] + canary_events(101, "end")
+        with tempfile.TemporaryDirectory() as tmp:
+            trace(Path(tmp), body)
+            r = nw.analyze(Path(tmp), ["ShadowOfWar.exe"], [])
+        got = {(c["proto"], c["ip"], c["peer"], c["from_child"]) for c in r["contacts"]}
+        self.assertIn(("udp", "v4", "private", True), got)  # ipaddress counts TEST-NET-1 as not global ("private")
+        self.assertIn(("tcp", "v6", "loopback", False), got)
 
 
 def good_session(**over):
@@ -182,6 +244,8 @@ class Classify(unittest.TestCase):
         self.assertEqual(self.outcome(after=after), "FAIL")  # a save removed
         self.assertEqual(self.outcome(build_end=3), "FAIL")  # exe or DLL changed
         self.assertEqual(self.outcome(network={"verdict": "unexpected_contact"}), "FAIL")
+        for raw in ({"raw_kept": True}, {"raw_not_deleted": ["trace.xml"]}):  # FB-34-04
+            self.assertEqual(self.outcome(network={"verdict": "clean", "coverage_problems": [], **raw}), "FAIL", raw)
         self.assertEqual(self.outcome(exit={"code": 1, "closed_by_menu": True}), "FAIL")
         self.assertEqual(self.outcome(operator_stops=["crash"]), "FAIL")
         static = [dict(o, pos=[0, 0, 0]) for o in s["observations"]]

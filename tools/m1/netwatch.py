@@ -18,6 +18,7 @@ DNS names asked by the target processes.
   python -I tools/m1/netwatch.py stop    --work DIR          (elevated)
   python -I tools/m1/netwatch.py analyze --work DIR --out FILE (--image NAME | --pid N)...
   python -I tools/m1/netwatch.py canary  TAG                  (run by start and stop)
+  python -I tools/m1/netwatch.py cleanup --work DIR          (after an interrupted run: delete the raw trace)
 """
 from __future__ import annotations
 
@@ -73,13 +74,34 @@ def run_canary(tag: str) -> int | None:
     return int(p.stdout.strip()) if p.returncode == 0 and p.stdout.strip().isdigit() else None
 
 
-def start(work: Path) -> int:
+def cleanup(work: Path) -> list[str]:
+    """Delete the raw trace files; return the ones that could not be deleted (FB-34-04)."""
+    left = []
+    for name in RAW:
+        try:
+            (work / name).unlink(missing_ok=True)
+        except OSError:  # one locked file must not keep the others
+            left.append(name)
+    return left
+
+
+def start(work: Path, tiny_buffers: bool = False) -> int:
+    """tiny_buffers: coverage experiment only (EXP-046), to provoke and observe lost events."""
     work.mkdir(parents=True, exist_ok=True)
-    (work / "providers.txt").write_text("\n".join(PROVIDERS) + "\n", encoding="ascii")
     subprocess.run(["logman", "stop", SESSION, "-ets"], capture_output=True)  # a session left by an interrupted run
-    p = subprocess.run(["logman", "start", SESSION, "-pf", str(work / "providers.txt"), "-o", str(work / "trace.etl"),
-                        "-ets"], capture_output=True)
-    state = {"trace_started": p.returncode == 0, "logman_exit": p.returncode,
+    left = cleanup(work)  # raw files left by an interrupted run
+    if not left:
+        try:
+            (work / "providers.txt").write_text("\n".join(PROVIDERS) + "\n", encoding="ascii")
+        except OSError:
+            left.append("providers.txt")
+    extra = ["-bs", "1", "-nb", "2", "2"] if tiny_buffers else []
+    if left:  # never mix an old trace into a new one
+        p = subprocess.CompletedProcess([], returncode=-1)
+    else:
+        p = subprocess.run(["logman", "start", SESSION, "-pf", str(work / "providers.txt"), "-o",
+                            str(work / "trace.etl"), *extra, "-ets"], capture_output=True)
+    state = {"trace_started": p.returncode == 0, "logman_exit": p.returncode, "stale_raw_left": left,
              "canary_start_pid": run_canary("start") if p.returncode == 0 else None}
     (work / "state.json").write_text(json.dumps(state) + "\n", encoding="utf-8")
     return 0 if state["trace_started"] and state["canary_start_pid"] else 2
@@ -104,6 +126,13 @@ def stop(work: Path, end_canary: bool = True) -> int:
     return 0 if state["trace_stopped"] and state.get("decoded") else 2
 
 
+def ip_family(text: str | None) -> str:
+    try:
+        return f"v{ipaddress.ip_address((text or '').strip()).version}"
+    except ValueError:
+        return "?"
+
+
 def addr_class(text: str | None) -> str:
     try:
         a = ipaddress.ip_address((text or "").strip())
@@ -119,6 +148,8 @@ def events(xml_path: Path):
         prov = s.find("e:Provider", NS).get("Name")
         data = {d.get("Name"): (d.text or "").strip() for d in ev.findall("e:EventData/e:Data", NS)}
         data["_pid"] = s.find("e:Execution", NS).get("ProcessID", "") if s.find("e:Execution", NS) is not None else ""
+        task = ev.find("e:RenderingInfo/e:Task", NS)  # KERNEL_NETWORK_TASK_TCPIP / _UDPIP on this machine
+        data["_task"] = (task.text or "") if task is not None else ""
         yield prov, s.find("e:EventID", NS).text, data
 
 
@@ -128,17 +159,14 @@ def events_lost(summary: str) -> int | None:
 
 
 def analyze(work: Path, images: list[str], pids: list[int], keep_raw: bool = False) -> dict:
-    out = {"raw_not_deleted": []}
+    # A session record with raw_kept or raw_not_deleted is a FAIL (session.py): --keep-raw is for debugging only.
+    out = {"raw_not_deleted": [], "raw_kept": keep_raw}
     try:
         out.update(_analyze(work, images, pids))
         return out
     finally:  # the raw trace holds every process's traffic: never left behind, whatever the outcome
         if not keep_raw:
-            for name in RAW:
-                try:
-                    (work / name).unlink(missing_ok=True)
-                except OSError:  # one locked file must not keep the others
-                    out["raw_not_deleted"].append(name)
+            out["raw_not_deleted"] = cleanup(work)
 
 
 def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
@@ -221,6 +249,7 @@ def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
         if not (t["started_in_trace"] and t["exited_in_trace"]):
             problems.append(f"target {t['image']} not fully inside the trace window")
     target_pids = {procs[s]["pid"] for s in targets} | set(pids)
+    child_pids = {procs[s]["pid"] for s in targets - roots}
     if any(len(pid_seqs.get(p, ())) > 1 for p in target_pids):  # network events carry only the PID
         problems.append("a target PID was reused during the trace: attribution is ambiguous")
 
@@ -231,12 +260,16 @@ def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
         if prov == NET:
             peer = max((addr_class(d.get("daddr")), addr_class(d.get("saddr"))), key=["loopback", "private", "public",
                                                                                      "unknown"].index)
-            key = (eid, peer, d.get("sport", ""), d.get("dport", ""))  # both: which one is remote depends on direction
+            task = d["_task"].upper()
+            proto = "tcp" if "TCP" in task else "udp" if "UDP" in task else "?"
+            # both ports: which one is remote depends on direction
+            key = (eid, proto, ip_family(d.get("daddr")), peer, d.get("sport", ""), d.get("dport", ""),
+                   pid_of(d) in child_pids)
             contacts[key] = contacts.get(key, 0) + 1
         elif prov == DNS and eid == DNS_QUERY:
             dns[d.get("QueryName", "")] = dns.get(d.get("QueryName", ""), 0) + 1
-    out["contacts"] = [{"event_id": e, "peer": p, "sport": sp, "dport": dp, "count": n}
-                       for (e, p, sp, dp), n in sorted(contacts.items())]
+    out["contacts"] = [{"event_id": e, "proto": pr, "ip": fam, "peer": p, "sport": sp, "dport": dp, "from_child": ch,
+                        "count": n} for (e, pr, fam, p, sp, dp, ch), n in sorted(contacts.items())]
     out["dns"] = [{"name": k, "count": n} for k, n in sorted(dns.items())]
     unexpected = [c for c in out["contacts"] if c["peer"] != "loopback"]
     out["coverage"] = "covered" if not problems else "not_covered"
@@ -248,7 +281,7 @@ def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    ap.add_argument("cmd", choices=["start", "stop", "analyze", "canary"])
+    ap.add_argument("cmd", choices=["start", "stop", "analyze", "canary", "cleanup"])
     ap.add_argument("tag", nargs="?")
     ap.add_argument("--work", type=Path)
     ap.add_argument("--out", type=Path)
@@ -262,6 +295,10 @@ def main(argv: list[str]) -> int:
         return 0
     if a.cmd == "start":
         return start(a.work)
+    if a.cmd == "cleanup":  # after an interrupted run
+        left = cleanup(a.work)
+        print("raw trace deleted" if not left else f"NOT deleted: {left}")
+        return 0 if not left else 2
     if a.cmd == "stop":
         return stop(a.work, not a.no_end_canary)
     r = analyze(a.work, a.image, a.pid, a.keep_raw)
