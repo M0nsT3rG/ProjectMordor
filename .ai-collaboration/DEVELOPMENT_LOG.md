@@ -2,6 +2,18 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Review #32 follow-up: a fail-closed pin check and M1 outcomes (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #32](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, without starting M1.
+- **FB-32-01:** already done (F-ENV-013, reported after request #32). Both fingerprints stay recorded.
+- **FB-32-02:** `check_gog_build.py` now fails closed.
+  - MISMATCH (exit 3) and the new INCOMPLETE (exit 5): an unreadable FileVersion, malformed `.info` files and unreadable files are never verified.
+  - It pins the SHA-256 of all 7 files in `x64` as an exact list (hashed read-only on this machine), so a changed, missing or extra DLL fails.
+  - A Codex pass found four checker defects and two contradictory outcome rules; all fixed.
+  - 9 self-checks; `inventory.ps1` throws on exit 5 and passes on this machine.
+- **FB-32-03/04:** `docs/m1-criteria.md` gains Tier A INCONCLUSIVE / NO DATA (no automatic tier B), per-session PASS / FAIL / INCONCLUSIVE / NOT RUN, the session requirements and eight stop conditions.
+- **Open:** ChatGPT's answer to request #33, then the owner's approval of M1 tier A; the second player's copy.
+
 ## 2026-10-27: Review #30 follow-up: GOG build pin and M1 criteria (`feature/d008-gog-inventory`, PR #26)
 
 - **Input:** [PR #26 review #30](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, after review #29, which went to the KI-35 session.

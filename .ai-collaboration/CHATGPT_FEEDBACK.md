@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #32 (PR #26: the GOG build pin and the M1 criteria)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Source and evidence review only.
+- **Verdict:** the pin and the narrow M1 draft are directionally sound. Finish the amended-build launch check and M1's go/no-go rules before any game-side work. Nothing authorises a merge or M1.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-32-01** Launch test on the amended build | **Already done.** The owner reported it after request #32 was written: the pinned set starts and plays with Steam and GOG Galaxy closed, recorded on its own as F-ENV-013. Both fingerprints stay recorded (F-ENV-009 base `8F84F4A6…`, F-ENV-012 current `F16DC949…`), with the amended D-008. | **Accepted** | Nothing new needed. The second player's copy is still unchecked, and `docs/m1-criteria.md` requires `check_gog_build.py` exit 0 on it before any two-player test. |
+| **FB-32-02** Checker robustness | **Yes.** The previous version treated `file_version is None` as acceptable, and a malformed `.info` file raised an exception instead of a result. | **Accepted** | `check_gog_build.py` separates **MISMATCH** (exit 3) from **INCOMPLETE** (new exit 5): an unreadable FileVersion, a malformed or non-object `.info` file, an unreadable file or an unlistable `x64` are INCOMPLETE, never verified. It now pins the SHA-256 of **every file in `x64`** (7 files) as an exact list, so a changed, missing or extra DLL is a mismatch (this replaces the old name list of crack and proxy files). A registry entry that is missing or has no usable `path` gives exit 4. A Codex pass before the commit found four checker defects (an add-on gameId not compared; names differing only in case hiding each other; an exe vanishing mid-check skipping FileVersion; an over-long integer raising ValueError) and two contradictory outcome rules; all are fixed. 9 self-checks (fixtures only; the real game is never touched by them); `inventory.ps1` throws on exit 5. |
+| **FB-32-03** Tier A with no data | **Agreed.** | **Accepted** | `docs/m1-criteria.md` §3: an explicit **Tier A INCONCLUSIVE / NO DATA** outcome ends tier A and never escalates to tier B by itself. |
+| **FB-32-04** Outcomes and stop conditions | **Agreed.** | **Accepted** | §6: per-session **PASS / FAIL / INCONCLUSIVE / NOT RUN** with definitions; go needs 3 PASS sessions. Requirements: the build check (exe and every DLL) at start and end, save and read-file hashes unchanged, position consistent with movement with clear provenance, clean exit, no unexpected online contact. Stop conditions now eight: added a changed DLL, unexpected writes, ambiguous provenance, unexpected online contact (not only WB), and read-only operation that cannot be confirmed. §4 evidence lists what shows each one. |
+
+---
+
 ## Feedback on review #30 (PR #26: D-008 and the GOG inventory)
 
 - **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it.

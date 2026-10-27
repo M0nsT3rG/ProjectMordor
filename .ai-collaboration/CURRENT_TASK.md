@@ -97,7 +97,7 @@ Local only: `feature/reliable-events` (in-house ReliableChannel WIP, not pushed)
   - a stateless cookie (KI-30);
   - an independent review;
   - a LAN test. Until authentication is implemented and reviewed: loopback or trusted lab networks only.
-- **Gate G0:** open since 2026-10-27 (D-007 and D-008: the GOG build). Next is designing M1, read-only observation, with its own go/no-go criteria and the owner's decision; the second player's GOG copy also needs its read-only check.
+- **Gate G0:** open since 2026-10-27 (D-007 and D-008: the GOG build). M1's criteria are drafted in `docs/m1-criteria.md` (per-session PASS/FAIL/INCONCLUSIVE/NOT RUN, eight stop conditions, reviews #30 and #32) and wait for the owner's approval of tier A, which waits for ChatGPT's answer to request #33. M1 has not started. The second player's GOG copy also needs its read-only check.
 - **LAN test:** approval for a temporary firewall rule.
 
 ## Next tasks (no user input needed)
