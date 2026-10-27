@@ -111,6 +111,21 @@ class Rules(unittest.TestCase):
         c.update(host_tx=0)  # but a completed client handshake means the host sent its flights
         self.assertFalse(r.traced(c))
 
+    def test_every_recorded_phase_implies_its_datagrams(self):  # Codex pass 4
+        base = cycle(0, "flat", "harsh", connected=-1, outcome="timeout")
+        base.update(auth=-1.0, host_auth=1000.0)
+        self.assertTrue(r.traced(base))
+        for bad in ({"client_tx": 0, "host_tx": 0}, {"host_tx": 0}, {"client_tx": 1, "hellos": 2},
+                    {"hellos": 0}, {"auth": -1.0, "host_auth": -1.0, "hvr": 800.0, "host_tx": 0}):
+            self.assertFalse(r.traced({**base, **bad}), bad)
+        with tempfile.TemporaryDirectory() as tmp:  # host-only authentication with zeroed counts: no reading
+            write_run(Path(tmp), slow_flat=5, slow_off=40)
+            p = Path(tmp) / "gns-1-flat-harsh" / "cycles.jsonl"
+            cs = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines()]
+            cs[-1].update(outcome="timeout", connected=-1.0, auth=-1.0, client_tx=0, host_tx=0)
+            p.write_text("\n".join(json.dumps(c) for c in cs) + "\n", encoding="utf-8")
+            self.assertEqual(r.judge(Path(tmp))["rules"]["reading"], "incomplete")
+
     def test_the_cost_guard_is_exact_at_the_limit(self):  # Codex: a rounded 1.5004 passed
         self.assertTrue(judged(slow_flat=5, slow_off=40, flat_tx=(8, 4))["rules"]["guards"]["C1_cost"])  # 12/8 = 1.5
         v = judged(slow_flat=5, slow_off=40, flat_tx=(8, 4), bump_batch="udp-4401-flat-harsh")  # 3601/300 vs 2400/300

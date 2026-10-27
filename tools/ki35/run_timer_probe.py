@@ -53,12 +53,17 @@ def summarize(cycles: list[dict]) -> dict:
 
 
 def traced(c: dict) -> bool:
-    """The trace evidence a cycle's phases imply. Counts are non-negative integers; a client that completed its
-    handshake saw both sides send; a reconnect that reached Connected also authenticated on the host (Codex pass 3:
-    no_snapshot cycles reach Connected too)."""
+    """The trace evidence a cycle's recorded phases imply (Codex passes 3 and 4): counts are non-negative integers;
+    every ClientHello is a client datagram, and one is recorded iff the first one is; a HelloVerifyRequest received
+    means the host sent; either side authenticated means both sides sent and a ClientHello left; Connected (no_snapshot
+    included) means both sides authenticated."""
     if not all(isinstance(c[f], int) and c[f] >= 0 for f in ("client_tx", "host_tx", "host_timers", "timers", "hellos")):
         return False
-    if c["auth"] >= 0 and not (c["client_tx"] >= 1 and c["host_tx"] >= 1 and c["hellos"] >= 1 and c["first_hello"] >= 0):
+    if c["client_tx"] < c["hellos"] or (c["hellos"] >= 1) != (c["first_hello"] >= 0):
+        return False
+    if c["hvr"] >= 0 and c["host_tx"] < 1:
+        return False
+    if (c["auth"] >= 0 or c["host_auth"] >= 0) and not (c["client_tx"] >= 1 and c["host_tx"] >= 1 and c["hellos"] >= 1):
         return False
     return c["connected"] < 0 or (c["auth"] >= 0 and c["host_auth"] >= 0)
 
