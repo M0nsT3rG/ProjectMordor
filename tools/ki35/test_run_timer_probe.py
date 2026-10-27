@@ -26,7 +26,8 @@ def write_run(root: Path, slow_flat=10, slow_off=30, flat_tx=(4, 4), flat_failur
             continue
         d = root / nm
         d.mkdir()
-        slow = (slow_flat if a == "flat" else slow_off) if p == "harsh" else 0
+        sf, so = (x[b] if isinstance(x, dict) else x for x in (slow_flat, slow_off))  # per backend, optionally
+        slow = (sf if a == "flat" else so) if p == "harsh" else 0
         lines = []
         for j in range(n):
             last = p == "harsh" and j >= n - (flat_failures if a == "flat" else off_no_snapshot)
@@ -125,6 +126,14 @@ class Rules(unittest.TestCase):
             cs[-1].update(outcome="timeout", connected=-1.0, auth=-1.0, client_tx=0, host_tx=0)
             p.write_text("\n".join(json.dumps(c) for c in cs) + "\n", encoding="utf-8")
             self.assertEqual(r.judge(Path(tmp))["rules"]["reading"], "incomplete")
+
+    def test_a_barely_worse_backend_is_not_hidden_by_rounding(self):  # Codex pass 5
+        lo = r.ab.newcombe(159, 300, 135, 300, exact=True)[0]
+        self.assertTrue(0 < lo < 0.00005)  # rounds to 0.0 at 4 places
+        v = judged(slow_flat={"udp": 5, "gns": 53}, slow_off={"udp": 40, "gns": 45})
+        self.assertEqual(v["rules"]["udp-harsh"]["O1_over_limit"]["verdict"], "flat_better")
+        self.assertEqual(v["rules"]["gns-harsh"]["O1_over_limit"]["verdict"], "flat_worse")
+        self.assertEqual(v["rules"]["reading"], "timer_cap_not_the_lever")
 
     def test_the_cost_guard_is_exact_at_the_limit(self):  # Codex: a rounded 1.5004 passed
         self.assertTrue(judged(slow_flat=5, slow_off=40, flat_tx=(8, 4))["rules"]["guards"]["C1_cost"])  # 12/8 = 1.5

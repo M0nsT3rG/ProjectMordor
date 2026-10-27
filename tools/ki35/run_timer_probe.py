@@ -131,7 +131,7 @@ def judge(out: Path) -> dict:
             r = {"O3_p50_total": ab.boot_diff(flat_t, off_t, 50), "O3_p50_dtls": ab.boot_diff(dtls["flat"], dtls["off"], 50)}
             if profile == "harsh":
                 o1 = ab.newcombe(po["flat"]["over_limit"]["k"], po["flat"]["over_limit"]["n"],
-                                 po["off"]["over_limit"]["k"], po["off"]["over_limit"]["n"])
+                                 po["off"]["over_limit"]["k"], po["off"]["over_limit"]["n"], exact=True)
                 hom = {}
                 for a in ARMS:
                     counts = [(v["batches"][k]["over_limit"]["k"], v["batches"][k]["over_limit"]["n"])
@@ -140,7 +140,9 @@ def judge(out: Path) -> dict:
                     hom[a] = rc.homogeneity_p(counts) if len(counts) == 3 and all(n for _, n in counts) else None
                 hetero = any(h is not None and h < rc.HOMOGENEITY_P for h in hom.values())
                 r["homogeneity_p"] = hom
-                r["O1_over_limit"] = {"diff_ci95": o1, "verdict": "unassessable" if None in hom.values() else
+                # Classified on the exact bounds; only the recorded interval is rounded (Codex pass 5).
+                r["O1_over_limit"] = {"diff_ci95": o1 and [round(x, 4) for x in o1],
+                                      "verdict": "unassessable" if None in hom.values() else
                                       "heterogeneous" if hetero else direction(o1)}
                 for q in (95, 99):
                     b = ab.boot_diff(flat_t, off_t, q)

@@ -33,15 +33,16 @@ def name(b, s, a, p) -> str:
     return f"{b}-{s}-{a}-{p}"
 
 
-def newcombe(k1: int, n1: int, k0: int, n0: int) -> list[float] | None:
-    """95% hybrid score interval for p1 - p0 (Newcombe 1998, method 10), from the two Wilson intervals."""
-    w1, w0 = rc.wilson(k1, n1), rc.wilson(k0, n0)
+def newcombe(k1: int, n1: int, k0: int, n0: int, exact: bool = False) -> list[float] | None:
+    """95% hybrid score interval for p1 - p0 (Newcombe 1998, method 10), from the two Wilson intervals. Rounded to 4
+    places (EXP-043's recorded verdicts); exact=True keeps full precision for decisions (EXP-044, Codex)."""
+    w1, w0 = rc.wilson(k1, n1, exact=exact), rc.wilson(k0, n0, exact=exact)
     if w1 is None or w0 is None:
         return None
     p1, p0 = k1 / n1, k0 / n0
     d = p1 - p0
-    return [round(d - math.sqrt((p1 - w1[0]) ** 2 + (w0[1] - p0) ** 2), 4),
-            round(d + math.sqrt((w1[1] - p1) ** 2 + (p0 - w0[0]) ** 2), 4)]
+    lo, hi = d - math.sqrt((p1 - w1[0]) ** 2 + (w0[1] - p0) ** 2), d + math.sqrt((w1[1] - p1) ** 2 + (p0 - w0[0]) ** 2)
+    return [lo, hi] if exact else [round(lo, 4), round(hi, 4)]
 
 
 def quantile(xs: list[float], q: int) -> float:

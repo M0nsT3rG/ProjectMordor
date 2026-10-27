@@ -32,14 +32,15 @@ BATCHES = [("udp", 4101), ("udp", 4102), ("udp", 4103), ("gns", 1), ("gns", 2), 
 Z95, Z90 = 1.959964, 1.644854
 
 
-def wilson(k: int, n: int, z: float = Z95) -> list[float] | None:
+def wilson(k: int, n: int, z: float = Z95, exact: bool = False) -> list[float] | None:
+    """Rounded to 4 places for reports; exact=True keeps full precision for decisions (EXP-044, Codex)."""
     if n == 0:
         return None
     p = k / n
     d = 1 + z * z / n
     c = (p + z * z / (2 * n)) / d
     h = z * math.sqrt(p * (1 - p) / n + z * z / (4 * n * n)) / d
-    return [round(c - h, 4), round(c + h, 4)]
+    return [c - h, c + h] if exact else [round(c - h, 4), round(c + h, 4)]
 
 
 def pct(xs: list[float], p: int) -> float | None:
