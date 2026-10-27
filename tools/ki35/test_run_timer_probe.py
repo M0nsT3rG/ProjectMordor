@@ -135,6 +135,24 @@ class Rules(unittest.TestCase):
         self.assertEqual(v["rules"]["gns-harsh"]["O1_over_limit"]["verdict"], "flat_worse")
         self.assertEqual(v["rules"]["reading"], "timer_cap_not_the_lever")
 
+    def test_homogeneity_is_judged_before_rounding(self):  # Codex pass 6: p = 0.0099997 rounded to 0.01
+        self.assertLess(r.rc.homogeneity_p([(21, 99), (26, 100), (40, 100)], exact=True), r.rc.HOMOGENEITY_P)
+        with tempfile.TemporaryDirectory() as tmp:
+            write_run(Path(tmp), slow_flat={"udp": 5, "gns": 20}, slow_off={"udp": 40, "gns": 20})  # GNS: no change
+            for arm, slows in (("flat", (21, 26, 40)), ("off", (45, 45, 45))):
+                for seed, slow in zip((4401, 4402, 4403), slows):
+                    p = Path(tmp) / f"udp-{seed}-{arm}-harsh" / "cycles.jsonl"
+                    cs = [json.loads(l) for l in p.read_text(encoding="utf-8").splitlines()]
+                    for j, c in enumerate(cs):  # the first `slow` reconnects over 3 s
+                        c.update(cycle(j, arm, "harsh", connected=4000.0 if j - (seed == 4401) < slow else 1500.0))
+                    if seed == 4401:
+                        cs[0]["outcome"] = "no_reconnect"  # 99 reconnects in that batch
+                    p.write_text("\n".join(json.dumps(c) for c in cs) + "\n", encoding="utf-8")
+            v = r.judge(Path(tmp))
+            self.assertTrue(v["complete"], v["incomplete_because"])
+            self.assertEqual(v["rules"]["udp-harsh"]["O1_over_limit"]["verdict"], "heterogeneous")
+            self.assertEqual(v["rules"]["reading"], "timer_cap_not_the_lever")
+
     def test_the_cost_guard_is_exact_at_the_limit(self):  # Codex: a rounded 1.5004 passed
         self.assertTrue(judged(slow_flat=5, slow_off=40, flat_tx=(8, 4))["rules"]["guards"]["C1_cost"])  # 12/8 = 1.5
         v = judged(slow_flat=5, slow_off=40, flat_tx=(8, 4), bump_batch="udp-4401-flat-harsh")  # 3601/300 vs 2400/300

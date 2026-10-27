@@ -60,8 +60,9 @@ def tost(k: int, n: int, model: list[float], delta: float = DELTA) -> str:
     return "inconclusive"
 
 
-def homogeneity_p(counts: list[tuple[int, int]]) -> float | None:
-    """Chi-square test of equal proportions across batches. Exact survival function for df = 2 (3 batches)."""
+def homogeneity_p(counts: list[tuple[int, int]], exact: bool = False) -> float | None:
+    """Chi-square test of equal proportions across batches. Exact survival function for df = 2 (3 batches). Rounded
+    to 6 places for reports; exact=True keeps full precision for decisions (EXP-044, Codex)."""
     counts = [(k, n) for k, n in counts if n > 0]
     if len(counts) < 2:
         return None
@@ -72,10 +73,12 @@ def homogeneity_p(counts: list[tuple[int, int]]) -> float | None:
     x2 = sum((k - n * p) ** 2 / (n * p) + ((n - k) - n * (1 - p)) ** 2 / (n * (1 - p)) for k, n in counts)
     df = len(counts) - 1
     if df == 2:
-        return round(math.exp(-x2 / 2), 6)
-    if df == 1:  # survival of chi-square(1) = erfc(sqrt(x/2))
-        return round(math.erfc(math.sqrt(x2 / 2)), 6)
-    raise ValueError("predeclared for 3 batches per backend")
+        sf = math.exp(-x2 / 2)
+    elif df == 1:  # survival of chi-square(1) = erfc(sqrt(x/2))
+        sf = math.erfc(math.sqrt(x2 / 2))
+    else:
+        raise ValueError("predeclared for 3 batches per backend")
+    return sf if exact else round(sf, 6)
 
 
 def lag1(xs: list[int]) -> float | None:

@@ -137,9 +137,9 @@ def judge(out: Path) -> dict:
                     counts = [(v["batches"][k]["over_limit"]["k"], v["batches"][k]["over_limit"]["n"])
                               for k in raw if k.startswith(backend + "-") and k.endswith(f"-{a}-harsh")]
                     # All 3 batches must be assessable; a batch without reconnects makes it unknown (Codex).
-                    hom[a] = rc.homogeneity_p(counts) if len(counts) == 3 and all(n for _, n in counts) else None
-                hetero = any(h is not None and h < rc.HOMOGENEITY_P for h in hom.values())
-                r["homogeneity_p"] = hom
+                    hom[a] = rc.homogeneity_p(counts, exact=True) if len(counts) == 3 and all(n for _, n in counts) else None
+                hetero = any(h is not None and h < rc.HOMOGENEITY_P for h in hom.values())  # exact (Codex pass 6)
+                r["homogeneity_p"] = {a: h if h is None else round(h, 6) for a, h in hom.items()}
                 # Classified on the exact bounds; only the recorded interval is rounded (Codex pass 5).
                 r["O1_over_limit"] = {"diff_ci95": o1 and [round(x, 4) for x in o1],
                                       "verdict": "unassessable" if None in hom.values() else
