@@ -828,6 +828,44 @@ This was written and committed **before** any run, after reviews #27/#28 (FB-28-
   - It moves the session's wasted retry into a wait for the ack inside DTLS.
   - `confirm_binding` stays off by default. Next for KI-35 are the DTLS-timer and cookie experiments (FB-25-07 / FB-28-04).
 
+## Predeclared experiment KI-35: DTLS retransmission back-off (2026-10-27, EXP-044)
+
+This was written and committed **before** any tooling or run, after review #29 (FB-29-02). **No default changes here**: any change is a later owner decision.
+
+**Question.** Does the growth of the DTLS handshake retransmission timer drive KI-35's tail? EXP-041 shows DTLS as the largest phase in most of the slowest reconnects on both backends. Today a flight is retransmitted after 250 ms, then 500 ms, then every 1 s (`DtlsConfig::retransmit_initial_us` / `retransmit_max_us`, EXP-022). Under 15% loss, a flight lost twice in a row costs 750 ms of waiting, and three times 1750 ms.
+
+**Arms, one variable** (the cap of the back-off, on host and client):
+- `off`: today's defaults (250 ms initial, doubling, 1 s cap), as in EXP-043's `off` arm.
+- `flat`: the same 250 ms initial with the cap at 250 ms, so the timer never grows.
+
+`flat` is a **bounding** arm, not a candidate default. RFC 6347 §4.2.4.1 recommends doubling the timer, to avoid congestion on real links. If even no growth at all does not move the tail, no milder setting will, and the timer is not KI-35's lever. If it does, a milder setting is predeclared next, and the result alone changes nothing.
+
+**Probe:** `tools/ki35/reconnect_probe.cpp` as in EXP-043, with arm `flat` (`SecureTransportConfig::retransmit_max_us = 250'000` on both sides; plumbing only, defaults unchanged). Per cycle it also records:
+- the host's DTLS timer fires;
+- the DTLS datagrams sent by each side from the stall end until that side authenticates (`tx` traces). This is the wire cost; bytes are not traced, and a retransmission resends the same flight;
+- the process CPU time so far.
+
+**Batches,** arms alternating batch by batch (off, flat, off, flat …) so drift affects both:
+- **harsh** (15% loss, 5% duplicates, 80 ms + U[0, 40] ms): UDP seeds 4401, 4402 and 4403 and 3 GNS repetitions, **per arm**, 100 cycles each;
+- **latency** (80 ms + U[0, 40] ms only): one batch of 50 cycles per arm and backend. This prices spurious retransmissions on a clean path, where a round trip can exceed 250 ms.
+- The UDP arms share seeds, but their random streams diverge as behaviour differs. They are analysed as independent samples.
+
+**Per reconnect** (as in EXP-041/043): the phases; `total` (stall end to `Connected`; a reconnect that never connects counts as 20,000 ms, a conservative censoring); the DTLS phase (first ClientHello to client authentication); ClientHellos sent; client and host timer fires; handshake datagrams of both sides.
+
+**Rules, fixed now** (per backend; harsh unless stated):
+- **Completeness:** all 16 batches, with contiguous cycles, exit 0, the arm and profile recorded, and the host trace present. Otherwise no verdict.
+- **Homogeneity:** each arm's 3 harsh batches are checked by chi-square (df = 2) on P(total > 3 s). If p < 0.01, that outcome gets per-batch reporting only.
+- **O1 (primary) P(total > 3000 ms):** the difference flat − off with a 95% Newcombe hybrid score interval. **flat better** if the upper bound is < 0, **flat worse** if the lower bound is > 0, otherwise **no difference shown**.
+- **O2 p95 and p99 of total:** the difference flat − off with a seeded bootstrap (seed 43, 4000 resamples, percentile 95% interval). Better, worse or no difference as in O1.
+- **O3 p50 of total** and **of the DTLS phase,** flat − off, bootstrap as in O2, for both profiles: reported, not judged.
+- **C1 wire cost:** mean handshake datagrams (both sides) per reconnect, flat / off. **The cost guard fails** if that ratio is above 1.5 on any backend under harsh.
+- **C2 robustness:** timeouts, failures and reconnects that never started, per arm. **The guard fails** if flat has more of them than off on any backend.
+- **Reported:** ClientHellos and timer fires per reconnect; CPU time per cycle (the probe's 1 ms loop dominates it, so it is a sanity check, not a measure of DTLS).
+- **Reading for the owner, not automatic:**
+  - **"growth matters"** only if O1 or O2-p95 shows **flat better** on at least one backend, **flat worse** appears on no backend for O1 or O2, and both guards hold. Then a milder setting (for example a 500 ms cap) is predeclared next.
+  - Otherwise **"the timer cap is not KI-35's lever"**, and the cookie round trip (FB-28-04) is next.
+  - KI-35 stays open either way until the soak gate says otherwise.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
