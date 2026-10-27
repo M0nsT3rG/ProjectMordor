@@ -891,6 +891,79 @@ This was written and committed **before** any tooling or run, after review #29 (
   - **KI-35 is not fixed.** Even with flat, 19% of harsh GNS reconnects take over 3 s: GNS establishment and the session phase remain (EXP-041).
   - **Next, by the rule:** predeclare a milder setting (for example a 500 ms cap) before any run, including a path whose RTT exceeds the timer. Adopting any setting is an owner decision.
 
+## Predeclared experiment KI-35: intermediate DTLS back-off caps (2026-10-27, EXP-047)
+
+This section was written and committed **before** any tooling or run, after review #31 (FB-31-01..04). **No default changes here**: any change is a later owner decision, followed by the soak gate.
+
+**Question.** EXP-044 showed that back-off growth drives the DTLS tail, but its `flat` arm was only a bound. Do milder caps keep the tail gain? And what do they cost in bytes, in resent datagrams, and on a path whose RTT exceeds the 250 ms initial timer?
+
+**Arms.** The arms differ only in the back-off cap (`retransmit_max_us`, set on host and client alike). Each flight starts at 250 ms and doubles up to the cap (`DtlsSession::next_retransmit_us`):
+- `off`, today's default: 250, 500, 1000, 1000 … ms;
+- `cap750`: 250, 500, 750, 750 … ms;
+- `cap500`: 250, 500, 500 … ms. "A 500 ms cap" and "doubling up to 500 ms" are the same schedule.
+
+EXP-044's `flat` arm is not repeated.
+
+**Profiles,** with the impairment applied by each side to what it sends:
+- **harsh**, as in EXP-044: 15% loss, 5% duplicates, 80 ms + U[0, 40] ms;
+- **slow**: 150 ms + U[0, 50] ms, so the RTT is 300–400 ms, above the 250 ms initial timer; 1% loss; no duplicates. This profile prices needless retransmissions on a benign, slow path.
+
+**Batches.** Every batch is 100 cycles. On each backend, each arm is used once per repetition, in a rotating order, so drift affects every arm:
+- **harsh, UDP** (seeds 4701, 4702, 4703) and **harsh, GNS** (repetitions 1, 2, 3). The orders by repetition are:
+  - first: `off`, `cap750`, `cap500`;
+  - second: `cap750`, `cap500`, `off`;
+  - third: `cap500`, `off`, `cap750`.
+- **slow:** UDP seed 4704 and GNS repetition 4, in the order `off`, `cap750`, `cap500`.
+
+That is 24 batches and 2400 reconnects, taking about 6 h. The arms are analysed as independent samples, as in EXP-044.
+
+**Instrumentation (FB-31-02).** The DTLS trace detail of every handshake datagram, sent or received, gains two header-only fields, so no payload is logged:
+- `len=<bytes>`: the datagram's size at our layer. That is the UDP payload; on GNS it excludes GNS framing and GNS's own handshake.
+- `seq=<n>`: the `message_seq` of the first plaintext handshake message, when the datagram carries one.
+
+The existing record list keeps its position, so existing parsers are unaffected.
+
+**Per reconnect and side,** counted from the end of the stall until that side authenticated:
+- bytes sent;
+- bytes received;
+- datagrams sent;
+- **resent datagrams**: a sent datagram whose key that side already sent since the stall ended. The key is the type and `message_seq` of its first plaintext handshake message, or else its record list. It counts timer retransmissions, answers to a peer's retransmission, and restarts on a new connection;
+- timer fires.
+
+Also recorded per reconnect: the phases, `total` and the DTLS phase as in EXP-044, the process CPU, and the outcome.
+
+**Rules, fixed now.** Each rule applies per backend, and each candidate `c` (`cap750`, `cap500`) is compared with `off`. The profile is harsh unless stated.
+- **Completeness:** as EXP-044, for all 24 batches. In addition:
+  - the byte and resend fields are present;
+  - byte counts are non-negative integers;
+  - each side's bytes sent are at least its datagrams sent;
+  - resent datagrams never exceed datagrams sent.
+
+  If any of these fails, there is no verdict.
+- **Homogeneity:** each arm's 3 harsh batches, as in EXP-044. If p < 0.01, that candidate's O1 on that backend is reported per batch only. An unknown p makes it unassessable.
+- **O1, P(total > 3000 ms):** `c` − `off`, with a 95% Newcombe hybrid score interval. "Better", "worse" or "no difference shown" as in EXP-044.
+- **O2, p95 and p99 of total:** `c` − `off`, seeded bootstrap (43, 4000).
+- **O3, p50 of total and of the DTLS phase,** on both profiles: reported only.
+- **G1, bytes:** mean bytes sent per reconnect (both sides), `c` / `off`.
+  - The guard fails above **1.25**, on either profile, on any backend.
+  - It is compared on unrounded sums.
+- **G2, robustness:** under both profiles, `c` never has more timeouts than `off`, nor more failures, nor more reconnects that never started. Each category is compared on its own.
+- **G3, slow path:** on the slow profile, `c`'s p95 and p50 of total must not be "worse" than `off`'s (same bootstrap).
+- **Reported:**
+  - per side, bytes received, resent datagrams, timer fires and datagrams;
+  - ClientHellos;
+  - CPU per cycle;
+  - every metric per batch.
+- **Intervals** are 95% per comparison and are not adjusted for the two candidates. The reading is for the owner and is not applied automatically.
+- **Reading, per candidate:**
+  - **"improves the tail"** only if O1 or O2-p95 shows `c` better on at least one backend, "worse" appears on no backend for O1, O2-p95 or O2-p99, and G1, G2 and G3 hold on both backends;
+  - otherwise **"not shown"**;
+  - **"unassessable"** if any harsh O1 is unassessable, and **"incomplete"** without completeness.
+- **What follows:**
+  - If both candidates improve the tail, `cap750` keeps more of RFC 6347's back-off.
+  - Choosing one, and then a soak gate run, is the owner's decision.
+  - KI-35 stays open until the soak gate says otherwise.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

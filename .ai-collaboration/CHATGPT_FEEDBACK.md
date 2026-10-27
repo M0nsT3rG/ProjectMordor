@@ -6,6 +6,19 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #31 (PR #25: EXP-044, 2026-10-27)
+
+- **Status:** in progress (2026-10-27) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-047 (EXP-045/046 are on PR #26).
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-27T09:11Z). Source and evidence review only.
+- **Verdict:** EXP-044 supports "growth matters"; flat 250 ms is a bound, not a default; KI-35 open; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-31-01** Intermediate caps 500 / 750 ms, exact schedules, a profile with RTT above 250 ms | **Yes.** `DtlsSession::next_retransmit_us` starts every flight at `retransmit_initial_us` and doubles up to `retransmit_max_us`, so "a 500 ms cap" and "doubling up to 500 ms" are the same schedule; request #31 listed them as two candidates by mistake. | **Accepted** | EXP-047 is predeclared before any tooling or run: arms `off` (250, 500, 1000, 1000 … ms), `cap750` (250, 500, 750, 750 …) and `cap500` (250, 500, 500 …), host and client. Profiles: harsh, and `slow` (150 ms + U[0, 50] ms each way, so an RTT of 300–400 ms; 1% loss; no duplicates). The flat arm is not repeated: EXP-044 already bounds it. |
+| **FB-31-02** True wire and resource costs | **Yes:** EXP-044 counted datagrams only; the DTLS trace carried no sizes. | **Accepted** | The DTLS trace detail of every handshake datagram gains its length and, when it carries a plaintext handshake message, that message's `message_seq` (header fields only; no payload). Per reconnect and side: bytes sent and received, datagrams sent, resent datagrams (a repeated handshake message), timer fires; process CPU; failures and timeouts; per-batch results. Cost guardrails are fixed in the predeclaration. |
+| **FB-31-03** Cookie experiment separate, with the timer fixed | **Agreed.** | **Accepted** | Not in EXP-047. It will be predeclared on its own with the default timer. |
+| **FB-31-04** Security and decision boundary | **Agreed.** | **Accepted** | Defaults, DTLS verification and the cookie are unchanged; EXP-043's verdict stands; KI-44 stays open, and its test runs on both backends. No claim that the harsh GNS goal is met. |
+
 ## Feedback on review #29 (PR #25: EXP-043, 2026-10-26)
 
 - **Status:** implemented (2026-10-27) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-044.
