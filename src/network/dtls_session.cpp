@@ -58,17 +58,24 @@ std::string last_errors() {
     return all;
 }
 
-// "22/0/1,20/0,22/1": content type / epoch [/ handshake type when readable] of each record in a datagram.
+// "22/0/1,20/0,22/1,len=213,seq=1": content type / epoch [/ handshake type when readable] of each record in a
+// datagram, then (EXP-047, header fields only) the datagram's size and the message_seq of its first plaintext
+// handshake message, if any. Parsers match the leading record tokens.
 std::string describe_records(std::span<const std::uint8_t> b) {
     std::string s;
+    int seq = -1;
     for (std::size_t off = 0; off + 13 <= b.size();) {
         const unsigned epoch = (b[off + 3] << 8) | b[off + 4];
         const std::size_t len = (b[off + 11] << 8) | b[off + 12];
         if (!s.empty()) s += ',';
         s += std::to_string(b[off]) + '/' + std::to_string(epoch);
         if (b[off] == 22 && epoch == 0 && off + 13 < b.size()) s += '/' + std::to_string(b[off + 13]);
+        if (b[off] == 22 && epoch == 0 && seq < 0 && len >= 12 && off + 19 <= b.size())
+            seq = (b[off + 17] << 8) | b[off + 18];  // handshake header: type(1) length(3) message_seq(2)
         off += 13 + len;
     }
+    s += (s.empty() ? "len=" : ",len=") + std::to_string(b.size());
+    if (seq >= 0) s += ",seq=" + std::to_string(seq);
     return s;
 }
 
