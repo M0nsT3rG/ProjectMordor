@@ -651,6 +651,14 @@ class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
         self.assertEqual(tier_a.decide(rec, SEEN, [])[0], "FAIL")  # a backup's name does not vouch for its id
         out = tier_a.redact({"a": "user/backup4E57DE68.cfg", "b": "about ab"}, {}, known={"4e57de68", "ab"})
         self.assertEqual(out, {"a": "user/backup<id1>.cfg", "b": "about <id2>"})  # a short id stays whole-token
+        import os
+        from unittest import mock
+        with mock.patch.dict(os.environ, {"COMPUTERNAME": "DESKTOP-T", "USERNAME": "Tester"}):  # Codex pass 8
+            doc = {"a": "user/backupDESKTOP-T.cfg", "b": "user/Testerx.cfg"}
+            self.assertEqual(tier_a.redact(doc, {}, known={"DESKTOP-T"}),
+                             {"a": "user/backup<redacted>.cfg", "b": "user/Testerx.cfg"})  # a name alone stays whole
+            self.assertEqual(tier_a.redact(dict(doc, c="user/desktop-t_ShadowOfWar.sav"), {})["a"],
+                             "user/backup<redacted>.cfg")  # the id seen in the record itself
 
 
 if __name__ == "__main__":

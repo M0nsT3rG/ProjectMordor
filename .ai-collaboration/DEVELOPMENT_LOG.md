@@ -2,6 +2,12 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-27: Codex pass 8 on EXP-048 (`feature/d008-gog-inventory`, PR #26)
+
+- **Run:** the owner asked for it, to check the pass 7 fixes. Read-only, on `25edf8a`.
+- **Found 1 defect, reproduced and fixed with a regression:** a save id equal to the machine name (the Steam-era save) was left out of id replacement, and names are replaced only as whole tokens. So `backupDESKTOP-T.cfg` kept the name in the evidence. A name that is also a save id is now replaced anywhere, like an id.
+- **Tests:** 28 self-checks, 1 skipped. The extended test fails against `25edf8a`.
+
 ## 2026-10-27: Codex pass 7 on EXP-048 (`feature/d008-gog-inventory`, PR #26)
 
 - **Run:** the owner asked for it after the usage limit reset. Read-only, on `e1683ec`.

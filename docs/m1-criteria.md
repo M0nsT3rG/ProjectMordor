@@ -123,7 +123,7 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 2. Approval of this document for M1 **tier A**, with the predeclaration in §8. The dry run and the coverage experiment (§6a) passed elevated, and ChatGPT reviewed them (review #35 and its follow-up).
    - Review #36 called §8 a sufficiently narrow draft, once its changes were made. They are made: the outcome tests, the privacy checks and a fixture-only rehearsal of the tool.
    - Review #37 found §8 ready for the owner's review, conditionally.
-   - Codex pass 7 (2026-10-27) found 4 defects, all fixed with regressions: a UTF-16 file read as having no position, a `.sav.bak` vouching for a new id, an id embedded in a longer name, and an earlier killed session's raw trace.
+   - Codex pass 7 (2026-10-27) found 4 defects, all fixed with regressions: a UTF-16 file read as having no position, a `.sav.bak` vouching for a new id, an id embedded in a longer name, and an earlier killed session's raw trace. Codex pass 8 checked those fixes and found 1 defect, also fixed: a save id equal to the machine name still leaked inside a longer name.
 
 ## 8. Tier A predeclaration (EXP-048; awaiting the owner's approval)
 
@@ -185,7 +185,7 @@ Fixed before any session, after a metadata-only listing of the game's folders th
 - **Evidence:** `evidence/logs/m1-tier-a-<time>-s<N>/session.json`. It holds the outcome and reasons, the changes (not the full snapshots), the files scanned, the observations, the exit and the reduced network record. It has no local paths, no machine or user names and no save ids.
   - The redaction is case-insensitive.
   - It covers paths with either slash style or escaped backslashes, and any save id from the folder.
-  - Ids are replaced wherever they appear: in another file's name, in an error message, in a plain string (FB-36-05). This includes inside a longer name (Codex pass 7). An id shorter than 4 characters is replaced only as a whole token.
+  - Ids are replaced wherever they appear: in another file's name, in an error message, in a plain string (FB-36-05). This includes inside a longer name (Codex pass 7). An id shorter than 4 characters is replaced only as a whole token. A machine or user name that is also a save id is replaced inside longer names too; otherwise names are replaced as whole tokens (Codex pass 8).
 - **Expected (the hypothesis, not a result):** session 1 ends **Tier A INCONCLUSIVE / NO DATA**, because the game writes no log file (F-ENV-014). If so, and every other gate is sound, tier A ends after that one session (§3), and the owner decides whether a tier B predeclaration is written.
   - `session.json` records this as `no_data_established`. It is true only when the session is INCONCLUSIVE and no position is its only reason (with the zero counts per action that follow from it).
   - A session whose monitoring or evidence failed is INCONCLUSIVE too, but it cannot establish NO DATA, so it does not close tier A (FB-36-02).

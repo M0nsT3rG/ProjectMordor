@@ -188,16 +188,21 @@ def redact(doc, paths: dict[str, Path], keep=("game_written",), known=()):
         elif isinstance(o, str):
             yield o
     names = {os.environ.get("COMPUTERNAME", ""), os.environ.get("USERNAME", "")} - {""}
+    # A name that is also a save id is replaced inside longer names too, like any id (Codex pass 8).
+    id_names = {m.lower() for s in strings(doc) for m in SAVE_ID.findall(s)} | {k.lower() for k in known}
 
     def whole(v: str, by: str, s: str) -> str:  # whole tokens only: a short name must not eat into "closed"
         return re.sub(rf"(?<![A-Za-z0-9]){re.escape(v)}(?![A-Za-z0-9])", by, s, flags=re.I)
+
+    def anywhere(v: str, by: str, s: str) -> str:  # ids: inside longer names too; a very short one only whole
+        return re.sub(re.escape(v), by, s, flags=re.I) if len(v) >= 4 else whole(v, by, s)
 
     def plain(s: str) -> str:
         for token, p in paths.items():  # longest first; Windows paths ignore case
             for form in {str(p), p.as_posix(), str(p).replace("\\", "\\\\")}:
                 s = re.sub(re.escape(form), lambda _: token, s, flags=re.I)
         for v in names:
-            s = whole(v, "<redacted>", s)
+            s = (anywhere if v.lower() in id_names else whole)(v, "<redacted>", s)
         return s
     found = {m for s in strings(doc) for m in SAVE_ID.findall(plain(s))} | set(known)
     found -= {"<redacted>", "*", ""} | {v for v in found if v.lower() in {n.lower() for n in names}}
@@ -211,8 +216,7 @@ def redact(doc, paths: dict[str, Path], keep=("game_written",), known=()):
         if isinstance(o, str):
             o = plain(o)
             for v in sorted(ids, key=len, reverse=True):  # longest first: one id may contain another
-                # Inside other names too ("backup4e57de68.cfg", Codex pass 7); a very short one only whole.
-                o = re.sub(re.escape(v), ids[v], o, flags=re.I) if len(v) >= 4 else whole(v, ids[v], o)
+                o = anywhere(v, ids[v], o)  # "backup4e57de68.cfg" too (Codex pass 7)
             return o
         return o
     return fix(doc)
