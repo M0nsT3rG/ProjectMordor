@@ -1,4 +1,16 @@
-# ChatGPT review request #39: EXP-048 session 1, and the §8 amendment for EXP-051 (KI-45)
+# ChatGPT review request #39: EXP-048 session 1, and the §8 amendment for EXP-051 (KI-45), with addendum A
+
+## Addendum A (2026-10-28, evening): EXP-051 session 1 and the second amendment
+
+This addendum is not a new number: request numbers from #40 belong to PR #25.
+
+- **What happened:** EXP-051 session 1 left no evidence. The trace analysis loaded the whole decoded trace into memory (18 GB), Ctrl+C could not reach it, and the owner ended the process. EXP-051 is ABANDONED.
+- **The fix:** `tools/m1/netwatch.py` streams the trace and keeps only counts. Codex passes 14 and 15 found 4 defects; 3 are fixed and 1 is documented. The record is in `docs/m1-criteria.md` §8 and §7 item 4.
+- **Please check:**
+  1. Is the streamed analysis equivalent to the whole-file one for tracerpt output? The one documented difference is the exception named for a file that is both malformed and truncated.
+  2. Is the limit acceptable: an interrupt inside the library's open call can leave the raw file open, which then ends as a FAIL (condition 10)?
+  3. Should the tool write a partial `session.json` before the analysis, so that a killed analysis still leaves the snapshots and the operator's answers? This is not done: it would change `tier_a.py` and needs its own approval.
+- **Next:** EXP-050 and the dry run must pass elevated on the amended code, and the owner must approve, before EXP-060 session 1.
 
 - **Date:** 2026-10-28
 - **Requested by:** Claude Code

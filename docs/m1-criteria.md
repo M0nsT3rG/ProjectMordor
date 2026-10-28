@@ -1,6 +1,6 @@
-# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28)
+# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28; second amendment for EXP-060 pending)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 may run (§7 item 3). Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 ran the same day. **It left no evidence:** the trace analysis ran out of memory, Ctrl+C did not reach it, and the owner ended it (KI-45). EXP-051 is ABANDONED and the series is stopped. **A second amendment** streams the analysis. It changes only `netwatch.py` and **awaits the owner's approval**, after EXP-050 and the dry run pass elevated again. The next series is EXP-060 (§7 item 4). Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -135,6 +135,12 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
   - the tiny buffers still lost 135455.
 - `dryrun.py` 11/11.
 
+**After the analysis change (KI-45, EXP-051 session 1):** the owner runs both again elevated on the amended `netwatch.py` before EXP-060 session 1. They must give the same outcomes: `coverage.py` 9/9 MATCH and `dryrun.py` 11/11. `test_m1.py` adds four checks:
+- the analysis's memory does not grow with the number of events. The old code peaked at 133 MB on 30010 events; the new code stays under 8 MB, and peaked at 1 MB on 300009 events (a 143 MB file);
+- an interrupt reaches the analysis, inside the parser and between events, and the raw trace is still deleted;
+- only the root's own events count;
+- a truncated file is still "no decodable trace".
+
 ## 7. Decisions needed from the owner
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
@@ -153,6 +159,11 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
    - **2026-10-28, review #39 (FB-39-03):** the owner asked for EXP-050's mixed-load case and approved adding it in chat ("Sim, acrescenta"). It changes only `coverage.py`, its test and §6a.
      - The session tools (`tier_a.py`, `session.py`, `netwatch.py`) stay exactly as approved at `322f02d`.
      - "EXP-050 on code `322f02d`" therefore means those session tools, together with the `coverage.py` that holds the mixed-load case.
+4. **Approval of the second amendment for EXP-060** (pending). EXP-051 session 1 ran out of memory in the trace analysis and left no evidence (§8, KI-45). The fix streams the analysis. It changes only `netwatch.py`, and its result is unchanged. It needs:
+   - EXP-050 and the dry run elevated again, on the amended code;
+   - the owner's approval in chat.
+
+   Until both are done, `tier_a.py` must not run.
 
 ## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, approved by the owner the same day)
 
@@ -219,6 +230,13 @@ Fixed before any session, after a metadata-only listing of the game's folders th
     1. The tool asks whether the game was closed through its menu, showed any integrity, tamper or debugger warning, or crashed.
     2. It stops and analyzes the trace, which is then deleted.
     3. It re-runs the build check and the snapshots, reads the permitted files and classifies the session (§6).
+  - **Second amendment (KI-45, EXP-051 session 1; awaiting the owner's approval):** the analysis streams the decoded trace, one event at a time, and keeps only counts. It no longer loads the whole trace into memory, and Ctrl+C reaches it.
+    - Its result is unchanged for any trace tracerpt writes.
+    - **One difference:** a file that is both malformed and truncated reports the first fault it meets, for example `AttributeError` instead of `ParseError`. It is still "no decodable trace" (Codex pass 14).
+    - The file is closed on every path, so it can still be deleted after an interrupt (Codex passes 14 and 15).
+      - **Limit:** an interrupt inside the library's own call that opens the file, a few instructions long, can still leave the file open.
+      - Then the raw file is reported as not deleted, which is a FAIL (condition 10), and the next session deletes it before it starts.
+    - Only the root's own events count, as before.
   - Ctrl+C, or an error at any point after the trace is started, still stops the trace and deletes its raw files. The session ends INCONCLUSIVE, or FAIL if a FAIL condition was seen.
   - A game the trace never saw has no observed exit. That is missing evidence (INCONCLUSIVE), not an unclean exit.
   - A trace analysis that fails is recorded as monitoring that did not cover the session, with any raw file left (FB-36-05).
@@ -257,4 +275,22 @@ Fixed before any session, after a metadata-only listing of the game's folders th
 
       Both diagnoses come from byte statistics after the run; no content was recorded.
   - **The series is stopped** (predeclared). The fixes are the 2026-10-28 amendment above. They need EXP-050, review and the owner's new approval before EXP-051 session 1. The EXP-051 hypothesis is the same as EXP-048's: Tier A INCONCLUSIVE / NO DATA, with `no_data_established` true.
+- **EXP-051 session 1 (2026-10-28, started 15:36 on clean `d872ecc`, session tools as at `322f02d`): no result, no evidence.**
+  - **What happened:**
+    - The owner played the session and answered the closing questions.
+    - The trace was stopped and decoded.
+    - The analysis then loaded the whole decoded trace into memory. At 18:20 it held 8.5 GB and was paging. Later it held 18 GB, and 537 MB of the machine's 32 GB were free.
+    - Ctrl+C did not reach it, because one call parsed the whole file.
+    - The owner ended the process after 19:46.
+  - **What is left:**
+    - No `session.json` was written, so the evidence folder `evidence/logs/m1-tier-a-2026-10-28-153601-s1/` is empty.
+    - The session's temporary folder, with the raw trace, was no longer in `%TEMP%` when checked at about 19:47. Every other `mordor-*` folder in `%TEMP%` was gone too: the folder was cleared by something outside these tools, which was not identified.
+    - The trace session `mordor-m1-net` was not running.
+  - **Cause:** a defect in `netwatch` (KI-45). Its analysis was sized only on stand-in traces (EXP-045, EXP-046, EXP-050), never on a whole session's trace with the session buffers.
+  - **The series is stopped:** monitoring and evidence failed, so the session counts as INCONCLUSIVE (§6, condition 9). EXP-051 is ABANDONED.
+  - **The second amendment** (above, under the procedure) is the only fix. It changes only `netwatch.py`, and it needs:
+    1. EXP-050 and the dry run again, elevated, on the amended code (§6a);
+    2. the owner's new approval.
+
+    The next series is **EXP-060**, starting again at session 1. EXP-052 to EXP-059 are left to PR #25. Everything else in §8 is unchanged, including the hypothesis.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.

@@ -2,6 +2,22 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: EXP-051 session 1 left no evidence; second amendment (`feature/d008-gog-inventory`, PR #26)
+
+- **The session:** the owner ran it at 15:36 on clean `d872ecc`. The game was played and the closing questions answered, and the trace was stopped and decoded.
+- **What failed:** `netwatch.analyze` parsed the whole decoded trace into memory. It reached 18 GB, the machine paged, and Ctrl+C could not reach a single whole-file parse. The owner ended the process, so no `session.json` was written.
+- **Afterwards:** the raw trace's temporary folder had already gone from `%TEMP%`, together with every other `mordor-*` folder there. Something outside these tools cleared it; it was not identified.
+- **Record:** EXP-051 ABANDONED, and the series is stopped (§8). KI-45 is updated.
+- **The fix (second amendment, `netwatch.py` only):**
+  - `events()` streams the file with `iterparse`, keeps only the root's own events, and closes the file on every path.
+  - `_analyze` makes one pass and keeps only counts per PID.
+  - Measured: the old code peaked at 133 MB on 30010 events; the new code peaked at 1 MB on 300009 events (143 MB of XML).
+- **Codex:**
+  - pass 14: 3 defects (the file left open on an interrupt, nested events accepted, a different exception name for a file both malformed and truncated). The first two are fixed with red-before regressions; the third is documented.
+  - pass 15: 1 defect (an interrupt before the protected block), fixed. Its remaining few-instruction window is documented as a limit that ends in a FAIL, never in silence.
+- **Tests:** `test_m1.py` 38 run, 1 skipped, all passing.
+- **Next, the owner's:** EXP-050 and the dry run elevated on the amended code, then approval. The next series is EXP-060.
+
 ## 2026-10-28: EXP-050 passed elevated (`feature/d008-gog-inventory`, PR #26)
 
 - **Runs:** the owner ran `coverage.py`, then `dryrun.py`, elevated, on clean `f2ef9bd`. Its session tools are unchanged since `322f02d`.

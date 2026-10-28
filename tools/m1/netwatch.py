@@ -155,15 +155,37 @@ def addr_class(text: str | None) -> str:
 
 
 def events(xml_path: Path):
-    """(provider, event id, data) per event; data values stripped (tracerpt pads numbers)."""
-    for ev in ET.parse(xml_path).getroot().findall("e:Event", NS):
+    """(provider, event id, data) per event; data values stripped (tracerpt pads numbers).
+
+    Streamed, each event dropped once read: a whole session's trace did not fit in memory, and one C call parsing the
+    whole file never let Ctrl+C through (EXP-051 session 1)."""
+    it = None
+    try:  # the file is closed on every path, or Windows cannot delete it afterwards (Codex passes 14 and 15)
+        it = ET.iterparse(xml_path, events=("start", "end"))
+        yield from _events(it)
+    finally:
+        if it is not None:
+            it.close()
+
+
+def _events(it):
+    _, root = next(it, (None, None))
+    if root is None:
+        return
+    tag, depth = f"{{{NS['e']}}}Event", 1
+    for kind, ev in it:
+        depth += 1 if kind == "start" else -1
+        if kind != "end" or depth != 1 or ev.tag != tag:  # only the root's own children, as before (Codex pass 14)
+            continue
         s = ev.find("e:System", NS)
         prov = s.find("e:Provider", NS).get("Name")
         data = {d.get("Name"): (d.text or "").strip() for d in ev.findall("e:EventData/e:Data", NS)}
         data["_pid"] = s.find("e:Execution", NS).get("ProcessID", "") if s.find("e:Execution", NS) is not None else ""
         task = ev.find("e:RenderingInfo/e:Task", NS)  # KERNEL_NETWORK_TASK_TCPIP / _UDPIP on this machine
         data["_task"] = (task.text or "") if task is not None else ""
-        yield prov, s.find("e:EventID", NS).text, data
+        eid = s.find("e:EventID", NS).text
+        root.clear()  # events are the root's children; everything read so far goes
+        yield prov, eid, data
 
 
 def events_lost(summary: str) -> int | None:
@@ -196,51 +218,69 @@ def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
         problems.append("the trace did not start (an elevated prompt is required)")
     if state.get("trace_stopped") is not True or state.get("decoded") is not True:
         problems.append("the trace was not stopped and decoded cleanly")
-    try:
-        seen = list(events(work / "trace.xml"))
-    except (OSError, ET.ParseError, AttributeError) as e:  # missing, truncated or not an ETW dump
-        problems.append(f"no decodable trace ({type(e).__name__})")
-        return out
-    try:
-        lost = events_lost((work / "summary.txt").read_text(encoding="utf-8", errors="replace"))
-    except OSError:
-        lost = None  # unknown loss is not zero loss
-    out["events_lost"], out["events_total"], out["buffers"] = lost, len(seen), state.get("buffers")
-    if lost != 0:
-        problems.append(f"events lost: {lost}")
-    # Process instances by sequence number, which, unlike a PID, is never reused.
-    procs, pid_seqs = {}, {}
-    for prov, eid, d in seen:
-        if prov == PROC and eid in (PROC_START, PROC_STOP) and d.get("ProcessID", "").isdigit() \
-                and d.get("ProcessSequenceNumber", "").isdigit():
-            seq, pid = int(d["ProcessSequenceNumber"]), int(d["ProcessID"])
-            p = procs.setdefault(seq, {"pid": pid, "image": "", "started": False, "exited": False, "exit_code": None,
-                                       "parent_seq": None})
-            p["image"] = p["image"] or d.get("ImageName", "").replace("/", "\\").rsplit("\\", 1)[-1]
-            pid_seqs.setdefault(pid, set()).add(seq)
-            if eid == PROC_START:
-                p["started"] = True
-                if d.get("ParentProcessSequenceNumber", "").isdigit():
-                    p["parent_seq"] = int(d["ParentProcessSequenceNumber"])
-            else:
-                p["exited"], p["exit_code"] = True, d.get("ExitCode")
-
     def pid_of(d):
         v = d.get("PID", "") if "PID" in d else d.get("_pid", "")
         return int(v) if v.isdigit() else None
 
-    def canary_seen(tag):
-        cpid = state.get(f"canary_{tag}_pid")
-        if not cpid:
-            return False
-        kinds = set()
-        for prov, eid, d in seen:
-            if prov == NET and pid_of(d) == cpid and eid in (TCP_CONNECT, UDP_SEND) and addr_class(d.get("daddr")) == "loopback":
-                kinds.add(eid)
-            if prov == DNS and eid == DNS_QUERY and pid_of(d) == cpid and d.get("QueryName") == canary_name(tag):
-                kinds.add(eid)
-        return kinds == {TCP_CONNECT, UDP_SEND, DNS_QUERY}
-    out["canaries"] = {t: canary_seen(t) for t in ("start", "end")}
+    # One pass that keeps only counts: the targets are known only at the end, so contacts and lookups are counted per
+    # PID for every process, which grows with distinct flows, not with events (EXP-051 session 1).
+    procs, pid_seqs, total = {}, {}, 0  # process instances by sequence number, which, unlike a PID, is never reused
+    canary_pids = {t: state.get(f"canary_{t}_pid") for t in ("start", "end")}
+    canary_kinds = {t: set() for t in canary_pids}
+    flows, lookups = {}, {}  # pid -> {flow key: count}, pid -> {name: count}
+    stream = None
+    try:
+        stream = events(work / "trace.xml")
+        for prov, eid, d in stream:
+            total += 1
+            if prov == PROC and eid in (PROC_START, PROC_STOP) and d.get("ProcessID", "").isdigit() \
+                    and d.get("ProcessSequenceNumber", "").isdigit():
+                seq, pid = int(d["ProcessSequenceNumber"]), int(d["ProcessID"])
+                p = procs.setdefault(seq, {"pid": pid, "image": "", "started": False, "exited": False,
+                                           "exit_code": None, "parent_seq": None})
+                p["image"] = p["image"] or d.get("ImageName", "").replace("/", "\\").rsplit("\\", 1)[-1]
+                pid_seqs.setdefault(pid, set()).add(seq)
+                if eid == PROC_START:
+                    p["started"] = True
+                    if d.get("ParentProcessSequenceNumber", "").isdigit():
+                        p["parent_seq"] = int(d["ParentProcessSequenceNumber"])
+                else:
+                    p["exited"], p["exit_code"] = True, d.get("ExitCode")
+            pid = pid_of(d)
+            for t, cpid in canary_pids.items():
+                if not cpid or pid != cpid:
+                    continue
+                if prov == NET and eid in (TCP_CONNECT, UDP_SEND) and addr_class(d.get("daddr")) == "loopback":
+                    canary_kinds[t].add(eid)
+                if prov == DNS and eid == DNS_QUERY and d.get("QueryName") == canary_name(t):
+                    canary_kinds[t].add(eid)
+            if prov == NET:
+                peer = max((addr_class(d.get("daddr")), addr_class(d.get("saddr"))),
+                           key=["loopback", "private", "public", "unknown"].index)
+                task = d["_task"].upper()
+                proto = "tcp" if "TCP" in task else "udp" if "UDP" in task else "?"
+                # both ports: which one is remote depends on direction
+                key = (eid, proto, ip_family(d.get("daddr")), peer, d.get("sport", ""), d.get("dport", ""))
+                f = flows.setdefault(pid, {})
+                f[key] = f.get(key, 0) + 1
+            elif prov == DNS and eid == DNS_QUERY:
+                n = lookups.setdefault(pid, {})
+                n[d.get("QueryName", "")] = n.get(d.get("QueryName", ""), 0) + 1
+    except (OSError, ET.ParseError, AttributeError) as e:  # missing, truncated or not an ETW dump
+        # Read in order now: a file both malformed and truncated names the first fault met (Codex pass 14, P3).
+        problems.append(f"no decodable trace ({type(e).__name__})")
+        return out
+    finally:  # an interrupt between events still closes the file before analyze deletes it
+        if stream is not None:
+            stream.close()
+    try:
+        lost = events_lost((work / "summary.txt").read_text(encoding="utf-8", errors="replace"))
+    except OSError:
+        lost = None  # unknown loss is not zero loss
+    out["events_lost"], out["events_total"], out["buffers"] = lost, total, state.get("buffers")
+    if lost != 0:
+        problems.append(f"events lost: {lost}")
+    out["canaries"] = {t: k == {TCP_CONNECT, UDP_SEND, DNS_QUERY} for t, k in canary_kinds.items()}
     problems += [f"{t} canary not fully seen" for t, ok in out["canaries"].items() if not ok]
 
     want = {i.lower() for i in images}
@@ -267,20 +307,12 @@ def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
         problems.append("a target PID was reused during the trace: attribution is ambiguous")
 
     contacts, dns = {}, {}
-    for prov, eid, d in seen:
-        if pid_of(d) not in target_pids:
-            continue
-        if prov == NET:
-            peer = max((addr_class(d.get("daddr")), addr_class(d.get("saddr"))), key=["loopback", "private", "public",
-                                                                                     "unknown"].index)
-            task = d["_task"].upper()
-            proto = "tcp" if "TCP" in task else "udp" if "UDP" in task else "?"
-            # both ports: which one is remote depends on direction
-            key = (eid, proto, ip_family(d.get("daddr")), peer, d.get("sport", ""), d.get("dport", ""),
-                   pid_of(d) in child_pids)
-            contacts[key] = contacts.get(key, 0) + 1
-        elif prov == DNS and eid == DNS_QUERY:
-            dns[d.get("QueryName", "")] = dns.get(d.get("QueryName", ""), 0) + 1
+    for pid in target_pids:
+        for key, n in flows.get(pid, {}).items():
+            k = (*key, pid in child_pids)
+            contacts[k] = contacts.get(k, 0) + n
+        for name, n in lookups.get(pid, {}).items():
+            dns[name] = dns.get(name, 0) + n
     out["contacts"] = [{"event_id": e, "proto": pr, "ip": fam, "peer": p, "sport": sp, "dport": dp, "from_child": ch,
                         "count": n} for (e, pr, fam, p, sp, dp, ch), n in sorted(contacts.items())]
     out["dns"] = [{"name": k, "count": n} for k, n in sorted(dns.items())]

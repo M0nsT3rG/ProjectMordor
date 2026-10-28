@@ -470,7 +470,7 @@
       "path": "evidence/experiments/EXP-051.json",
       "date": "2026-10-28",
       "subsystem": "experiment",
-      "status": "NOT_RUN",
+      "status": "ABANDONED",
       "scope": "-",
       "confidence": "medium",
       "summary": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1 (KI-45): the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?"

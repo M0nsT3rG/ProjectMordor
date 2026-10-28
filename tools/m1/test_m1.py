@@ -779,5 +779,83 @@ class KI45(unittest.TestCase):  # EXP-048 session 1: lost events, a Windows-1252
         self.assertFalse(cv.CASES["flood_with_session_buffers"][1])  # the session's buffers, not the tiny ones
 
 
+class TraceSize(unittest.TestCase):  # EXP-051 session 1: a whole session's trace did not fit in memory
+    def test_memory_does_not_grow_with_the_trace(self):
+        import tracemalloc
+        noise = [net("42", 900, daddr="192.0.2.1", dport=53)] * 30000  # another process's traffic, all one key
+        body = canary_events(100, "start") + GAME + noise + [net("42", 500, daddr="192.0.2.1")] \
+            + canary_events(101, "end")
+        with tempfile.TemporaryDirectory() as tmp:
+            trace(Path(tmp), body)
+            tracemalloc.start()
+            try:
+                r = nw.analyze(Path(tmp), ["shadowofwar.exe"], [])
+                peak = tracemalloc.get_traced_memory()[1]
+            finally:
+                tracemalloc.stop()
+        self.assertEqual((r["verdict"], r["coverage"], r["events_total"]), ("unexpected_contact", "covered", len(body)))
+        self.assertEqual([c["count"] for c in r["contacts"] if c["peer"] != "loopback"], [1])  # the game's, not the noise
+        self.assertLess(peak, 8 << 20, f"peak {peak >> 20} MB for {len(body)} events")  # whole-file parse: far more
+
+    def test_interrupt_reaches_the_analysis(self):  # Ctrl+C did nothing while one C call parsed the whole file
+        calls = []
+
+        class Stop(Exception):
+            pass
+
+        real = nw.ET.iterparse
+
+        def counting(*a, **kw):
+            for x in real(*a, **kw):
+                calls.append(1)
+                if len(calls) == 50:
+                    raise Stop  # stands in for KeyboardInterrupt between events
+                yield x
+        body = canary_events(100, "start") + GAME + [net("42", 900)] * 200 + canary_events(101, "end")
+        with tempfile.TemporaryDirectory() as tmp:
+            trace(Path(tmp), body)
+            nw.ET.iterparse = counting
+            try:
+                with self.assertRaises(Stop):
+                    nw.analyze(Path(tmp), ["shadowofwar.exe"], [])
+            finally:
+                nw.ET.iterparse = real
+            self.assertFalse((Path(tmp) / "trace.xml").exists())  # the raw trace is still deleted
+
+    def test_interrupt_between_events_closes_the_file(self):  # Codex pass 14 (P1): an open file is not deletable
+        calls = []
+
+        class Stop(Exception):
+            pass
+
+        real = nw.addr_class
+
+        def failing(text):
+            calls.append(1)
+            if len(calls) == 5:
+                raise Stop  # in the analysis, with the parser suspended between events
+            return real(text)
+        body = canary_events(100, "start") + GAME + [net("42", 900)] * 20 + canary_events(101, "end")
+        with tempfile.TemporaryDirectory() as tmp:
+            trace(Path(tmp), body)
+            nw.addr_class = failing
+            try:
+                with self.assertRaises(Stop):
+                    nw.analyze(Path(tmp), ["shadowofwar.exe"], [])
+            finally:
+                nw.addr_class = real
+            self.assertFalse((Path(tmp) / "trace.xml").exists())
+
+    def test_only_the_roots_own_events(self):  # Codex pass 14 (P2): as the whole-file parse read them
+        full = canary_events(100, "start") + GAME + canary_events(101, "end")
+        with tempfile.TemporaryDirectory() as tmp:
+            trace(Path(tmp), ["<wrapper>"] + full + ["</wrapper>"])
+            r = nw.analyze(Path(tmp), ["shadowofwar.exe"], [])
+        self.assertEqual((r["verdict"], r["coverage"], r["events_total"]), ("not_covered", "not_covered", 0))
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / "trace.xml").write_text("<Events>" + full[0], encoding="utf-8")  # truncated
+            self.assertIn("no decodable trace (ParseError)", nw.analyze(Path(tmp), ["x.exe"], [])["coverage_problems"])
+
+
 if __name__ == "__main__":
     unittest.main()
