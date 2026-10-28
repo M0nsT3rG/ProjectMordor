@@ -6,6 +6,19 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #38 (PR #25: EXP-047, 2026-10-28)
+
+- **Status:** triaged (2026-10-28) on `feature/ki35-gns-establishment`; the owner asked for the triage and the cookie predeclaration. EXP-049 is predeclared in `docs/soak-testing.md`, before any tooling or run (EXP-048 is on PR #26).
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-28T09:52Z). Source and evidence review only.
+- **Verdict:** "cap750 not shown" and "cap500 not shown" stand; EXP-047 is a useful negative result; no timer change; KI-35 open; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-38-01** Stop broad cap tuning; keep 250/500/1000 ms | **Yes:** EXP-047 showed no difference for either cap, and EXP-044's `flat` is a bound, not a candidate. | **Accepted** | No further cap arms without a mechanism-level hypothesis. `retransmit_max_us` stays an experiment option with its default unchanged. |
+| **FB-38-02** Next: the cookie round trip, read-only attribution first, default timer and security fixed | **Yes.** The probe already times the exchange per reconnect (`first_hello` to `cookie_hello`), but not which flight was lost: only cycle summaries are kept, not the traces. EXP-027 removed the exchange on GNS and saved about one RTT in DTLS with no median gain; that is a different question (removal) from what retransmissions inside the exchange cost. | **Accepted** | EXP-049 predeclared: measurement only, the default configuration in every batch (timer, cookie, `max_new_handshakes_per_s`, `confirm_binding` off). Primary: of the reconnects over 3 s, the share that would be under 3 s without the time spent on ClientHello retransmissions before the HelloVerifyRequest. A reading of "do not explain" sends KI-35 back to GNS establishment. Any behavioural change stays a separate, later predeclaration that keeps cookie verification and the anti-amplification limit. |
+| **FB-38-03** RTT-adaptive initial timer: optional, lower priority, never mixed | **Agreed:** the slow-path cause stays a hypothesis (EXP-047). | **Accepted, deferred** | Not predeclared. EXP-049 changes no timer and only reports, per profile, how often the first ClientHello is resent before the cookie arrives. |
+| **FB-38-04** Runner and evidence quality | **Yes, already true:** the two interrupted EXP-047 attempts are in `evidence_paths`, labelled unjudged with the cause not established. The `dtls` runtimes are recorded: 297 s on the last green run before the new test, about 302 s with it (development log, `CMakeLists.txt` comment), 299.5 s on `b903009` (request #38). 900 s is a bound, not evidence. | **Accepted** | Kept as is. The suites run again on the final head after any code change; KI-44's test is in the `dtls` suite on both backends. |
+
 ## Feedback on review #31 (PR #25: EXP-044, 2026-10-27)
 
 - **Status:** implemented (2026-10-28) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-047 (EXP-045/046 are on PR #26). Result: neither cap is shown to differ from `off`; no default change.

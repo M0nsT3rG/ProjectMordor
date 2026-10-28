@@ -1011,6 +1011,83 @@ Two earlier attempts on the same commit stopped before the end. They are kept as
   - **Slow-path resends are similar in every arm.** Every arm fires about 4 timers and resends about 3 datagrams per side per reconnect. A hypothesis consistent with this, not established: with an RTT of 300–400 ms, the 250 ms initial timer, which no arm changed, expires before the answer arrives. The resend count also includes replies to peer retransmissions and connection restarts, so this comparison does not isolate the cause.
   - **No default changes.** KI-35 stays open. Next options for the owner: leave the back-off as is and move to the cookie round trip (FB-28-04) or the GNS establishment and session phases (EXP-041), or predeclare a study of the initial timer against the path RTT.
 
+## Predeclared experiment KI-35: what the cookie exchange costs the tail (2026-10-28, EXP-049)
+
+This section was written and committed **before** any tooling or run, after review #38 (FB-38-01..04).
+- **Measurement only.** Every batch runs today's default configuration:
+  - DTLS timer 250 ms doubling to 1 s;
+  - cookie verification on, with `max_new_handshakes_per_s` 64;
+  - `confirm_binding` off;
+  - the session defaults of EXP-041.
+- No behaviour, default or gate changes, and the result alone changes none.
+- **What was known when the rule was fixed:** EXP-047's aggregate results and EXP-027's phases (skipping the cookie on GNS saved about one RTT in DTLS, with no median gain). No cookie-phase statistic of EXP-047 or EXP-044 had been computed.
+
+**Question (FB-38-02).** The client's first ClientHello gets a HelloVerifyRequest (HVR), and its next ClientHello carries the cookie. How much of the KI-35 tail (reconnects over 3 s) is time spent inside that exchange? How much of it goes on retransmitting a ClientHello before the HVR arrives? EXP-027 asked a different question: what removing the exchange saves. The cookie stays; only its retransmissions could be removed by a later change that keeps verification.
+
+**Probe.** `tools/ki35/reconnect_probe.cpp`, unchanged except for the counters below: a stall reconnect cycle as in EXP-041, arm `off`.
+
+**Handshake attempts (found by Codex before tooling).** A reconnect can open more than one DTLS session, for example when a GNS connection is lost after a ClientHello and a new one is opened. Each new session sends a new ClientHello with `message_seq` 0, which must not be counted as a cookie retransmission. So the client's ClientHellos after t0 are grouped into attempts (Codex pass 2: boundary events are coalesced, and only ClientHellos start an attempt).
+- **Boundaries:** the client events `inner_connected`, `inner_disconnected` and `rejected`. A boundary ends the current attempt, and several boundaries in a row count as one. A boundary before the first ClientHello after t0 ends nothing, because no attempt has started yet; it belongs to the old connection or to the inner establishment.
+- **Attempts:** an attempt starts only with a ClientHello: the first one after t0, the first one after a boundary, or one traced with a peer id other than the previous ClientHello's. Every later ClientHello on the same peer id with no boundary in between belongs to the same attempt.
+- Boundaries keep splitting attempts after the cookie and after `authenticated`, until `Connected`.
+- The **final attempt** is the last attempt before `Connected`, and it must contain `authenticated` (Codex pass 3). Its `attempt_hello`, `hello0` counters, `cookie_hello` and `auth` are taken from it alone. An earlier attempt that sent its cookie, or even authenticated, and then failed is a restart.
+- `restarts` is the number of attempts before the final one, so only attempts that sent a ClientHello count.
+- `restarts` is a lower bound: a restart that none of these signals marks cannot be seen.
+- Time spent in earlier attempts belongs to `establish`, never to `cookie`.
+
+**Phases per reconnect,** in ms from the stall end t0:
+- `notice`: t0 to `Reconnecting`;
+- `establish`: to `attempt_hello`, the first ClientHello of the final attempt. On GNS this includes the inner connection and every earlier attempt;
+- **`cookie`**: `attempt_hello` to the ClientHello that carries the cookie (`cookie_hello`);
+- `handshake`: `cookie_hello` to `authenticated`;
+- `session`: to `Connected`.
+
+These five phases add up to `total` (the soak's recovery). The existing `first_hello` (the first ClientHello of any attempt) is still recorded.
+
+**New counters (header fields only, from the `len=`/`seq=` trace of `7fcb88c`; no payload).** Each counts in the final attempt, until `cookie_hello`:
+- `hello0_tx`: client datagrams whose first handshake message is a ClientHello with `message_seq` 0;
+- `last_hello0`: the time of the last of them;
+- `hello0_rx`: the same datagrams received by the host (`rx` or `listen_rx`), from the final attempt's `attempt_hello` on;
+- `hvr_tx`: HVRs the host sent in the same window.
+
+From these, per reconnect:
+- **`cookie_wait`** = `last_hello0` − `attempt_hello`: the time from the final attempt's first ClientHello to the last one it sent before the HVR arrived, which is the time lost to unanswered ClientHellos. It is 0 when the first one was answered.
+- **flight class**, descriptive and approximate, because duplicates add receptions:
+  - `clean`: `hello0_tx` = 1;
+  - `hello_lost`: `hello0_rx` < `hello0_tx`;
+  - `hvr_lost_or_late`: `hello0_tx` > 1 and `hello0_rx` ≥ `hello0_tx`.
+
+**Profiles and batches.** Every batch has 100 cycles, the profiles are those of EXP-047, and the run takes about 3 h:
+- harsh: UDP seeds 4901–4904, and GNS repetitions 1–4;
+- slow: UDP seeds 4905–4906, and GNS repetitions 5–6.
+
+That is 12 batches and 1200 reconnects.
+
+**Rules, fixed now.** Unless stated, a rule applies per backend on harsh.
+- **Completeness.** All 12 batches must finish their 100 cycles; otherwise there is no verdict.
+  - A reconnect is **attributable** if it has a final attempt, every field is present and these orderings hold: `first_hello` ≤ `attempt_hello` ≤ `last_hello0` ≤ `cookie_hello` ≤ `auth` ≤ `connected`, and `hello0_tx` ≥ 1.
+  - If more than 10% of a backend's reconnects are not attributable, that backend is **not assessable**.
+  - Timeouts and reconnects that never started are counted, and are excluded.
+- **Homogeneity.** Run a chi-square test across the 4 harsh batches, on P(`total` > 3000) and on P(`hello0_tx` ≥ 2). If p < 0.01, the result is reported per batch only, with no pooled reading.
+- **Primary, R_wait.** Let S be the attributable reconnects with `total` > 3000 ms. R_wait is the share of S with `total` − `cookie_wait` ≤ 3000, with a 95% Wilson interval.
+  - **Not assessable** if S has fewer than 30 reconnects.
+  - **"Explain part of the tail"** if the lower bound is ≥ 0.25.
+  - **"Do not explain the tail"** if the upper bound is < 0.25.
+  - Otherwise **"inconclusive"**.
+  - **This is an accounting ceiling, not a prediction.** It assumes the rest of the reconnect would not change, whereas later flights would meet different losses.
+  - **Restart check, reported only:** R_wait on the reconnects with `restarts` = 0, and the number with `restarts` > 0 per batch.
+- **Reported, not rules:**
+  - The same ceiling for removing the whole exchange (R_cookie, `total` − `cookie`) and for removing each other phase. No permitted change can remove the cookie, so R_cookie only bounds what any cookie change could gain. The other phases are compared on the same footing.
+  - In S and outside S: p50 / p95 of every phase, and each phase's mean share of `total`. The phase that is largest most often in S, as in EXP-041.
+  - The flight classes, `hello0_tx`, `hvr_tx` and `cookie_wait` per batch, on both profiles. On slow, how often `hello0_tx` ≥ 2. That is descriptive input to FB-38-03, not a test of the initial-timer hypothesis.
+- **Secondary, existing data, reported only.** EXP-047 has no `hello0` counters and no attempt split. On its `off` harsh batches (`ki35-caps-2026-10-28-005304-7fcb88c`), only R_cookie and the `cookie` distribution are computed, as a rough replication. There `cookie` runs from `first_hello`, so a restart inflates it.
+- **What follows:**
+  - GNS harsh is the decisive backend: it is the KI-35 case.
+  - If GNS harsh reads "explain part of the tail", the next step is a separately predeclared behavioural experiment on the exchange. It keeps cookie verification, the stateless gate and the handshake budget, and changes one thing. It is not chosen here.
+  - If GNS harsh reads "do not explain the tail", KI-35 returns to GNS establishment (FB-38-02).
+  - If it is inconclusive, no behavioural cookie experiment follows from this evidence alone, and the owner and the reviewer choose.
+  - KI-35 stays open in every case.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
