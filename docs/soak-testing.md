@@ -1005,9 +1005,10 @@ Two earlier attempts on the same commit stopped before the end. They are kept as
   - G3: slow p95 and p50 no difference shown for both candidates.
 - **Reported:** CPU per cycle 39–52 ms in every arm. The probe loop dominates it.
 - **Reading, by the predeclared rule: cap750 "not shown", cap500 "not shown."**
-  - The run does not show that a milder cap keeps EXP-044's tail gain, and it does not show that either cap costs anything. EXP-044's gain came with the flat 250 ms timer, which stays a bounding arm.
+  - The run does not show that a milder cap keeps EXP-044's tail gain, nor that either cap costs anything beyond the guard. The intervals allow meaningful benefits as well as harm. Of the settings tested so far, only the flat 250 ms timer showed EXP-044's gain; it stays a bounding arm, and whether the gain needs it stays unresolved.
+  - Both caps passed G1. The observed mean-byte ratios are at most 1.016 (cap750: +1.6% UDP harsh, +1.3% GNS harsh). That is not proof of zero extra cost.
   - The GNS DTLS-phase p99 is lower with both caps (4694 → 3014 / 2735 ms). That is reported only, not a rule, and the total tail did not follow.
-  - **The slow path's cost is not the cap's.** Every arm fires about 4 timers and resends about 3 datagrams per side per reconnect. With an RTT of 300–400 ms, that is consistent with the 250 ms initial timer, which no arm changed, expiring before the answer arrives.
+  - **Slow-path resends are similar in every arm.** Every arm fires about 4 timers and resends about 3 datagrams per side per reconnect. A hypothesis consistent with this, not established: with an RTT of 300–400 ms, the 250 ms initial timer, which no arm changed, expires before the answer arrives. The resend count also includes replies to peer retransmissions and connection restarts, so this comparison does not isolate the cause.
   - **No default changes.** KI-35 stays open. Next options for the owner: leave the back-off as is and move to the cookie round trip (FB-28-04) or the GNS establishment and session phases (EXP-041), or predeclare a study of the initial timer against the path RTT.
 
 ## What the soak found, and what was fixed

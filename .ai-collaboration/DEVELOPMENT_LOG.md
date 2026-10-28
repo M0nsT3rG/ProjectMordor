@@ -16,8 +16,9 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - The second ended with no error output; the cause is not established.
   - The third is complete: 2400 reconnects, no timeouts or failures.
 - **Reading by the predeclared rule: cap750 and cap500 "not shown".**
-  - No predeclared outcome differs from `off` on either backend; bytes ratio ≤ 1.016.
-  - The slow path's resends (about 3 per side) are the same in every arm, which is consistent with the 250 ms initial timer rather than the cap.
+  - No predeclared outcome differs from `off` on either backend; both caps passed the byte guard (observed ratios ≤ 1.016).
+  - The slow path's resends (about 3 per side) are similar in every arm. The unchanged 250 ms initial timer is a consistent hypothesis, not established.
+  - Codex reviewed the result record: the numbers match `verdict.json` and the re-analysis reproduces it. It found three overclaims, all corrected: a necessity claim for the flat timer, "no more bytes", and a categorical slow-path cause.
   - No default changed.
 - **Next for KI-35:** the owner's choice between the cookie round trip (FB-28-04), the GNS establishment and session phases, or an initial-timer study.
 - **Test harness:** the first battery on `668d9e4` failed (`tests-2026-10-28-063008-668d9e4`, kept as recorded).
