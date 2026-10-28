@@ -2,6 +2,25 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: review #31 and EXP-047, intermediate DTLS back-off caps (`feature/ki35-gns-establishment`)
+
+- **Input:** review #31 on PR #25 (FB-31-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md. The owner asked for all of it.
+- **EXP-047:** predeclared before any tooling (`489cacb`).
+  - Arms `off` (250/500/1000 ms), `cap750` and `cap500`, on host and client; profiles harsh and slow (RTT 300–400 ms).
+- **FB-31-02, tooling (`7fcb88c`):**
+  - DTLS trace details carry `len=` and `seq=` (header fields only); a new test on both backends, red-before checked.
+  - The probe records per-side bytes and resent datagrams; `tools/ki35/run_cap_probe.py` applies the rules (9 self-tests).
+  - Codex approved the tooling on its first pass.
+- **Runs on `7fcb88c`:** two attempts stopped early and are kept unjudged.
+  - The first was a child of the agent session and ended with it.
+  - The second ended with no error output; the cause is not established.
+  - The third is complete: 2400 reconnects, no timeouts or failures.
+- **Reading by the predeclared rule: cap750 and cap500 "not shown".**
+  - No predeclared outcome differs from `off` on either backend; bytes ratio ≤ 1.016.
+  - The slow path's resends (about 3 per side) are the same in every arm, which is consistent with the 250 ms initial timer rather than the cap.
+  - No default changed.
+- **Next for KI-35:** the owner's choice between the cookie round trip (FB-28-04), the GNS establishment and session phases, or an initial-timer study.
+
 ## 2026-10-27: review #29 and EXP-044, DTLS retransmission back-off (`feature/ki35-gns-establishment`)
 
 - **Input:** review #29 on PR #25 (FB-29-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md. The owner asked for all of it.

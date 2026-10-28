@@ -8,7 +8,7 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ## Feedback on review #31 (PR #25: EXP-044, 2026-10-27)
 
-- **Status:** in progress (2026-10-27) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-047 (EXP-045/046 are on PR #26).
+- **Status:** implemented (2026-10-28) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-047 (EXP-045/046 are on PR #26). Result: neither cap is shown to differ from `off`; no default change.
 - **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-27T09:11Z). Source and evidence review only.
 - **Verdict:** EXP-044 supports "growth matters"; flat 250 ms is a bound, not a default; KI-35 open; no merge.
 

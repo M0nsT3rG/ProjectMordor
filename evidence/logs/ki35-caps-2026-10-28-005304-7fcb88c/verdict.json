@@ -1,0 +1,2484 @@
+{
+  "complete": true,
+  "incomplete_because": [],
+  "batches": {
+    "gns-1-cap500-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2426.6,
+        "p90": 4076.6,
+        "p95": 4564.8,
+        "p99": 6321.2
+      },
+      "over_limit": {
+        "k": 29,
+        "n": 100,
+        "p": 0.29,
+        "wilson95": [
+          0.2101,
+          0.3854
+        ]
+      },
+      "dtls_ms": {
+        "p50": 813.7,
+        "p95": 2226.4,
+        "p99": 2734.7
+      },
+      "datagrams": {
+        "sum": 1021,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.21,
+      "timers_per_reconnect": 1.97,
+      "hellos_per_reconnect": 2.98,
+      "cpu_ms_per_cycle": 52.084,
+      "bytes_sent": {
+        "sum": 252198,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2521.98,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1127.31,
+          "bytes_received": 1108.59,
+          "datagrams": 5.35,
+          "resent": 1.35,
+          "timer_fires": 1.35
+        },
+        "host": {
+          "bytes_sent": 1394.67,
+          "bytes_received": 996.95,
+          "datagrams": 4.86,
+          "resent": 1.48,
+          "timer_fires": 0.62
+        }
+      }
+    },
+    "gns-1-cap750-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2266.5,
+        "p90": 3750.3,
+        "p95": 5019.7,
+        "p99": 6953.6
+      },
+      "over_limit": {
+        "k": 22,
+        "n": 100,
+        "p": 0.22,
+        "wilson95": [
+          0.15,
+          0.3107
+        ]
+      },
+      "dtls_ms": {
+        "p50": 819.5,
+        "p95": 1982.4,
+        "p99": 5666.1
+      },
+      "datagrams": {
+        "sum": 1034,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.34,
+      "timers_per_reconnect": 1.92,
+      "hellos_per_reconnect": 2.95,
+      "cpu_ms_per_cycle": 48.296,
+      "bytes_sent": {
+        "sum": 253481,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2534.81,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1149.85,
+          "bytes_received": 1112.65,
+          "datagrams": 5.4,
+          "resent": 1.4,
+          "timer_fires": 1.4
+        },
+        "host": {
+          "bytes_sent": 1384.96,
+          "bytes_received": 993.63,
+          "datagrams": 4.94,
+          "resent": 1.44,
+          "timer_fires": 0.52
+        }
+      }
+    },
+    "gns-1-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2552.7,
+        "p90": 3742.3,
+        "p95": 4031.7,
+        "p99": 4718.3
+      },
+      "over_limit": {
+        "k": 32,
+        "n": 100,
+        "p": 0.32,
+        "wilson95": [
+          0.2367,
+          0.4166
+        ]
+      },
+      "dtls_ms": {
+        "p50": 827.5,
+        "p95": 2516.0,
+        "p99": 3530.9
+      },
+      "datagrams": {
+        "sum": 1043,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.43,
+      "timers_per_reconnect": 1.99,
+      "hellos_per_reconnect": 2.99,
+      "cpu_ms_per_cycle": 47.348,
+      "bytes_sent": {
+        "sum": 255720,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2557.2,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1154.82,
+          "bytes_received": 1121.12,
+          "datagrams": 5.44,
+          "resent": 1.44,
+          "timer_fires": 1.41
+        },
+        "host": {
+          "bytes_sent": 1402.38,
+          "bytes_received": 1010.9,
+          "datagrams": 4.99,
+          "resent": 1.55,
+          "timer_fires": 0.58
+        }
+      }
+    },
+    "gns-2-cap500-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2535.4,
+        "p90": 3798.6,
+        "p95": 3977.8,
+        "p99": 5952.8
+      },
+      "over_limit": {
+        "k": 35,
+        "n": 100,
+        "p": 0.35,
+        "wilson95": [
+          0.2636,
+          0.4475
+        ]
+      },
+      "dtls_ms": {
+        "p50": 803.5,
+        "p95": 1992.4,
+        "p99": 4689.0
+      },
+      "datagrams": {
+        "sum": 1033,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.33,
+      "timers_per_reconnect": 1.83,
+      "hellos_per_reconnect": 2.91,
+      "cpu_ms_per_cycle": 49.242,
+      "bytes_sent": {
+        "sum": 250951,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2509.51,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1138.05,
+          "bytes_received": 1101.59,
+          "datagrams": 5.35,
+          "resent": 1.35,
+          "timer_fires": 1.34
+        },
+        "host": {
+          "bytes_sent": 1371.46,
+          "bytes_received": 1015.77,
+          "datagrams": 4.98,
+          "resent": 1.54,
+          "timer_fires": 0.49
+        }
+      }
+    },
+    "gns-2-cap750-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2368.0,
+        "p90": 4058.7,
+        "p95": 4660.5,
+        "p99": 5533.4
+      },
+      "over_limit": {
+        "k": 31,
+        "n": 100,
+        "p": 0.31,
+        "wilson95": [
+          0.2278,
+          0.4063
+        ]
+      },
+      "dtls_ms": {
+        "p50": 827.7,
+        "p95": 2280.9,
+        "p99": 2515.5
+      },
+      "datagrams": {
+        "sum": 1030,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.3,
+      "timers_per_reconnect": 1.85,
+      "hellos_per_reconnect": 2.98,
+      "cpu_ms_per_cycle": 50.347,
+      "bytes_sent": {
+        "sum": 249691,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2496.91,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1132.01,
+          "bytes_received": 1144.44,
+          "datagrams": 5.39,
+          "resent": 1.39,
+          "timer_fires": 1.33
+        },
+        "host": {
+          "bytes_sent": 1364.9,
+          "bytes_received": 1020.63,
+          "datagrams": 4.91,
+          "resent": 1.48,
+          "timer_fires": 0.52
+        }
+      }
+    },
+    "gns-2-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2395.9,
+        "p90": 3943.7,
+        "p95": 5038.3,
+        "p99": 6998.3
+      },
+      "over_limit": {
+        "k": 28,
+        "n": 100,
+        "p": 0.28,
+        "wilson95": [
+          0.2014,
+          0.3749
+        ]
+      },
+      "dtls_ms": {
+        "p50": 827.9,
+        "p95": 1766.5,
+        "p99": 5470.8
+      },
+      "datagrams": {
+        "sum": 1006,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.06,
+      "timers_per_reconnect": 1.93,
+      "hellos_per_reconnect": 3.01,
+      "cpu_ms_per_cycle": 47.033,
+      "bytes_sent": {
+        "sum": 248050,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2480.5,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1128.01,
+          "bytes_received": 1085.41,
+          "datagrams": 5.37,
+          "resent": 1.37,
+          "timer_fires": 1.37
+        },
+        "host": {
+          "bytes_sent": 1352.49,
+          "bytes_received": 983.47,
+          "datagrams": 4.69,
+          "resent": 1.29,
+          "timer_fires": 0.56
+        }
+      }
+    },
+    "gns-3-cap500-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2534.5,
+        "p90": 3822.4,
+        "p95": 4476.9,
+        "p99": 5561.4
+      },
+      "over_limit": {
+        "k": 32,
+        "n": 100,
+        "p": 0.32,
+        "wilson95": [
+          0.2367,
+          0.4166
+        ]
+      },
+      "dtls_ms": {
+        "p50": 813.4,
+        "p95": 1776.6,
+        "p99": 2783.5
+      },
+      "datagrams": {
+        "sum": 1020,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.2,
+      "timers_per_reconnect": 1.94,
+      "hellos_per_reconnect": 2.98,
+      "cpu_ms_per_cycle": 48.61,
+      "bytes_sent": {
+        "sum": 251291,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2512.91,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1143.52,
+          "bytes_received": 1101.34,
+          "datagrams": 5.4,
+          "resent": 1.4,
+          "timer_fires": 1.38
+        },
+        "host": {
+          "bytes_sent": 1369.39,
+          "bytes_received": 984.53,
+          "datagrams": 4.8,
+          "resent": 1.41,
+          "timer_fires": 0.56
+        }
+      }
+    },
+    "gns-3-cap750-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2446.8,
+        "p90": 3984.6,
+        "p95": 4462.1,
+        "p99": 6693.9
+      },
+      "over_limit": {
+        "k": 29,
+        "n": 100,
+        "p": 0.29,
+        "wilson95": [
+          0.2101,
+          0.3854
+        ]
+      },
+      "dtls_ms": {
+        "p50": 810.3,
+        "p95": 2251.7,
+        "p99": 4027.6
+      },
+      "datagrams": {
+        "sum": 1076,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.76,
+      "timers_per_reconnect": 2.04,
+      "hellos_per_reconnect": 2.88,
+      "cpu_ms_per_cycle": 42.929,
+      "bytes_sent": {
+        "sum": 261194,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2611.94,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1167.11,
+          "bytes_received": 1138.73,
+          "datagrams": 5.45,
+          "resent": 1.45,
+          "timer_fires": 1.41
+        },
+        "host": {
+          "bytes_sent": 1444.83,
+          "bytes_received": 1009.62,
+          "datagrams": 5.31,
+          "resent": 1.78,
+          "timer_fires": 0.63
+        }
+      }
+    },
+    "gns-3-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2401.2,
+        "p90": 4072.8,
+        "p95": 4463.4,
+        "p99": 5974.9
+      },
+      "over_limit": {
+        "k": 32,
+        "n": 100,
+        "p": 0.32,
+        "wilson95": [
+          0.2367,
+          0.4166
+        ]
+      },
+      "dtls_ms": {
+        "p50": 807.1,
+        "p95": 2297.5,
+        "p99": 4694.0
+      },
+      "datagrams": {
+        "sum": 1020,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.2,
+      "timers_per_reconnect": 1.9,
+      "hellos_per_reconnect": 2.9,
+      "cpu_ms_per_cycle": 50.82,
+      "bytes_sent": {
+        "sum": 251000,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2510.0,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1141.41,
+          "bytes_received": 1138.87,
+          "datagrams": 5.36,
+          "resent": 1.36,
+          "timer_fires": 1.36
+        },
+        "host": {
+          "bytes_sent": 1368.59,
+          "bytes_received": 1010.31,
+          "datagrams": 4.84,
+          "resent": 1.44,
+          "timer_fires": 0.54
+        }
+      }
+    },
+    "gns-4-cap500-slow": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2629.8,
+        "p90": 3126.0,
+        "p95": 3164.4,
+        "p99": 3396.5
+      },
+      "over_limit": {
+        "k": 24,
+        "n": 100,
+        "p": 0.24,
+        "wilson95": [
+          0.1669,
+          0.3323
+        ]
+      },
+      "dtls_ms": {
+        "p50": 1241.1,
+        "p95": 1463.3,
+        "p99": 1568.5
+      },
+      "datagrams": {
+        "sum": 1400,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 14.0,
+      "timers_per_reconnect": 3.91,
+      "hellos_per_reconnect": 4.0,
+      "cpu_ms_per_cycle": 52.24,
+      "bytes_sent": {
+        "sum": 344447,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 3444.47,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1534.74,
+          "bytes_received": 1446.55,
+          "datagrams": 7.0,
+          "resent": 3.0,
+          "timer_fires": 2.99
+        },
+        "host": {
+          "bytes_sent": 1909.73,
+          "bytes_received": 1538.71,
+          "datagrams": 7.0,
+          "resent": 3.0,
+          "timer_fires": 0.92
+        }
+      }
+    },
+    "gns-4-cap750-slow": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2625.5,
+        "p90": 3110.8,
+        "p95": 3136.0,
+        "p99": 3341.3
+      },
+      "over_limit": {
+        "k": 23,
+        "n": 100,
+        "p": 0.23,
+        "wilson95": [
+          0.1584,
+          0.3215
+        ]
+      },
+      "dtls_ms": {
+        "p50": 1248.0,
+        "p95": 1337.1,
+        "p99": 1487.3
+      },
+      "datagrams": {
+        "sum": 1403,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 14.03,
+      "timers_per_reconnect": 3.94,
+      "hellos_per_reconnect": 4.02,
+      "cpu_ms_per_cycle": 51.136,
+      "bytes_sent": {
+        "sum": 345027,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 3450.27,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1539.24,
+          "bytes_received": 1466.93,
+          "datagrams": 7.02,
+          "resent": 3.02,
+          "timer_fires": 2.97
+        },
+        "host": {
+          "bytes_sent": 1911.03,
+          "bytes_received": 1543.54,
+          "datagrams": 7.01,
+          "resent": 3.01,
+          "timer_fires": 0.97
+        }
+      }
+    },
+    "gns-4-off-slow": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2624.6,
+        "p90": 3082.6,
+        "p95": 3125.8,
+        "p99": 3375.1
+      },
+      "over_limit": {
+        "k": 15,
+        "n": 100,
+        "p": 0.15,
+        "wilson95": [
+          0.0931,
+          0.2328
+        ]
+      },
+      "dtls_ms": {
+        "p50": 1247.7,
+        "p95": 1456.3,
+        "p99": 1555.4
+      },
+      "datagrams": {
+        "sum": 1401,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 14.01,
+      "timers_per_reconnect": 3.92,
+      "hellos_per_reconnect": 4.02,
+      "cpu_ms_per_cycle": 41.035,
+      "bytes_sent": {
+        "sum": 344863,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 3448.63,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1539.1,
+          "bytes_received": 1465.1,
+          "datagrams": 7.02,
+          "resent": 3.02,
+          "timer_fires": 2.98
+        },
+        "host": {
+          "bytes_sent": 1909.53,
+          "bytes_received": 1535.57,
+          "datagrams": 6.99,
+          "resent": 2.99,
+          "timer_fires": 0.94
+        }
+      }
+    },
+    "udp-4701-cap500-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1782.6,
+        "p90": 2406.2,
+        "p95": 2643.6,
+        "p99": 3555.7
+      },
+      "over_limit": {
+        "k": 2,
+        "n": 100,
+        "p": 0.02,
+        "wilson95": [
+          0.0055,
+          0.07
+        ]
+      },
+      "dtls_ms": {
+        "p50": 865.8,
+        "p95": 2024.5,
+        "p99": 2264.7
+      },
+      "datagrams": {
+        "sum": 1050,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.5,
+      "timers_per_reconnect": 1.86,
+      "hellos_per_reconnect": 2.96,
+      "cpu_ms_per_cycle": 44.981,
+      "bytes_sent": {
+        "sum": 252063,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2520.63,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1117.19,
+          "bytes_received": 1152.2,
+          "datagrams": 5.3,
+          "resent": 1.31,
+          "timer_fires": 1.3
+        },
+        "host": {
+          "bytes_sent": 1403.44,
+          "bytes_received": 1055.58,
+          "datagrams": 5.2,
+          "resent": 1.51,
+          "timer_fires": 0.56
+        }
+      }
+    },
+    "udp-4701-cap750-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1662.9,
+        "p90": 3124.9,
+        "p95": 3489.6,
+        "p99": 6739.4
+      },
+      "over_limit": {
+        "k": 12,
+        "n": 100,
+        "p": 0.12,
+        "wilson95": [
+          0.07,
+          0.1981
+        ]
+      },
+      "dtls_ms": {
+        "p50": 854.2,
+        "p95": 2300.8,
+        "p99": 5937.9
+      },
+      "datagrams": {
+        "sum": 1126,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 11.26,
+      "timers_per_reconnect": 2.14,
+      "hellos_per_reconnect": 3.05,
+      "cpu_ms_per_cycle": 40.562,
+      "bytes_sent": {
+        "sum": 265355,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2653.55,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1182.46,
+          "bytes_received": 1189.28,
+          "datagrams": 5.52,
+          "resent": 1.54,
+          "timer_fires": 1.52
+        },
+        "host": {
+          "bytes_sent": 1471.09,
+          "bytes_received": 1086.31,
+          "datagrams": 5.74,
+          "resent": 2.11,
+          "timer_fires": 0.62
+        }
+      }
+    },
+    "udp-4701-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1840.0,
+        "p90": 2444.0,
+        "p95": 2773.9,
+        "p99": 4397.6
+      },
+      "over_limit": {
+        "k": 3,
+        "n": 100,
+        "p": 0.03,
+        "wilson95": [
+          0.0103,
+          0.0845
+        ]
+      },
+      "dtls_ms": {
+        "p50": 877.3,
+        "p95": 1983.6,
+        "p99": 2555.4
+      },
+      "datagrams": {
+        "sum": 1070,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.7,
+      "timers_per_reconnect": 1.99,
+      "hellos_per_reconnect": 2.96,
+      "cpu_ms_per_cycle": 47.347,
+      "bytes_sent": {
+        "sum": 258585,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2585.85,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1158.78,
+          "bytes_received": 1184.08,
+          "datagrams": 5.41,
+          "resent": 1.42,
+          "timer_fires": 1.41
+        },
+        "host": {
+          "bytes_sent": 1427.07,
+          "bytes_received": 1081.03,
+          "datagrams": 5.29,
+          "resent": 1.68,
+          "timer_fires": 0.58
+        }
+      }
+    },
+    "udp-4702-cap500-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1660.8,
+        "p90": 2632.9,
+        "p95": 3394.5,
+        "p99": 5327.7
+      },
+      "over_limit": {
+        "k": 6,
+        "n": 100,
+        "p": 0.06,
+        "wilson95": [
+          0.0278,
+          0.1248
+        ]
+      },
+      "dtls_ms": {
+        "p50": 826.0,
+        "p95": 1828.1,
+        "p99": 3498.5
+      },
+      "datagrams": {
+        "sum": 1058,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.58,
+      "timers_per_reconnect": 1.77,
+      "hellos_per_reconnect": 2.82,
+      "cpu_ms_per_cycle": 41.351,
+      "bytes_sent": {
+        "sum": 252518,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2525.18,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1123.28,
+          "bytes_received": 1141.96,
+          "datagrams": 5.26,
+          "resent": 1.27,
+          "timer_fires": 1.24
+        },
+        "host": {
+          "bytes_sent": 1401.9,
+          "bytes_received": 1058.01,
+          "datagrams": 5.32,
+          "resent": 1.61,
+          "timer_fires": 0.53
+        }
+      }
+    },
+    "udp-4702-cap750-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1692.9,
+        "p90": 2648.3,
+        "p95": 3126.9,
+        "p99": 3539.5
+      },
+      "over_limit": {
+        "k": 6,
+        "n": 100,
+        "p": 0.06,
+        "wilson95": [
+          0.0278,
+          0.1248
+        ]
+      },
+      "dtls_ms": {
+        "p50": 857.5,
+        "p95": 1756.9,
+        "p99": 2817.4
+      },
+      "datagrams": {
+        "sum": 1026,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.26,
+      "timers_per_reconnect": 1.73,
+      "hellos_per_reconnect": 2.93,
+      "cpu_ms_per_cycle": 50.978,
+      "bytes_sent": {
+        "sum": 245779,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2457.79,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1101.7,
+          "bytes_received": 1111.6,
+          "datagrams": 5.25,
+          "resent": 1.26,
+          "timer_fires": 1.23
+        },
+        "host": {
+          "bytes_sent": 1356.09,
+          "bytes_received": 1069.38,
+          "datagrams": 5.01,
+          "resent": 1.33,
+          "timer_fires": 0.5
+        }
+      }
+    },
+    "udp-4702-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1633.4,
+        "p90": 2628.4,
+        "p95": 3403.3,
+        "p99": 5827.1
+      },
+      "over_limit": {
+        "k": 7,
+        "n": 100,
+        "p": 0.07,
+        "wilson95": [
+          0.0343,
+          0.1375
+        ]
+      },
+      "dtls_ms": {
+        "p50": 826.8,
+        "p95": 2030.2,
+        "p99": 4521.1
+      },
+      "datagrams": {
+        "sum": 1034,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.34,
+      "timers_per_reconnect": 1.68,
+      "hellos_per_reconnect": 2.8,
+      "cpu_ms_per_cycle": 34.722,
+      "bytes_sent": {
+        "sum": 247589,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2475.89,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1096.29,
+          "bytes_received": 1167.75,
+          "datagrams": 5.19,
+          "resent": 1.2,
+          "timer_fires": 1.15
+        },
+        "host": {
+          "bytes_sent": 1379.6,
+          "bytes_received": 1040.32,
+          "datagrams": 5.15,
+          "resent": 1.54,
+          "timer_fires": 0.53
+        }
+      }
+    },
+    "udp-4703-cap500-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1717.0,
+        "p90": 2648.1,
+        "p95": 3430.7,
+        "p99": 4375.8
+      },
+      "over_limit": {
+        "k": 7,
+        "n": 100,
+        "p": 0.07,
+        "wilson95": [
+          0.0343,
+          0.1375
+        ]
+      },
+      "dtls_ms": {
+        "p50": 839.4,
+        "p95": 1849.5,
+        "p99": 3239.0
+      },
+      "datagrams": {
+        "sum": 1047,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.47,
+      "timers_per_reconnect": 1.84,
+      "hellos_per_reconnect": 2.92,
+      "cpu_ms_per_cycle": 35.827,
+      "bytes_sent": {
+        "sum": 251383,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2513.83,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1123.79,
+          "bytes_received": 1149.57,
+          "datagrams": 5.3,
+          "resent": 1.3,
+          "timer_fires": 1.28
+        },
+        "host": {
+          "bytes_sent": 1390.04,
+          "bytes_received": 1070.59,
+          "datagrams": 5.17,
+          "resent": 1.48,
+          "timer_fires": 0.56
+        }
+      }
+    },
+    "udp-4703-cap750-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1681.8,
+        "p90": 2826.1,
+        "p95": 3361.8,
+        "p99": 3913.5
+      },
+      "over_limit": {
+        "k": 7,
+        "n": 100,
+        "p": 0.07,
+        "wilson95": [
+          0.0343,
+          0.1375
+        ]
+      },
+      "dtls_ms": {
+        "p50": 858.1,
+        "p95": 2084.9,
+        "p99": 3054.2
+      },
+      "datagrams": {
+        "sum": 1061,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.61,
+      "timers_per_reconnect": 1.9,
+      "hellos_per_reconnect": 2.99,
+      "cpu_ms_per_cycle": 42.772,
+      "bytes_sent": {
+        "sum": 254661,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2546.61,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1135.26,
+          "bytes_received": 1169.03,
+          "datagrams": 5.36,
+          "resent": 1.38,
+          "timer_fires": 1.36
+        },
+        "host": {
+          "bytes_sent": 1411.35,
+          "bytes_received": 1066.33,
+          "datagrams": 5.25,
+          "resent": 1.62,
+          "timer_fires": 0.54
+        }
+      }
+    },
+    "udp-4703-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1682.4,
+        "p90": 2709.9,
+        "p95": 3598.3,
+        "p99": 7272.5
+      },
+      "over_limit": {
+        "k": 9,
+        "n": 100,
+        "p": 0.09,
+        "wilson95": [
+          0.0481,
+          0.1623
+        ]
+      },
+      "dtls_ms": {
+        "p50": 793.0,
+        "p95": 2304.9,
+        "p99": 5471.3
+      },
+      "datagrams": {
+        "sum": 1067,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.67,
+      "timers_per_reconnect": 1.54,
+      "hellos_per_reconnect": 2.74,
+      "cpu_ms_per_cycle": 44.349,
+      "bytes_sent": {
+        "sum": 247660,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 2476.6,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1101.8,
+          "bytes_received": 1151.89,
+          "datagrams": 5.16,
+          "resent": 1.17,
+          "timer_fires": 1.16
+        },
+        "host": {
+          "bytes_sent": 1374.8,
+          "bytes_received": 1076.87,
+          "datagrams": 5.51,
+          "resent": 1.73,
+          "timer_fires": 0.38
+        }
+      }
+    },
+    "udp-4704-cap500-slow": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1918.3,
+        "p90": 2365.8,
+        "p95": 2390.4,
+        "p99": 2831.1
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 100,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.037
+        ]
+      },
+      "dtls_ms": {
+        "p50": 1299.6,
+        "p95": 1520.5,
+        "p99": 1829.4
+      },
+      "datagrams": {
+        "sum": 1409,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 14.09,
+      "timers_per_reconnect": 4.0,
+      "hellos_per_reconnect": 4.04,
+      "cpu_ms_per_cycle": 41.036,
+      "bytes_sent": {
+        "sum": 346859,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 3468.59,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1543.08,
+          "bytes_received": 1559.79,
+          "datagrams": 7.04,
+          "resent": 3.04,
+          "timer_fires": 3.02
+        },
+        "host": {
+          "bytes_sent": 1925.51,
+          "bytes_received": 1565.43,
+          "datagrams": 7.05,
+          "resent": 3.05,
+          "timer_fires": 0.98
+        }
+      }
+    },
+    "udp-4704-cap750-slow": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2256.0,
+        "p90": 2371.9,
+        "p95": 2425.0,
+        "p99": 3070.7
+      },
+      "over_limit": {
+        "k": 1,
+        "n": 100,
+        "p": 0.01,
+        "wilson95": [
+          0.0018,
+          0.0545
+        ]
+      },
+      "dtls_ms": {
+        "p50": 1290.3,
+        "p95": 1367.9,
+        "p99": 1823.0
+      },
+      "datagrams": {
+        "sum": 1403,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 14.03,
+      "timers_per_reconnect": 3.97,
+      "hellos_per_reconnect": 4.03,
+      "cpu_ms_per_cycle": 42.614,
+      "bytes_sent": {
+        "sum": 345757,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 3457.57,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1541.12,
+          "bytes_received": 1559.7,
+          "datagrams": 7.03,
+          "resent": 3.03,
+          "timer_fires": 2.98
+        },
+        "host": {
+          "bytes_sent": 1916.45,
+          "bytes_received": 1571.42,
+          "datagrams": 7.0,
+          "resent": 3.0,
+          "timer_fires": 0.99
+        }
+      }
+    },
+    "udp-4704-off-slow": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1891.7,
+        "p90": 2356.2,
+        "p95": 2393.3,
+        "p99": 2631.1
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 100,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.037
+        ]
+      },
+      "dtls_ms": {
+        "p50": 1296.7,
+        "p95": 1548.9,
+        "p99": 2062.1
+      },
+      "datagrams": {
+        "sum": 1404,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 14.04,
+      "timers_per_reconnect": 3.98,
+      "hellos_per_reconnect": 4.02,
+      "cpu_ms_per_cycle": 39.141,
+      "bytes_sent": {
+        "sum": 345805,
+        "n": 100
+      },
+      "bytes_sent_per_reconnect": 3458.05,
+      "per_side": {
+        "client": {
+          "bytes_sent": 1538.84,
+          "bytes_received": 1568.22,
+          "datagrams": 7.02,
+          "resent": 3.02,
+          "timer_fires": 3.0
+        },
+        "host": {
+          "bytes_sent": 1919.21,
+          "bytes_received": 1560.54,
+          "datagrams": 7.02,
+          "resent": 3.02,
+          "timer_fires": 0.98
+        }
+      }
+    }
+  },
+  "pooled": {
+    "udp-harsh": {
+      "off": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1682.4,
+          "p90": 2628.4,
+          "p95": 3153.1,
+          "p99": 4397.6
+        },
+        "over_limit": {
+          "k": 19,
+          "n": 300,
+          "p": 0.0633,
+          "wilson95": [
+            0.0409,
+            0.0968
+          ]
+        },
+        "dtls_ms": {
+          "p50": 835.3,
+          "p95": 2009.8,
+          "p99": 3714.9
+        },
+        "datagrams": {
+          "sum": 3171,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.57,
+        "timers_per_reconnect": 1.737,
+        "hellos_per_reconnect": 2.833,
+        "cpu_ms_per_cycle": 42.14,
+        "bytes_sent": {
+          "sum": 753834,
+          "n": 300
+        },
+        "bytes_sent_per_reconnect": 2512.78,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1118.957,
+            "bytes_received": 1167.907,
+            "datagrams": 5.253,
+            "resent": 1.263,
+            "timer_fires": 1.24
+          },
+          "host": {
+            "bytes_sent": 1393.823,
+            "bytes_received": 1066.073,
+            "datagrams": 5.317,
+            "resent": 1.65,
+            "timer_fires": 0.497
+          }
+        }
+      },
+      "cap750": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1681.8,
+          "p90": 2826.1,
+          "p95": 3343.8,
+          "p99": 4850.9
+        },
+        "over_limit": {
+          "k": 25,
+          "n": 300,
+          "p": 0.0833,
+          "wilson95": [
+            0.0571,
+            0.1201
+          ]
+        },
+        "dtls_ms": {
+          "p50": 857.5,
+          "p95": 2084.9,
+          "p99": 4475.1
+        },
+        "datagrams": {
+          "sum": 3213,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.71,
+        "timers_per_reconnect": 1.923,
+        "hellos_per_reconnect": 2.99,
+        "cpu_ms_per_cycle": 44.77,
+        "bytes_sent": {
+          "sum": 765795,
+          "n": 300
+        },
+        "bytes_sent_per_reconnect": 2552.65,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1139.807,
+            "bytes_received": 1156.637,
+            "datagrams": 5.377,
+            "resent": 1.393,
+            "timer_fires": 1.37
+          },
+          "host": {
+            "bytes_sent": 1412.843,
+            "bytes_received": 1074.007,
+            "datagrams": 5.333,
+            "resent": 1.687,
+            "timer_fires": 0.553
+          }
+        }
+      },
+      "cap500": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1704.9,
+          "p90": 2612.7,
+          "p95": 3142.5,
+          "p99": 3613.5
+        },
+        "over_limit": {
+          "k": 15,
+          "n": 300,
+          "p": 0.05,
+          "wilson95": [
+            0.0305,
+            0.0808
+          ]
+        },
+        "dtls_ms": {
+          "p50": 837.0,
+          "p95": 1834.5,
+          "p99": 3239.0
+        },
+        "datagrams": {
+          "sum": 3155,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.517,
+        "timers_per_reconnect": 1.823,
+        "hellos_per_reconnect": 2.9,
+        "cpu_ms_per_cycle": 40.72,
+        "bytes_sent": {
+          "sum": 755964,
+          "n": 300
+        },
+        "bytes_sent_per_reconnect": 2519.88,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1121.42,
+            "bytes_received": 1147.91,
+            "datagrams": 5.287,
+            "resent": 1.293,
+            "timer_fires": 1.273
+          },
+          "host": {
+            "bytes_sent": 1398.46,
+            "bytes_received": 1061.393,
+            "datagrams": 5.23,
+            "resent": 1.533,
+            "timer_fires": 0.55
+          }
+        }
+      }
+    },
+    "udp-slow": {
+      "off": {
+        "cycles": 100,
+        "reconnects": 100,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1891.7,
+          "p90": 2356.2,
+          "p95": 2393.3,
+          "p99": 2631.1
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 100,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.037
+          ]
+        },
+        "dtls_ms": {
+          "p50": 1296.7,
+          "p95": 1548.9,
+          "p99": 2062.1
+        },
+        "datagrams": {
+          "sum": 1404,
+          "n": 100
+        },
+        "datagrams_per_reconnect": 14.04,
+        "timers_per_reconnect": 3.98,
+        "hellos_per_reconnect": 4.02,
+        "cpu_ms_per_cycle": 39.141,
+        "bytes_sent": {
+          "sum": 345805,
+          "n": 100
+        },
+        "bytes_sent_per_reconnect": 3458.05,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1538.84,
+            "bytes_received": 1568.22,
+            "datagrams": 7.02,
+            "resent": 3.02,
+            "timer_fires": 3.0
+          },
+          "host": {
+            "bytes_sent": 1919.21,
+            "bytes_received": 1560.54,
+            "datagrams": 7.02,
+            "resent": 3.02,
+            "timer_fires": 0.98
+          }
+        }
+      },
+      "cap750": {
+        "cycles": 100,
+        "reconnects": 100,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2256.0,
+          "p90": 2371.9,
+          "p95": 2425.0,
+          "p99": 3070.7
+        },
+        "over_limit": {
+          "k": 1,
+          "n": 100,
+          "p": 0.01,
+          "wilson95": [
+            0.0018,
+            0.0545
+          ]
+        },
+        "dtls_ms": {
+          "p50": 1290.3,
+          "p95": 1367.9,
+          "p99": 1823.0
+        },
+        "datagrams": {
+          "sum": 1403,
+          "n": 100
+        },
+        "datagrams_per_reconnect": 14.03,
+        "timers_per_reconnect": 3.97,
+        "hellos_per_reconnect": 4.03,
+        "cpu_ms_per_cycle": 42.614,
+        "bytes_sent": {
+          "sum": 345757,
+          "n": 100
+        },
+        "bytes_sent_per_reconnect": 3457.57,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1541.12,
+            "bytes_received": 1559.7,
+            "datagrams": 7.03,
+            "resent": 3.03,
+            "timer_fires": 2.98
+          },
+          "host": {
+            "bytes_sent": 1916.45,
+            "bytes_received": 1571.42,
+            "datagrams": 7.0,
+            "resent": 3.0,
+            "timer_fires": 0.99
+          }
+        }
+      },
+      "cap500": {
+        "cycles": 100,
+        "reconnects": 100,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1918.3,
+          "p90": 2365.8,
+          "p95": 2390.4,
+          "p99": 2831.1
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 100,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.037
+          ]
+        },
+        "dtls_ms": {
+          "p50": 1299.6,
+          "p95": 1520.5,
+          "p99": 1829.4
+        },
+        "datagrams": {
+          "sum": 1409,
+          "n": 100
+        },
+        "datagrams_per_reconnect": 14.09,
+        "timers_per_reconnect": 4.0,
+        "hellos_per_reconnect": 4.04,
+        "cpu_ms_per_cycle": 41.036,
+        "bytes_sent": {
+          "sum": 346859,
+          "n": 100
+        },
+        "bytes_sent_per_reconnect": 3468.59,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1543.08,
+            "bytes_received": 1559.79,
+            "datagrams": 7.04,
+            "resent": 3.04,
+            "timer_fires": 3.02
+          },
+          "host": {
+            "bytes_sent": 1925.51,
+            "bytes_received": 1565.43,
+            "datagrams": 7.05,
+            "resent": 3.05,
+            "timer_fires": 0.98
+          }
+        }
+      }
+    },
+    "gns-harsh": {
+      "off": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2408.2,
+          "p90": 3943.7,
+          "p95": 4463.4,
+          "p99": 6516.5
+        },
+        "over_limit": {
+          "k": 92,
+          "n": 300,
+          "p": 0.3067,
+          "wilson95": [
+            0.2572,
+            0.361
+          ]
+        },
+        "dtls_ms": {
+          "p50": 812.0,
+          "p95": 2294.5,
+          "p99": 4694.0
+        },
+        "datagrams": {
+          "sum": 3069,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.23,
+        "timers_per_reconnect": 1.94,
+        "hellos_per_reconnect": 2.967,
+        "cpu_ms_per_cycle": 48.401,
+        "bytes_sent": {
+          "sum": 754770,
+          "n": 300
+        },
+        "bytes_sent_per_reconnect": 2515.9,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1141.413,
+            "bytes_received": 1115.133,
+            "datagrams": 5.39,
+            "resent": 1.39,
+            "timer_fires": 1.38
+          },
+          "host": {
+            "bytes_sent": 1374.487,
+            "bytes_received": 1001.56,
+            "datagrams": 4.84,
+            "resent": 1.427,
+            "timer_fires": 0.56
+          }
+        }
+      },
+      "cap750": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2354.3,
+          "p90": 4046.8,
+          "p95": 4716.3,
+          "p99": 5950.1
+        },
+        "over_limit": {
+          "k": 82,
+          "n": 300,
+          "p": 0.2733,
+          "wilson95": [
+            0.226,
+            0.3264
+          ]
+        },
+        "dtls_ms": {
+          "p50": 816.4,
+          "p95": 2246.2,
+          "p99": 3014.5
+        },
+        "datagrams": {
+          "sum": 3140,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.467,
+        "timers_per_reconnect": 1.937,
+        "hellos_per_reconnect": 2.937,
+        "cpu_ms_per_cycle": 47.191,
+        "bytes_sent": {
+          "sum": 764366,
+          "n": 300
+        },
+        "bytes_sent_per_reconnect": 2547.887,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1149.657,
+            "bytes_received": 1131.94,
+            "datagrams": 5.413,
+            "resent": 1.413,
+            "timer_fires": 1.38
+          },
+          "host": {
+            "bytes_sent": 1398.23,
+            "bytes_received": 1007.96,
+            "datagrams": 5.053,
+            "resent": 1.567,
+            "timer_fires": 0.557
+          }
+        }
+      },
+      "cap500": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2518.4,
+          "p90": 3835.9,
+          "p95": 4535.1,
+          "p99": 5785.0
+        },
+        "over_limit": {
+          "k": 96,
+          "n": 300,
+          "p": 0.32,
+          "wilson95": [
+            0.2698,
+            0.3748
+          ]
+        },
+        "dtls_ms": {
+          "p50": 809.8,
+          "p95": 2025.5,
+          "p99": 2734.7
+        },
+        "datagrams": {
+          "sum": 3074,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.247,
+        "timers_per_reconnect": 1.913,
+        "hellos_per_reconnect": 2.957,
+        "cpu_ms_per_cycle": 49.979,
+        "bytes_sent": {
+          "sum": 754440,
+          "n": 300
+        },
+        "bytes_sent_per_reconnect": 2514.8,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1136.293,
+            "bytes_received": 1103.84,
+            "datagrams": 5.367,
+            "resent": 1.367,
+            "timer_fires": 1.357
+          },
+          "host": {
+            "bytes_sent": 1378.507,
+            "bytes_received": 999.083,
+            "datagrams": 4.88,
+            "resent": 1.477,
+            "timer_fires": 0.557
+          }
+        }
+      }
+    },
+    "gns-slow": {
+      "off": {
+        "cycles": 100,
+        "reconnects": 100,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2624.6,
+          "p90": 3082.6,
+          "p95": 3125.8,
+          "p99": 3375.1
+        },
+        "over_limit": {
+          "k": 15,
+          "n": 100,
+          "p": 0.15,
+          "wilson95": [
+            0.0931,
+            0.2328
+          ]
+        },
+        "dtls_ms": {
+          "p50": 1247.7,
+          "p95": 1456.3,
+          "p99": 1555.4
+        },
+        "datagrams": {
+          "sum": 1401,
+          "n": 100
+        },
+        "datagrams_per_reconnect": 14.01,
+        "timers_per_reconnect": 3.92,
+        "hellos_per_reconnect": 4.02,
+        "cpu_ms_per_cycle": 41.035,
+        "bytes_sent": {
+          "sum": 344863,
+          "n": 100
+        },
+        "bytes_sent_per_reconnect": 3448.63,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1539.1,
+            "bytes_received": 1465.1,
+            "datagrams": 7.02,
+            "resent": 3.02,
+            "timer_fires": 2.98
+          },
+          "host": {
+            "bytes_sent": 1909.53,
+            "bytes_received": 1535.57,
+            "datagrams": 6.99,
+            "resent": 2.99,
+            "timer_fires": 0.94
+          }
+        }
+      },
+      "cap750": {
+        "cycles": 100,
+        "reconnects": 100,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2625.5,
+          "p90": 3110.8,
+          "p95": 3136.0,
+          "p99": 3341.3
+        },
+        "over_limit": {
+          "k": 23,
+          "n": 100,
+          "p": 0.23,
+          "wilson95": [
+            0.1584,
+            0.3215
+          ]
+        },
+        "dtls_ms": {
+          "p50": 1248.0,
+          "p95": 1337.1,
+          "p99": 1487.3
+        },
+        "datagrams": {
+          "sum": 1403,
+          "n": 100
+        },
+        "datagrams_per_reconnect": 14.03,
+        "timers_per_reconnect": 3.94,
+        "hellos_per_reconnect": 4.02,
+        "cpu_ms_per_cycle": 51.136,
+        "bytes_sent": {
+          "sum": 345027,
+          "n": 100
+        },
+        "bytes_sent_per_reconnect": 3450.27,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1539.24,
+            "bytes_received": 1466.93,
+            "datagrams": 7.02,
+            "resent": 3.02,
+            "timer_fires": 2.97
+          },
+          "host": {
+            "bytes_sent": 1911.03,
+            "bytes_received": 1543.54,
+            "datagrams": 7.01,
+            "resent": 3.01,
+            "timer_fires": 0.97
+          }
+        }
+      },
+      "cap500": {
+        "cycles": 100,
+        "reconnects": 100,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2629.8,
+          "p90": 3126.0,
+          "p95": 3164.4,
+          "p99": 3396.5
+        },
+        "over_limit": {
+          "k": 24,
+          "n": 100,
+          "p": 0.24,
+          "wilson95": [
+            0.1669,
+            0.3323
+          ]
+        },
+        "dtls_ms": {
+          "p50": 1241.1,
+          "p95": 1463.3,
+          "p99": 1568.5
+        },
+        "datagrams": {
+          "sum": 1400,
+          "n": 100
+        },
+        "datagrams_per_reconnect": 14.0,
+        "timers_per_reconnect": 3.91,
+        "hellos_per_reconnect": 4.0,
+        "cpu_ms_per_cycle": 52.24,
+        "bytes_sent": {
+          "sum": 344447,
+          "n": 100
+        },
+        "bytes_sent_per_reconnect": 3444.47,
+        "per_side": {
+          "client": {
+            "bytes_sent": 1534.74,
+            "bytes_received": 1446.55,
+            "datagrams": 7.0,
+            "resent": 3.0,
+            "timer_fires": 2.99
+          },
+          "host": {
+            "bytes_sent": 1909.73,
+            "bytes_received": 1538.71,
+            "datagrams": 7.0,
+            "resent": 3.0,
+            "timer_fires": 0.92
+          }
+        }
+      }
+    }
+  },
+  "rules": {
+    "cap750": {
+      "udp-harsh": {
+        "O3_p50_total": {
+          "diff": -0.6,
+          "ci95": [
+            -190.6,
+            185.1
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": 22.2,
+          "ci95": [
+            -7.3,
+            46.9
+          ]
+        },
+        "G1_bytes_ratio": 1.0159,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap750": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "homogeneity_p": {
+          "off": 0.207354,
+          "cap750": 0.258534
+        },
+        "O1_over_limit": {
+          "diff_ci95": [
+            -0.0225,
+            0.0631
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p95": {
+          "diff": 190.7,
+          "ci95": [
+            -408.6,
+            586.3
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p99": {
+          "diff": 453.3,
+          "ci95": [
+            -2473.6,
+            2655.8
+          ],
+          "verdict": "no_difference_shown"
+        }
+      },
+      "udp-slow": {
+        "O3_p50_total": {
+          "diff": 364.3,
+          "ci95": [
+            -52.8,
+            414.9
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": -6.4,
+          "ci95": [
+            -23.1,
+            3.5
+          ]
+        },
+        "G1_bytes_ratio": 0.9999,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap750": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "G3_p95": {
+          "diff": 31.7,
+          "ci95": [
+            -175.9,
+            442.5
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "G3_p50_verdict": "no_difference_shown",
+        "G3_ok": true
+      },
+      "gns-harsh": {
+        "O3_p50_total": {
+          "diff": -53.9,
+          "ci95": [
+            -231.4,
+            89.4
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": 4.4,
+          "ci95": [
+            -40.7,
+            45.2
+          ]
+        },
+        "G1_bytes_ratio": 1.0127,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap750": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "homogeneity_p": {
+          "off": 0.77815,
+          "cap750": 0.324843
+        },
+        "O1_over_limit": {
+          "diff_ci95": [
+            -0.1054,
+            0.0392
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p95": {
+          "diff": 252.9,
+          "ci95": [
+            -227.5,
+            802.8
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p99": {
+          "diff": -566.4,
+          "ci95": [
+            -1464.9,
+            1718.7
+          ],
+          "verdict": "no_difference_shown"
+        }
+      },
+      "gns-slow": {
+        "O3_p50_total": {
+          "diff": 0.9,
+          "ci95": [
+            -19.0,
+            31.6
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": 0.3,
+          "ci95": [
+            -7.3,
+            12.8
+          ]
+        },
+        "G1_bytes_ratio": 1.0005,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap750": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "G3_p95": {
+          "diff": 10.2,
+          "ci95": [
+            -38.9,
+            208.8
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "G3_p50_verdict": "no_difference_shown",
+        "G3_ok": true
+      },
+      "guards": {
+        "G1": true,
+        "G2": true,
+        "G3": true
+      }
+    },
+    "cap500": {
+      "udp-harsh": {
+        "O3_p50_total": {
+          "diff": 22.5,
+          "ci95": [
+            -179.1,
+            199.1
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": 1.7,
+          "ci95": [
+            -27.5,
+            34.3
+          ]
+        },
+        "G1_bytes_ratio": 1.0028,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap500": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "homogeneity_p": {
+          "off": 0.207354,
+          "cap500": 0.22908
+        },
+        "O1_over_limit": {
+          "diff_ci95": [
+            -0.052,
+            0.0248
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p95": {
+          "diff": -10.6,
+          "ci95": [
+            -760.0,
+            515.7
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p99": {
+          "diff": -784.1,
+          "ci95": [
+            -3680.1,
+            1180.3
+          ],
+          "verdict": "no_difference_shown"
+        }
+      },
+      "udp-slow": {
+        "O3_p50_total": {
+          "diff": 26.6,
+          "ci95": [
+            -359.3,
+            379.1
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": 2.9,
+          "ci95": [
+            -11.8,
+            12.6
+          ]
+        },
+        "G1_bytes_ratio": 1.003,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap500": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "G3_p95": {
+          "diff": -2.9,
+          "ci95": [
+            -210.5,
+            428.0
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "G3_p50_verdict": "no_difference_shown",
+        "G3_ok": true
+      },
+      "gns-harsh": {
+        "O3_p50_total": {
+          "diff": 110.2,
+          "ci95": [
+            -166.0,
+            223.9
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": -2.2,
+          "ci95": [
+            -42.7,
+            22.4
+          ]
+        },
+        "G1_bytes_ratio": 0.9996,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap500": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "homogeneity_p": {
+          "off": 0.77815,
+          "cap500": 0.661263
+        },
+        "O1_over_limit": {
+          "diff_ci95": [
+            -0.0607,
+            0.0871
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p95": {
+          "diff": 71.7,
+          "ci95": [
+            -520.7,
+            661.0
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "O2_p99": {
+          "diff": -731.5,
+          "ci95": [
+            -1540.2,
+            1086.3
+          ],
+          "verdict": "no_difference_shown"
+        }
+      },
+      "gns-slow": {
+        "O3_p50_total": {
+          "diff": 5.2,
+          "ci95": [
+            -20.2,
+            30.1
+          ]
+        },
+        "O3_p50_dtls": {
+          "diff": -6.6,
+          "ci95": [
+            -15.1,
+            10.5
+          ]
+        },
+        "G1_bytes_ratio": 0.9988,
+        "G1_ok": true,
+        "G2_events": {
+          "off": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          },
+          "cap500": {
+            "timeout": 0,
+            "failed": 0,
+            "no_reconnect": 0
+          }
+        },
+        "G2_ok": true,
+        "G3_p95": {
+          "diff": 38.6,
+          "ci95": [
+            -20.7,
+            201.7
+          ],
+          "verdict": "no_difference_shown"
+        },
+        "G3_p50_verdict": "no_difference_shown",
+        "G3_ok": true
+      },
+      "guards": {
+        "G1": true,
+        "G2": true,
+        "G3": true
+      }
+    },
+    "reading": {
+      "cap750": "not_shown",
+      "cap500": "not_shown"
+    }
+  }
+}

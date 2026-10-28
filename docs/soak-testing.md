@@ -964,6 +964,52 @@ Also recorded per reconnect: the phases, `total` and the DTLS phase as in EXP-04
   - Choosing one, and then a soak gate run, is the owner's decision.
   - KI-35 stays open until the soak gate says otherwise.
 
+**EXP-047 result: both candidates "not shown" (`ki35-caps-2026-10-28-005304-7fcb88c`, complete, run on `7fcb88c`, clean).** Neither cap is shown to differ from `off`, in either direction, on any predeclared outcome, and all three guards hold for both. 1800 harsh and 600 slow reconnects; no timeouts, failures or reconnects that never started; every harsh arm homogeneous (p ≥ 0.207). Re-analysing the directory gives an identical verdict.
+
+Two earlier attempts on the same commit stopped before the end. They are kept as recorded and not judged:
+- `ki35-caps-2026-10-27-103108-7fcb88c`: 3 batches and 38 cycles. The runner was a child of the agent session and ended with it.
+- `ki35-caps-2026-10-27-123625-7fcb88c`: 17 batches and 52 cycles. The runner ended with no error output; the cause is not established.
+
+| harsh | UDP off | UDP cap750 | UDP cap500 | GNS off | GNS cap750 | GNS cap500 |
+|---|---|---|---|---|---|---|
+| P(total > 3 s) | 19/300 | 25/300 | 15/300 | 92/300 | 82/300 | 96/300 |
+| Total p50 / p95 / p99 (ms) | 1682 / 3153 / 4398 | 1682 / 3344 / 4851 | 1705 / 3142 / 3614 | 2408 / 4463 / 6516 | 2354 / 4716 / 5950 | 2518 / 4535 / 5785 |
+| DTLS phase p50 / p95 / p99 (ms) | 835 / 2010 / 3715 | 858 / 2085 / 4475 | 837 / 1834 / 3239 | 812 / 2294 / 4694 | 816 / 2246 / 3014 | 810 / 2026 / 2735 |
+| Bytes sent per reconnect (both sides) | 2513 | 2553 | 2520 | 2516 | 2548 | 2515 |
+| Resent datagrams, client / host | 1.26 / 1.65 | 1.39 / 1.69 | 1.29 / 1.53 | 1.39 / 1.43 | 1.41 / 1.57 | 1.37 / 1.48 |
+| Timer fires / ClientHellos per reconnect | 1.74 / 2.83 | 1.92 / 2.99 | 1.82 / 2.90 | 1.94 / 2.97 | 1.94 / 2.94 | 1.91 / 2.96 |
+
+| slow (RTT 300–400 ms) | UDP off | UDP cap750 | UDP cap500 | GNS off | GNS cap750 | GNS cap500 |
+|---|---|---|---|---|---|---|
+| P(total > 3 s) | 0/100 | 1/100 | 0/100 | 15/100 | 23/100 | 24/100 |
+| Total p50 / p95 (ms) | 1892 / 2393 | 2256 / 2425 | 1918 / 2390 | 2625 / 3126 | 2626 / 3136 | 2630 / 3164 |
+| Bytes sent per reconnect | 3458 | 3458 | 3469 | 3449 | 3450 | 3444 |
+| Resent datagrams, client / host | 3.02 / 3.02 | 3.03 / 3.00 | 3.04 / 3.05 | 3.02 / 2.99 | 3.02 / 3.01 | 3.00 / 3.00 |
+| Timer fires per reconnect | 3.98 | 3.97 | 4.00 | 3.92 | 3.94 | 3.91 |
+
+- **O1, P(total > 3 s), `c` − `off`:**
+  - cap750: UDP [−0.023, +0.063], GNS [−0.105, +0.039];
+  - cap500: UDP [−0.052, +0.025], GNS [−0.061, +0.087].
+  - No difference shown in any comparison.
+- **O2, `c` − `off` (ms):**
+  - cap750: p95 UDP +191 [−409, +586], GNS +253 [−228, +803]; p99 UDP +453 [−2474, +2656], GNS −566 [−1465, +1719];
+  - cap500: p95 UDP −11 [−760, +516], GNS +72 [−521, +661]; p99 UDP −784 [−3680, +1180], GNS −732 [−1540, +1086].
+  - No difference shown.
+- **O3, p50 (reported):**
+  - harsh total: cap750 UDP −1 [−191, +185], GNS −54 [−231, +89]; cap500 UDP +23 [−179, +199], GNS +110 [−166, +224];
+  - slow total: cap750 UDP +364 [−53, +415], GNS +1 [−19, +32]; cap500 UDP +27 [−359, +379], GNS +5 [−20, +30];
+  - DTLS phase: every difference within ±23 ms, every interval includes 0.
+- **Guards:**
+  - G1 bytes ratio (UDP harsh, UDP slow, GNS harsh, GNS slow): cap750 1.016 / 1.000 / 1.013 / 1.001; cap500 1.003 / 1.003 / 1.000 / 0.999 (limit 1.25);
+  - G2: 0 events in every category and arm;
+  - G3: slow p95 and p50 no difference shown for both candidates.
+- **Reported:** CPU per cycle 39–52 ms in every arm. The probe loop dominates it.
+- **Reading, by the predeclared rule: cap750 "not shown", cap500 "not shown."**
+  - The run does not show that a milder cap keeps EXP-044's tail gain, and it does not show that either cap costs anything. EXP-044's gain came with the flat 250 ms timer, which stays a bounding arm.
+  - The GNS DTLS-phase p99 is lower with both caps (4694 → 3014 / 2735 ms). That is reported only, not a rule, and the total tail did not follow.
+  - **The slow path's cost is not the cap's.** Every arm fires about 4 timers and resends about 3 datagrams per side per reconnect. With an RTT of 300–400 ms, that is consistent with the 250 ms initial timer, which no arm changed, expiring before the answer arrives.
+  - **No default changes.** KI-35 stays open. Next options for the owner: leave the back-off as is and move to the cookie round trip (FB-28-04) or the GNS establishment and session phases (EXP-041), or predeclare a study of the initial timer against the path RTT.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.
