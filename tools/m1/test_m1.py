@@ -806,11 +806,15 @@ class TraceSize(unittest.TestCase):  # EXP-051 session 1: a whole session's trac
         real = nw.ET.iterparse
 
         def counting(*a, **kw):
-            for x in real(*a, **kw):
-                calls.append(1)
-                if len(calls) == 50:
-                    raise Stop  # stands in for KeyboardInterrupt between events
-                yield x
+            inner = real(*a, **kw)
+            try:
+                for x in inner:
+                    calls.append(1)
+                    if len(calls) == 50:
+                        raise Stop  # stands in for KeyboardInterrupt between events
+                    yield x
+            finally:
+                inner.close()
         body = canary_events(100, "start") + GAME + [net("42", 900)] * 200 + canary_events(101, "end")
         with tempfile.TemporaryDirectory() as tmp:
             trace(Path(tmp), body)
