@@ -6,6 +6,24 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #39 (PR #26: EXP-048 session 1 and the KI-45 amendment)
+
+- **Status:** triaged (2026-10-28). The owner asked for ChatGPT's instructions to be checked.
+- **Source:** [review #39](https://github.com/M0nsT3rG/ProjectMordor/pull/26), a source-and-record review through `fe0af56`; ChatGPT ran nothing. It acknowledges the owner's approval of the amendment and does not widen it.
+- **Verdict:** the amendment is a reasonable, targeted response to KI-45. The claim that the buffers are enough must stay limited. Before `tier_a.py` runs again:
+  - EXP-050 and the dry run must pass elevated on the approved code;
+  - the build check must be clean and the saves backed up;
+  - no KI-35 run may overlap the session.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-39-01** EXP-048 is INCONCLUSIVE / PARTIAL | **Yes.** | **Accepted** | Already recorded. The evidence and the outcome are kept as they are. |
+| **FB-39-02** Minimal amendment; encoding | **Yes.** Unknown binary files stay unreadable evidence (INCONCLUSIVE): `KI45.test_windows_1252_and_known_binary` (`other.nfo`). The read-mode check is in place (`test_codex_pass_10`). §8 states that NO DATA means only that no new line matched the candidate rule. | **Accepted** | Already in `322f02d`. No further encodings or file types are added after the fact. |
+| **FB-39-03** EXP-050 is a necessary stress test, not a guarantee; add a fixture-only mixed-load check | **Agreed.** The flood case is a single kind of traffic from one process. EXP-046 checks TCP, UDP, IPv6, DNS and a child process each on its own, never at the same time and never with the session buffers. EXP-051 fails closed whatever the buffers: one lost event leaves it INCONCLUSIVE (`netwatch`: `lost != 0`). So a missing mixed-load check costs at most another owner session, not a wrong result. | **Accepted in principle; pending the owner** | A mixed-load case changes EXP-050's definition (§6a), and the approval of `322f02d` covers §6a. Adding the case therefore needs the owner's renewed approval, so it is not added yet. |
+| **FB-39-04** A new series | **Yes.** | **Accepted** | Already done: EXP-051 starts at session 1, and EXP-048 does not count towards the three PASS sessions. |
+
+---
+
 ## ChatGPT status follow-up to review #37 (PR #26, 2026-10-28 09:52 UTC)
 
 - **Status:** triaged (2026-10-28). It is an acknowledgement: no new items and no code changes.
