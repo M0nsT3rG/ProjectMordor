@@ -64,6 +64,17 @@ struct Cycle {
     long long client_tx_bytes = 0, host_tx_bytes = 0, client_rx_bytes = 0, host_rx_bytes = 0;
     int client_resent = 0, host_resent = 0;
     std::set<std::string> client_keys, host_keys;
+    // EXP-049: the client's ClientHellos grouped into handshake attempts. A boundary (inner_connected,
+    // inner_disconnected, rejected) or another peer id makes the next ClientHello start a new attempt; boundaries in a
+    // row coalesce, and one before the first ClientHello ends nothing. `final_att` is the attempt current at Connected.
+    struct Attempt {
+        double hello = -1, last_hello0 = -1, cookie_hello = -1, auth = -1;
+        int hello0_tx = 0;  // ClientHellos with message_seq 0 sent before this attempt's cookie ClientHello
+    } att, final_att;
+    int attempts = 0, final_index = 0;
+    bool boundary = false;
+    std::uint32_t hello_peer = 0;
+    std::vector<double> host_hello0_rx, host_hvr_tx;  // EXP-049: host times, counted in the final attempt's window
 };
 
 // EXP-047: "22/0/1,20/0,len=213,seq=1" -> its size and resend key: the first plaintext handshake message and its
@@ -157,6 +168,8 @@ int main(int argc, char** argv) {
             if (!cur.armed || now < cur.t0) return;
             const double ms = static_cast<double>(now - cur.t0) / 1000.0;
             const std::string_view e(ev);
+            if (e == "tx" && detail.starts_with("22/0/3")) cur.host_hvr_tx.push_back(ms);  // EXP-049
+            else if ((e == "rx" || e == "listen_rx") && parse_detail(detail).key == "22/0/1#0") cur.host_hello0_rx.push_back(ms);
             if (e == "app_dropped_before_auth") cur.host_drops.push_back(ms);
             else if (e == "authenticated" && cur.host_auth < 0) cur.host_auth = ms;
             // EXP-044 cost window: until the host authenticated this reconnect. A late duplicate ClientHello can still
@@ -192,10 +205,30 @@ int main(int argc, char** argv) {
         cs->invitation = inv;
         cs->confirm_binding = arm == "on";
         if (cap_us) cs->retransmit_max_us = cap_us;
-        cs->trace = [&cur](const char* ev, std::uint64_t now, std::uint32_t, std::string_view detail) {
+        cs->trace = [&cur](const char* ev, std::uint64_t now, std::uint32_t peer, std::string_view detail) {
             if (!cur.armed || now < cur.t0) return;
             const double ms = static_cast<double>(now - cur.t0) / 1000.0;
             const std::string_view e(ev);
+            if (e == "inner_connected" || e == "inner_disconnected" || e == "rejected") {
+                cur.boundary = true;  // EXP-049
+            } else if (e == "tx" && is_client_hello(detail)) {
+                if (cur.attempts == 0 || cur.boundary || peer != cur.hello_peer) {
+                    cur.att = {};
+                    cur.att.hello = ms;
+                    ++cur.attempts;
+                    cur.boundary = false;
+                    cur.hello_peer = peer;
+                }
+                const auto key = parse_detail(detail).key;
+                if (key == "22/0/1#0" && cur.att.cookie_hello < 0) {
+                    ++cur.att.hello0_tx;
+                    cur.att.last_hello0 = ms;
+                } else if (key == "22/0/1#1" && cur.att.cookie_hello < 0) {
+                    cur.att.cookie_hello = ms;  // RFC 6347 4.2.1: the ClientHello that carries the cookie
+                }
+            } else if (e == "authenticated" && cur.attempts > 0 && cur.att.auth < 0) {
+                cur.att.auth = ms;
+            }
             // After t0 only the reconnect's new handshake traces: an authenticated session traces nothing. The first
             // ClientHello can leave in the same update that enters Reconnecting, so no notice gate here.
             if (e == "tx" && cur.auth < 0) {  // EXP-044 cost window: until the client authenticated
@@ -285,6 +318,8 @@ int main(int argc, char** argv) {
                 if (st == client::ClientState::Connected && cur.notice >= 0 && connected < 0) {
                     connected = ms;
                     snaps_at_connect = snaps_before;
+                    cur.final_att = cur.att;  // EXP-049: the last attempt before Connected
+                    cur.final_index = cur.attempts;
                 }
                 if (connected >= 0 && c->stats().snapshots_applied > snaps_at_connect) {
                     first_snapshot = ms;
@@ -307,17 +342,29 @@ int main(int argc, char** argv) {
             const double loop_ms = static_cast<double>(real_us() - cur.t0) / 1000.0 / static_cast<double>(loops ? loops : 1);
             std::string drops;  // EXP-042: the host's app_dropped_before_auth times, ms from t0
             for (const double d : cur.host_drops) drops += (drops.empty() ? "" : ",") + std::to_string(d);
+            const auto& fa = cur.final_att;  // EXP-049: host datagrams within the final attempt, until its cookie
+            auto in_window = [&fa](const std::vector<double>& ts) {
+                return fa.hello < 0 || fa.cookie_hello < 0 ? -1 : static_cast<int>(std::count_if(ts.begin(), ts.end(),
+                    [&fa](double t) { return t >= fa.hello && t <= fa.cookie_hello; }));
+            };
+            char attempt[256];
+            std::snprintf(attempt, sizeof attempt,
+                          "\"attempts\":%d,\"attempt_hello\":%.1f,\"last_hello0\":%.1f,\"attempt_cookie_hello\":%.1f,"
+                          "\"attempt_auth\":%.1f,\"hello0_tx\":%d,\"host_hello0_rx\":%d,\"host_hvr_tx\":%d",
+                          cur.final_index, fa.hello, fa.last_hello0, fa.cookie_hello, fa.auth, fa.hello0_tx,
+                          in_window(cur.host_hello0_rx), in_window(cur.host_hvr_tx));
             std::printf("{\"cycle\":%d,\"log_ms\":%.1f,\"outcome\":\"%s\",\"reason\":\"%s\",\"notice\":%.1f,\"inner\":%.1f,"
                         "\"first_hello\":%.1f,\"hvr\":%.1f,\"cookie_hello\":%.1f,\"auth\":%.1f,\"connected\":%.1f,"
                         "\"first_snapshot\":%.1f,\"hellos\":%d,\"timers\":%d,\"loop_ms\":%.2f,\"host_auth\":%.1f,"
                         "\"host_drops\":[%s],\"gate_timeouts\":%d,\"arm\":\"%s\",\"profile\":\"%s\",\"host_timers\":%d,"
                         "\"client_tx\":%d,\"host_tx\":%d,\"cpu_ms\":%.1f,\"client_tx_bytes\":%lld,\"host_tx_bytes\":%lld,"
-                        "\"client_rx_bytes\":%lld,\"host_rx_bytes\":%lld,\"client_resent\":%d,\"host_resent\":%d}\n",
+                        "\"client_rx_bytes\":%lld,\"host_rx_bytes\":%lld,\"client_resent\":%d,\"host_resent\":%d,%s}\n",
                         i, static_cast<double>(cur.t0 - log_start) / 1000.0, outcome, c->state_reason().c_str(), cur.notice,
                         cur.inner, cur.first_hello, cur.hvr, cur.cookie_hello, cur.auth, connected, first_snapshot,
                         cur.hellos, cur.timers, loop_ms, cur.host_auth, drops.c_str(), cur.gate_timeouts, arm.c_str(),
                         profile.c_str(), cur.host_timers, cur.client_tx, cur.host_tx, cpu_ms(), cur.client_tx_bytes,
-                        cur.host_tx_bytes, cur.client_rx_bytes, cur.host_rx_bytes, cur.client_resent, cur.host_resent);
+                        cur.host_tx_bytes, cur.client_rx_bytes, cur.host_rx_bytes, cur.client_resent, cur.host_resent,
+                        attempt);
             std::fflush(stdout);
             if (std::string_view(outcome) != "ok" && c->state() != client::ClientState::Connected && !join()) {
                 std::fprintf(stderr, "rejoin after cycle %d failed: %s\n", i, c->state_reason().c_str());

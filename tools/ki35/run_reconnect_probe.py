@@ -76,8 +76,10 @@ def homogeneity_p(counts: list[tuple[int, int]], exact: bool = False) -> float |
         sf = math.exp(-x2 / 2)
     elif df == 1:  # survival of chi-square(1) = erfc(sqrt(x/2))
         sf = math.erfc(math.sqrt(x2 / 2))
+    elif df == 3:  # EXP-049's 4 batches: erfc(sqrt(x/2)) + sqrt(2x/pi) e^(-x/2)
+        sf = math.erfc(math.sqrt(x2 / 2)) + math.sqrt(2 * x2 / math.pi) * math.exp(-x2 / 2)
     else:
-        raise ValueError("predeclared for 3 batches per backend")
+        raise ValueError("predeclared for 2 to 4 batches per backend")
     return sf if exact else round(sf, 6)
 
 
