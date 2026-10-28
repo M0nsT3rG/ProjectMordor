@@ -20,6 +20,10 @@ Newest entries first. Commits are short hashes on the branch named in each entry
   - The slow path's resends (about 3 per side) are the same in every arm, which is consistent with the 250 ms initial timer rather than the cap.
   - No default changed.
 - **Next for KI-35:** the owner's choice between the cookie round trip (FB-28-04), the GNS establishment and session phases, or an initial-timer study.
+- **Test harness:** the first battery on `668d9e4` failed (`tests-2026-10-28-063008-668d9e4`, kept as recorded).
+  - Every other suite and the E2E passed.
+  - The `dtls` suite hit ctest's 300 s limit after 67 passed cases, with no failure. With the new trace test it takes about 302 s; the last green run already took 297 s.
+  - Its limit is now 900 s (the `-gns` suites use 1200), and the battery was rerun.
 
 ## 2026-10-27: review #29 and EXP-044, DTLS retransmission back-off (`feature/ki35-gns-establishment`)
 

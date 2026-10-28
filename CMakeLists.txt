@@ -83,7 +83,8 @@ if(MORDOR_WITH_GNS)
   target_include_directories(mordor_dtls_tests PRIVATE tests)
   target_link_libraries(mordor_dtls_tests PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
   add_test(NAME dtls COMMAND mordor_dtls_tests --json ${CMAKE_BINARY_DIR}/test-results/dtls.json --suite dtls)
-  set_tests_properties(dtls PROPERTIES TIMEOUT 300 ENVIRONMENT "MORDOR_TRANSPORT=udp")  # label only: loops over both backends
+  # label only: loops over both backends. 74 tests take about 302 s, so 300 s cut it off (tests-2026-10-28-063008-668d9e4).
+  set_tests_properties(dtls PROPERTIES TIMEOUT 900 ENVIRONMENT "MORDOR_TRANSPORT=udp")
   # KI-27 standalone reproducer (GNS public API only; tools/ki27-repro also builds on its own for the upstream report).
   add_executable(gns_listen_close_repro tools/ki27-repro/main.cpp)
   target_link_libraries(gns_listen_close_repro PRIVATE GameNetworkingSockets::shared)
