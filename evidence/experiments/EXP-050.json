@@ -8,8 +8,10 @@
   "game_exe_sha256": "N/A (the experiment never touches the game, its files or its saves)",
   "procedure": "On the amended code, python -I tools/m1/coverage.py and python -I tools/m1/dryrun.py, each once without elevation (Claude Code; every case must be not_covered or INCONCLUSIVE) and once from an elevated PowerShell (the owner). coverage.py writes evidence/logs/m1-coverage-<time>-<elevated|not-elevated>/result.json, now labelled EXP-050 and with the buffers used. No threshold is tuned after a run: if the flood case is a MISMATCH, the buffer sizes are a new decision, recorded before another run.",
   "expected_result": "No MISMATCH in either coverage run (flood_with_session_buffers and mixed_load_with_session_buffers a MATCH elevated); dryrun 11/11 elevated.",
-  "observed_result": "Not run.",
+  "observed_result": "Without elevation (Claude Code, clean commit 4c5ef08): coverage.py 9/9 not_covered, as expected, NO MISMATCH (evidence/logs/m1-coverage-2026-10-28-151626-not-elevated); the mixed-load case ran end to end, its target's actions all sent and one background stand-in complete. dryrun.py: all cases match (evidence/logs/m1-dryrun-2026-10-28-151640-not-elevated). The elevated runs, the ones that measure the buffers, are the owner's and have not run.",
   "evidence_paths": [
+    "evidence/logs/m1-coverage-2026-10-28-151626-not-elevated",
+    "evidence/logs/m1-dryrun-2026-10-28-151640-not-elevated",
     "tools/m1/netwatch.py",
     "tools/m1/coverage.py",
     "docs/m1-criteria.md"
