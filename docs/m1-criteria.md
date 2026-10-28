@@ -1,6 +1,6 @@
 # M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). EXP-051 session 1 may run only after EXP-050 and the dry run have passed elevated on that code (§7 item 3). Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 may run (§7 item 3). Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -127,6 +127,13 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
   - **Other outcomes:** a send refused through the stand-in's status is NOT_APPLICABLE. A stand-in that stops early, for example because a flood send was refused, is a MISMATCH (Codex pass 13).
 
 `dryrun.py` must still give 11/11 with the session buffers. Both are fixture-only: they never touch the game.
+
+**Both passed elevated on 2026-10-28** (EXP-050, the owner's runs on clean `f2ef9bd`):
+- `coverage.py` 9/9 MATCH:
+  - the flood: 0 of 200280 events lost;
+  - the mixed load: 0 of 600792 events lost, every kind attributed;
+  - the tiny buffers still lost 135455.
+- `dryrun.py` 11/11.
 
 ## 7. Decisions needed from the owner
 

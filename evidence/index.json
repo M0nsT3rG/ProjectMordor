@@ -459,9 +459,9 @@
       "path": "evidence/experiments/EXP-050.json",
       "date": "2026-10-28",
       "subsystem": "experiment",
-      "status": "NOT_RUN",
+      "status": "PASSED",
       "scope": "-",
-      "confidence": "medium",
+      "confidence": "high",
       "summary": "KI-45: do the explicit session trace buffers (netwatch.BUFFERS: 256 KB, 64 to 512 buffers, at most 128 MB) keep the M1 network monitor from losing events, where logman's defaults lost 1203 in EXP-048 session 1, and do all the EXP-046 coverage cases still hold with them?"
     },
     {

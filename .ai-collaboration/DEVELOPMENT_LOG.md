@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: EXP-050 passed elevated (`feature/d008-gog-inventory`, PR #26)
+
+- **Runs:** the owner ran `coverage.py`, then `dryrun.py`, elevated, on clean `f2ef9bd`. Its session tools are unchanged since `322f02d`.
+- **coverage.py: 9/9 MATCH, no mismatch.**
+  - The flood with the session buffers: 0 of 200280 events lost, all 200000 sends attributed.
+  - The mixed load: 0 of 600792 events lost, every kind attributed, the background complete.
+  - The seven EXP-046 cases: unchanged verdicts, 0 lost each. The tiny buffers still lost 135455.
+- **dryrun.py: 11/11.** Its `dirty: true` comes from the coverage result folder, which was untracked; no tracked file differed.
+- **EXP-050 PASSED.** The technical gate of the approved amendment is met.
+- **Next:** EXP-051 session 1, run by the owner: saves backed up, Galaxy and Steam closed, no KI-35 run at the same time.
+
 ## 2026-10-28: Review #39 triage and EXP-050's mixed-load case (`feature/d008-gog-inventory`, PR #26)
 
 - **Review #39:**
