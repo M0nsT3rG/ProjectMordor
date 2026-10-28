@@ -1,6 +1,6 @@
-# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 pending)
+# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) is written and awaits EXP-050 and the owner's new approval (§7 item 3). Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). EXP-051 session 1 may run only after EXP-050 and the dry run have passed elevated on that code (§7 item 3). Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -127,16 +127,16 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
    - Review #36 called §8 a sufficiently narrow draft, once its changes were made. They are made: the outcome tests, the privacy checks and a fixture-only rehearsal of the tool.
    - Review #37 found §8 ready for the owner's review, conditionally.
    - Codex pass 7 (2026-10-27) found 4 defects, all fixed with regressions: a UTF-16 file read as having no position, a `.sav.bak` vouching for a new id, an id embedded in a longer name, and an earlier killed session's raw trace. Codex pass 8 checked those fixes and found 1 defect, also fixed: a save id equal to the machine name still leaked inside a longer name.
-3. **Approval of the amended §8 for EXP-051: pending.** The amendment follows EXP-048 session 1 (KI-45), and it covers only:
+3. ~~Approval of the amended §8 for EXP-051~~: **approved 2026-10-28** by the owner in chat ("Eu aprovo"), as of commit `fe0af56` (code `322f02d`). The approval came before ChatGPT's review of request #39, the owner's choice. The technical gate stays: **EXP-050 and the dry run must pass elevated on code `322f02d` before EXP-051 session 1.** If either fails, or anything in §8 or the session tools changes, the approval no longer covers it and a new one is needed. The amendment follows EXP-048 session 1 (KI-45), and it covers only:
    - the trace buffers (§4a);
    - the Windows-1252 fallback;
    - `user/gpu.nfo` while it is binary;
    - the experiment id;
    - two more counts in the record.
 
-   It needs, in order: EXP-050 and the dry run passing elevated (§6a), review, and the owner's approval in chat. Until then, `tier_a.py` must not be run.
+   Before the approval, the plan was: EXP-050 and the dry run elevated (§6a), then review, then the owner's approval. The owner approved first. `tier_a.py` must not run until EXP-050 and the dry run have passed elevated.
 
-## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, pending approval)
+## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, approved by the owner the same day)
 
 Fixed before any session, after a metadata-only listing of the game's folders that the owner approved (F-ENV-014). No game-side run happens before the owner approves this section.
 

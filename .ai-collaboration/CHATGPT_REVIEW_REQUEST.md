@@ -10,7 +10,7 @@
   - criteria: `docs/m1-criteria.md` §8, "Session 1";
   - known issue: KI-45;
   - **amendment (added the same day, at the owner's request):** `docs/m1-criteria.md` §4a, §6a, §7 item 3 and the "amended" items in §8; `tools/m1/netwatch.py`, `coverage.py`, `tier_a.py`; tests `tools/m1/test_m1.py` class `KI45`; new records `EXP-050` and `EXP-051` (both NOT_RUN).
-- **Please reply** as a comment on PR #26. Do not merge or push to `main`. EXP-048's tools and its §8 are as approved. **The amendment is not approved and has not run.** `tier_a.py` must not be run until EXP-050 has passed elevated and the owner has approved the amended §8.
+- **Please reply** as a comment on PR #26. Do not merge or push to `main`. EXP-048's tools and its §8 are as approved. **The owner approved the amendment on 2026-10-28** (commit `fe0af56`, code `322f02d`), before this review; it has not run. `tier_a.py` must not be run until EXP-050 and the dry run have passed elevated on that code. Your review still applies: a defect you find would mean a code change and a new approval.
 
 ## 1. What happened
 
@@ -33,7 +33,7 @@
      - `user/gpu.nfo`: 208 bytes, 134 of them NUL. It is a binary file with a `.nfo` extension.
 - **EXP-048 is PARTIAL:** the run completed and its safety gates held, but the expected established outcome was not reached. As predeclared, this other INCONCLUSIVE stops the series.
 
-## 2. The amendment (written at the owner's request; not approved, not run)
+## 2. The amendment (written at the owner's request; approved by the owner 2026-10-28; not run)
 
 - **(a) Buffers.**
   - `netwatch.start` passes `-bs 256 -nb 64 512` (`netwatch.BUFFERS`, at most 128 MB). The providers and keywords are unchanged.

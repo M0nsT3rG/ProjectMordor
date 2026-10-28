@@ -2,6 +2,12 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: The owner approves the §8 amendment (`feature/d008-gog-inventory`, PR #26)
+
+- **Decision:** the owner approved the amended `docs/m1-criteria.md` §8 for EXP-051 in chat ("Eu aprovo"), as of commit `fe0af56` (code `322f02d`). It came before ChatGPT's review of request #39, the owner's choice.
+- **Still required before EXP-051 session 1:** EXP-050 (`coverage.py`) and `dryrun.py` must pass elevated on code `322f02d`. If either fails, or §8 or the session tools change, the approval no longer covers it.
+- **Not allowed:** tier B. EXP-050 and EXP-051 are still NOT_RUN.
+
 ## 2026-10-28: The §8 amendment for KI-45 (`feature/d008-gog-inventory`, PR #26)
 
 - **Request:** after EXP-048 session 1, the owner asked for the fixes to be prepared for a new approval.
