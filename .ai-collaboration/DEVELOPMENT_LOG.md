@@ -2,6 +2,28 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: EXP-048 session 1 (`feature/d008-gog-inventory`, PR #26)
+
+- **Run:** the owner ran `tier_a.py --session 1` elevated on the pinned GOG set, with the tool at `757ac6a` (clean). Evidence: `evidence/logs/m1-tier-a-2026-10-28-113203-s1/session.json`.
+- **Outcome: INCONCLUSIVE, `no_data_established` false.** EXP-048 is PARTIAL.
+- **Gates held:**
+  - the build check was 0 at both ends;
+  - nothing was removed;
+  - only GAME_WRITTEN files changed (three saves, plus a new slot under an existing id);
+  - the exit code was 0, inside the trace, through the menu;
+  - no warning and no crash were reported;
+  - both canaries were seen;
+  - no contact or DNS lookup was attributed to the game;
+  - the raw trace was deleted.
+- **No position** in the 6 permitted files that were read.
+- **Why NO DATA is not established (KI-45):**
+  - 1203 lost ETW events: logman's default buffers were never sized for a real session.
+  - `install/EULA.txt` is Windows-1252 text.
+  - `user/gpu.nfo` is binary (134 of 208 bytes are NUL).
+
+  The two file diagnoses come from byte statistics only.
+- **Next:** the series is stopped and back with the owner. The proposed fixes (bigger buffers, measured with `coverage.py`; an encoding decision for the two files) change §8 and the tools, so they need review and a new approval. Nothing is changed yet. Review request #39.
+
 ## 2026-10-27: The owner approves M1 tier A (`feature/d008-gog-inventory`, PR #26)
 
 - **Decision:** the owner approved `docs/m1-criteria.md` §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). The approval follows reviews #36 and #37 and Codex passes 7 and 8.

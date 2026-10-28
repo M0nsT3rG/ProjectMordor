@@ -448,7 +448,7 @@
       "path": "evidence/experiments/EXP-048.json",
       "date": "2026-10-27",
       "subsystem": "experiment",
-      "status": "NOT_RUN",
+      "status": "PARTIAL",
       "scope": "-",
       "confidence": "medium",
       "summary": "M1 tier A (docs/m1-criteria.md section 8): can the player character's world position be observed reproducibly from what the pinned GOG build exposes by itself (its own text files, read read-only), without changing anything in the game, its files, its saves or its process, while network monitoring covers the whole run?"

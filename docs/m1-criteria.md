@@ -1,6 +1,6 @@
 # M1 criteria: read-only observation of game state (tier A approved by the owner)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). No session has run yet; session 1 is the owner's, after the KI-35 experiment. Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped and back with the owner; §8 and the tools are unchanged. Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -190,4 +190,23 @@ Fixed before any session, after a metadata-only listing of the game's folders th
   - `session.json` records this as `no_data_established`. It is true only when the session is INCONCLUSIVE and no position is its only reason (with the zero counts per action that follow from it).
   - A session whose monitoring or evidence failed is INCONCLUSIVE too, but it cannot establish NO DATA, so it does not close tier A (FB-36-02).
   - Tier B is never started automatically. **Go** needs 3 PASS sessions. Any FAIL, or any other INCONCLUSIVE, stops the series.
+- **Session 1 (2026-10-28, tool at `757ac6a`, clean; `evidence/logs/m1-tier-a-2026-10-28-113203-s1/`): INCONCLUSIVE, `no_data_established` false.**
+  - **Held:**
+    - the build check was 0 at both ends;
+    - nothing was removed;
+    - only GAME_WRITTEN files changed (three saves changed, a new slot under an existing id);
+    - the exit code was 0, inside the trace, through the menu;
+    - no protection warning and no crash were reported;
+    - both canaries were seen;
+    - no contact or DNS lookup was attributed to the game;
+    - the raw trace was deleted.
+  - **No position** in the 6 permitted files that were read.
+  - **Not established:**
+    - **1203 ETW events were lost**, so monitoring did not cover the session (condition 9). The trace uses logman's default buffers, and EXP-046 provoked loss only with tiny buffers.
+    - **Two unreadable files:**
+      - `install/EULA.txt` is Windows-1252 text: no BOM, no NUL, 100 bytes ≥ 0x80, not valid UTF-8;
+      - `user/gpu.nfo` is binary: 134 of its 208 bytes are NUL.
+
+      Both diagnoses come from byte statistics after the run; no content was recorded.
+  - **The series is stopped** (predeclared). Any fix to the buffers or the encoding rule changes this section and the tools, so it needs review and a new approval before session 2.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.

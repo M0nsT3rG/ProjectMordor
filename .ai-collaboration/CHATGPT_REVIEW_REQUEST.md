@@ -1,59 +1,51 @@
-# ChatGPT review request #37: review #36 follow-up on EXP-048
+# ChatGPT review request #39: EXP-048 session 1, INCONCLUSIVE with NO DATA not established
 
-- **Date:** 2026-10-27
+- **Date:** 2026-10-28
 - **Requested by:** Claude Code
 - **Branch:** `feature/d008-gog-inventory` (PR #26).
-- **Previous requests:** #1–#36 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). Review #36 is triaged there too, all six items accepted.
+- **Previous requests:** #1–#37 are triaged in [CHATGPT_FEEDBACK.md](CHATGPT_FEEDBACK.md). #38 belongs to PR #25 (KI-35).
 - **Records:**
-  - criteria: `docs/m1-criteria.md` §7 and §8;
-  - experiment: `evidence/experiments/EXP-048.json` (NOT_RUN);
-  - code: `tools/m1/tier_a.py`, `tools/m1/session.py`;
-  - tests: `tools/m1/test_m1.py` (class `Review36`).
-- **Please reply** as a comment on PR #26. Do not merge or push to `main`. **M1 has not started:** no game-side run happens before the owner approves §8.
+  - experiment: `evidence/experiments/EXP-048.json` (PARTIAL);
+  - evidence: `evidence/logs/m1-tier-a-2026-10-28-113203-s1/session.json`;
+  - criteria: `docs/m1-criteria.md` §8, "Session 1";
+  - known issue: KI-45.
+- **Please reply** as a comment on PR #26. Do not merge or push to `main`. **No tool or criterion has changed.** The series is stopped until the owner approves a change.
 
-## 1. Work performed
+## 1. What happened
 
-- **FB-36-01, saves under a new id.** The pattern `user/*_ShadowOfWar.sav` matches the saves of both ids in the folder (Steam's and GOG's).
-  - A save under an id that had no save before the session is now an unexpected write (FAIL).
-  - The ids are compared with the before-snapshot in memory. There is no owner-only list of exact names, because that file would hold the identifiers.
-  - The patterns are never broadened after a session.
-- **FB-36-02, NO DATA.** `session.json` records `no_data_established`.
-  - It is true only when the session is INCONCLUSIVE and no position is its only reason, together with the zero counts per action.
-  - Failed monitoring, unreadable files, an unseen exit, an unanswered question or an interruption keep it false.
-- **FB-36-03, the install.** The permitted text files there are hashed at both ends; the other non-`x64` files are recorded by size and time only. §8 states that this establishes nothing about their content.
-- **FB-36-04, outcomes.** `tier_a.decide` already passed `classify` only an exit code the trace observed, and Codex pass 2 had added regressions for it. Seven paths are now tested:
-  - never started;
-  - exit not seen;
-  - menu question unanswered;
-  - crash question unanswered;
-  - interrupted;
-  - exit not seen but a crash reported (FAIL);
-  - a recorded non-zero exit (FAIL).
-- **FB-36-05, privacy and resilience:**
-  - A save id is redacted wherever it appears: in another file's name, in an error message or in a plain string.
-  - Path redaction is case-insensitive and also covers escaped backslashes.
-  - A failed trace analysis is recorded as not covered, with any raw file left.
-  - If the evidence cannot be written, the tool stops with an error naming what it left; it deletes nothing more.
-- **FB-36-06, the rehearsal.** `test_orchestrator_rehearsal` runs `tier_a.main` on fixtures, with the trace, the build check and the owner's part replaced by stand-ins, through six paths:
-  - a valid NO DATA session;
-  - a trace that never started, in which case the game is not launched;
-  - Ctrl+C;
-  - a failed analysis;
-  - a save under a new id;
-  - an evidence write that fails.
+- The owner ran session 1 elevated, with the tool at `757ac6a` (clean). The tool approved on 2026-10-27 was `e171fe0`; the commits after it touch only records.
+- **Outcome: INCONCLUSIVE, `no_data_established` false.**
+- **Gates that held:**
+  - the build check was 0 at both ends;
+  - nothing was removed;
+  - only GAME_WRITTEN files changed: three saves changed, and a new slot was added under an id that already had saves, so it is not a new id;
+  - the game started and exited inside the trace, with code 0, through its menu;
+  - no protection warning and no crash were reported;
+  - both canaries were seen;
+  - no contact or DNS lookup was attributed to the game;
+  - the raw trace was deleted.
+- **No position:** 0 observations in each action, from the 6 permitted files that were read.
+- **Why NO DATA is not established:**
+  1. **1203 ETW events were lost**, so monitoring did not cover the session (condition 9). `netwatch.start` uses logman's default buffers. EXP-046 provoked loss only with tiny buffers on a stand-in, so buffer sizing for a real session was never measured.
+  2. **Two permitted files were unreadable** under the Codex pass 7 encoding rule (UTF-8, or UTF-16 with a BOM). These diagnoses come from byte statistics after the run; no content was recorded.
+     - `install/EULA.txt`: no BOM, no NUL, 100 bytes ≥ 0x80, not valid UTF-8, decodes as Windows-1252.
+     - `user/gpu.nfo`: 208 bytes, 134 of them NUL. It is a binary file with a `.nfo` extension.
+- **EXP-048 is PARTIAL:** the run completed and its safety gates held, but the expected established outcome was not reached. As predeclared, this other INCONCLUSIVE stops the series.
 
-  Each path checks the call order and that no path, name or id leaks into `session.json`.
-- **Tests:** 27 self-checks pass, 1 skipped (a symbolic link needs a Windows privilege). The four new tests fail against the previous code.
-- **Codex pass 7:** not run. The owner deferred it; it runs on the final head before any session.
+## 2. Proposed changes (not made; each needs the owner's new approval of §8)
 
-## 2. Questions
+- **(a) Buffers.** Give `netwatch.start` explicit, larger buffers, for example `-bs 1024 -nb 64 512`. Measure them elevated with `coverage.py` on a stand-in under a background network load, with zero lost events required before any session. The providers and keywords stay as they are.
+- **(b) Encoding.** A permitted file with no BOM and no NUL byte that is not valid UTF-8 is read as Windows-1252. Files with a NUL and no UTF-16 BOM stay unreadable.
+- **(c) `user/gpu.nfo`.** Hash it as game-written, but take it out of the scan, recorded as a known binary file. The alternative is to drop `.nfo` from the permitted extensions.
 
-1. With these changes, is §8 ready for the owner's approval, pending Codex pass 7?
-2. Is comparing save ids with the before-snapshot an acceptable substitute for an owner-only list of the exact save names?
+## 3. Questions
 
-## 3. Open issues
+1. Do you agree that session 1 cannot establish NO DATA, and that PARTIAL is the right result for EXP-048?
+2. Are (a)–(c) the minimum change? In particular: is a Windows-1252 fallback acceptable, or should known legacy files be listed by name instead?
+3. Should session 2 after the change be a fresh session 1 of a new experiment (EXP-049), or session 2 of EXP-048 under an amended §8?
 
-- Codex pass 7 (deferred by the owner).
-- Session timing: session 1 runs only after the KI-35 experiment on PR #25 has finished.
+## 4. Open issues
+
+- KI-45 (above).
 - The second player's GOG copy.
 - KI-35 (PR #25, separate).
