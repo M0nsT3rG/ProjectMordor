@@ -1,0 +1,27 @@
+GOG build VERIFIED: 1.0.2445.0 exe sha256 5A15AE5F6CFA..., 3 x64 files and 1 add-ons as pinned (buildId 777)
+GOG BUILD INCOMPLETE: game-side work is blocked until this build is re-checked read-only and the owner records a decision (D-008). Never reuse earlier offsets or assumptions.
+  - base game store metadata malformed JSON
+GOG BUILD MISMATCH: game-side work is blocked until this build is re-checked read-only and the owner records a decision (D-008). Never reuse earlier offsets or assumptions.
+  - base game store metadata missing
+GOG BUILD MISMATCH: game-side work is blocked until this build is re-checked read-only and the owner records a decision (D-008). Never reuse earlier offsets or assumptions.
+  - no x64 directory (unexpected layout)
+GOG BUILD MISMATCH: game-side work is blocked until this build is re-checked read-only and the owner records a decision (D-008). Never reuse earlier offsets or assumptions.
+  - steam_api64.dll SHA-256 D67E2E944994496C8D8EC76EED0CF9F09679448D584B532BEBF941852A37F5ED != pinned C9AF477D19B132DBCDA4EBBAA61C923D29EF65C44636B929DA54ACD23F4E40EB
+GOG release not installed on this machine (path is not a directory): game-side work is blocked here (D-008).
+GOG BUILD MISMATCH: game-side work is blocked until this build is re-checked read-only and the owner records a decision (D-008). Never reuse earlier offsets or assumptions.
+  - base game store metadata missing
+  - pinned add-on Expansion Pass: store metadata missing
+  - pinned add-on High Resolution Texture Pack: store metadata missing
+  - pinned file missing: amd_ags_x64.dll
+  - pinned file missing: AnselSDK64.dll
+  - bink2w64.dll SHA-256 3B44CA6EAB644A15E2D214FE01B8687351112D0D31915CD342DC2D3930F8287D != pinned A639F44E46828D58E9D14C097EE3B19A5AB416E6A0EED65749C7482C6E4B8D11
+  - pinned file missing: default.archcfg
+  - pinned file missing: oo2core_5_win64.dll
+  - ShadowOfWar.exe SHA-256 5A15AE5F6CFA368C3B8F4A8A3CB492A9299853F2EC6B25FCCA695063DBCD51B5 != pinned F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8
+  - steam_api64.dll SHA-256 C9AF477D19B132DBCDA4EBBAA61C923D29EF65C44636B929DA54ACD23F4E40EB != pinned F12CF470954D9D956F7D44F9EB84659890C5722A021548AB88710340C0965230
+  - FileVersion not readable: version metadata missing (incomplete evidence)
+..........
+----------------------------------------------------------------------
+Ran 10 tests in 0.196s
+
+OK

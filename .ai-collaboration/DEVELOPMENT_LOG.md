@@ -15,7 +15,8 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Codex:**
   - pass 14: 3 defects (the file left open on an interrupt, nested events accepted, a different exception name for a file both malformed and truncated). The first two are fixed with red-before regressions; the third is documented.
   - pass 15: 1 defect (an interrupt before the protected block), fixed. Its remaining few-instruction window is documented as a limit that ends in a FAIL, never in silence.
-- **Tests:** `test_m1.py` 38 run, 1 skipped, all passing.
+- **Tests:** `test_m1.py` 38 run, 1 skipped, all passing; `test_check_gog_build.py` 10 passing. Self-checks on clean `f1665ae`: `evidence/logs/m1-selfchecks-2026-10-28-201326-f1665ae/`.
+  - A first self-check run on `371f812` was deleted before commit: a test's ResourceWarning printed a local temp path. The test now closes the parser it wraps (`f1665ae`), and the code under test did not change.
 - **Next, the owner's:** EXP-050 and the dry run elevated on the amended code, then approval. The next series is EXP-060.
 
 ## 2026-10-28: EXP-050 passed elevated (`feature/d008-gog-inventory`, PR #26)
