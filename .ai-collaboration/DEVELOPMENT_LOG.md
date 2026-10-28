@@ -2,6 +2,20 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: Review #39 triage and EXP-050's mixed-load case (`feature/d008-gog-inventory`, PR #26)
+
+- **Review #39:**
+  - FB-39-01, 02 and 04 were accepted; they were already done.
+  - FB-39-03 asked for more evidence than the flood. The owner asked for a mixed-load case and approved it in chat ("Sim, acrescenta").
+- **The case:** `coverage.py` `mixed_load_with_session_buffers` has one target do every kind of traffic, a child included, while unrelated stand-ins flood loopback (400000 datagrams each, replaced within 50 ms) for its whole life. It needs 0 lost events, every kind attributed (the flood too) and every stand-in complete.
+- **Codex pass 13** found 4 points, all fixed:
+  - the flood was not required to be attributed;
+  - a repeated `brief` status could hide a refusal, so the background is flood only;
+  - a refused flood ends its stand-in, which is now documented as a MISMATCH rather than NOT_APPLICABLE;
+  - "at once" overstated the load, so the background now spans the target's whole life.
+- **Unchanged:** the session tools, as approved at `322f02d`.
+- **Tests:** 34 self-checks, 1 skipped. The new test fails against `ae541e5`.
+
 ## 2026-10-28: The owner approves the §8 amendment (`feature/d008-gog-inventory`, PR #26)
 
 - **Decision:** the owner approved the amended `docs/m1-criteria.md` §8 for EXP-051 in chat ("Eu aprovo"), as of commit `fe0af56` (code `322f02d`). It came before ChatGPT's review of request #39, the owner's choice.

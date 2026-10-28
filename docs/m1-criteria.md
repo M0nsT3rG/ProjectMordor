@@ -118,7 +118,15 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 
 `tools/m1/dryrun.py` (EXP-045) runs all of the above on fixtures in a temporary folder, with a stand-in process instead of the game: build checks, snapshots, a real trace, the log read and the outcome rules. Each of its 11 cases injects one fault and states its expected outcome first. Run elevated, the baseline must PASS and every fault must give its outcome; run without elevation, every case that needs the network must come out INCONCLUSIVE. It never touches the game, its files or its saves. The owner approves tier A only after it passes elevated, together with the coverage experiment EXP-046 (`tools/m1/coverage.py`, FB-34-01). Both passed elevated on 2026-10-27 (EXP-045 11/11, EXP-046 7/7; the owner's runs on `b500439`).
 
-**After the buffer change (KI-45):** the owner runs both again elevated, on the amended code, before the amended §8 is approved. `coverage.py` is EXP-050: its eight cases add `flood_with_session_buffers`, which must be a MATCH: covered, 0 events lost, the flood attributed, and the stand-in's record that all 200000 sends completed (Codex pass 9). `dryrun.py` must still give 11/11 with the session buffers.
+**After the buffer change (KI-45):** the owner runs both again elevated on the amended code, before EXP-051 session 1. `coverage.py` is EXP-050, and its nine cases add two that must both be a MATCH:
+- `flood_with_session_buffers`: covered, 0 events lost, the flood attributed, and the stand-in's record that all 200000 sends completed (Codex pass 9).
+- `mixed_load_with_session_buffers` (review #39, FB-39-03; added at the owner's request on 2026-10-28):
+  - **The traffic:** one stand-in does every kind, one after the other. That is IPv6 loopback TCP and UDP, 50 brief loopback TCP connections, the 200000 flood, a DNS lookup, a public UDP send and a child process's public UDP send.
+  - **The background, for that stand-in's whole life:** unrelated stand-ins, not targets, each send 400000 loopback datagrams. A finished one is replaced within 50 ms.
+  - **The pass condition:** covered, 0 events lost, every kind attributed to the target or its child (the flood too), and every stand-in's record complete.
+  - **Other outcomes:** a send refused through the stand-in's status is NOT_APPLICABLE. A stand-in that stops early, for example because a flood send was refused, is a MISMATCH (Codex pass 13).
+
+`dryrun.py` must still give 11/11 with the session buffers. Both are fixture-only: they never touch the game.
 
 ## 7. Decisions needed from the owner
 
@@ -135,6 +143,9 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
    - two more counts in the record.
 
    Before the approval, the plan was: EXP-050 and the dry run elevated (§6a), then review, then the owner's approval. The owner approved first. `tier_a.py` must not run until EXP-050 and the dry run have passed elevated.
+   - **2026-10-28, review #39 (FB-39-03):** the owner asked for EXP-050's mixed-load case and approved adding it in chat ("Sim, acrescenta"). It changes only `coverage.py`, its test and §6a.
+     - The session tools (`tier_a.py`, `session.py`, `netwatch.py`) stay exactly as approved at `322f02d`.
+     - "EXP-050 on code `322f02d`" therefore means those session tools, together with the `coverage.py` that holds the mixed-load case.
 
 ## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, approved by the owner the same day)
 

@@ -752,6 +752,30 @@ class KI45(unittest.TestCase):  # EXP-048 session 1: lost events, a Windows-1252
         self.assertEqual(cv.no_loss(good, {})[0], "MISMATCH")  # the stand-in stopped before its last send (Codex 9)
         self.assertEqual(cv.no_loss(good, {"flood": 1})[0], "MISMATCH")
         self.assertIn("flood_with_session_buffers", cv.CASES)
+
+    def test_mixed_load_check(self):  # review #39, FB-39-03
+        import coverage as cv
+
+        def c(eid, proto, ip, peer, child=False, n=1):
+            return {"event_id": eid, "proto": proto, "ip": ip, "peer": peer, "from_child": child, "count": n}
+        r = {"verdict": "unexpected_contact", "coverage": "covered", "events_lost": 0, "events_total": 9,
+             "dns": [{"name": "mordor-test.invalid", "count": 1}],
+             "contacts": [c("12", "tcp", "v6", "loopback"), c("42", "udp", "v6", "loopback"),
+                          c("12", "tcp", "v4", "loopback", n=50), c("42", "udp", "v4", "public"),
+                          c("42", "udp", "v4", "public", child=True), c("42", "udp", "v4", "loopback", n=cv.FLOOD)]}
+        st = {"flood": cv.FLOOD, "background runs": 3, "background complete": True, "child": 0}
+        self.assertEqual(cv.mixed(r, st)[0], "MATCH")
+        for bad_r in (dict(r, events_lost=1), dict(r, coverage="not_covered"), dict(r, dns=[]),
+                      dict(r, contacts=r["contacts"][:-2] + r["contacts"][-1:]), dict(r, contacts=r["contacts"][1:]),
+                      dict(r, contacts=r["contacts"][:-1])):  # the last: the flood completed but was not attributed
+            self.assertEqual(cv.mixed(bad_r, st)[0], "MISMATCH")
+        for bad_st in ({"flood": cv.FLOOD}, dict(st, **{"background complete": False}), dict(st, flood=None)):
+            self.assertEqual(cv.mixed(r, bad_st)[0], "MISMATCH")  # a stand-in stopped early, the target's or one behind
+        self.assertEqual(cv.mixed(r, dict(st, **{"udp 192.0.2.1": "refused by the OS (10051)"}))[0], "NOT_APPLICABLE")
+        self.assertEqual(cv.BACKGROUND["mixed_load_with_session_buffers"], ["--flood", str(2 * cv.FLOOD)])
+        args, tiny, _ = cv.CASES["mixed_load_with_session_buffers"]
+        self.assertFalse(tiny)
+        self.assertIn("mixed_load_with_session_buffers", cv.BACKGROUND)
         self.assertFalse(cv.CASES["flood_with_session_buffers"][1])  # the session's buffers, not the tiny ones
 
 

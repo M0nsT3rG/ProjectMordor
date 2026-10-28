@@ -5,7 +5,8 @@ Each case is one real trace (netwatch start/stop/analyze) around the stand-in (t
 one kind of traffic. The expected analysis is fixed here before the runs. Elevated, it shows which mechanisms the
 monitor attributes to the target: IPv6, a TCP attempt that never connects, a DNS lookup, very short flows, a child
 process, and lost events; and that the session buffers (netwatch.BUFFERS, KI-45) lose nothing under the flood that
-the tiny buffers lost events to. Without elevation every case must be not_covered: nothing passes unmonitored.
+the tiny buffers lost events to, nor under every kind of traffic at once beside an unrelated flooding process (review
+#39, FB-39-03). Without elevation every case must be not_covered: nothing passes unmonitored.
 
 Not live-testable, and covered elsewhere: PID reuse (unit-tested in test_m1.py) and traffic another process makes on
 the target's behalf (a documented limitation, docs/m1-criteria.md section 4a).
@@ -21,6 +22,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -105,6 +107,30 @@ def no_loss(r, st):
                                              f"loopback UDP sends attributed {n}")
 
 
+def mixed(r, st):
+    """EXP-050, review #39 (FB-39-03): with the session buffers, every kind of traffic from the target and its child,
+    one after the other, while unrelated processes flood loopback for the target's whole life, must lose nothing and
+    still be attributed. A stand-in that stopped early (a flood send the OS refused ends it) is a MISMATCH."""
+    if refused(st):
+        return "NOT_APPLICABLE", f"the OS refused: {refused(st)}"
+    n = sum(c["count"] for c in r["contacts"] if c["event_id"] == TCP_CONNECT and c["peer"] == "loopback")
+    flood = sum(c["count"] for c in r["contacts"] if c["event_id"] == netwatch.UDP_SEND and c["peer"] == "loopback"
+                and c["ip"] == "v4")  # Codex pass 13: completed is not attributed
+    seen = {"ipv6 tcp": has(r, "tcp", "v6", False), "ipv6 udp": has(r, "udp", "v6", False),
+            "public udp": has(r, "udp", "v4", True, child=False), "child udp": has(r, "udp", "v4", True, child=True),
+            "dns": any(d["name"] == "mordor-test.invalid" for d in r["dns"]), "brief tcp": n >= 50,
+            "flood attributed": flood > 0, "flood completed": st.get("flood") == FLOOD,
+            "background complete": st.get("background complete") is True}
+    ok = covered(r) and r.get("events_lost") == 0 and r["verdict"] == "unexpected_contact" and all(seen.values())
+    return ("MATCH" if ok else "MISMATCH"), (f"verdict {r['verdict']}, events lost {r.get('events_lost')} of "
+                                             f"{r.get('events_total')}, missing {[k for k, v in seen.items() if not v]}")
+
+
+# Unrelated background traffic: stand-ins that are not targets, one after the other for the case stand-in's whole life
+# (a finished one is replaced within BG_POLL_S). Flood only: a repeated status key would hide a refusal (Codex pass 13).
+BACKGROUND = {"mixed_load_with_session_buffers": ["--flood", str(2 * FLOOD)]}
+BG_POLL_S = 0.05
+
 CASES = {
     "ipv6_loopback_attributed": (["--loop6"], False, covered_clean_with_v6),
     "tcp_attempt_never_connects": (["--tcp", "192.0.2.1"], False, contact("tcp", "v4", never_connects=True)),
@@ -114,6 +140,9 @@ CASES = {
     "child_process_contact": (["--child-udp", "192.0.2.1"], False, child),
     "forced_event_loss": (["--flood", str(FLOOD)], True, loss),
     "flood_with_session_buffers": (["--flood", str(FLOOD)], False, no_loss),
+    "mixed_load_with_session_buffers": (["--loop6", "--brief", "50", "--flood", str(FLOOD), "--dns",
+                                         "mordor-test.invalid", "--udp", "192.0.2.1", "--child-udp", "192.0.2.1"],
+                                        False, mixed),
 }
 
 
@@ -131,17 +160,40 @@ def main(argv: list[str]) -> int:
     try:
         for name, (args, tiny, check) in CASES.items():
             work, log, status = tmp / name, tmp / f"{name}.log", tmp / f"{name}.status.json"
+            bgs, p = [], None
+
+            def background():
+                bgs.append(subprocess.Popen([sys.executable, "-I", str(HERE / "standin.py"), "--log", str(log), "--mode",
+                                             "none", "--status", str(tmp / f"{name}.bg{len(bgs)}.json"),
+                                             *BACKGROUND[name]]))
             try:
                 netwatch.start(work, tiny_buffers=tiny)
+                if name in BACKGROUND:
+                    background()
                 p = subprocess.Popen([sys.executable, "-I", str(HERE / "standin.py"), "--log", str(log), "--mode",
                                       "none", "--status", str(status), *args])
-                p.wait(timeout=600)
+                deadline = time.monotonic() + 600
+                while p.poll() is None:  # the background never stops while the target runs
+                    if bgs and bgs[-1].poll() is not None:
+                        background()
+                    if time.monotonic() > deadline:
+                        raise TimeoutError(f"{name}: the stand-in did not finish")
+                    time.sleep(BG_POLL_S)
+                for b in bgs:
+                    b.wait(timeout=600)
                 netwatch.stop(work)
             except BaseException:  # interrupted or failed: never leave the trace running or its raw files (FB-35-04)
+                for x in bgs + [p]:
+                    if x and x.poll() is None:
+                        x.kill()
                 netwatch.abort(work)
                 raise
             r = netwatch.analyze(work, [], [p.pid])
             st = json.loads(status.read_text(encoding="utf-8")) if status.is_file() else {}
+            if bgs:  # every background stand-in must have sent its whole flood: a stopped one was no load
+                done = [json.loads(f.read_text(encoding="utf-8")).get("flood") if f.is_file() else None
+                        for f in (tmp / f"{name}.bg{i}.json" for i in range(len(bgs)))]
+                st.update({"background runs": len(bgs), "background complete": all(d == 2 * FLOOD for d in done)})
             if up:
                 verdict, why = check(r, st)
             else:  # unmonitored: nothing may come out as covered or clean
