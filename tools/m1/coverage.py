@@ -1,9 +1,11 @@
-"""ETW coverage experiment for M1 network monitoring (FB-34-01, EXP-046). Never touches the game.
+"""ETW coverage experiment for M1 network monitoring (FB-34-01; EXP-046, re-run with the session buffers as EXP-050).
+Never touches the game.
 
 Each case is one real trace (netwatch start/stop/analyze) around the stand-in (tools/m1/standin.py), which performs
 one kind of traffic. The expected analysis is fixed here before the runs. Elevated, it shows which mechanisms the
 monitor attributes to the target: IPv6, a TCP attempt that never connects, a DNS lookup, very short flows, a child
-process, and lost events. Without elevation every case must be not_covered: nothing passes unmonitored.
+process, and lost events; and that the session buffers (netwatch.BUFFERS, KI-45) lose nothing under the flood that
+the tiny buffers lost events to. Without elevation every case must be not_covered: nothing passes unmonitored.
 
 Not live-testable, and covered elsewhere: PID reuse (unit-tested in test_m1.py) and traffic another process makes on
 the target's behalf (a documented limitation, docs/m1-criteria.md section 4a).
@@ -27,6 +29,7 @@ import netwatch  # noqa: E402
 from dryrun import elevated, git_state  # noqa: E402
 
 TCP_CONNECT = netwatch.TCP_CONNECT
+FLOOD = 200000  # loopback datagrams: the tiny buffers lost events to it in EXP-046
 # name: (stand-in arguments, tiny buffers, check(analysis, status) -> (verdict, why)). Verdicts: MATCH, MISMATCH,
 # NOT_APPLICABLE (the OS refused to send, so there was nothing to see), NOT_DEMONSTRATED (the condition did not occur).
 
@@ -92,6 +95,16 @@ def loss(r, st):
     return ("MATCH" if ok else "MISMATCH"), f"verdict {r['verdict']}, events lost {r.get('events_lost')}"
 
 
+def no_loss(r, st):
+    """EXP-050 (KI-45): the session buffers must lose nothing under the flood that the tiny buffers lost events to."""
+    n = sum(c["count"] for c in r["contacts"] if c["event_id"] == netwatch.UDP_SEND and c["peer"] == "loopback")
+    done = st.get("flood") == FLOOD  # the stand-in writes it only after the last send (Codex pass 9)
+    ok = covered(r) and r.get("events_lost") == 0 and n > 0 and done
+    return ("MATCH" if ok else "MISMATCH"), (f"verdict {r['verdict']}, flood completed {done}, events lost "
+                                             f"{r.get('events_lost')} of {r.get('events_total')}, "
+                                             f"loopback UDP sends attributed {n}")
+
+
 CASES = {
     "ipv6_loopback_attributed": (["--loop6"], False, covered_clean_with_v6),
     "tcp_attempt_never_connects": (["--tcp", "192.0.2.1"], False, contact("tcp", "v4", never_connects=True)),
@@ -99,7 +112,8 @@ CASES = {
     "dns_lookup_only": (["--dns", "mordor-test.invalid"], False, dns),
     "brief_flows_then_contact": (["--brief", "50", "--udp", "192.0.2.1"], False, brief),
     "child_process_contact": (["--child-udp", "192.0.2.1"], False, child),
-    "forced_event_loss": (["--flood", "200000"], True, loss),
+    "forced_event_loss": (["--flood", str(FLOOD)], True, loss),
+    "flood_with_session_buffers": (["--flood", str(FLOOD)], False, no_loss),
 }
 
 
@@ -137,13 +151,13 @@ def main(argv: list[str]) -> int:
             if raw_left or r["raw_not_deleted"]:
                 verdict, why = "MISMATCH", f"raw trace left: {raw_left or r['raw_not_deleted']}"
             results.append({"case": name, "verdict": verdict, "why": why, "stand_in": st,
-                            "network": {k: r.get(k) for k in ("verdict", "coverage_problems", "events_lost", "contacts",
+                            "network": {k: r.get(k) for k in ("verdict", "coverage_problems", "events_lost", "events_total", "buffers", "contacts",
                                                               "dns", "targets")}})
             print(f"{name}: {verdict} ({why})")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     ok = all(x["verdict"] in ("MATCH", "NOT_APPLICABLE", "NOT_DEMONSTRATED") for x in results)
-    doc = {"experiment": "EXP-046", "elevated": up, "commit": head, "dirty": dirty, "game_touched": False,
+    doc = {"experiment": "EXP-050", "elevated": up, "buffers": netwatch.BUFFERS, "commit": head, "dirty": dirty, "game_touched": False,
            "cases": results, "no_mismatch": ok}
     text = (json.dumps(doc, indent=2) + "\n").replace(str(tmp), "%TEMP%")
     (out_dir / "result.json").write_text(text, encoding="utf-8")

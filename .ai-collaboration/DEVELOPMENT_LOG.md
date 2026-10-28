@@ -2,6 +2,35 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-28: The §8 amendment for KI-45 (`feature/d008-gog-inventory`, PR #26)
+
+- **Request:** after EXP-048 session 1, the owner asked for the fixes to be prepared for a new approval.
+- **The amendment** (§4a, §6a, §7 item 3, §8; marked "amended"):
+  - **Trace buffers:** `netwatch.start` passes `-bs 256 -nb 64 512`, at most 128 MB. The trace state, the analysis and `session.json` keep the buffers used and `events_total`.
+  - **Windows-1252 fallback:** a file with no BOM that is not valid UTF-8 is read as Windows-1252 and listed so. In such a read, a non-ASCII line containing `pos` or `loc` is a candidate, so it cannot pass as no data. A file whose encoding changes during the session is unreadable evidence.
+  - **`user/gpu.nfo`:** while it does not decode and has a NUL, it is "known binary: hashed, not searched".
+  - **The limit of NO DATA:** only ASCII labels are recognised; §8 states this.
+  - **New records:**
+    - EXP-050 measures the buffers: `coverage.py` gains `flood_with_session_buffers`, re-run elevated together with `dryrun.py`.
+    - EXP-051 is the new tier A series, with sessions numbered from 1.
+
+    Both are NOT_RUN. EXP-048 stays PARTIAL.
+- **Codex passes 9 and 10** found 3 and 4 defects, all fixed or, for one, documented:
+  - **Pass 9:**
+    - the gpu.nfo exception skipped UTF-16 text;
+    - mixed-encoding lines lost their label;
+    - the flood check gave a MATCH when the stand-in stopped early.
+  - **Pass 10** found the pass 9 projection unsafe:
+    - a `1½` read as 1;
+    - an encoding switch made old lines look new;
+    - a widened gap hid a label;
+    - a soft hyphen inside a UTF-8 label. This one is not changed in code: it is the ASCII-label limit, now stated in §8.
+
+  The projection was replaced by the candidate rule and the encoding-change rule.
+- **Tests:** 33 self-checks, 1 skipped. The new tests fail against the earlier code.
+- **Codex pass 11** found 3 more, all fixed: gpu.nfo turning from binary to text made old lines look new (now any change of read mode is unreadable evidence); the NO DATA wording; EXP-051's expected reasons, which missed the two zero counts. **Pass 12** found the amendment consistent, apart from one wording point: the gap also excludes `+`, `-` and `.`.
+- **Next:** EXP-050 and the dry run elevated (the owner), review, and the owner's approval. Until then `tier_a.py` must not be run.
+
 ## 2026-10-28: EXP-048 session 1 (`feature/d008-gog-inventory`, PR #26)
 
 - **Run:** the owner ran `tier_a.py --session 1` elevated on the pinned GOG set, with the tool at `757ac6a` (clean). Evidence: `evidence/logs/m1-tier-a-2026-10-28-113203-s1/session.json`.

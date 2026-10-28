@@ -1,4 +1,5 @@
-"""One M1 tier A session on the real game (EXP-048, docs/m1-criteria.md section 8). Run by the owner, elevated.
+"""One M1 tier A session on the real game (EXP-051, docs/m1-criteria.md section 8 as amended after EXP-048 session 1).
+Run by the owner, elevated, only after the owner's approval of the amended section 8.
 
 The tool never writes to the game, its install, its saves or its process: it checks the pinned build, snapshots the
 predeclared folders (hashes; the install by size and time only), traces the network around the whole game run,
@@ -43,6 +44,8 @@ TOLERANCES = {"still_max": 0.5, "move_min": 5.0, "min_obs": 3}
 GRACE_S = 10  # from the owner's Enter to t=0: time to switch back to the game
 TEXT = {".cfg", ".ini", ".log", ".txt", ".json", ".xml", ".nfo"}  # permitted reads; saves (.sav) never
 TEXT_MAX = 4 << 20
+KNOWN_BINARY = {"user/gpu.nfo"}  # game-written, binary in EXP-048 session 1 (KI-45); hashed by the snapshot
+EXPERIMENT = "EXP-051"  # EXP-048 ran session 1 under the first section 8; this is the series under the amended one
 NUM = r"([-+]?(?:\d+(?:\.\d*)?|\.\d+))(?=[\s,;]|$)"  # a number must end cleanly: "1e6" or "1.#INF" is never 1
 LABEL = r"(?i)\b(?:pos|position|loc|location)\b[^0-9+.-]{0,12}"  # never eats a sign or a decimal point
 POS_LINE = re.compile(LABEL + NUM + r"[\s,;]+" + NUM + r"[\s,;]+" + NUM)
@@ -81,28 +84,56 @@ def scan(roots: dict[str, Path]) -> tuple[list[tuple[str, str]], list[str], list
                 if p.stat().st_size > TEXT_MAX:
                     unread.append(f"{rel} (over {TEXT_MAX} bytes)")
                     continue
-                text = decoded(p.read_bytes())  # read-only
+                data = p.read_bytes()  # read-only
             except OSError as e:
                 unread.append(f"{rel} ({type(e).__name__})")
                 continue
-            if text is None:
-                unread.append(f"{rel} (not UTF-8 or UTF-16 text)")
+            enc = encoding(data)
+            if enc is None and rel in KNOWN_BINARY and b"\x00" in data:  # any text, UTF-16 too, is searched (Codex 9)
+                scanned.append(f"{rel}{BINARY}")
                 continue
-            scanned.append(rel)
-            found += [(rel, line) for line in text.splitlines() if CANDIDATE.search(line)]
+            if enc is None:
+                unread.append(f"{rel} (not UTF-8, UTF-16 or Windows-1252 text)")
+                continue
+            legacy = enc == "cp1252"
+            scanned.append(f"{rel}{LEGACY}" if legacy else rel)
+            # In a Windows-1252 read, a UTF-8 line turns into other letters ("position—1" into "positionâ€”1") and can
+            # lose the label's boundaries or exceed its gap: a non-ASCII line naming pos or loc anywhere is a candidate,
+            # so it is an invalid observation unless it reads exactly, never silently no data (Codex passes 9, 10).
+            found += [(rel, line) for line in data.decode(enc).splitlines()
+                      if CANDIDATE.search(line) or (legacy and not line.isascii() and LOOSE.search(line))]
     return found, scanned, unread
 
 
-def decoded(data: bytes) -> str | None:
-    """UTF-8 (with or without a BOM) or UTF-16 with a BOM. Anything else is unreadable evidence, never guessed: a
-    UTF-16 file read as UTF-8 hides its labels and would look like a file with no position (Codex pass 7)."""
-    enc = next((e for bom, e in ((codecs.BOM_UTF8, "utf-8-sig"), (codecs.BOM_UTF16_LE, "utf-16"),
-                                 (codecs.BOM_UTF16_BE, "utf-16")) if data.startswith(bom)), "utf-8")
-    try:
-        text = data.decode(enc)
-    except UnicodeDecodeError:
-        return None
-    return None if "\x00" in text else text  # UTF-16 without a BOM, or UTF-32
+LEGACY, BINARY = " (read as Windows-1252)", " (known binary: hashed, not searched)"
+LOOSE = re.compile(r"(?i)pos|loc")
+
+
+def encoding_changes(before: list[str], after: list[str]) -> list[str]:
+    """A file read one way at one end and another way at the other (Windows-1252, known binary, plain): its old lines
+    no longer match the baseline and could look new, as NUL-padded text in gpu.nfo would (Codex passes 10, 11)."""
+    def modes(names):
+        return {n.removesuffix(s) if s else n: s for n in names
+                for s in [next(s for s in (LEGACY, BINARY, "") if n.endswith(s))]}
+    b, a = modes(before), modes(after)
+    return [f"{n} (its encoding changed during the session)" for n in sorted(b.keys() & a.keys()) if b[n] != a[n]]
+
+
+def encoding(data: bytes) -> str | None:
+    """UTF-8 (with or without a BOM), UTF-16 with a BOM, or else Windows-1252 (KI-45: GOG's EULA.txt). Anything else
+    is unreadable evidence, never guessed: a UTF-16 file read as UTF-8 hides its labels and would look like a file
+    with no position (Codex pass 7). A NUL byte without a BOM (UTF-16 without one, UTF-32, binary) is never text, and
+    Windows-1252 leaves 5 byte values undefined, so it is not a catch-all."""
+    bom = next((e for b, e in ((codecs.BOM_UTF8, "utf-8-sig"), (codecs.BOM_UTF16_LE, "utf-16"),
+                               (codecs.BOM_UTF16_BE, "utf-16")) if data.startswith(b)), None)
+    for enc in [bom] if bom else ["utf-8", "cp1252"]:
+        try:
+            text = data.decode(enc)
+        except UnicodeDecodeError:
+            continue
+        return None if "\x00" in text else enc
+    return None
+
 
 
 def observations(after: list[tuple[str, str]], before: list[tuple[str, str]], t0_wall: dt.datetime | None) -> list[dict]:
@@ -333,7 +364,7 @@ def main(argv: list[str]) -> int:
            "exit": {"code": None, "closed_by_menu": None}}  # None: not recorded
     scanned, unread, t0_wall, games = [], [], None, []
     if rec["build_start"] == 0:
-        lines_before, _, unread_before = scan(roots)
+        lines_before, scanned_before, unread_before = scan(roots)
         started = False
         try:
             try:
@@ -366,11 +397,12 @@ def main(argv: list[str]) -> int:
         rec["build_end"] = gog.verdict(gog.check(install))[1]
         rec["after"] = session.snapshot(roots, {"install"}, TEXT, TEXT_MAX)
         lines_after, scanned, unread = scan(roots)
-        unread = sorted(set(unread_before) | set(unread))  # a file unread before has no baseline: old lines look new
+        # a file unread before has no baseline: old lines look new; nor has one read in another encoding (Codex 10)
+        unread = sorted(set(unread_before) | set(unread) | set(encoding_changes(scanned_before, scanned)))
         rec["observations"] = observations(lines_after, lines_before, t0_wall)
     outcome, reasons = decide(rec, games, unread)
     net = rec["network"] or {}
-    doc = {"experiment": "EXP-048", "session": a.session, "commit": head, "dirty": dirty, "outcome": outcome,
+    doc = {"experiment": EXPERIMENT, "session": a.session, "commit": head, "dirty": dirty, "outcome": outcome,
            "no_data_established": no_data(outcome, reasons), "reasons": reasons,
            "build_start": rec["build_start"], "build_end": rec["build_end"],
            "changes": session.changes(rec["before"], rec["after"]) if rec["after"] else None,
@@ -378,7 +410,7 @@ def main(argv: list[str]) -> int:
            "tolerances": TOLERANCES, "scanned": scanned, "observations": rec["observations"], "exit": rec["exit"],
            "operator_stops": rec["operator_stops"],
            "network": {k: net.get(k) for k in ("verdict", "coverage", "coverage_problems", "canaries", "events_lost",
-                                                "contacts", "dns", "targets", "raw_kept", "raw_not_deleted")}}
+                                                "events_total", "buffers", "contacts", "dns", "targets", "raw_kept", "raw_not_deleted")}}
     paths = dict(sorted({"%TEMP%": tmp, "<install>": install, "%LOCALAPPDATA%": Path(os.environ["LOCALAPPDATA"])}.items(),
                         key=lambda kv: -len(str(kv[1]))))
     known = {m.group(0) for snap in (rec["before"], rec["after"]) for f in snap.get("user", {})

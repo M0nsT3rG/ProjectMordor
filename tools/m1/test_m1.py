@@ -3,6 +3,7 @@
 The trace fixtures copy the shape tracerpt produced on this machine (format probe, 2026-10-27); no real trace is used.
 """
 import json
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -640,11 +641,12 @@ class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
             (user / "a.log").write_bytes("10:00:01 position 1 2 3\n".encode("utf-16"))  # with a BOM
             (user / "b.nfo").write_bytes("10:00:01 position 1 2 3\n".encode("utf-16-le"))  # without one
             (user / "c.cfg").write_bytes(b"\xef\xbb\xbfposition 1 2 3\n")  # UTF-8 with a BOM
-            (user / "d.txt").write_bytes(b"position \xff 1 2 3\n")  # not UTF-8
+            (user / "d.txt").write_bytes(b"position \x81 1 2 3\n")  # not UTF-8, and undefined in Windows-1252
             found, scanned, unread = tier_a.scan({"user": user})
             self.assertEqual(scanned, ["user/a.log", "user/c.cfg"])
             self.assertEqual([f for f, _ in found], ["user/a.log", "user/c.cfg"])
-            self.assertEqual(unread, ["user/b.nfo (not UTF-8 or UTF-16 text)", "user/d.txt (not UTF-8 or UTF-16 text)"])
+            self.assertEqual(unread, ["user/b.nfo (not UTF-8, UTF-16 or Windows-1252 text)",
+                                      "user/d.txt (not UTF-8, UTF-16 or Windows-1252 text)"])
         before = {"user": {"0badf00d_ShadowOfWar.sav.bak": {"size": 1, "sha256": "A"}}}
         after = {"user": dict(before["user"], **{"0badf00d_1_ShadowOfWar.sav": {"size": 1, "sha256": "B"}})}
         rec = good_session(before=before, after=after, game_written=tier_a.GAME_WRITTEN)
@@ -659,6 +661,98 @@ class Review36(unittest.TestCase):  # ChatGPT review #36 on EXP-048
                              {"a": "user/backup<redacted>.cfg", "b": "user/Testerx.cfg"})  # a name alone stays whole
             self.assertEqual(tier_a.redact(dict(doc, c="user/desktop-t_ShadowOfWar.sav"), {})["a"],
                              "user/backup<redacted>.cfg")  # the id seen in the record itself
+
+
+class KI45(unittest.TestCase):  # EXP-048 session 1: lost events, a Windows-1252 EULA, a binary gpu.nfo
+    def test_windows_1252_and_known_binary(self):
+        import tier_a
+        with tempfile.TemporaryDirectory() as tmp:
+            user = Path(tmp)
+            (user / "EULA.txt").write_bytes(b"\xa9 1997 \x93terms\x94\n10:00:01 position 1 2 3\n")  # not UTF-8
+            (user / "gpu.nfo").write_bytes(b"\x02\x00\x00\x00position 1 2 3\x00\xff")  # the known binary file
+            (user / "other.nfo").write_bytes(b"\x02\x00\x00\x00")  # any other binary file stays unreadable
+            found, scanned, unread = tier_a.scan({"user": user})
+            self.assertEqual(scanned, ["user/EULA.txt (read as Windows-1252)",
+                                       "user/gpu.nfo (known binary: hashed, not searched)"])
+            self.assertEqual(found, [("user/EULA.txt", "10:00:01 position 1 2 3")])
+            self.assertEqual(unread, ["user/other.nfo (not UTF-8, UTF-16 or Windows-1252 text)"])
+            (user / "gpu.nfo").write_bytes(b"10:00:01 position 4 5 6\n")  # as text it is searched like any file
+            found, scanned, _ = tier_a.scan({"user": user})
+            self.assertIn("user/gpu.nfo", scanned)
+            self.assertIn(("user/gpu.nfo", "10:00:01 position 4 5 6"), found)
+        self.assertEqual(tier_a.encoding("é".encode("utf-8")), "utf-8")  # UTF-8 first: never read as Windows-1252
+        self.assertIsNone(tier_a.encoding("pos".encode("utf-16-le")))  # a NUL without a BOM is never text
+        self.assertIsNone(tier_a.encoding(b"\xff\xfeA"))  # a BOM that does not decode is not retried as Windows-1252
+
+    def test_codex_pass_9(self):
+        import tier_a
+        with tempfile.TemporaryDirectory() as tmp:
+            user = Path(tmp)
+            (user / "gpu.nfo").write_bytes("10:00:01 position 1 2 3\n".encode("utf-16"))  # UTF-16 text has NULs
+            mixed = b"\xa9 header\n" + "10:00:01 position—1 2 3\n".encode("utf-8")  # 1252 bytes, a UTF-8 line
+            (user / "render.cfg").write_bytes(mixed)
+            found, scanned, unread = tier_a.scan({"user": user})
+            self.assertEqual(sorted(scanned), ["user/gpu.nfo", "user/render.cfg (read as Windows-1252)"])
+            self.assertEqual(sorted(f for f, _ in found), ["user/gpu.nfo", "user/render.cfg"])
+            self.assertEqual(unread, [])
+
+    def test_codex_pass_10(self):
+        import datetime as dt
+        import tier_a
+        t0 = dt.datetime(2026, 10, 28, 10, 0, 0)
+        lines = {"half": b"\xa9\n10:00:01 position 1\xbd 2 3\n",  # a Windows-1252 fraction: never read as 1
+                 "metres": b"\xa9\n" + "10:00:01 position (mètres) = 1 2 3\n".encode("utf-8"),  # gap grows
+                 "plain": b"\xa9 1997\n10:00:01 position 7 8 9\n"}
+        for name, body in lines.items():
+            with tempfile.TemporaryDirectory() as tmp, self.subTest(name):
+                user = Path(tmp)
+                (user / "render.cfg").write_bytes(body)
+                found, scanned, _ = tier_a.scan({"user": user})
+                self.assertEqual(scanned, ["user/render.cfg (read as Windows-1252)"])
+                obs = tier_a.observations(found, [], t0)
+                self.assertEqual(len(obs), 1)  # found, so it can never pass as no data
+                self.assertEqual(obs[0]["pos"], [7.0, 8.0, 9.0] if name == "plain" else None)  # else invalid
+        utf8, legacy = ["user/render.cfg", "user/x (1).txt"], ["user/render.cfg (read as Windows-1252)", "user/x (1).txt"]
+        self.assertEqual(tier_a.encoding_changes(utf8, legacy), ["user/render.cfg (its encoding changed during the session)"])
+        self.assertEqual(tier_a.encoding_changes(legacy, utf8), ["user/render.cfg (its encoding changed during the session)"])
+        self.assertEqual(tier_a.encoding_changes(legacy, legacy), [])
+        binary, text = ["user/gpu.nfo (known binary: hashed, not searched)"], ["user/gpu.nfo"]  # Codex pass 11
+        for b, a in ((binary, text), (binary, ["user/gpu.nfo (read as Windows-1252)"]), (text, binary)):
+            self.assertEqual(tier_a.encoding_changes(b, a), ["user/gpu.nfo (its encoding changed during the session)"])
+        self.assertEqual(tier_a.encoding_changes(binary, binary), [])
+        self.assertEqual(tier_a.encoding_changes(utf8, ["user/render.cfg"]), [])  # a file gone after is no change here
+
+    def test_session_buffers(self):
+        from unittest import mock
+        calls = []
+
+        def run(args, **kw):
+            calls.append(args)
+            return subprocess.CompletedProcess(args, 0)
+        with tempfile.TemporaryDirectory() as tmp, mock.patch.object(nw.subprocess, "run", run), \
+                mock.patch.object(nw, "run_canary", lambda tag: 1):
+            for tiny, want in ((False, nw.BUFFERS), (True, nw.TINY_BUFFERS)):
+                calls.clear()
+                self.assertEqual(nw.start(Path(tmp) / str(tiny), tiny_buffers=tiny), 0)
+                start = next(c for c in calls if c[:2] == ["logman", "start"])
+                self.assertEqual(start[-len(want) - 1:-1], want)
+                state = json.loads((Path(tmp) / str(tiny) / "state.json").read_text(encoding="utf-8"))
+                self.assertEqual(state["buffers"], want)
+        self.assertEqual(nw.BUFFERS, ["-bs", "256", "-nb", "64", "512"])  # the predeclared sizes (EXP-050)
+
+    def test_no_loss_check(self):
+        import coverage as cv
+        flood = {"event_id": nw.UDP_SEND, "peer": "loopback", "count": 200000}
+        good = {"verdict": "clean", "coverage": "covered", "events_lost": 0, "events_total": 200100, "contacts": [flood]}
+        done = {"flood": cv.FLOOD}
+        self.assertEqual(cv.no_loss(good, done)[0], "MATCH")
+        for bad in (dict(good, events_lost=3, coverage="not_covered"), dict(good, events_lost=None),
+                    dict(good, contacts=[]), dict(good, coverage="not_covered")):
+            self.assertEqual(cv.no_loss(bad, done)[0], "MISMATCH")
+        self.assertEqual(cv.no_loss(good, {})[0], "MISMATCH")  # the stand-in stopped before its last send (Codex 9)
+        self.assertEqual(cv.no_loss(good, {"flood": 1})[0], "MISMATCH")
+        self.assertIn("flood_with_session_buffers", cv.CASES)
+        self.assertFalse(cv.CASES["flood_with_session_buffers"][1])  # the session's buffers, not the tiny ones
 
 
 if __name__ == "__main__":

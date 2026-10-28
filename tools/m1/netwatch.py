@@ -43,6 +43,10 @@ NET, DNS, PROC = "Microsoft-Windows-Kernel-Network", "Microsoft-Windows-DNS-Clie
 TCP_CONNECT, UDP_SEND, DNS_QUERY, PROC_START, PROC_STOP = "12", "42", "3006", "1", "2"
 NS = {"e": "http://schemas.microsoft.com/win/2004/08/events/event"}
 RAW = ("trace.etl", "trace.xml", "summary.txt", "providers.txt")
+# Session buffers (KI-45): logman's defaults lost 1203 events in EXP-048 session 1. 256 KB x 64..512 buffers: at most
+# 128 MB, measured under a loopback flood by EXP-050 (coverage.py) before any session uses them.
+BUFFERS = ["-bs", "256", "-nb", "64", "512"]
+TINY_BUFFERS = ["-bs", "1", "-nb", "2", "2"]
 
 
 def canary_name(tag: str) -> str:
@@ -89,7 +93,7 @@ def cleanup(work: Path) -> list[str]:
 
 
 def start(work: Path, tiny_buffers: bool = False) -> int:
-    """tiny_buffers: coverage experiment only (EXP-046), to provoke and observe lost events."""
+    """tiny_buffers: coverage experiment only (EXP-046, EXP-050), to provoke and observe lost events."""
     work.mkdir(parents=True, exist_ok=True)
     subprocess.run(["logman", "stop", SESSION, "-ets"], capture_output=True)  # a session left by an interrupted run
     left = cleanup(work)  # raw files left by an interrupted run
@@ -98,13 +102,13 @@ def start(work: Path, tiny_buffers: bool = False) -> int:
             (work / "providers.txt").write_text("\n".join(PROVIDERS) + "\n", encoding="ascii")
         except OSError:
             left.append("providers.txt")
-    extra = ["-bs", "1", "-nb", "2", "2"] if tiny_buffers else []
+    extra = TINY_BUFFERS if tiny_buffers else BUFFERS
     if left:  # never mix an old trace into a new one
         p = subprocess.CompletedProcess([], returncode=-1)
     else:
         p = subprocess.run(["logman", "start", SESSION, "-pf", str(work / "providers.txt"), "-o",
                             str(work / "trace.etl"), *extra, "-ets"], capture_output=True)
-    state = {"trace_started": p.returncode == 0, "logman_exit": p.returncode, "stale_raw_left": left,
+    state = {"trace_started": p.returncode == 0, "logman_exit": p.returncode, "stale_raw_left": left, "buffers": extra,
              "canary_start_pid": run_canary("start") if p.returncode == 0 else None}
     (work / "state.json").write_text(json.dumps(state) + "\n", encoding="utf-8")
     return 0 if state["trace_started"] and state["canary_start_pid"] else 2
@@ -201,7 +205,7 @@ def _analyze(work: Path, images: list[str], pids: list[int]) -> dict:
         lost = events_lost((work / "summary.txt").read_text(encoding="utf-8", errors="replace"))
     except OSError:
         lost = None  # unknown loss is not zero loss
-    out["events_lost"], out["events_total"] = lost, len(seen)
+    out["events_lost"], out["events_total"], out["buffers"] = lost, len(seen), state.get("buffers")
     if lost != 0:
         problems.append(f"events lost: {lost}")
     # Process instances by sequence number, which, unlike a PID, is never reused.

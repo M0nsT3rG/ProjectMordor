@@ -6,6 +6,21 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## ChatGPT status follow-up to review #37 (PR #26, 2026-10-28 09:52 UTC)
+
+- **Status:** triaged (2026-10-28). It is an acknowledgement: no new items and no code changes.
+- **Content:**
+  - The owner's approval covers only the pinned §8 and the reviewed code.
+  - Any later change needs a new approval.
+  - Session 1 must record whether it has reliable NO DATA evidence or only incomplete coverage.
+  - Tier B is never automatic.
+- **Done:**
+  - Session 1 recorded incomplete coverage (`no_data_established` false, EXP-048 PARTIAL, KI-45).
+  - The fixes are written as an amendment for a new series (EXP-051, with EXP-050 first). They are not approved and have not run.
+  - Tier B is not approved.
+
+---
+
 ## Feedback on review #37 (PR #26: the review #36 follow-up on EXP-048)
 
 - **Status:** triaged (2026-10-27). No code changes were requested.

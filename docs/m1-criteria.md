@@ -1,6 +1,6 @@
-# M1 criteria: read-only observation of game state (tier A approved by the owner)
+# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 pending)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped and back with the owner; §8 and the tools are unchanged. Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) is written and awaits EXP-050 and the owner's new approval (§7 item 3). Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -57,6 +57,7 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 
 - **Tool:** Windows' own event tracing, nothing installed: `tools/m1/netwatch.py` drives `logman` and `tracerpt`. One trace session records three providers: `Microsoft-Windows-Kernel-Network` (every TCP and UDP event, IPv4 and IPv6), `Microsoft-Windows-DNS-Client` (every lookup) and `Microsoft-Windows-Kernel-Process` (every process start and exit, with image name, parent and exit code). Event tracing records every event, not samples, so brief connections are seen.
 - **Per process:** each event carries its process ID. The targets are the processes whose image is `ShadowOfWar.exe`, plus their child processes (a crash reporter, for example).
+- **Buffers (amended after EXP-048 session 1, KI-45):** the trace runs with explicit buffers: 256 KB each, 64 to 512 of them, so at most 128 MB (`netwatch.BUFFERS`). With logman's defaults, session 1 lost 1203 events. The sizes are measured before any session by EXP-050: the session buffers must lose nothing under the loopback flood that the tiny buffers lost events to. The record keeps the buffers used and the total event count.
 - **Window:** the trace starts before the game is launched and stops after it has exited. Starting and stopping need an elevated prompt (an owner action, as for the dry run).
 - **Coverage is proven, not assumed.** A canary process makes one loopback TCP connect, one loopback UDP send and one DNS lookup of a reserved name (`mordor-canary-start.invalid`, `mordor-canary-end.invalid`) right after the start and right before the stop. Coverage requires both canaries fully seen, no lost events, and the game's start **and** exit inside the trace. Anything less is `not_covered`.
 - **Unexpected contact:** any non-loopback traffic by a target, or any DNS lookup by a target, even with no connection after it (FB-34-02). WB services are the main concern, but anything counts. Loopback traffic is recorded and allowed.
@@ -117,6 +118,8 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 
 `tools/m1/dryrun.py` (EXP-045) runs all of the above on fixtures in a temporary folder, with a stand-in process instead of the game: build checks, snapshots, a real trace, the log read and the outcome rules. Each of its 11 cases injects one fault and states its expected outcome first. Run elevated, the baseline must PASS and every fault must give its outcome; run without elevation, every case that needs the network must come out INCONCLUSIVE. It never touches the game, its files or its saves. The owner approves tier A only after it passes elevated, together with the coverage experiment EXP-046 (`tools/m1/coverage.py`, FB-34-01). Both passed elevated on 2026-10-27 (EXP-045 11/11, EXP-046 7/7; the owner's runs on `b500439`).
 
+**After the buffer change (KI-45):** the owner runs both again elevated, on the amended code, before the amended §8 is approved. `coverage.py` is EXP-050: its eight cases add `flood_with_session_buffers`, which must be a MATCH: covered, 0 events lost, the flood attributed, and the stand-in's record that all 200000 sends completed (Codex pass 9). `dryrun.py` must still give 11/11 with the session buffers.
+
 ## 7. Decisions needed from the owner
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
@@ -124,10 +127,20 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
    - Review #36 called §8 a sufficiently narrow draft, once its changes were made. They are made: the outcome tests, the privacy checks and a fixture-only rehearsal of the tool.
    - Review #37 found §8 ready for the owner's review, conditionally.
    - Codex pass 7 (2026-10-27) found 4 defects, all fixed with regressions: a UTF-16 file read as having no position, a `.sav.bak` vouching for a new id, an id embedded in a longer name, and an earlier killed session's raw trace. Codex pass 8 checked those fixes and found 1 defect, also fixed: a save id equal to the machine name still leaked inside a longer name.
+3. **Approval of the amended §8 for EXP-051: pending.** The amendment follows EXP-048 session 1 (KI-45), and it covers only:
+   - the trace buffers (§4a);
+   - the Windows-1252 fallback;
+   - `user/gpu.nfo` while it is binary;
+   - the experiment id;
+   - two more counts in the record.
 
-## 8. Tier A predeclaration (EXP-048; approved by the owner, 2026-10-27)
+   It needs, in order: EXP-050 and the dry run passing elevated (§6a), review, and the owner's approval in chat. Until then, `tier_a.py` must not be run.
+
+## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, pending approval)
 
 Fixed before any session, after a metadata-only listing of the game's folders that the owner approved (F-ENV-014). No game-side run happens before the owner approves this section.
+
+**The 2026-10-28 amendment** (KI-45; marked "amended" below) is the only change from the approved text. EXP-048 keeps its result: session 1 ran under the approved text and stays as it is. The amended series is **EXP-051**, and it starts again at session 1.
 
 - **Folders (labels):**
   - `user`: `%LOCALAPPDATA%/WB Games/Shadow of War`. It holds the saves, render.cfg, gpu.nfo and CloudStorage, and is shared with the earlier Steam install. Files are hashed; saves are hashed but never read.
@@ -155,6 +168,22 @@ Fixed before any session, after a metadata-only listing of the game's folders th
     - a folder that cannot be listed.
   - A labelled line whose numbers cannot be read exactly (for example `1e6`) is an invalid observation, never a truncated one.
   - A permitted file is read as UTF-8, with or without a BOM, or as UTF-16 with a BOM. Any other encoding is unreadable evidence, never guessed. A UTF-16 file read as UTF-8 would hide its labels and look like a file with no position (Codex pass 7).
+    - **Amended (KI-45):** a file with no BOM that is not valid UTF-8 is read as Windows-1252, as GOG's `EULA.txt` is. The file is listed as "read as Windows-1252".
+      - A UTF-8 line inside such a file turns into other letters (`position—1` becomes `positionâ€”1`). The label can lose its word boundary, or the gap before its numbers can grow past 12 characters. So in a Windows-1252 read, **any line with a non-ASCII character that contains `pos` or `loc` anywhere is a candidate**. If it does not read exactly as a position, it is an invalid observation (INCONCLUSIVE), never silent no data. A Windows-1252 fraction (`1½`) is never read as a number (Codex passes 9 and 10).
+      - A file read as Windows-1252 at one end of the session and not at the other is unreadable evidence: its old lines would no longer match the baseline and could look new (Codex pass 10).
+      - Some files stay unreadable evidence:
+        - a file with a NUL byte and no BOM (UTF-16 without a BOM, UTF-32, binary);
+        - a file with one of the 5 byte values Windows-1252 leaves undefined;
+        - a file whose BOM does not decode.
+    - **Amended (KI-45):** `user/gpu.nfo` is game-written and was binary in session 1. When it cannot be read as text and contains a NUL byte, it is hashed by the snapshot and listed as "known binary: hashed, not searched", not counted as unreadable. Whenever it decodes as text, UTF-16 with a BOM included, it is searched like any other file (Codex pass 9). Any other binary file stays unreadable evidence.
+  - **The limit of NO DATA** (Codex passes 10 and 11): NO DATA means that no new line matched the candidate rule. That rule is the ASCII word `pos`, `position`, `loc` or `location`, followed within 12 characters that are not digits, signs or decimal points (`+`, `-`, `.`) by a number (Codex pass 12); in a Windows-1252 read, also any non-ASCII line naming `pos` or `loc`. Several lines are not candidates:
+    - a label with a longer gap before its numbers (`position (world coordinates) = 1 2 3`);
+    - a label split by a soft hyphen or another invisible character;
+    - a label in another language;
+    - binary data.
+
+    It does not mean the files hold no position in any form.
+  - **Amended (Codex pass 11):** a file read one way at one end of the session and another way at the other is unreadable evidence. The ways are plain, Windows-1252 and known binary, so this includes `gpu.nfo` turning from binary to text.
   - Nothing else is interpreted.
 - **Procedure:** `python -I tools/m1/tier_a.py --session N`, run by the owner from an elevated PowerShell.
   - **Before:**
@@ -183,6 +212,7 @@ Fixed before any session, after a metadata-only listing of the game's folders th
   - `move_min` 5.0 (game units);
   - `min_obs` 3 per action.
 - **Evidence:** `evidence/logs/m1-tier-a-<time>-s<N>/session.json`. It holds the outcome and reasons, the changes (not the full snapshots), the files scanned, the observations, the exit and the reduced network record. It has no local paths, no machine or user names and no save ids.
+  - **Amended:** its `experiment` is EXP-051, and the network record also keeps `events_total` and `buffers`.
   - The redaction is case-insensitive.
   - It covers paths with either slash style or escaped backslashes, and any save id from the folder.
   - Ids are replaced wherever they appear: in another file's name, in an error message, in a plain string (FB-36-05). This includes inside a longer name (Codex pass 7). An id shorter than 4 characters is replaced only as a whole token. A machine or user name that is also a save id is replaced inside longer names too; otherwise names are replaced as whole tokens (Codex pass 8).
@@ -208,5 +238,5 @@ Fixed before any session, after a metadata-only listing of the game's folders th
       - `user/gpu.nfo` is binary: 134 of its 208 bytes are NUL.
 
       Both diagnoses come from byte statistics after the run; no content was recorded.
-  - **The series is stopped** (predeclared). Any fix to the buffers or the encoding rule changes this section and the tools, so it needs review and a new approval before session 2.
+  - **The series is stopped** (predeclared). The fixes are the 2026-10-28 amendment above. They need EXP-050, review and the owner's new approval before EXP-051 session 1. The EXP-051 hypothesis is the same as EXP-048's: Tier A INCONCLUSIVE / NO DATA, with `no_data_established` true.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.

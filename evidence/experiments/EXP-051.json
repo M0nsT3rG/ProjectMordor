@@ -1,0 +1,27 @@
+{
+  "id": "EXP-051",
+  "type": "experiment",
+  "date": "2026-10-28",
+  "objective": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1 (KI-45): the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?",
+  "hypothesis": "Tier A INCONCLUSIVE / NO DATA, with no_data_established true: no permitted file contains the position (F-ENV-014; EXP-048 session 1 found none in the 6 files it could read). This is an expectation fixed before the run, not a result. The session gates are expected to hold as they did in EXP-048 session 1. No expectation is predeclared for the network verdict: any contact by the game is a FAIL. NO DATA means that no new line matched the candidate rule of docs/m1-criteria.md section 8 (an ASCII label followed within 12 characters that are not digits, signs or decimal points (+, -, .) by a number, or in a Windows-1252 read any non-ASCII line naming pos or loc), not that the files hold no position in any form.",
+  "environment": "Windows 11 Pro x64, Python 3.15, logman and tracerpt from Windows; the owner's pinned GOG set (D-008 amended), launched directly with GOG Galaxy and Steam closed",
+  "game_exe_sha256": "F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8",
+  "procedure": "Only after EXP-050 has passed and the owner has approved the amended section 8 in chat. Identical to EXP-048's procedure (python -I tools/m1/tier_a.py --session N, elevated, saves copied aside offline, GOG Galaxy and Steam closed), with only the 2026-10-28 amendment: the trace uses netwatch.BUFFERS; a permitted file with no BOM that is not valid UTF-8 is read as Windows-1252 and listed so; in such a read any line with a non-ASCII character that contains pos or loc is a candidate, an invalid observation unless it reads exactly; a file read one way at one end and another way at the other (plain, Windows-1252, known binary) is unreadable evidence (a NUL byte without a BOM, a byte undefined in Windows-1252, or a BOM that does not decode stays unreadable evidence); user/gpu.nfo is listed as known binary, hashed but not searched, only when it does not decode as text and contains a NUL byte; session.json is labelled EXP-051 and keeps events_total and buffers. Sessions are numbered from 1. If session 1 ends Tier A INCONCLUSIVE / NO DATA with no_data_established true, tier A ends there (section 3). M1 go needs 3 PASS sessions. Any FAIL or other INCONCLUSIVE stops the series and goes back to the owner.",
+  "expected_result": "Session 1 ends INCONCLUSIVE. Its reasons are only 'no data: no position observed (Tier A INCONCLUSIVE / NO DATA)' and the two zero counts that follow from it ('too few observations in still 0-30 s: 0', 'too few observations in move 30-60 s: 0'), and no_data_established is true (Codex pass 11).",
+  "observed_result": "Not run. Needs EXP-050 and the owner's approval of the amended section 8.",
+  "evidence_paths": [
+    "tools/m1/tier_a.py",
+    "tools/m1/session.py",
+    "tools/m1/netwatch.py",
+    "docs/m1-criteria.md"
+  ],
+  "result": "NOT_RUN",
+  "errors": "",
+  "confidence": "medium",
+  "follow_up": "On NO DATA established: report to the owner, who decides whether a tier B predeclaration is written. Tier B is never started by this experiment.",
+  "related": [
+    "EXP-048",
+    "EXP-050",
+    "F-ENV-014"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "EXP-050",
+  "type": "experiment",
+  "date": "2026-10-28",
+  "objective": "KI-45: do the explicit session trace buffers (netwatch.BUFFERS: 256 KB, 64 to 512 buffers, at most 128 MB) keep the M1 network monitor from losing events, where logman's defaults lost 1203 in EXP-048 session 1, and do all the EXP-046 coverage cases still hold with them?",
+  "hypothesis": "Run elevated, the new case flood_with_session_buffers (200000 loopback UDP datagrams, the flood that lost events with the tiny buffers in EXP-046) is a MATCH: covered, 0 events lost, the flood attributed to the stand-in, and the stand-in's status records that all 200000 sends completed (Codex pass 9). The seven EXP-046 cases give the same verdicts as in EXP-046. The dry run (dryrun.py, EXP-045's cases) still gives 11/11 with the session buffers. This is fixed before the runs. It measures a stand-in's burst, not the game: a real session's background load can differ, which is why the session record now keeps events_total and buffers.",
+  "environment": "Windows 11 Pro x64, Python 3.15, logman and tracerpt from Windows; the stand-in is tools/m1/standin.py, not the game; dev machine",
+  "game_exe_sha256": "N/A (the experiment never touches the game, its files or its saves)",
+  "procedure": "On the amended code, python -I tools/m1/coverage.py and python -I tools/m1/dryrun.py, each once without elevation (Claude Code; every case must be not_covered or INCONCLUSIVE) and once from an elevated PowerShell (the owner). coverage.py writes evidence/logs/m1-coverage-<time>-<elevated|not-elevated>/result.json, now labelled EXP-050 and with the buffers used. No threshold is tuned after a run: if the flood case is a MISMATCH, the buffer sizes are a new decision, recorded before another run.",
+  "expected_result": "No MISMATCH in either coverage run (flood_with_session_buffers a MATCH elevated); dryrun 11/11 elevated.",
+  "observed_result": "Not run.",
+  "evidence_paths": [
+    "tools/m1/netwatch.py",
+    "tools/m1/coverage.py",
+    "docs/m1-criteria.md"
+  ],
+  "result": "NOT_RUN",
+  "errors": "",
+  "confidence": "medium",
+  "follow_up": "With EXP-050 passed and reviewed, the owner decides on the amended section 8 (EXP-051).",
+  "related": [
+    "EXP-045",
+    "EXP-046",
+    "EXP-048"
+  ]
+}
