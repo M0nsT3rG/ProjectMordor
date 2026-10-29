@@ -9,6 +9,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Consequence:** that is a session-tool change, so a new approval is needed. EXP-050 and the dry run do not run `tier_a.py`, so they need not run again.
 - **Tests:** `test_m1.py` 38 run, 1 skipped; `test_check_gog_build.py` 10; all passing.
 - **EXP-060** is recorded, NOT_RUN: EXP-051's hypothesis and expected result, unchanged, with the second amendment in the procedure.
+- **Re-approval:** the owner approved the label fix in chat ("Aprovo"), as of `c4e9cce`. EXP-060 session 1 may run.
 
 ## 2026-10-29: EXP-050 and the dry run passed elevated on the streamed analysis (`feature/d008-gog-inventory`, PR #26)
 

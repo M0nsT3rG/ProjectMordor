@@ -12,7 +12,7 @@ This addendum is not a new number: request numbers from #40 belong to PR #25.
   3. Should the tool write a partial `session.json` before the analysis, so that a killed analysis still leaves the snapshots and the operator's answers? This is not done: it would change `tier_a.py` and needs its own approval.
 - **Next:** EXP-050 and the dry run must pass elevated on the amended code, and the owner must approve, before EXP-060 session 1.
   - **Update 2026-10-29:** both passed elevated (the owner's runs on clean `7126ff0`, code `f1665ae`): coverage 9/9 MATCH, with 0 events lost of 200254 under the flood and of 600696 under the mixed load; dry run 11/11. Evidence: `evidence/logs/m1-coverage-2026-10-29-063355-elevated`, `evidence/logs/m1-dryrun-2026-10-29-063519-elevated`. The owner's approval is still pending.
-  - **Update 2026-10-29, later:** the owner approved it as of `a8f5d5a`. `tier_a.py` was then found to still label `session.json` "EXP-051"; the label now says "EXP-060" (one constant and the docstring), which needs a new approval. EXP-060 is recorded, NOT_RUN.
+  - **Update 2026-10-29, later:** the owner approved it as of `a8f5d5a`. `tier_a.py` was then found to still label `session.json` "EXP-051"; the label now says "EXP-060" (one constant and the docstring), which the owner approved as of `c4e9cce`. EXP-060 is recorded, NOT_RUN, and its session 1 may run.
 
 - **Date:** 2026-10-28
 - **Requested by:** Claude Code
