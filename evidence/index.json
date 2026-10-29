@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 113,
+  "count": 114,
   "records": [
     {
       "id": "EXP-001",
@@ -474,6 +474,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1 (KI-45): the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?"
+    },
+    {
+      "id": "EXP-060",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-060.json",
+      "date": "2026-10-29",
+      "subsystem": "experiment",
+      "status": "NOT_RUN",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1 and again after EXP-051 session 1 (KI-45): the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?"
     },
     {
       "id": "F-COMM-001",

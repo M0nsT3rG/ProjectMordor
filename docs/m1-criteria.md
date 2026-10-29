@@ -1,6 +1,6 @@
-# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28; second amendment for EXP-060 pending)
+# M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28; second amendment for EXP-060 approved 2026-10-29, re-approval pending for its label fix)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 ran the same day. **It left no evidence:** the trace analysis ran out of memory, Ctrl+C did not reach it, and the owner ended it (KI-45). EXP-051 is ABANDONED and the series is stopped. **A second amendment** streams the analysis. It changes only `netwatch.py`. **EXP-050 and the dry run passed elevated again on 2026-10-29** (the owner's runs on clean `7126ff0`, code `f1665ae`: 9/9 MATCH, 0 events lost under the flood and the mixed load; 11/11), and it **awaits the owner's approval**. The next series is EXP-060 (§7 item 4). Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 ran the same day. **It left no evidence:** the trace analysis ran out of memory, Ctrl+C did not reach it, and the owner ended it (KI-45). EXP-051 is ABANDONED and the series is stopped. **A second amendment** streams the analysis. It changes only `netwatch.py`. **EXP-050 and the dry run passed elevated again on 2026-10-29** (the owner's runs on clean `7126ff0`, code `f1665ae`: 9/9 MATCH, 0 events lost under the flood and the mixed load; 11/11), and the owner **approved it on 2026-10-29** ("Aprovo"), as of commit `a8f5d5a` (code `f1665ae`). `tier_a.py` then turned out to still label its record "EXP-051"; the label now says "EXP-060", which **needs a new approval** before EXP-060 session 1 (§7 item 4). The next series is EXP-060 (§7 item 4). Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -164,13 +164,13 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
    - **2026-10-28, review #39 (FB-39-03):** the owner asked for EXP-050's mixed-load case and approved adding it in chat ("Sim, acrescenta"). It changes only `coverage.py`, its test and §6a.
      - The session tools (`tier_a.py`, `session.py`, `netwatch.py`) stay exactly as approved at `322f02d`.
      - "EXP-050 on code `322f02d`" therefore means those session tools, together with the `coverage.py` that holds the mixed-load case.
-4. **Approval of the second amendment for EXP-060** (pending). EXP-051 session 1 ran out of memory in the trace analysis and left no evidence (§8, KI-45). The fix streams the analysis. It changes only `netwatch.py`, and its result is unchanged. It needs:
+4. **Approval of the second amendment for EXP-060** (re-approval pending). The owner approved it on 2026-10-29 in chat ("Aprovo"), as of commit `a8f5d5a` (code `f1665ae`; since `322f02d` the only session tool changed was `netwatch.py`). Right after, before any run, `tier_a.py` was found to still label `session.json` "EXP-051". At the owner's choice its `EXPERIMENT` constant now says "EXP-060" (and its docstring). That is a change to a session tool, so the approval of `a8f5d5a` does not cover it and **a new approval is needed**. Nothing else changed, so EXP-050 and the dry run need not run again (neither runs `tier_a.py`). EXP-051 session 1 ran out of memory in the trace analysis and left no evidence (§8, KI-45). The fix streams the analysis. It changes only `netwatch.py`, and its result is unchanged. It needs:
    - ~~EXP-050 and the dry run elevated again, on the amended code~~: **passed 2026-10-29** (clean `7126ff0`, code `f1665ae`; 9/9 MATCH, 11/11; §6a);
-   - the owner's approval in chat.
+   - the owner's approval in chat: given 2026-10-29 for `a8f5d5a`; needed again for the label change.
 
-   Until the approval is given, `tier_a.py` must not run.
+   Until the new approval, `tier_a.py` must not run. After it, EXP-060 session 1 has the same preparation as before: saves copied aside offline, GOG Galaxy and Steam closed, no KI-35 run at the same time.
 
-## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, approved by the owner the same day)
+## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, approved by the owner the same day; second amendment for EXP-060 approved by the owner on 2026-10-29)
 
 Fixed before any session, after a metadata-only listing of the game's folders that the owner approved (F-ENV-014). No game-side run happens before the owner approves this section.
 
@@ -235,7 +235,7 @@ Fixed before any session, after a metadata-only listing of the game's folders th
     1. The tool asks whether the game was closed through its menu, showed any integrity, tamper or debugger warning, or crashed.
     2. It stops and analyzes the trace, which is then deleted.
     3. It re-runs the build check and the snapshots, reads the permitted files and classifies the session (§6).
-  - **Second amendment (KI-45, EXP-051 session 1; awaiting the owner's approval):** the analysis streams the decoded trace, one event at a time, and keeps only counts. It no longer loads the whole trace into memory, and Ctrl+C reaches it.
+  - **Second amendment (KI-45, EXP-051 session 1; approved by the owner on 2026-10-29, as of `a8f5d5a`, code `f1665ae`; the label fix in `tier_a.py` awaits a new approval):** the analysis streams the decoded trace, one event at a time, and keeps only counts. It no longer loads the whole trace into memory, and Ctrl+C reaches it.
     - Its result is unchanged for any trace tracerpt writes.
     - **One difference:** a file that is both malformed and truncated reports the first fault it meets, for example `AttributeError` instead of `ParseError`. It is still "no decodable trace" (Codex pass 14).
     - The file is closed on every path, so it can still be deleted after an interrupt (Codex passes 14 and 15).
@@ -295,7 +295,7 @@ Fixed before any session, after a metadata-only listing of the game's folders th
   - **The series is stopped:** monitoring and evidence failed, so the session counts as INCONCLUSIVE (§6, condition 9). EXP-051 is ABANDONED.
   - **The second amendment** (above, under the procedure) is the only fix. It changes only `netwatch.py`, and it needs:
     1. ~~EXP-050 and the dry run again, elevated, on the amended code (§6a)~~: passed 2026-10-29 on clean `7126ff0`;
-    2. the owner's new approval (pending).
+    2. the owner's new approval: given 2026-10-29 ("Aprovo") for `a8f5d5a`; needed again for `tier_a.py`'s label fix (§7 item 4).
 
     The next series is **EXP-060**, starting again at session 1. EXP-052 to EXP-059 are left to PR #25. Everything else in §8 is unchanged, including the hypothesis.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.

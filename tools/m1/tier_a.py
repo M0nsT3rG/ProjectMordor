@@ -1,4 +1,5 @@
-"""One M1 tier A session on the real game (EXP-051, docs/m1-criteria.md section 8 as amended after EXP-048 session 1).
+"""One M1 tier A session on the real game (EXP-060, docs/m1-criteria.md section 8 as amended after EXP-048 session 1
+and EXP-051 session 1).
 Run by the owner, elevated, only after the owner's approval of the amended section 8.
 
 The tool never writes to the game, its install, its saves or its process: it checks the pinned build, snapshots the
@@ -45,7 +46,7 @@ GRACE_S = 10  # from the owner's Enter to t=0: time to switch back to the game
 TEXT = {".cfg", ".ini", ".log", ".txt", ".json", ".xml", ".nfo"}  # permitted reads; saves (.sav) never
 TEXT_MAX = 4 << 20
 KNOWN_BINARY = {"user/gpu.nfo"}  # game-written, binary in EXP-048 session 1 (KI-45); hashed by the snapshot
-EXPERIMENT = "EXP-051"  # EXP-048 ran session 1 under the first section 8; this is the series under the amended one
+EXPERIMENT = "EXP-060"  # EXP-048 ran under the first section 8, EXP-051 under the first amendment; this is the second
 NUM = r"([-+]?(?:\d+(?:\.\d*)?|\.\d+))(?=[\s,;]|$)"  # a number must end cleanly: "1e6" or "1.#INF" is never 1
 LABEL = r"(?i)\b(?:pos|position|loc|location)\b[^0-9+.-]{0,12}"  # never eats a sign or a decimal point
 POS_LINE = re.compile(LABEL + NUM + r"[\s,;]+" + NUM + r"[\s,;]+" + NUM)

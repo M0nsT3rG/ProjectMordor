@@ -2,6 +2,14 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-29: second amendment approved; tier_a's label fixed; EXP-060 recorded (`feature/d008-gog-inventory`, PR #26)
+
+- **Approval:** the owner approved the second amendment in chat ("Aprovo"), as of `a8f5d5a` (code `f1665ae`).
+- **Found right after, before any run:** `tier_a.py` still wrote `"experiment": "EXP-051"` into `session.json`. The owner chose to fix it: `EXPERIMENT = "EXP-060"`, docstring updated, nothing else.
+- **Consequence:** that is a session-tool change, so a new approval is needed. EXP-050 and the dry run do not run `tier_a.py`, so they need not run again.
+- **Tests:** `test_m1.py` 38 run, 1 skipped; `test_check_gog_build.py` 10; all passing.
+- **EXP-060** is recorded, NOT_RUN: EXP-051's hypothesis and expected result, unchanged, with the second amendment in the procedure.
+
 ## 2026-10-29: EXP-050 and the dry run passed elevated on the streamed analysis (`feature/d008-gog-inventory`, PR #26)
 
 - **Runs:** the owner ran `coverage.py`, then `dryrun.py`, elevated, on clean `7126ff0` (code `f1665ae`).
