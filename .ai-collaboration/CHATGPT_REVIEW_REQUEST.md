@@ -11,6 +11,7 @@ This addendum is not a new number: request numbers from #40 belong to PR #25.
   2. Is the limit acceptable: an interrupt inside the library's open call can leave the raw file open, which then ends as a FAIL (condition 10)?
   3. Should the tool write a partial `session.json` before the analysis, so that a killed analysis still leaves the snapshots and the operator's answers? This is not done: it would change `tier_a.py` and needs its own approval.
 - **Next:** EXP-050 and the dry run must pass elevated on the amended code, and the owner must approve, before EXP-060 session 1.
+  - **Update 2026-10-29:** both passed elevated (the owner's runs on clean `7126ff0`, code `f1665ae`): coverage 9/9 MATCH, with 0 events lost of 200254 under the flood and of 600696 under the mixed load; dry run 11/11. Evidence: `evidence/logs/m1-coverage-2026-10-29-063355-elevated`, `evidence/logs/m1-dryrun-2026-10-29-063519-elevated`. The owner's approval is still pending.
 
 - **Date:** 2026-10-28
 - **Requested by:** Claude Code

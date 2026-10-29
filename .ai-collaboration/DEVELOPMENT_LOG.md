@@ -2,6 +2,17 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-29: EXP-050 and the dry run passed elevated on the streamed analysis (`feature/d008-gog-inventory`, PR #26)
+
+- **Runs:** the owner ran `coverage.py`, then `dryrun.py`, elevated, on clean `7126ff0` (code `f1665ae`).
+- **coverage.py: 9/9 MATCH, no mismatch** (`evidence/logs/m1-coverage-2026-10-29-063355-elevated`).
+  - The flood: 0 of 200254 events lost, all 200000 sends attributed.
+  - The mixed load: 0 of 600696 events lost, every kind attributed, the background complete.
+  - The seven EXP-046 cases: unchanged verdicts. The tiny buffers lost 115996 and were not covered.
+- **dryrun.py: 11/11** (`evidence/logs/m1-dryrun-2026-10-29-063519-elevated`). Its `dirty: true` comes from the untracked coverage folder; no tracked file differed.
+- **Record:** EXP-050's observed result and follow-up are extended. EXP-050 stays PASSED.
+- **Next, the owner's:** approval of the second amendment in chat. Only then is EXP-060 created and its session 1 run.
+
 ## 2026-10-28: EXP-051 session 1 left no evidence; second amendment (`feature/d008-gog-inventory`, PR #26)
 
 - **The session:** the owner ran it at 15:36 on clean `d872ecc`. The game was played and the closing questions answered, and the trace was stopped and decoded.

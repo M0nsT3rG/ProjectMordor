@@ -1,6 +1,6 @@
 # M1 criteria: read-only observation of game state (tier A approved by the owner; amendment for EXP-051 approved 2026-10-28; second amendment for EXP-060 pending)
 
-- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 ran the same day. **It left no evidence:** the trace analysis ran out of memory, Ctrl+C did not reach it, and the owner ended it (KI-45). EXP-051 is ABANDONED and the series is stopped. **A second amendment** streams the analysis. It changes only `netwatch.py` and **awaits the owner's approval**, after EXP-050 and the dry run pass elevated again. The next series is EXP-060 (§7 item 4). Tier B (below) needs a second, separate approval.
+- **Status: tier A approved, 2026-10-27** (updated for reviews #32–#37 and Codex passes 1–8; tier A predeclaration in §8). The owner approved §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). **Session 1 ran on 2026-10-28 (EXP-048, PARTIAL): INCONCLUSIVE, NO DATA not established**, because 1203 ETW events were lost and two permitted files were unreadable (KI-45; see "Session 1" at the end of §8). The series is stopped. **A §8 amendment for EXP-051** (bigger trace buffers, a Windows-1252 fallback, `gpu.nfo` while binary) was **approved by the owner on 2026-10-28**, as of commit `fe0af56` (code `322f02d`). **EXP-050 and the dry run passed elevated on 2026-10-28** (the owner's runs on clean `f2ef9bd`, session tools as at `322f02d`; 0 events lost under the flood and the mixed load), so EXP-051 session 1 ran the same day. **It left no evidence:** the trace analysis ran out of memory, Ctrl+C did not reach it, and the owner ended it (KI-45). EXP-051 is ABANDONED and the series is stopped. **A second amendment** streams the analysis. It changes only `netwatch.py`. **EXP-050 and the dry run passed elevated again on 2026-10-29** (the owner's runs on clean `7126ff0`, code `f1665ae`: 9/9 MATCH, 0 events lost under the flood and the mixed load; 11/11), and it **awaits the owner's approval**. The next series is EXP-060 (§7 item 4). Tier B (below) needs a second, separate approval.
 - **Sources:** reviews #30 (FB-30-01..04) and #32 (FB-32-01..04); the M1 row of [feasibility-matrix.md](feasibility-matrix.md); D-007 and D-008 in [decisions.md](decisions.md).
 - **Every non-negotiable rule in `/CLAUDE.md` applies.** Nothing here relaxes them.
 
@@ -141,6 +141,11 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
 - only the root's own events count;
 - a truncated file is still "no decodable trace".
 
+**Result (2026-10-29, the owner's runs on clean `7126ff0`, code `f1665ae`):**
+- `coverage.py` 9/9 MATCH, NO MISMATCH (`evidence/logs/m1-coverage-2026-10-29-063355-elevated`). The flood: 0 events lost of 200254, all 200000 sends attributed. The mixed load: 0 events lost of 600696, every kind attributed, the background stand-in complete. Forced loss, with the tiny buffers, lost 115996 events and was not covered, as required.
+- `dryrun.py` 11/11 (`evidence/logs/m1-dryrun-2026-10-29-063519-elevated`). Its record says `dirty: true` only because the coverage run's folder was still untracked; no tracked file differed from `7126ff0`.
+- Both are stand-ins on loopback, not the game.
+
 ## 7. Decisions needed from the owner
 
 1. ~~Which exe D-008 pins~~: **decided 2026-10-27**, the installed set (`F16DC949…`); the launch test passed (F-ENV-013). The second player installs the same three GOG products.
@@ -160,10 +165,10 @@ The evidence goes in `evidence/` as experiment records, with no local paths.
      - The session tools (`tier_a.py`, `session.py`, `netwatch.py`) stay exactly as approved at `322f02d`.
      - "EXP-050 on code `322f02d`" therefore means those session tools, together with the `coverage.py` that holds the mixed-load case.
 4. **Approval of the second amendment for EXP-060** (pending). EXP-051 session 1 ran out of memory in the trace analysis and left no evidence (§8, KI-45). The fix streams the analysis. It changes only `netwatch.py`, and its result is unchanged. It needs:
-   - EXP-050 and the dry run elevated again, on the amended code;
+   - ~~EXP-050 and the dry run elevated again, on the amended code~~: **passed 2026-10-29** (clean `7126ff0`, code `f1665ae`; 9/9 MATCH, 11/11; §6a);
    - the owner's approval in chat.
 
-   Until both are done, `tier_a.py` must not run.
+   Until the approval is given, `tier_a.py` must not run.
 
 ## 8. Tier A predeclaration (EXP-048 approved by the owner on 2026-10-27; amended on 2026-10-28 for EXP-051, approved by the owner the same day)
 
@@ -289,8 +294,8 @@ Fixed before any session, after a metadata-only listing of the game's folders th
   - **Cause:** a defect in `netwatch` (KI-45). Its analysis was sized only on stand-in traces (EXP-045, EXP-046, EXP-050), never on a whole session's trace with the session buffers.
   - **The series is stopped:** monitoring and evidence failed, so the session counts as INCONCLUSIVE (§6, condition 9). EXP-051 is ABANDONED.
   - **The second amendment** (above, under the procedure) is the only fix. It changes only `netwatch.py`, and it needs:
-    1. EXP-050 and the dry run again, elevated, on the amended code (§6a);
-    2. the owner's new approval.
+    1. ~~EXP-050 and the dry run again, elevated, on the amended code (§6a)~~: passed 2026-10-29 on clean `7126ff0`;
+    2. the owner's new approval (pending).
 
     The next series is **EXP-060**, starting again at session 1. EXP-052 to EXP-059 are left to PR #25. Everything else in §8 is unchanged, including the hypothesis.
 3. Later, and only if tier A cannot answer: a separate approval for **tier B**.
