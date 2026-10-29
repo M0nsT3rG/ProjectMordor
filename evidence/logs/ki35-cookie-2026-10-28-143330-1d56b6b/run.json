@@ -1,0 +1,101 @@
+{
+  "started": "2026-10-28T14:33:30",
+  "commit": "1d56b6b2b4624c39f23bcfb4342455ec0386349f",
+  "dirty": false,
+  "batches": [
+    [
+      "udp",
+      4901,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4902,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4903,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4904,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      1,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      2,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      3,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "gns",
+      4,
+      "off",
+      "harsh",
+      100
+    ],
+    [
+      "udp",
+      4905,
+      "off",
+      "slow",
+      100
+    ],
+    [
+      "udp",
+      4906,
+      "off",
+      "slow",
+      100
+    ],
+    [
+      "gns",
+      5,
+      "off",
+      "slow",
+      100
+    ],
+    [
+      "gns",
+      6,
+      "off",
+      "slow",
+      100
+    ]
+  ],
+  "exit_codes": {
+    "udp-4901-off-harsh": 0,
+    "udp-4902-off-harsh": 0,
+    "udp-4903-off-harsh": 0,
+    "udp-4904-off-harsh": 0,
+    "gns-1-off-harsh": 0,
+    "gns-2-off-harsh": 0,
+    "gns-3-off-harsh": 0,
+    "gns-4-off-harsh": 4
+  }
+}
