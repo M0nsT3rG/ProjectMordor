@@ -1088,6 +1088,31 @@ That is 12 batches and 1200 reconnects.
   - If it is inconclusive, no behavioural cookie experiment follows from this evidence alone, and the owner and the reviewer choose.
   - KI-35 stays open in every case.
 
+**EXP-049 result: inconclusive on both backends (`ki35-cookie-2026-10-29-063900-2c193b8`, complete, run on `2c193b8`, clean; the tools are those of `1d56b6b`).** By the predeclared rule, no behavioural cookie experiment follows, and the owner and the reviewer choose. All 12 batches finished: 800 harsh and 400 slow reconnects, with no timeouts, failures, reconnects that never started, unattributable reconnects or restarts. Every harsh backend was homogeneous (p ≥ 0.018), and re-analysing the directory gives an identical verdict.
+
+An earlier attempt with the same tools stopped before the end. It is kept as recorded and not judged:
+- `ki35-cookie-2026-10-28-143330-1d56b6b`: 7 batches were complete. `gns-4-off-harsh` exited with code 4 after 24 cycles, and the runner ended 4 s into the next batch.
+- Windows had logged low virtual memory from 16:58, caused by another process. The runner's own cause of death is not established.
+
+| harsh | UDP | GNS |
+|---|---|---|
+| P(total > 3 s) | 30/400 | 118/400 |
+| **R_wait** (primary), 95% interval | 8/30 = 0.27 [0.14, 0.44] | **23/118 = 0.19 [0.13, 0.28]** |
+| R_cookie (whole exchange removed) | 12/30 = 0.40 | 46/118 = 0.39 [0.31, 0.48] |
+| R_establish / R_handshake / R_session | 0.00 / 0.90 / 0.77 | 0.68 / 0.64 / 0.55 |
+| Largest phase in S: establish / cookie / handshake / session | 0 / 2 / 22 / 6 | 48 / 9 / 29 / 32 |
+| Phase p50 in S: establish / cookie / handshake / session (ms) | 3 / 438 / 2101 / 714 | 1094 / 225 / 848 / 712 |
+| First ClientHello resent | 108/400 | 118/400 |
+| `cookie_wait` p50 / p95 / p99 (ms) | 0 / 720 / 722 | 0 / 721 / 1706 |
+
+- **The primary result.** On GNS, removing the time lost to unanswered first ClientHellos would bring at most 13–28% of the reconnects over 3 s under the limit. The interval straddles the 0.25 threshold, so it is neither "explain" nor "do not explain".
+- **The R values are ceilings, not predictions.** They assume the rest of the reconnect would not change, and they overlap, so they do not add up.
+- **Reported only:** on GNS, `establish` is most often the largest phase in S, and it has the highest ceiling (0.68). That is consistent with FB-38-02's alternative, GNS establishment; it is not a rule.
+- **Slow profile.** Every reconnect on both backends sent the first ClientHello twice, the second about 236 ms after the first. The cookie ClientHello followed the resend by a median of 99–121 ms per batch. In 389/400 reconnects it came less than 300 ms (the minimum RTT) after the resend, which fits an answer to the first ClientHello: there the resend was most likely spurious, because the 250 ms initial timer fired before the answer. In the other 11 it came 313–391 ms after the resend, which fits an answer to the resend. This is descriptive input to FB-38-03, not a test of it.
+- **Flight classes are approximate.** The host's receptions are counted only up to the client's cookie ClientHello, so a resend still in flight at that moment is missed. On slow, 393/400 reconnects read `hello_lost` at 1% loss. In 367 of them the cookie ClientHello left less than 150 ms (the minimum one-way delay) after the resend, so the resend could not have been counted: there the class is an artifact of the window. The other 26 cannot be told apart from real loss. The harsh `hello_lost` share is affected in the same way, to an unknown degree.
+- **Secondary replication** (EXP-047 `off` harsh, `cookie` measured from `first_hello`): GNS R_cookie 37/92 = 0.40 [0.31, 0.50], UDP 10/19. It was computed while the tooling was being built, after the predeclaration commit, and it set no rule.
+- No default changed. KI-35 stays open.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

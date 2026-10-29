@@ -2,6 +2,23 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-29: review #38 and EXP-049, what the cookie exchange costs the tail (`feature/ki35-gns-establishment`)
+
+- **Input:** review #38 on PR #25 (FB-38-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md; FB-38-03 is deferred.
+- **EXP-049:** predeclared before any tooling (`e5eb82f`). Codex passes 1–3 fixed how handshake attempts are split; pass 4 approved.
+  - Measurement only, on today's default: harsh (4 batches per backend) and slow (2 per backend), 1200 reconnects.
+- **Tooling (`1d56b6b`):**
+  - The probe splits the client's ClientHellos into attempts and counts the first-ClientHello resends and HVRs from the header trace.
+  - `tools/ki35/run_cookie_probe.py` applies the rules (13 self-tests).
+  - Codex approved it on its second pass, after a missing attempt field had invalidated the whole run instead of one reconnect.
+- **Runs:**
+  - Attempt 1 stopped after 724 cycles, during a low-virtual-memory condition caused by another process; one of its cycles shows the probe nearly frozen for about 22 min. It is kept unjudged (`2c193b8`); the runner's cause of death is not established.
+  - Attempt 2 is complete (06:39–09:26): it was detached through WMI and watched for stop, stall and low memory.
+- **Reading by the predeclared rule: inconclusive.** GNS R_wait is 23/118 = 0.19 [0.13, 0.28] and UDP 8/30 = 0.27 [0.14, 0.44]. No behavioural cookie experiment follows from it; the owner and reviewer choose.
+  - Reported only: on GNS, establishment is most often the largest phase over 3 s (48/118).
+  - On the slow path every reconnect resends the first ClientHello about 236 ms in; the timing makes the resend most likely spurious in 389/400 (FB-38-03 input).
+  - No default changed.
+
 ## 2026-10-28: review #31 and EXP-047, intermediate DTLS back-off caps (`feature/ki35-gns-establishment`)
 
 - **Input:** review #31 on PR #25 (FB-31-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md. The owner asked for all of it.

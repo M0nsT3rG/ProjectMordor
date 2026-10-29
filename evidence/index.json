@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 110,
+  "count": 111,
   "records": [
     {
       "id": "EXP-001",
@@ -496,6 +496,17 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "KI-35, review #31 (FB-31-01/02): do intermediate DTLS back-off caps keep EXP-044's tail gain, and at what cost in bytes, resent datagrams and on a path whose RTT exceeds the 250 ms initial timer? Arms on host and client: off (250/500/1000 ms, today's default), cap750 (250/500/750) and cap500 (250/500/500). No default change."
+    },
+    {
+      "id": "EXP-049",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-049.json",
+      "date": "2026-10-29",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #38 (FB-38-02): how much of the harsh tail (reconnects over 3 s) is time inside the DTLS cookie exchange, and how much of it is spent retransmitting the first ClientHello before the HelloVerifyRequest arrives? Measurement only: every batch runs today's default (timer 250 ms doubling to 1 s, cookie on, max_new_handshakes_per_s 64, confirm_binding off). No default, behaviour or gate change."
     },
     {
       "id": "F-COMM-001",
