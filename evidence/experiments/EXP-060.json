@@ -8,18 +8,19 @@
   "game_exe_sha256": "F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8",
   "procedure": "The owner approved the second amendment in chat on 2026-10-29 (\"Aprovo\"), first as of a8f5d5a and then, after tools/m1/tier_a.py's label was changed to EXPERIMENT = \"EXP-060\", again as of c4e9cce (\"Aprovo\"). Any later change to section 8 or the session tools needs a new approval. EXP-050 and the dry run passed elevated on the streamed analysis on 2026-10-29 (clean 7126ff0, code f1665ae). Identical to EXP-051's procedure (python -I tools/m1/tier_a.py --session N, elevated, saves copied aside offline, GOG Galaxy and Steam closed, no KI-35 run at the same time), with only the second amendment: netwatch streams the decoded trace one event at a time, counts only the root's own events, closes the file on every path and keeps only counts per PID, with the same result as before for tracerpt output; session.json is labelled EXP-060. Sessions are numbered from 1. If session 1 ends Tier A INCONCLUSIVE / NO DATA with no_data_established true, tier A ends there (section 3). M1 go needs 3 PASS sessions. Any FAIL or other INCONCLUSIVE stops the series and goes back to the owner.",
   "expected_result": "Session 1 ends INCONCLUSIVE. Its reasons are only 'no data: no position observed (Tier A INCONCLUSIVE / NO DATA)' and the two zero counts that follow from it ('too few observations in still 0-30 s: 0', 'too few observations in move 30-60 s: 0'), and no_data_established is true (Codex pass 11).",
-  "observed_result": "Not run.",
+  "observed_result": "Session 1 ran on 2026-10-30 (started 14:03, record written 14:07:55) on clean commit 8c66d7c (session tools as at c4e9cce). Outcome FAIL, by the predeclared rule: its only reason is 'no clean exit (code 0, closed by menu: False)'. The game exited with code 0 inside the trace, and the owner answered no to 'Did you close the game through its own menu?'. Asked afterwards, the owner said the game was closed through its menu and that answer was a mistake; that account is recorded here and does not change the outcome. The owner answered no to the warning and crash questions (no operator stops). The rest of the record: the build check passed at both ends (exit 0); network verdict clean, coverage covered, 0 events lost of 546803, both canaries seen, no contact and no DNS lookup by the game, the raw trace deleted. The streamed analysis finished on this whole session's trace (KI-45 second amendment). Observations: none (8 permitted files searched, including install/EULA.txt read as Windows-1252 and user/gpu.nfo hashed as known binary). File changes: one save added and five changed, all under the game-written pattern user/*_ShadowOfWar.sav; nothing removed. Because the outcome is FAIL, no_data_established is false and no NO DATA result is claimed. Under section 8 a FAIL stops the series and goes back to the owner.",
   "evidence_paths": [
+    "evidence/logs/m1-tier-a-2026-10-30-140325-s1",
     "tools/m1/tier_a.py",
     "tools/m1/session.py",
     "tools/m1/netwatch.py",
     "tools/m1/test_m1.py",
     "docs/m1-criteria.md"
   ],
-  "result": "NOT_RUN",
-  "errors": "None yet.",
+  "result": "FAILED",
+  "errors": "The session's only failure is the owner's answer to the exit question, which the owner reports as a mistake. The closing questions change polarity: the first wants yes (closed through the menu), the next two want no (warning, crash), and each takes a single y or n with no confirmation. Not a fault in the game or in the monitoring.",
   "confidence": "medium",
-  "follow_up": "Session 1 may run, by the owner, elevated. Tier B is never started by this experiment.",
+  "follow_up": "The series is stopped (section 8). Any further session needs the owner's decision: a new series with a new number (EXP-052 to EXP-059 are PR #25's), and any change to the closing questions is a session-tool change that needs a new approval. Tier B is never started by this experiment.",
   "related": [
     "EXP-048",
     "EXP-050",

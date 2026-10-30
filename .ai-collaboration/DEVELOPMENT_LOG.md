@@ -2,6 +2,15 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-30: EXP-060 session 1 FAIL on the exit answer (`feature/d008-gog-inventory`, PR #26)
+
+- **The session:** the owner ran it at 14:03 on clean `8c66d7c` (session tools as at `c4e9cce`); the record was written at 14:07:55.
+- **Outcome: FAIL.** Its only reason: "no clean exit (code 0, closed by menu: False)". The game exited with code 0 inside the trace, but the owner answered no to the menu question. Asked afterwards, the owner said the game was closed through its menu and the answer was a mistake. That account is recorded; the outcome is unchanged.
+- **Everything else held:** build check at both ends; network clean and covered, 0 of 546803 events lost, no contact and no DNS, raw trace deleted. The streamed analysis (second amendment) finished on a whole session's trace. No warning or crash reported.
+- **Observations:** none in 8 permitted files. One save added, five changed, all game-written. NO DATA is not claimed, because the outcome is FAIL.
+- **Record:** EXP-060 FAILED; the series is stopped (§8). KI-45 is extended.
+- **Next, the owner's:** whether to start a new series, and whether the closing questions should change first (a session-tool change, new approval).
+
 ## 2026-10-29: second amendment approved; tier_a's label fixed; EXP-060 recorded (`feature/d008-gog-inventory`, PR #26)
 
 - **Approval:** the owner approved the second amendment in chat ("Aprovo"), as of `a8f5d5a` (code `f1665ae`).

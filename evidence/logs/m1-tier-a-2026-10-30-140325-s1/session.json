@@ -1,0 +1,98 @@
+{
+  "experiment": "EXP-060",
+  "session": 1,
+  "commit": "8c66d7c",
+  "dirty": false,
+  "outcome": "FAIL",
+  "no_data_established": false,
+  "reasons": [
+    "no clean exit (code 0, closed by menu: False)"
+  ],
+  "build_start": 0,
+  "build_end": 0,
+  "changes": {
+    "added": [
+      "user/<redacted>_5_ShadowOfWar.sav"
+    ],
+    "removed": [],
+    "changed": [
+      "user/<redacted>_1_ShadowOfWar.sav",
+      "user/<redacted>_2_ShadowOfWar.sav",
+      "user/<redacted>_3_ShadowOfWar.sav",
+      "user/<redacted>_4_ShadowOfWar.sav",
+      "user/<redacted>_ShadowOfWar.sav"
+    ]
+  },
+  "files": {
+    "user": 23,
+    "install": 948
+  },
+  "game_written": [
+    "user/*_ShadowOfWar.sav",
+    "user/render.cfg",
+    "user/gpu.nfo"
+  ],
+  "actions": [
+    {
+      "t0": 0,
+      "t1": 30,
+      "kind": "still"
+    },
+    {
+      "t0": 30,
+      "t1": 60,
+      "kind": "move"
+    }
+  ],
+  "tolerances": {
+    "still_max": 0.5,
+    "move_min": 5.0,
+    "min_obs": 3
+  },
+  "scanned": [
+    "user/gpu.nfo (known binary: hashed, not searched)",
+    "user/render.cfg",
+    "install/EULA.txt (read as Windows-1252)",
+    "install/goglog.ini",
+    "install/unins000.ini",
+    "install/unins002.ini",
+    "install/game/SKU.cfg",
+    "install/game/projectconsole.cfg"
+  ],
+  "observations": [],
+  "exit": {
+    "code": 0,
+    "closed_by_menu": false
+  },
+  "operator_stops": [],
+  "network": {
+    "verdict": "clean",
+    "coverage": "covered",
+    "coverage_problems": [],
+    "canaries": {
+      "start": true,
+      "end": true
+    },
+    "events_lost": 0,
+    "events_total": 546803,
+    "buffers": [
+      "-bs",
+      "256",
+      "-nb",
+      "64",
+      "512"
+    ],
+    "contacts": [],
+    "dns": [],
+    "targets": [
+      {
+        "image": "ShadowOfWar.exe",
+        "started_in_trace": true,
+        "exited_in_trace": true,
+        "exit_code": "0"
+      }
+    ],
+    "raw_kept": false,
+    "raw_not_deleted": []
+  }
+}
