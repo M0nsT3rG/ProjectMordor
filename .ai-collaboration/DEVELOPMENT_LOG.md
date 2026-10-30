@@ -2,6 +2,19 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-30: third amendment, the closing questions (`feature/d008-gog-inventory`, PR #26)
+
+- **Why:** EXP-060 session 1 failed on one mistaken key. The owner asked for a fix.
+- **The change (`tier_a.py` only):**
+  - `ask()` takes only full words (`yes`/`sim`, `no`/`não`/`nao`); a single letter is asked again.
+  - The new `closing()` reads the three answers back and asks for confirmation; `no` asks all three again.
+  - End of input before confirmation leaves all three unanswered (INCONCLUSIVE).
+  - `EXPERIMENT` is now "EXP-061".
+- **Codex pass 16:** 1 defect (end of input in the middle kept earlier unconfirmed answers), fixed with a regression; a second look found nothing.
+- **Tests:** `test_m1.py` 41 run, 1 skipped; `test_check_gog_build.py` 10; all passing. The 3 new tests errored on the old `tier_a.py`.
+- **Records:** EXP-061 NOT_RUN; `docs/m1-criteria.md` §7 item 5 and §8 "Third amendment".
+- **Next, the owner's:** approval. EXP-050 and the dry run are not repeated (`netwatch.py` and `session.py` unchanged).
+
 ## 2026-10-30: EXP-060 session 1 FAIL on the exit answer (`feature/d008-gog-inventory`, PR #26)
 
 - **The session:** the owner ran it at 14:03 on clean `8c66d7c` (session tools as at `c4e9cce`); the record was written at 14:07:55.

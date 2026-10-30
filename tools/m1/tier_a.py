@@ -1,5 +1,5 @@
-"""One M1 tier A session on the real game (EXP-060, docs/m1-criteria.md section 8 as amended after EXP-048 session 1
-and EXP-051 session 1).
+"""One M1 tier A session on the real game (EXP-061, docs/m1-criteria.md section 8 as amended after EXP-048 session 1,
+EXP-051 session 1 and EXP-060 session 1).
 Run by the owner, elevated, only after the owner's approval of the amended section 8.
 
 The tool never writes to the game, its install, its saves or its process: it checks the pinned build, snapshots the
@@ -46,7 +46,7 @@ GRACE_S = 10  # from the owner's Enter to t=0: time to switch back to the game
 TEXT = {".cfg", ".ini", ".log", ".txt", ".json", ".xml", ".nfo"}  # permitted reads; saves (.sav) never
 TEXT_MAX = 4 << 20
 KNOWN_BINARY = {"user/gpu.nfo"}  # game-written, binary in EXP-048 session 1 (KI-45); hashed by the snapshot
-EXPERIMENT = "EXP-060"  # EXP-048 ran under the first section 8, EXP-051 under the first amendment; this is the second
+EXPERIMENT = "EXP-061"  # EXP-048, EXP-051 and EXP-060 ran under section 8 and its first two amendments; this is the third
 NUM = r"([-+]?(?:\d+(?:\.\d*)?|\.\d+))(?=[\s,;]|$)"  # a number must end cleanly: "1e6" or "1.#INF" is never 1
 LABEL = r"(?i)\b(?:pos|position|loc|location)\b[^0-9+.-]{0,12}"  # never eats a sign or a decimal point
 POS_LINE = re.compile(LABEL + NUM + r"[\s,;]+" + NUM + r"[\s,;]+" + NUM)
@@ -255,16 +255,45 @@ def redact(doc, paths: dict[str, Path], keep=("game_written",), known=()):
 
 
 def ask(prompt: str) -> bool | None:
-    """y or n; anything else is asked again; no answer at all (end of input) is None, never a no."""
+    """yes or no typed in full (one stray key failed EXP-060 session 1); anything else is asked again; no answer at all
+    (end of input) is None, never a no."""
     while True:
         try:
-            a = input(f"{prompt} [y/n] ").strip().lower()
+            a = input(f"{prompt} [type yes or no] ").strip().lower()
         except EOFError:
             return None
-        if a in ("y", "yes", "s", "sim"):
+        if a in ("yes", "sim"):
             return True
-        if a in ("n", "no", "nao", "não"):
+        if a in ("no", "nao", "não"):
             return False
+
+
+CLOSING = (("Did you close the game through its own menu?", "menu"),
+           ("Did the game show any integrity, tamper or debugger warning, or refuse to run?", "protection_reaction"),
+           ("Did the game crash or freeze?", "crash"))
+
+
+def closing(rec: dict) -> None:
+    """The closing answers, read back and kept only once the owner confirms them all; "no" asks them again. Unconfirmed
+    at the end of input, they are unanswered (INCONCLUSIVE), never a guess."""
+    while True:
+        answers = [ask(q) for q, _ in CLOSING]
+        ok = None
+        if None not in answers:
+            print("Your answers:")
+            for (q, _), a in zip(CLOSING, answers):
+                print(f"  {q} {'YES' if a else 'NO'}")
+            ok = ask("Are these answers right?")
+        if ok is None:  # no answer kept unconfirmed, an earlier one included (Codex pass 16)
+            answers = [None] * len(CLOSING)
+        if ok is not False:
+            break
+    rec["exit"]["closed_by_menu"] = answers[0]  # None: not recorded
+    for answer, (_, stop) in zip(answers[1:], CLOSING[1:]):
+        if answer is None:  # an unknown note: INCONCLUSIVE, never a silent no
+            rec["operator_stops"].append(f"unanswered: {stop}")
+        elif answer:
+            rec["operator_stops"].append(stop)
 
 
 def beeps(n: int) -> None:
@@ -302,14 +331,7 @@ def play(rec: dict) -> dt.datetime:
     print("Done. Now close the game through its menu (Quit to desktop). Waiting for it to exit...")
     while running([GAME]):
         time.sleep(1)
-    rec["exit"]["closed_by_menu"] = ask("Did you close the game through its own menu?")  # None: not recorded
-    for question, stop in (("Did the game show any integrity, tamper or debugger warning, or refuse to run?",
-                            "protection_reaction"), ("Did the game crash or freeze?", "crash")):
-        answer = ask(question)
-        if answer is None:  # an unknown note: INCONCLUSIVE, never a silent no
-            rec["operator_stops"].append(f"unanswered: {stop}")
-        elif answer:
-            rec["operator_stops"].append(stop)
+    closing(rec)
     return t0_wall
 
 

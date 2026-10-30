@@ -779,6 +779,33 @@ class KI45(unittest.TestCase):  # EXP-048 session 1: lost events, a Windows-1252
         self.assertFalse(cv.CASES["flood_with_session_buffers"][1])  # the session's buffers, not the tiny ones
 
 
+class ClosingAnswers(unittest.TestCase):  # EXP-060 session 1: one mistaken key failed the session
+    def answers(self, typed):
+        import contextlib
+        import io
+        from unittest import mock
+        import tier_a
+        rec = {"exit": {"closed_by_menu": None}, "operator_stops": []}
+        with mock.patch("builtins.input", side_effect=typed) as inp, contextlib.redirect_stdout(io.StringIO()):
+            tier_a.closing(rec)
+        return rec["exit"]["closed_by_menu"], rec["operator_stops"], inp.call_count
+
+    def test_a_single_key_is_asked_again(self):
+        self.assertEqual(self.answers(["y", "yes", "n", "no", "no", "yes"]), (True, [], 6))
+
+    def test_answers_are_read_back_and_a_no_asks_again(self):
+        self.assertEqual(self.answers(["no", "no", "no", "no", "yes", "no", "no", "yes"]), (True, [], 8))
+        self.assertEqual(self.answers(["yes", "yes", "no", "yes"]), (True, ["protection_reaction"], 4))
+
+    def test_no_confirmation_is_unanswered_never_a_guess(self):
+        self.assertEqual(self.answers(["yes", "no", "no", EOFError]),
+                         (None, ["unanswered: protection_reaction", "unanswered: crash"], 4))
+        self.assertEqual(self.answers(["no", EOFError, EOFError]),  # an earlier answer is not kept (Codex pass 16)
+                         (None, ["unanswered: protection_reaction", "unanswered: crash"], 3))
+        self.assertEqual(self.answers(["yes", "yes", EOFError]),
+                         (None, ["unanswered: protection_reaction", "unanswered: crash"], 3))
+
+
 class TraceSize(unittest.TestCase):  # EXP-051 session 1: a whole session's trace did not fit in memory
     def test_memory_does_not_grow_with_the_trace(self):
         import tracemalloc
