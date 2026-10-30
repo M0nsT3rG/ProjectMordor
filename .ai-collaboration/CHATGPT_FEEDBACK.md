@@ -6,6 +6,149 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #39 (PR #26: EXP-048 session 1 and the KI-45 amendment)
+
+- **Status:** triaged (2026-10-28). The owner asked for ChatGPT's instructions to be checked.
+- **Source:** [review #39](https://github.com/M0nsT3rG/ProjectMordor/pull/26), a source-and-record review through `fe0af56`; ChatGPT ran nothing. It acknowledges the owner's approval of the amendment and does not widen it.
+- **Verdict:** the amendment is a reasonable, targeted response to KI-45. The claim that the buffers are enough must stay limited. Before `tier_a.py` runs again:
+  - EXP-050 and the dry run must pass elevated on the approved code;
+  - the build check must be clean and the saves backed up;
+  - no KI-35 run may overlap the session.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-39-01** EXP-048 is INCONCLUSIVE / PARTIAL | **Yes.** | **Accepted** | Already recorded. The evidence and the outcome are kept as they are. |
+| **FB-39-02** Minimal amendment; encoding | **Yes.** Unknown binary files stay unreadable evidence (INCONCLUSIVE): `KI45.test_windows_1252_and_known_binary` (`other.nfo`). The read-mode check is in place (`test_codex_pass_10`). §8 states that NO DATA means only that no new line matched the candidate rule. | **Accepted** | Already in `322f02d`. No further encodings or file types are added after the fact. |
+| **FB-39-03** EXP-050 is a necessary stress test, not a guarantee; add a fixture-only mixed-load check | **Agreed.** The flood case is a single kind of traffic from one process. EXP-046 checks TCP, UDP, IPv6, DNS and a child process each on its own, never at the same time and never with the session buffers. EXP-051 fails closed whatever the buffers: one lost event leaves it INCONCLUSIVE (`netwatch`: `lost != 0`). So a missing mixed-load check costs at most another owner session, not a wrong result. | **Accepted; approved by the owner** ("Sim, acrescenta", 2026-10-28) | `coverage.py` case `mixed_load_with_session_buffers` (§6a, EXP-050). One target does every kind of traffic, a child included, while unrelated stand-ins flood loopback (400000 datagrams each, replaced within 50 ms) for its whole life. It needs 0 lost events, every kind attributed (the flood too) and every stand-in complete. Codex pass 13 found 4 points, all fixed. Test: `KI45.test_mixed_load_check`, which fails against `ae541e5`. The session tools are unchanged since `322f02d`. |
+| **FB-39-04** A new series | **Yes.** | **Accepted** | Already done: EXP-051 starts at session 1, and EXP-048 does not count towards the three PASS sessions. |
+
+---
+
+## ChatGPT status follow-up to review #37 (PR #26, 2026-10-28 09:52 UTC)
+
+- **Status:** triaged (2026-10-28). It is an acknowledgement: no new items and no code changes.
+- **Content:**
+  - The owner's approval covers only the pinned §8 and the reviewed code.
+  - Any later change needs a new approval.
+  - Session 1 must record whether it has reliable NO DATA evidence or only incomplete coverage.
+  - Tier B is never automatic.
+- **Done:**
+  - Session 1 recorded incomplete coverage (`no_data_established` false, EXP-048 PARTIAL, KI-45).
+  - The fixes are written as an amendment for a new series (EXP-051, with EXP-050 first). They are not approved and have not run.
+  - Tier B is not approved.
+
+---
+
+## Feedback on review #37 (PR #26: the review #36 follow-up on EXP-048)
+
+- **Status:** triaged (2026-10-27). No code changes were requested.
+- **Source:** [review #37](https://github.com/M0nsT3rG/ProjectMordor/pull/26), a source review of `cf03239`; ChatGPT ran nothing.
+- **Verdict:** FB-36-01..06 substantially addressed. §8 is narrow enough to put to the owner, conditionally. Nothing here authorises running M1, merging or pushing to `main`.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-37-01** Save ids against the before-snapshot | **Yes.** `SAVE_ID` takes only the established syntax: the id before `_ShadowOfWar.sav` or `_<slot>_ShadowOfWar.sav`, starting at a name boundary. A new slot of a known id passes; a new id is a FAIL. | **Accepted** | Already in `cf03239` (`test_new_save_id_and_install_text_hashes`). |
+| **FB-37-02** NO DATA against missing evidence | **Yes.** | **Accepted** | Already in `cf03239` (`no_data`, 7 outcome paths, the rehearsal). |
+| **FB-37-03** Integrity claims | **Yes.** | **Accepted** | §8 keeps the stated limit. The `x64` pin and FAIL on added, removed or changed files are unchanged. |
+| **FB-37-04** Failure precedence; interrupted sessions on the candidate | **Partly checkable here.** The rehearsal shows on `cf03239` that Ctrl+C still stops and analyzes the trace and never gives PASS. Its trace is a stand-in. Real ETW clean-up on an interruption was shown by the elevated EXP-045/046 tooling. With `tier_a.py` it can only be shown elevated, which is the owner's part. | **Accepted** | Rehearsal evidence in `evidence/logs/m1-selfchecks-2026-10-27-143920-cf03239/`. |
+| **FB-37-05** Write failure; no interim evidence left | **Yes.** A write failure stops the tool with an error. By then the raw trace has already been deleted by the analysis, or it is named as not deleted. The temporary folder left in `%TEMP%` holds only the trace state, never the repository's evidence. | **Accepted** | Already in `cf03239`. |
+| **FB-37-06** Final gate | **Agreed.** | **Accepted** | Self-checks run verbosely on the exact head `cf03239`, with a clean tree: 27 (1 skipped) and 10, all passing, kept in the folder above. Still open before any session: Codex pass 7, deferred by the owner; the owner's explicit approval of §8; the end of the KI-35 run. The second player's GOG copy still needs its own check before a two-player test. |
+
+---
+
+## Feedback on review #36 (PR #26: the M1 tier A predeclaration, EXP-048)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`. The owner asked for ChatGPT's answer to be read and acted on, and deferred Codex pass 7. M1 has not started.
+- **Source:** [review #36](https://github.com/M0nsT3rG/ProjectMordor/pull/26), a source review; ChatGPT ran nothing.
+- **Verdict:** conditional, changes requested before approval. §8 is a sufficiently narrow draft. One valid NO DATA session closes tier A. Size and time for the non-`x64` install are a low-assurance signal only.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-36-01** Scope; CloudStorage; exact save patterns | **Yes.** `user/*_ShadowOfWar.sav` matched the saves of both ids in the folder, so a save under a new id would have passed as game-written. | **Accepted, one part done differently** | A save under an id that had no save before the session is now an unexpected write (FAIL). CloudStorage stays unexpected, and the patterns are never broadened after a session (§8). **Done differently:** ChatGPT suggested recording the exact expected save names in an owner-only preflight. That file would hold the identifiers. Instead the tool compares the ids with the before-snapshot in memory, which gives the same check. |
+| **FB-36-02** One NO DATA session | **Agreed.** Before this, a session with failed monitoring and no position was also INCONCLUSIVE, and nothing told it apart from a valid NO DATA session. | **Accepted** | `session.json` records `no_data_established` (`tier_a.no_data`). It is true only when no position is the session's only reason. Any other gap keeps it false, and such a session does not close tier A. Tier B is never automatic. |
+| **FB-36-03** Non-x64 install integrity | **Agreed.** Size and time cannot detect a same-size, same-time change. | **Accepted** | `session.snapshot(hash_ext, hash_max)`: the install's permitted text files (the ones a session reads) are hashed at both ends. The limit is stated in §8: nothing is claimed about the content of the other non-`x64` files. |
+| **FB-36-04** Missing exit and outcomes | **Partly.** `session.classify` alone does give FAIL for an unknown exit code. But `tier_a.decide` already passes it only an observed code, and it had regressions since Codex pass 2 (never started, exit not seen, menu answer missing). Not yet tested: an interrupted run, an unanswered crash question, and a missing exit together with a crash the owner reported. | **Accepted** | `Review36.test_missing_evidence_is_never_a_clean_exit_nor_masks_a_crash`: 7 paths. Each is INCONCLUSIVE, except a reported crash or a recorded non-zero exit, which stay FAIL, and none can establish NO DATA. Against the previous code, the new test file errors (red before). |
+| **FB-36-05** Privacy and resilience | **Yes, three gaps.** (1) A save id was replaced only directly before `_ShadowOfWar.sav`. In another file's name or a message it leaked, and with a slot the id and slot became one token. (2) Path replacement was case-sensitive and missed escaped backslashes. (3) An exception in the trace analysis ended the tool with no evidence. | **Accepted** | (1) `SAVE_ID` takes the id alone. Ids found on disk (`known`) are replaced wherever they appear. (2) Paths are replaced case-insensitively, in both slash styles and escaped. (3) A failed analysis is recorded as not covered, with any raw file left. A failed evidence write names the raw files left and the temporary folder it kept, then stops. `test_redaction_variants` covers lower case, escaped paths, 8.3 names, slots, `.bak` names, bare ids, and the machine name. |
+| **FB-36-06** Final preflight | **Agreed.** | **Accepted; Codex pass 7 deferred by the owner** | `test_orchestrator_rehearsal` runs `tier_a.main` on fixtures. It covers a valid NO DATA session, a trace that never started (the game is not launched), Ctrl+C, a failed analysis, a save under a new id, and an evidence write that fails. In each case it checks the call order and that no path, name or id leaks. 27 self-checks, 1 skipped (a symbolic link needs a privilege). Codex pass 7 has not run: the owner deferred it, and it runs on the final head before any session. No session overlaps the KI-35 run. |
+
+---
+
+## Feedback on review #35 and its follow-up (PR #26: EXP-046 and the elevated runs)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`. The owner asked for ChatGPT's instructions to be carried out, and will test M1 when it is ready. M1 has not started.
+- **Sources:** [review #35](https://github.com/M0nsT3rG/ProjectMordor/pull/26#issuecomment-6437961599), written before the elevated results, and its [follow-up](https://github.com/M0nsT3rG/ProjectMordor/pull/26#issuecomment-6438030133), written after them. Both are source and evidence reviews; ChatGPT ran nothing.
+- **Verdict:** the prerequisites are met. Claude Code may prepare the final, narrow tier A predeclaration for the owner's separate approval before any game-side run.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-35-01** Elevated fixture-only gates | **Yes.** The owner's elevated runs on `b500439` give EXP-045 11/11 for the predeclared reasons, and EXP-046 7/7 MATCH. | **Accepted** | Both recorded PASSED (`949770f`). Nothing about the real game is inferred from them. |
+| **FB-35-02** Coverage limitations | **Agreed.** Unplugging the network does not repair missing attribution. | **Accepted** | No mechanism was missed in EXP-046. §4a already names delegated traffic as a blind spot, and a clean record is not claimed as proof of no activity. No raw-socket or ICMP case was added. |
+| **FB-35-03** Loss interpretation | **Yes.** The forced loss happened (164,760 events) and gave not_covered. | **Accepted** | Any lost event stays not covered, never PASS. |
+| **FB-35-04** Raw trace on interruption; evidence privacy | **Partly a gap.** In the dry run and the coverage experiment, Ctrl+C or an error between the trace start and its stop left the system-wide trace running, and its raw file locked, until the next start. The listing also showed that save names carry identifiers: the machine name and an 8-hex-digit id. | **Accepted** | `netwatch.abort` stops the trace and deletes the raw files. `dryrun.py` and `coverage.py` call it on any exception. `tier_a.py` always stops and analyzes the trace, Ctrl+C included. Its evidence replaces local paths, the machine and user names, and save ids, and keeps only the changes, not the full snapshots. |
+| **Follow-up: prepare the tier A predeclaration** | **Done after a metadata-only listing** the owner approved (F-ENV-014). The game writes no log file. | **Accepted** | `docs/m1-criteria.md` §8 and EXP-048 (NOT_RUN): exact folders, permitted reads, game-written files, actions with beeps, tolerances, monitoring, backup, and gates. Tool: `tools/m1/tier_a.py`. The hypothesis is Tier A NO DATA. It awaits the owner's approval. |
+
+---
+
+## Feedback on review #34 (PR #26: M1 network monitoring and the elevated dry run)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Source review only; ChatGPT did not run ETW.
+- **Verdict:** FB-33-01..04 substantively addressed; the owner-run elevated EXP-045 is still required, and its evidence reassessed, before tier A is put to the owner.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-34-01** Coverage beyond the canaries | **Yes.** The canaries prove only IPv4 loopback TCP and UDP and one DNS path. They do not prove IPv6, a TCP attempt that never connects, a child process's traffic, or that lost events are reported. | **Accepted** | EXP-046, predeclared: `tools/m1/coverage.py`, 7 cases, each a real trace around the stand-in: IPv6 loopback, a TCP attempt to 192.0.2.1 that never connects, UDP to 2001:db8::1, a DNS lookup only, 50 very short flows then a contact, a child process's contact, forced event loss with the smallest buffers. A refused send is NOT_APPLICABLE and an unprovoked loss NOT_DEMONSTRATED; both are reported, never matched. PID reuse is unit-tested; traffic another process makes for the target is a documented limitation. Without elevation: 7/7 not_covered as expected. The elevated run is the owner's. Contacts now carry the IP family. |
+| **FB-34-02** DNS rule and what a clean record means | **Agreed.** | **Accepted** | §4a: any DNS lookup attributed to a target stops tier A, even with no connection after it. A clean record means nothing was attributed while coverage was proven, not that no network activity happened; delegated traffic (a system service, a launcher started before the trace) is named as not attributed. |
+| **FB-34-03** Save integrity | **Agreed.** | **Accepted** | §4: before each session the owner copies the saves aside, offline, outside the repository, never committed, uploaded or read by our tools. The game-written folder rule and "any removal is a FAIL" are unchanged. |
+| **FB-34-04** Raw trace lifecycle | **Yes.** A raw file that could not be deleted was only listed, and a run interrupted between stop and analyze left the raw trace behind until the next run. | **Accepted** | A kept or undeletable raw trace is a FAIL (new stop condition 10). A new trace never starts beside an old raw file; `netwatch.py cleanup` deletes one after an interrupted run; `coverage.py` treats any raw file left as a MISMATCH. 15 self-checks. |
+
+---
+
+## Feedback on review #33 (PR #26: fail-closed checks and M1 tier A outcomes)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Source and evidence review only.
+- **Verdict:** review #32 substantively addressed; tier A is close to an owner go/no-go but not approved. Nothing authorises a merge or M1.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-33-01** Missing versus unreadable | **Agreed**; this was already the rule. | **Accepted** | A new self-check runs `main` end to end on fixtures for each outcome and checks the exit code and the written evidence: VERIFIED 0; present but unparseable `.info` INCOMPLETE 5; missing `.info`, missing `x64` or a changed DLL MISMATCH 3; not installed 4. 10 self-checks. |
+| **FB-33-02** An operational network check | **Yes.** A point-in-time view (Resource Monitor, polling `Get-NetTCPConnection`) misses short connections and cannot attribute UDP destinations. Windows' own event tracing records every event with its process ID; a format probe on this machine (canary process, owner-run elevated) showed TCP connect, UDP send and DNS query events with the PID, and `Total Events Lost 0` in the summary. | **Accepted** | `tools/m1/netwatch.py` and `docs/m1-criteria.md` §4a: ETW via `logman`/`tracerpt` (built in), Kernel-Network + DNS-Client + Kernel-Process; targets by image and their child processes; coverage proven by start and end canaries, zero lost events and the game's start and exit inside the window; any non-loopback traffic or DNS lookup by a target is unexpected; the raw trace is deleted after analysis and the record holds no addresses. Monitoring failure is INCONCLUSIVE and a stop (condition 9). Starting a trace needs an elevated prompt: the owner runs it. |
+| **FB-33-03** Dry run of the gates | **Agreed.** | **Accepted** | EXP-045, predeclared and committed before its runs: `tools/m1/dryrun.py`, 11 fault-injection cases on fixtures with a stand-in process, expected against actual; never the game. Four Codex passes before the runs found 20 defects in the tools (14 self-checks now). **Not elevated: 11/11 match** (on `16a2b7e`); the elevated run waits for the owner, after EXP-044 on the KI-35 branch. |
+| **FB-33-04** Scope and order of approval | **Agreed.** Writing the record format surfaced one real gap: the game autosaves and appends to its logs, so "every save hash unchanged" would fail every honest session. | **Accepted** | §4 and §6: the predeclaration lists the game-written folders; a change elsewhere or any removal is a FAIL, and our tools only open files read-only. Tier A approval is now explicitly after the elevated dry run and ChatGPT's review of it (§7). Three PASS sessions for go; NO DATA stays INCONCLUSIVE. |
+
+---
+
+## Feedback on review #32 (PR #26: the GOG build pin and the M1 criteria)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it, without starting M1.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Source and evidence review only.
+- **Verdict:** the pin and the narrow M1 draft are directionally sound. Finish the amended-build launch check and M1's go/no-go rules before any game-side work. Nothing authorises a merge or M1.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-32-01** Launch test on the amended build | **Already done.** The owner reported it after request #32 was written: the pinned set starts and plays with Steam and GOG Galaxy closed, recorded on its own as F-ENV-013. Both fingerprints stay recorded (F-ENV-009 base `8F84F4A6…`, F-ENV-012 current `F16DC949…`), with the amended D-008. | **Accepted** | Nothing new needed. The second player's copy is still unchecked, and `docs/m1-criteria.md` requires `check_gog_build.py` exit 0 on it before any two-player test. |
+| **FB-32-02** Checker robustness | **Yes.** The previous version treated `file_version is None` as acceptable, and a malformed `.info` file raised an exception instead of a result. | **Accepted** | `check_gog_build.py` separates **MISMATCH** (exit 3) from **INCOMPLETE** (new exit 5): an unreadable FileVersion, a malformed or non-object `.info` file, an unreadable file or an unlistable `x64` are INCOMPLETE, never verified. It now pins the SHA-256 of **every file in `x64`** (7 files) as an exact list, so a changed, missing or extra DLL is a mismatch (this replaces the old name list of crack and proxy files). A registry entry that is missing or has no usable `path` gives exit 4. A Codex pass before the commit found four checker defects (an add-on gameId not compared; names differing only in case hiding each other; an exe vanishing mid-check skipping FileVersion; an over-long integer raising ValueError) and two contradictory outcome rules; all are fixed. 9 self-checks (fixtures only; the real game is never touched by them); `inventory.ps1` throws on exit 5. |
+| **FB-32-03** Tier A with no data | **Agreed.** | **Accepted** | `docs/m1-criteria.md` §3: an explicit **Tier A INCONCLUSIVE / NO DATA** outcome ends tier A and never escalates to tier B by itself. |
+| **FB-32-04** Outcomes and stop conditions | **Agreed.** | **Accepted** | §6: per-session **PASS / FAIL / INCONCLUSIVE / NOT RUN** with definitions; go needs 3 PASS sessions. Requirements: the build check (exe and every DLL) at start and end, save and read-file hashes unchanged, position consistent with movement with clear provenance, clean exit, no unexpected online contact. Stop conditions now eight: added a changed DLL, unexpected writes, ambiguous provenance, unexpected online contact (not only WB), and read-only operation that cannot be confirmed. §4 evidence lists what shows each one. |
+
+---
+
+## Feedback on review #30 (PR #26: D-008 and the GOG inventory)
+
+- **Status:** implemented (2026-10-27) on `feature/d008-gog-inventory`; the owner asked for all of it.
+- **Source:** [PR #26 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Documentation and evidence review only.
+- **Verdict:** D-008 is adequately documented as a scoped decision. The absence of wrapper indicators is not proof of no protection. Nothing authorises a merge or any M1 work.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-30-01** Build verification | **Yes, and it already mattered.** The installed exe changed after the check: the official Expansion Pass installer replaced it (same FileVersion, new SHA-256 `F16DC949…`; F-ENV-012). | **Accepted** | The build is pinned in `tools/environment/check_gog_build.py`, which fails on any difference. The new exe is recorded as F-ENV-012, but **not** pinned: re-pinning is the owner's decision (`docs/m1-criteria.md` §7). |
+| **FB-30-02** Minimum-necessary M1 observation | **Agreed.** | **Accepted** | `docs/m1-criteria.md`: tier A covers the game's own files without changing them (saves: metadata and hashes only). Tier B is external read-only process observation, and only with a separate owner approval and a predeclaration. It lists what is never allowed. |
+| **FB-30-03** M1 criteria | **Agreed.** | **Accepted** | `docs/m1-criteria.md` defines the one value (the player position), the methods, the fingerprint, the minimal evidence, the privacy limits, go and no-go, six stop conditions, and the second player's check. It is a draft: M1 has not started. |
+| **FB-30-04** Version pinning | **Agreed.** | **Accepted** | `check_gog_build.py` (6 self-checks) is run by `scripts/inventory.ps1`. It finds the install through GOG's registry entry and checks the store metadata, the exe SHA-256 and FileVersion, and the absence of crack, emulator and proxy-DLL files. It writes `evidence/gog-build.json` with `<GOG>` in place of the path. Exit 3 (mismatch) makes the inventory fail; exit 4 (not installed) warns that game-side work is blocked on this machine. |
+
+---
+
 ## Feedback on review #23 (PR #23 and the consolidation of PR #22)
 
 - **Status:** implemented (2026-10-25) on `feature/review23-integration` (stacked on PR #23); the owner asked for all of it.

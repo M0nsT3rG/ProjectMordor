@@ -1,0 +1,32 @@
+{
+  "id": "EXP-050",
+  "type": "experiment",
+  "date": "2026-10-28",
+  "objective": "KI-45: do the explicit session trace buffers (netwatch.BUFFERS: 256 KB, 64 to 512 buffers, at most 128 MB) keep the M1 network monitor from losing events, where logman's defaults lost 1203 in EXP-048 session 1, and do all the EXP-046 coverage cases still hold with them?",
+  "hypothesis": "Run elevated, the new case flood_with_session_buffers (200000 loopback UDP datagrams, the flood that lost events with the tiny buffers in EXP-046) is a MATCH: covered, 0 events lost, the flood attributed to the stand-in, and the stand-in's status records that all 200000 sends completed (Codex pass 9). Review #39 (FB-39-03), added at the owner's request and approved in chat on 2026-10-28: a ninth case, mixed_load_with_session_buffers, is a MATCH too. One stand-in does every kind of traffic, one after the other (IPv6 loopback TCP and UDP, 50 brief loopback TCP connections, the 200000 flood, a DNS lookup, a public UDP send, a child's public UDP send), while for its whole life unrelated stand-ins, not targets, each send 400000 loopback datagrams, a finished one replaced within 50 ms. It must be covered with 0 events lost, every kind attributed to the target or its child (the flood too), and every stand-in's record complete. A send refused through the stand-in's status is NOT_APPLICABLE; a stand-in that stops early (for example a refused flood send) is a MISMATCH (Codex pass 13). The seven EXP-046 cases give the same verdicts as in EXP-046. The dry run (dryrun.py, EXP-045's cases) still gives 11/11 with the session buffers. This is fixed before the runs. It measures a stand-in's burst, not the game: a real session's background load can differ, which is why the session record now keeps events_total and buffers.",
+  "environment": "Windows 11 Pro x64, Python 3.15, logman and tracerpt from Windows; the stand-in is tools/m1/standin.py, not the game; dev machine",
+  "game_exe_sha256": "N/A (the experiment never touches the game, its files or its saves)",
+  "procedure": "On the amended code, python -I tools/m1/coverage.py and python -I tools/m1/dryrun.py, each once without elevation (Claude Code; every case must be not_covered or INCONCLUSIVE) and once from an elevated PowerShell (the owner). coverage.py writes evidence/logs/m1-coverage-<time>-<elevated|not-elevated>/result.json, now labelled EXP-050 and with the buffers used. No threshold is tuned after a run: if the flood case is a MISMATCH, the buffer sizes are a new decision, recorded before another run.",
+  "expected_result": "No MISMATCH in either coverage run (flood_with_session_buffers and mixed_load_with_session_buffers a MATCH elevated); dryrun 11/11 elevated.",
+  "observed_result": "Without elevation (Claude Code, clean commit 4c5ef08): coverage.py 9/9 not_covered, as expected, NO MISMATCH (evidence/logs/m1-coverage-2026-10-28-151626-not-elevated); the mixed-load case ran end to end, its target's actions all sent and one background stand-in complete. dryrun.py: all cases match (evidence/logs/m1-dryrun-2026-10-28-151640-not-elevated). Elevated (the owner, 2026-10-28, on clean commit f2ef9bd, whose session tools are unchanged since 322f02d): coverage.py NO MISMATCH, 9/9 MATCH (evidence/logs/m1-coverage-2026-10-28-152639-elevated). flood_with_session_buffers: covered, 0 events lost of 200280, all 200000 loopback UDP sends attributed, flood completed. mixed_load_with_session_buffers: covered, 0 events lost of 600792, every kind attributed (IPv6 TCP and UDP, 50 brief connections, the flood, DNS, public UDP, the child's UDP), the target complete and one background stand-in, 400000 datagrams, complete (it outlasted the target). The seven EXP-046 cases gave the EXP-046 verdicts, each with 0 events lost with the session buffers; forced_event_loss, with the tiny buffers, lost 135455. dryrun.py: ALL CASES MATCH, 11/11 (evidence/logs/m1-dryrun-2026-10-28-152824-elevated). Its record says dirty: true, because the coverage run's result folder was still untracked; no tracked file differed from f2ef9bd. The owner's screenshot of both runs matches the two result files. Re-run after the second amendment (netwatch streams the trace, KI-45, EXP-051 session 1), elevated by the owner on 2026-10-29 on clean commit 7126ff0 (code f1665ae): coverage.py NO MISMATCH, 9/9 MATCH (evidence/logs/m1-coverage-2026-10-29-063355-elevated). flood_with_session_buffers: covered, 0 events lost of 200254, all 200000 loopback UDP sends attributed, flood completed. mixed_load_with_session_buffers: covered, 0 events lost of 600696, every kind attributed, the target complete and one background stand-in complete. The seven EXP-046 cases gave the EXP-046 verdicts with 0 events lost; forced_event_loss, with the tiny buffers, lost 115996 and was not covered. dryrun.py: 11/11 (evidence/logs/m1-dryrun-2026-10-29-063519-elevated). Its record says dirty: true, because the coverage run's result folder was still untracked; no tracked file differed from 7126ff0.",
+  "evidence_paths": [
+    "evidence/logs/m1-coverage-2026-10-29-063355-elevated",
+    "evidence/logs/m1-dryrun-2026-10-29-063519-elevated",
+    "evidence/logs/m1-coverage-2026-10-28-152639-elevated",
+    "evidence/logs/m1-dryrun-2026-10-28-152824-elevated",
+    "evidence/logs/m1-coverage-2026-10-28-151626-not-elevated",
+    "evidence/logs/m1-dryrun-2026-10-28-151640-not-elevated",
+    "tools/m1/netwatch.py",
+    "tools/m1/coverage.py",
+    "docs/m1-criteria.md"
+  ],
+  "result": "PASSED",
+  "errors": "None in the runs. Limits: the loads are stand-ins on loopback, not the game, and the background was a flood, not a real machine's mixed traffic; a real session's load can differ, which is why EXP-051 keeps events_total and stays INCONCLUSIVE on a single lost event.",
+  "confidence": "high",
+  "follow_up": "2026-10-28: EXP-051 session 1 ran after this passed, and left no evidence (KI-45: the analysis ran out of memory). 2026-10-29: this passed again on the streamed analysis (code f1665ae), the technical gate of the second amendment. EXP-060 session 1 may run only after the owner approves the second amendment in chat. Before it: saves copied aside offline, GOG Galaxy and Steam closed, no KI-35 run at the same time.",
+  "related": [
+    "EXP-045",
+    "EXP-046",
+    "EXP-048"
+  ]
+}

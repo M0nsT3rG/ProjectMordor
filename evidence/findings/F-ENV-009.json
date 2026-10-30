@@ -1,0 +1,29 @@
+{
+  "id": "F-ENV-009",
+  "type": "finding",
+  "date": "2026-10-27",
+  "game_build_compatibility": "Measured on the GOG release: exe SHA-256 8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722 (FileVersion 1.0.2445.0, GOG gameId 1324471032, buildId 55823353107546309). Not the Steam build (1.0.8874.0).",
+  "verification_scope": "locally_measured",
+  "confidence": "high",
+  "subsystem": "platform",
+  "claim": "The owner's copy is the GOG release: GOG store metadata (goggame-1324471032.info/.hashdb/.script) and GOG's uninstaller are present, and no crack or Steam-emulator file is. Its executable is a different build from the Steam one (FileVersion 1.0.2445.0, 44,473,856 bytes, versus 1.0.8874.0 at about 114 MB). It still ships Valve's validly signed steam_api64.dll.",
+  "evidence": "goggame-1324471032.info: gameId 1324471032, buildId 55823353107546309, primary play task x64/ShadowOfWar.exe; x64 holds ShadowOfWar.exe, steam_api64.dll (Authenticode valid, CN=Valve), amd_ags_x64.dll, AnselSDK64.dll, bink2w64.dll, oo2core_5_win64.dll, default.archcfg; 71 .arch06 archives (89.6 GB). Hashes in evidence/pe-inventory-gog.json.",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory-gog.json",
+      "location": "store_metadata, files, x64_listing"
+    }
+  ],
+  "verification_method": "Read-only file listing, FileVersion, SHA-256 (Get-FileHash) and Authenticode status of the installed files; no file was modified or executed.",
+  "classification": "CONFIRMED",
+  "limitations": "The purchase itself is the owner's statement. Whether the game runs without any store client is not tested here (the owner launches it). Offsets, layouts or behaviour measured on one build do not carry over to the other.",
+  "next_experiment": "The owner confirms the game starts and plays with no Steam and no GOG Galaxy client running; then D-008.",
+  "related": [
+    "F-ENV-010",
+    "F-COMM-017",
+    "F-ENV-003",
+    "F-ENV-004"
+  ]
+}

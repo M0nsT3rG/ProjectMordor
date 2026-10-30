@@ -1,0 +1,54 @@
+
+Session 1: INCONCLUSIVE (Tier A NO DATA, established)
+  - no data: no position observed (Tier A INCONCLUSIVE / NO DATA)
+  - too few observations in still 0-30 s: 0
+  - too few observations in move 30-60 s: 0
+Evidence: evidence/logs/m1-tier-a-2026-10-30-143302-s1/session.json
+The network trace did not start: do NOT launch the game. The session ends INCONCLUSIVE.
+
+Session 2: INCONCLUSIVE
+  - network monitoring: the trace did not start; the game was not launched
+  - no data: no position observed (Tier A INCONCLUSIVE / NO DATA)
+  - too few observations in still 0-30 s: 0
+  - too few observations in move 30-60 s: 0
+  - the game's exit was not observed in the trace
+Evidence: evidence/logs/m1-tier-a-2026-10-30-143302-s2/session.json
+Interrupted. If the game is still running, close it through its menu.
+
+Session 3: INCONCLUSIVE
+  - unknown operator note: interrupted
+  - no data: no position observed (Tier A INCONCLUSIVE / NO DATA)
+  - too few observations in still 0-30 s: 0
+  - too few observations in move 30-60 s: 0
+  - whether the game was closed through its menu was not recorded
+Evidence: evidence/logs/m1-tier-a-2026-10-30-143302-s3/session.json
+
+Session 4: INCONCLUSIVE
+  - network monitoring: the trace analysis failed (RuntimeError)
+  - no data: no position observed (Tier A INCONCLUSIVE / NO DATA)
+  - too few observations in still 0-30 s: 0
+  - too few observations in move 30-60 s: 0
+  - the game's exit was not observed in the trace
+Evidence: evidence/logs/m1-tier-a-2026-10-30-143302-s4/session.json
+
+Session 5: FAIL
+  - unexpected write: a save under a new id: user/0badf00d_ShadowOfWar.sav
+  - no data: no position observed (Tier A INCONCLUSIVE / NO DATA)
+  - too few observations in still 0-30 s: 0
+  - too few observations in move 30-60 s: 0
+Evidence: evidence/logs/m1-tier-a-2026-10-30-143302-s5/session.json
+
+The evidence was NOT written. Raw trace files not deleted: none. Left for you to check: %TEMP%\tmpn3czltpw\temp\mordor-m1-tier-a-txrn99qn
+Refused: an earlier session's raw trace could not be deleted (trace.etl in %TEMP%\tmpn3czltpw\temp\mordor-m1-tier-a-txrn99qn). Delete it, then run again. Nothing else was done.
+Deleted an earlier, interrupted session's trace folder: mordor-m1-tier-a-txrn99qn
+
+Session 8: INCONCLUSIVE (Tier A NO DATA, established)
+  - no data: no position observed (Tier A INCONCLUSIVE / NO DATA)
+  - too few observations in still 0-30 s: 0
+  - too few observations in move 30-60 s: 0
+Evidence: evidence/logs/m1-tier-a-2026-10-30-143302-s8/session.json
+....................................s....
+----------------------------------------------------------------------
+Ran 41 tests in 4.714s
+
+OK (skipped=1)

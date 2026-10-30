@@ -1,0 +1,20 @@
+{
+  "commit": "f1665ae",
+  "dirty": false,
+  "what": "M1 self-checks on the head after Codex passes 14-15 on the second KI-45 amendment (netwatch streams the trace), incl. the fixture-only rehearsal of tier_a.main; no game, no ETW",
+  "runs": [
+    {
+      "suite": "tools/m1/test_m1.py",
+      "exit": 0,
+      "ran": 38,
+      "skipped": 1
+    },
+    {
+      "suite": "tools/environment/test_check_gog_build.py",
+      "exit": 0,
+      "ran": 10,
+      "skipped": 0
+    }
+  ],
+  "result": "PASSED"
+}

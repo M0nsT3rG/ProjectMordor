@@ -13,9 +13,12 @@ All of M1–M10 depend on interacting with the running game or analysing its cod
 **G0 passes only when both of these hold:**
 
 - The user records a decision in `docs/decisions.md` covering points 2 and 3.
-- A target and method exist that require no circumvention of any protection. One candidate is a DRM-free release: third parties say the GOG version has no DRM (F-COMM-017). That is unverified, and both players would need such copies.
+- A target and method exist that require no circumvention of any protection. One candidate is a DRM-free release: third parties say the GOG version has no DRM (F-COMM-017), and both players would need such copies.
+  - **2026-10-27:** the owner's purchased GOG copy was checked read-only (F-ENV-009, F-ENV-010). It is the GOG release, with no crack or emulator files, and its executable has none of the Steam build's wrapper indicators. It is a **different build**: FileVersion 1.0.2445.0 against Steam's 1.0.8874.0. The owner reports that it starts and plays with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided on 2026-10-27: this GOG build is the target.** Amended the same day: the target is the installed set with the Expansion Pass and the HD Texture Pack, whose installer replaced the exe (F-ENV-012, SHA-256 `F16DC949…`). The owner's launch test on it passed (F-ENV-013).
 
 **Until G0 passes, M1–M10 are NO-GO, and no game-side experiment is designed.**
+
+**Status, 2026-10-27: G0 has passed for the GOG build.** D-007 (2026-10-25) covers points 2 and 3. D-008 (2026-10-27) sets the target to the GOG release (exe 1.0.2445.0), which needs no circumvention. Each milestone is still designed and decided on its own, M1 first. The Steam build remains out of scope.
 
 ## Matrix
 
@@ -43,4 +46,4 @@ All of M1–M10 depend on interacting with the running game or analysing its cod
 - A data-integrity manifest (E-DATA-2).
 - LAN and real-internet runs of the prototype (EXP-007, needs firewall approval).
 - Desync-digest tooling and puppet-interpolation tuning in the prototype.
-- Verifying, by checking a purchased GOG copy's files, whether it is in fact DRM-free (user decision).
+- Verifying, by checking a purchased GOG copy's files, whether it is in fact DRM-free (user decision). **Done on 2026-10-27: read-only check (F-ENV-009, F-ENV-010) and the owner's launch test with no store client (F-ENV-011).**

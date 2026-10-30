@@ -18,10 +18,12 @@ Research toward 2-player co-op for *Middle-earth: Shadow of War* (Steam app 3561
 
 ## Gate G0: read before proposing any game-side work
 
-M1–M10 are **NO-GO** until the user records both (D-007 is recorded; D-008 is pending, so G0 is still closed):
+**G0 is open since 2026-10-27** (D-007 and D-008 recorded). Game-side milestones M1–M10 may be designed one at a time, M1 first, each with its own go/no-go criteria, on the **pinned GOG set only**: base game + Expansion Pass + High Resolution Texture Pack, exe 1.0.2445.0, SHA-256 `F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8` (D-008 as amended). Every rule above still applies. The Steam build stays out of scope (rule 2).
 
 - **D-007: decided 2026-10-25** (`docs/decisions.md`). The owner proceeds with interoperability work under EU Directive 2009/24/EC and personally accepts the legal risk, without qualified advice. Minimum necessary; every rule above still applies.
-- **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The GOG release is reportedly DRM-free, which is unverified.
+- **D-008:** target platform. The Steam build is protected (F-ENV-003/004, F-COMM-014/017). The owner's GOG copy was checked read-only on 2026-10-27 (F-ENV-009/010): it is the GOG release, its executable has none of the Steam wrapper's indicators, and it is a different build (1.0.2445.0, SHA-256 `8F84F4A6…`) from the Steam one. The owner reports that it runs with Steam and GOG Galaxy closed (F-ENV-011). **D-008 decided 2026-10-27: the target is this GOG build.** Both players need it; the second copy gets the same read-only check.
+  - **Amended 2026-10-27:** the Expansion Pass installer replaced the exe (F-ENV-012), and the owner chose to pin the installed set. `check_gog_build.py` checks the exe hash and the two add-ons. The base exe `8F84F4A6…` is no longer the target.
+  - The owner's launch test on the pinned exe passed (F-ENV-013). M1's criteria are a draft in `docs/m1-criteria.md` awaiting the owner's approval of tier A; M1 has not started.
 
 Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 
@@ -36,7 +38,14 @@ Third-party RVAs and offsets are HYPOTHESIS only. Never compile them in (D-005).
 ## Commands
 
 ```powershell
-./scripts/inventory.ps1        # read-only game discovery + evidence validate/index
+./scripts/inventory.ps1        # read-only game discovery + GOG build pin check (D-008) + evidence validate/index
+python -I tools/environment/check_gog_build.py   # exit 0 verified, 3 mismatch, 5 incomplete (both block game-side work), 4 not installed
+python -I tools/environment/test_check_gog_build.py
+python -I tools/m1/test_m1.py      # M1 tier A tools: netwatch (ETW network monitor), session (outcome rules)
+python -I tools/m1/dryrun.py       # EXP-045 dry run on fixtures, never the game; elevated for the network part
+python -I tools/m1/coverage.py     # EXP-046 ETW coverage (IPv6, TCP attempt, DNS, brief flows, child, loss); elevated
+python -I tools/m1/netwatch.py cleanup --work DIR   # delete a raw trace left by an interrupted run
+python -I tools/m1/tier_a.py --session N   # EXP-048: one M1 tier A session on the real game; owner, elevated, only after approval of docs/m1-criteria.md section 8
 ./scripts/build.ps1            # CMake + MSVC, Release, /W4 /WX
 ./scripts/test.ps1 -Repeat 3   # ctest (unit 19, integration 60, network 17, transport 19 contract tests)
 ./scripts/test.ps1 -GnsBuild   # also build-gns: integration-gns, network-gns, transport on both backends (25), gns spike (7), dtls (61)

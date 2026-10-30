@@ -1,0 +1,25 @@
+{
+  "id": "EXP-046",
+  "type": "experiment",
+  "date": "2026-10-27",
+  "objective": "Measure which network mechanisms the M1 ETW monitor attributes to a target process (FB-34-01), before the owner decides on tier A: IPv6, a TCP attempt that never connects, a DNS lookup with no connection, very short flows, a child process, and lost events. Never touches the game.",
+  "hypothesis": "Run elevated: IPv6 loopback traffic is attributed (both an IPv6 TCP and an IPv6 UDP contact, protocol from the ETW task name, verdict clean); a TCP connect attempt to 192.0.2.1 that never completes, a UDP datagram to 2001:db8::1, a DNS lookup of a .invalid name, 50 very short loopback TCP connections followed by a UDP datagram to 192.0.2.1, and a UDP datagram sent by a child process are all unexpected_contact with the claimed protocol and IP family attributed (the child's send to the child, the 50 connects all attributed); every MATCH also needs proven coverage (canaries, no loss, no PID reuse); a TCP attempt that connected is NOT_APPLICABLE; 200000 loopback datagrams with the smallest trace buffers lose events and give not_covered. A case where the OS refuses to send is NOT_APPLICABLE; a loss that does not occur is NOT_DEMONSTRATED; both are reported, never counted as a match. Run without elevation: every case is not_covered.",
+  "environment": "Windows 11 Pro x64, Python 3.15, logman and tracerpt from Windows; the stand-in is tools/m1/standin.py, not the game; destinations are documentation addresses (RFC 5737, RFC 3849) and .invalid names",
+  "game_exe_sha256": "N/A (the experiment never touches the game, its files or its saves)",
+  "procedure": "python -I tools/m1/coverage.py, once without elevation (Claude Code) and once from an elevated PowerShell (the owner), after EXP-044 on the KI-35 branch has finished. Each case: netwatch start (tiny buffers for the loss case only), the stand-in with that case's action, netwatch stop, netwatch analyze for the stand-in PID, the predeclared check in tools/m1/coverage.py CASES; any raw trace file left is a MISMATCH. Output evidence/logs/m1-coverage-<time>-<elevated|not-elevated>/result.json. PID reuse is covered by the unit tests in tools/m1/test_m1.py; traffic another process makes on the target's behalf is a documented limitation (docs/m1-criteria.md section 4a), not tested.",
+  "expected_result": "No MISMATCH in either run; every NOT_APPLICABLE or NOT_DEMONSTRATED case is reported with its reason.",
+  "observed_result": "Without elevation (Claude Code, clean commit 60ae022): 7/7 not_covered, as expected (evidence/logs/m1-coverage-2026-10-27-031603-not-elevated); every stand-in action got through the OS, IPv6 to 2001:db8::1 included. No raw trace left. The elevated run is the owner's, after EXP-044. Elevated (the owner, commit b500439, dirty only by the EXP-045 result written seconds before): 7/7 MATCH, no NOT_APPLICABLE or NOT_DEMONSTRATED (evidence/logs/m1-coverage-2026-10-27-100835-elevated). IPv6 loopback: clean, with IPv6 TCP and IPv6 UDP contacts attributed. The TCP attempt to 192.0.2.1 never connected and was attributed as tcp/v4 (events 13 and 16). UDP to 2001:db8::1 attributed as udp/v6. The DNS-only lookup was attributed with no connection. All 50 brief loopback connects were attributed, and the following contact too. The child's UDP send was attributed to the child. The forced-loss case lost 164,760 events and gave not_covered. Every other case lost 0 events. No raw trace left. Note: Python's ipaddress classes 192.0.2.0/24 as private, so those contacts show peer 'private'; the rules treat any non-loopback peer as unexpected.",
+  "evidence_paths": [
+    "evidence/logs/m1-coverage-2026-10-27-031603-not-elevated",
+    "evidence/logs/m1-coverage-2026-10-27-100835-elevated",
+    "tools/m1/coverage.py",
+    "docs/m1-criteria.md"
+  ],
+  "result": "PASSED",
+  "errors": "None. Not tested live: PID reuse (unit tests) and traffic another process makes on the target's behalf (a documented limitation, docs/m1-criteria.md section 4a).",
+  "confidence": "high",
+  "follow_up": "ChatGPT review of both runs, then the owner's decision on M1 tier A.",
+  "related": [
+    "EXP-045"
+  ]
+}

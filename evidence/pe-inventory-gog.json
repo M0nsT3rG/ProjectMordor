@@ -1,0 +1,144 @@
+{
+  "note": "Read-only inventory of the GOG release (F-ENV-009/010). Install location not recorded. Exported symbol names omitted.",
+  "store_metadata": {
+    "gameId": "1324471032",
+    "buildId": "55823353107546309",
+    "name": "Middle-earth: Shadow of War",
+    "language": "English",
+    "osBitness": [
+      "64"
+    ],
+    "primary_task": "x64/ShadowOfWar.exe"
+  },
+  "files": {
+    "x64/ShadowOfWar.exe": {
+      "file_version": "1.0.2445.0",
+      "size": 44473856,
+      "sha256": "8F84F4A650BA814CDB6744D2F1CFAE668B887551885176939C71652483A18722",
+      "authenticode": "NotSigned"
+    },
+    "x64/steam_api64.dll": {
+      "file_version": "03.62.82.82",
+      "size": 239904,
+      "sha256": "F12CF470954D9D956F7D44F9EB84659890C5722A021548AB88710340C0965230",
+      "authenticode": "Valid (CN=Valve)"
+    },
+    "x64/AnselSDK64.dll": {
+      "file_version": "1.3.264.0",
+      "size": 665616,
+      "sha256": "9887E9F96EA9FC1B216ADBB6E9362C25F2486AB4729AD3F0A780DC3C24B8414E",
+      "authenticode": "UnknownError (CN=NVIDIA Corporation)"
+    },
+    "x64/amd_ags_x64.dll": {
+      "file_version": "5.0.6.0",
+      "size": 107520,
+      "sha256": "2B4059AFFFA60078014FE490EB0700716689B55AB3A334435C69AF4292B985C1",
+      "authenticode": "NotSigned"
+    },
+    "x64/bink2w64.dll": {
+      "file_version": "2.6e/1.200e",
+      "size": 375296,
+      "sha256": "A639F44E46828D58E9D14C097EE3B19A5AB416E6A0EED65749C7482C6E4B8D11",
+      "authenticode": "NotSigned"
+    },
+    "x64/oo2core_5_win64.dll": {
+      "file_version": "",
+      "size": 935424,
+      "sha256": "4C3DCFEBB2BB59650690FEB4C63D68A5838C37C0FF233C2445269FEF0C5A40D0",
+      "authenticode": "NotSigned"
+    }
+  },
+  "x64_listing": [
+    "amd_ags_x64.dll",
+    "AnselSDK64.dll",
+    "bink2w64.dll",
+    "default.archcfg",
+    "oo2core_5_win64.dll",
+    "ShadowOfWar.exe",
+    "steam_api64.dll"
+  ],
+  "top_level_non_archive": [
+    "EULA.txt",
+    "gog.ico",
+    "goggame-1324471032.hashdb",
+    "goggame-1324471032.ico",
+    "goggame-1324471032.info",
+    "goggame-1324471032.script",
+    "goglog.ini",
+    "Launch Middle-earth - Shadow of War.lnk",
+    "support.ico",
+    "unins000.dat",
+    "unins000.exe",
+    "unins000.ini",
+    "unins000.msg",
+    "webcache.zip",
+    "game/",
+    "x64/"
+  ],
+  "archives": {
+    "count": 71,
+    "total_gb": 89.6
+  },
+  "pe": {
+    "format": "PE32+",
+    "machine": "AMD64",
+    "coff_timestamp_utc": "2022-08-26",
+    "entry_point_section": ".text",
+    "subsystem": "WINDOWS_GUI",
+    "dll_characteristics": [
+      "HIGH_ENTROPY_VA",
+      "DYNAMIC_BASE",
+      "NX_COMPAT",
+      "TERMINAL_SERVER_AWARE"
+    ],
+    "sections": [
+      {
+        "name": ".text",
+        "entropy": 6.562
+      },
+      {
+        "name": ".interpr",
+        "entropy": 6.514
+      },
+      {
+        "name": ".rdata",
+        "entropy": 5.281
+      },
+      {
+        "name": ".data",
+        "entropy": 3.987
+      },
+      {
+        "name": ".pdata",
+        "entropy": 7.05
+      },
+      {
+        "name": ".gfids",
+        "entropy": 0.459
+      },
+      {
+        "name": ".tls",
+        "entropy": 0.139
+      },
+      {
+        "name": "_RDATA",
+        "entropy": 0.147
+      },
+      {
+        "name": ".SHARED",
+        "entropy": -0.0
+      },
+      {
+        "name": ".rsrc",
+        "entropy": 7.829
+      },
+      {
+        "name": ".reloc",
+        "entropy": 5.464
+      }
+    ],
+    "import_dll_count": 37,
+    "import_function_count": 802,
+    "imports_steam_api64": true
+  }
+}

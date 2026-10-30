@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 102,
+  "count": 115,
   "records": [
     {
       "id": "EXP-001",
@@ -419,6 +419,83 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Fourth run of the integration gate, on the candidate head 3c618d9, after item 2 reached two consecutive clean Codex passes on that unchanged head (FB-24-01)."
+    },
+    {
+      "id": "EXP-045",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-045.json",
+      "date": "2026-10-27",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Dry run of the M1 tier A gates without the game (FB-33-03): show that the build check, the read-only snapshots, the ETW network monitoring and the outcome rules give the predeclared outcome for a clean session and for each injected fault, before the owner decides on tier A."
+    },
+    {
+      "id": "EXP-046",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-046.json",
+      "date": "2026-10-27",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "Measure which network mechanisms the M1 ETW monitor attributes to a target process (FB-34-01), before the owner decides on tier A: IPv6, a TCP attempt that never connects, a DNS lookup with no connection, very short flows, a child process, and lost events. Never touches the game."
+    },
+    {
+      "id": "EXP-048",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-048.json",
+      "date": "2026-10-27",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "M1 tier A (docs/m1-criteria.md section 8): can the player character's world position be observed reproducibly from what the pinned GOG build exposes by itself (its own text files, read read-only), without changing anything in the game, its files, its saves or its process, while network monitoring covers the whole run?"
+    },
+    {
+      "id": "EXP-050",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-050.json",
+      "date": "2026-10-28",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "high",
+      "summary": "KI-45: do the explicit session trace buffers (netwatch.BUFFERS: 256 KB, 64 to 512 buffers, at most 128 MB) keep the M1 network monitor from losing events, where logman's defaults lost 1203 in EXP-048 session 1, and do all the EXP-046 coverage cases still hold with them?"
+    },
+    {
+      "id": "EXP-051",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-051.json",
+      "date": "2026-10-28",
+      "subsystem": "experiment",
+      "status": "ABANDONED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1 (KI-45): the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?"
+    },
+    {
+      "id": "EXP-060",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-060.json",
+      "date": "2026-10-29",
+      "subsystem": "experiment",
+      "status": "FAILED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1 and again after EXP-051 session 1 (KI-45): the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?"
+    },
+    {
+      "id": "EXP-061",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-061.json",
+      "date": "2026-10-30",
+      "subsystem": "experiment",
+      "status": "NOT_RUN",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "M1 tier A under docs/m1-criteria.md section 8 as amended after EXP-048 session 1, again after EXP-051 session 1 (KI-45) and a third time after EXP-060 session 1: the same question as EXP-048, can the player character's world position be observed reproducibly from the pinned GOG build's own text files, read read-only, while network monitoring covers the whole run?"
     },
     {
       "id": "F-COMM-001",
@@ -903,6 +980,72 @@
       "scope": "locally_measured",
       "confidence": "low",
       "summary": "A per-user directory '%LOCALAPPDATA%/WB Games/Shadow of War' exists. Its contents were deliberately not inspected in Phase 1."
+    },
+    {
+      "id": "F-ENV-009",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-009.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "The owner's copy is the GOG release: GOG store metadata (goggame-1324471032.info/.hashdb/.script) and GOG's uninstaller are present, and no crack or Steam-emulator file is. Its executable is a different build from the Steam one (FileVersion 1.0.2445.0, 44,473,856 bytes, versus 1.0.8874.0 at about 114 MB). It still ships Valve's validly signed steam_api64.dll."
+    },
+    {
+      "id": "F-ENV-010",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-010.json",
+      "date": "2026-10-27",
+      "subsystem": "anti-tamper",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "The GOG executable shows none of the Steam build's wrapper indicators: its entry point is in .text and its sections are a conventional MSVC layout, with no .bind section, whereas the Steam build enters in .bind (entropy 7.947, F-ENV-003)."
+    },
+    {
+      "id": "F-ENV-011",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-011.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "medium",
+      "summary": "The GOG release starts and is playable with no Steam client and no GOG Galaxy client running."
+    },
+    {
+      "id": "F-ENV-012",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-012.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "After the read-only check of F-ENV-009, two official GOG add-ons were installed into the same GOG release: the Expansion Pass (gameId 1911721374) and the High Resolution Texture Pack (gameId 1946859450), both with buildId 55823353107546309 and rootGameId 1324471032. The Expansion Pass installer replaced ShadowOfWar.exe with a different executable of the same FileVersion (1.0.2445.0): 44,474,880 bytes, SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8, COFF timestamp 2022-09-09 (the base exe: 44,473,856 bytes, SHA-256 8F84F4A6..., 2022-08-26). Its header layout is unchanged: entry point in .text, the same 11 sections, no wrapper indicators."
+    },
+    {
+      "id": "F-ENV-013",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-013.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "medium",
+      "summary": "The pinned GOG set (base game + Expansion Pass + High Resolution Texture Pack, exe SHA-256 F16DC949...) starts and is playable with no Steam client and no GOG Galaxy client running."
+    },
+    {
+      "id": "F-ENV-014",
+      "type": "finding",
+      "path": "evidence/findings/F-ENV-014.json",
+      "date": "2026-10-27",
+      "subsystem": "platform",
+      "status": "CONFIRMED",
+      "scope": "locally_measured",
+      "confidence": "high",
+      "summary": "The game's own folders hold no log file. The per-user folder %LOCALAPPDATA%/WB Games/Shadow of War holds the saves (<uid>_ShadowOfWar.sav and <uid>_<n>_ShadowOfWar.sav, under two uids: one from the earlier Steam install, one the GOG copy wrote at the owner's launch test), render.cfg, gpu.nfo and a CloudStorage folder of 10 WB promotional files tagged '-stm', last written 2026-10-23/24 (before the GOG install). The GOG install has only 'game' and 'x64' folders; its config- or log-like files are store and installer metadata (goggame-*.info, goglog.ini, unins*), EULA.txt, and game/projectconsole.cfg and game/SKU.cfg. Documents/WB Games holds only Shadow of Mordor's settings (another game)."
     },
     {
       "id": "F-GNS-001",

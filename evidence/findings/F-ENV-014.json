@@ -1,0 +1,28 @@
+{
+  "id": "F-ENV-014",
+  "type": "finding",
+  "date": "2026-10-27",
+  "subsystem": "platform",
+  "claim": "The game's own folders hold no log file. The per-user folder %LOCALAPPDATA%/WB Games/Shadow of War holds the saves (<uid>_ShadowOfWar.sav and <uid>_<n>_ShadowOfWar.sav, under two uids: one from the earlier Steam install, one the GOG copy wrote at the owner's launch test), render.cfg, gpu.nfo and a CloudStorage folder of 10 WB promotional files tagged '-stm', last written 2026-10-23/24 (before the GOG install). The GOG install has only 'game' and 'x64' folders; its config- or log-like files are store and installer metadata (goggame-*.info, goglog.ini, unins*), EULA.txt, and game/projectconsole.cfg and game/SKU.cfg. Documents/WB Games holds only Shadow of Mordor's settings (another game).",
+  "evidence": "A metadata-only listing (names, sizes, modification times; no file opened) approved by the owner in chat on 2026-10-27, run by Claude Code with a scratch script. The GOG install was found through GOG's registry entry (check_gog_build.registry_path). The uids (a machine name and an 8-hex-digit id) are deliberately not recorded.",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "tools/environment/check_gog_build.py",
+      "location": "registry_path"
+    }
+  ],
+  "game_build_compatibility": "GOG set pinned by D-008 (amended): exe SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8 (FileVersion 1.0.2445.0). The per-user folder is shared with the earlier Steam install.",
+  "verification_method": "Directory listing with os.walk and stat only, 2026-10-27, after the owner's launch test (F-ENV-013) and before any M1 session.",
+  "classification": "CONFIRMED",
+  "verification_scope": "locally_measured",
+  "confidence": "high",
+  "limitations": "A listing at one moment, after a short launch test. The game may create other files during longer play or in folders not listed (the listing covered the per-user folder, Documents/WB Games and the install's config- and log-like files). File contents were not read: whether any permitted file holds the player position is EXP-048's question.",
+  "next_experiment": "EXP-048 (M1 tier A sessions), after the owner's approval.",
+  "related": [
+    "F-ENV-008",
+    "F-ENV-013",
+    "F-COMM-010"
+  ]
+}

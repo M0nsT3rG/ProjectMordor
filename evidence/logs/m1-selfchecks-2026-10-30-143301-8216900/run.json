@@ -1,0 +1,20 @@
+{
+  "commit": "8216900",
+  "dirty": false,
+  "what": "M1 self-checks on the head after Codex pass 16 on the third amendment (closing answers typed in full, read back and confirmed), incl. the fixture-only rehearsal of tier_a.main; no game, no ETW",
+  "runs": [
+    {
+      "suite": "tools/m1/test_m1.py",
+      "exit": 0,
+      "ran": 41,
+      "skipped": 1
+    },
+    {
+      "suite": "tools/environment/test_check_gog_build.py",
+      "exit": 0,
+      "ran": 10,
+      "skipped": 0
+    }
+  ],
+  "result": "PASSED"
+}

@@ -2,6 +2,305 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-30: third amendment, the closing questions (`feature/d008-gog-inventory`, PR #26)
+
+- **Why:** EXP-060 session 1 failed on one mistaken key. The owner asked for a fix.
+- **The change (`tier_a.py` only):**
+  - `ask()` takes only full words (`yes`/`sim`, `no`/`não`/`nao`); a single letter is asked again.
+  - The new `closing()` reads the three answers back and asks for confirmation; `no` asks all three again.
+  - End of input before confirmation leaves all three unanswered (INCONCLUSIVE).
+  - `EXPERIMENT` is now "EXP-061".
+- **Codex pass 16:** 1 defect (end of input in the middle kept earlier unconfirmed answers), fixed with a regression; a second look found nothing.
+- **Tests:** `test_m1.py` 41 run, 1 skipped; `test_check_gog_build.py` 10; all passing. The 3 new tests errored on the old `tier_a.py`.
+- **Records:** EXP-061 NOT_RUN; `docs/m1-criteria.md` §7 item 5 and §8 "Third amendment".
+- **Next, the owner's:** approval. EXP-050 and the dry run are not repeated (`netwatch.py` and `session.py` unchanged).
+- **Approval:** the owner approved the third amendment in chat ("Aprovo"), as of `dae8a64` (code `8216900`). EXP-061 session 1 may run.
+
+## 2026-10-30: EXP-060 session 1 FAIL on the exit answer (`feature/d008-gog-inventory`, PR #26)
+
+- **The session:** the owner ran it at 14:03 on clean `8c66d7c` (session tools as at `c4e9cce`); the record was written at 14:07:55.
+- **Outcome: FAIL.** Its only reason: "no clean exit (code 0, closed by menu: False)". The game exited with code 0 inside the trace, but the owner answered no to the menu question. Asked afterwards, the owner said the game was closed through its menu and the answer was a mistake. That account is recorded; the outcome is unchanged.
+- **Everything else held:** build check at both ends; network clean and covered, 0 of 546803 events lost, no contact and no DNS, raw trace deleted. The streamed analysis (second amendment) finished on a whole session's trace. No warning or crash reported.
+- **Observations:** none in 8 permitted files. One save added, five changed, all game-written. NO DATA is not claimed, because the outcome is FAIL.
+- **Record:** EXP-060 FAILED; the series is stopped (§8). KI-45 is extended.
+- **Next, the owner's:** whether to start a new series, and whether the closing questions should change first (a session-tool change, new approval).
+
+## 2026-10-29: second amendment approved; tier_a's label fixed; EXP-060 recorded (`feature/d008-gog-inventory`, PR #26)
+
+- **Approval:** the owner approved the second amendment in chat ("Aprovo"), as of `a8f5d5a` (code `f1665ae`).
+- **Found right after, before any run:** `tier_a.py` still wrote `"experiment": "EXP-051"` into `session.json`. The owner chose to fix it: `EXPERIMENT = "EXP-060"`, docstring updated, nothing else.
+- **Consequence:** that is a session-tool change, so a new approval is needed. EXP-050 and the dry run do not run `tier_a.py`, so they need not run again.
+- **Tests:** `test_m1.py` 38 run, 1 skipped; `test_check_gog_build.py` 10; all passing.
+- **EXP-060** is recorded, NOT_RUN: EXP-051's hypothesis and expected result, unchanged, with the second amendment in the procedure.
+- **Re-approval:** the owner approved the label fix in chat ("Aprovo"), as of `c4e9cce`. EXP-060 session 1 may run.
+
+## 2026-10-29: EXP-050 and the dry run passed elevated on the streamed analysis (`feature/d008-gog-inventory`, PR #26)
+
+- **Runs:** the owner ran `coverage.py`, then `dryrun.py`, elevated, on clean `7126ff0` (code `f1665ae`).
+- **coverage.py: 9/9 MATCH, no mismatch** (`evidence/logs/m1-coverage-2026-10-29-063355-elevated`).
+  - The flood: 0 of 200254 events lost, all 200000 sends attributed.
+  - The mixed load: 0 of 600696 events lost, every kind attributed, the background complete.
+  - The seven EXP-046 cases: unchanged verdicts. The tiny buffers lost 115996 and were not covered.
+- **dryrun.py: 11/11** (`evidence/logs/m1-dryrun-2026-10-29-063519-elevated`). Its `dirty: true` comes from the untracked coverage folder; no tracked file differed.
+- **Record:** EXP-050's observed result and follow-up are extended. EXP-050 stays PASSED.
+- **Next, the owner's:** approval of the second amendment in chat. Only then is EXP-060 created and its session 1 run.
+
+## 2026-10-28: EXP-051 session 1 left no evidence; second amendment (`feature/d008-gog-inventory`, PR #26)
+
+- **The session:** the owner ran it at 15:36 on clean `d872ecc`. The game was played and the closing questions answered, and the trace was stopped and decoded.
+- **What failed:** `netwatch.analyze` parsed the whole decoded trace into memory. It reached 18 GB, the machine paged, and Ctrl+C could not reach a single whole-file parse. The owner ended the process, so no `session.json` was written.
+- **Afterwards:** the raw trace's temporary folder had already gone from `%TEMP%`, together with every other `mordor-*` folder there. Something outside these tools cleared it; it was not identified.
+- **Record:** EXP-051 ABANDONED, and the series is stopped (§8). KI-45 is updated.
+- **The fix (second amendment, `netwatch.py` only):**
+  - `events()` streams the file with `iterparse`, keeps only the root's own events, and closes the file on every path.
+  - `_analyze` makes one pass and keeps only counts per PID.
+  - Measured: the old code peaked at 133 MB on 30010 events; the new code peaked at 1 MB on 300009 events (143 MB of XML).
+- **Codex:**
+  - pass 14: 3 defects (the file left open on an interrupt, nested events accepted, a different exception name for a file both malformed and truncated). The first two are fixed with red-before regressions; the third is documented.
+  - pass 15: 1 defect (an interrupt before the protected block), fixed. Its remaining few-instruction window is documented as a limit that ends in a FAIL, never in silence.
+- **Tests:** `test_m1.py` 38 run, 1 skipped, all passing; `test_check_gog_build.py` 10 passing. Self-checks on clean `f1665ae`: `evidence/logs/m1-selfchecks-2026-10-28-201326-f1665ae/`.
+  - A first self-check run on `371f812` was deleted before commit: a test's ResourceWarning printed a local temp path. The test now closes the parser it wraps (`f1665ae`), and the code under test did not change.
+- **Next, the owner's:** EXP-050 and the dry run elevated on the amended code, then approval. The next series is EXP-060.
+
+## 2026-10-28: EXP-050 passed elevated (`feature/d008-gog-inventory`, PR #26)
+
+- **Runs:** the owner ran `coverage.py`, then `dryrun.py`, elevated, on clean `f2ef9bd`. Its session tools are unchanged since `322f02d`.
+- **coverage.py: 9/9 MATCH, no mismatch.**
+  - The flood with the session buffers: 0 of 200280 events lost, all 200000 sends attributed.
+  - The mixed load: 0 of 600792 events lost, every kind attributed, the background complete.
+  - The seven EXP-046 cases: unchanged verdicts, 0 lost each. The tiny buffers still lost 135455.
+- **dryrun.py: 11/11.** Its `dirty: true` comes from the coverage result folder, which was untracked; no tracked file differed.
+- **EXP-050 PASSED.** The technical gate of the approved amendment is met.
+- **Next:** EXP-051 session 1, run by the owner: saves backed up, Galaxy and Steam closed, no KI-35 run at the same time.
+
+## 2026-10-28: Review #39 triage and EXP-050's mixed-load case (`feature/d008-gog-inventory`, PR #26)
+
+- **Review #39:**
+  - FB-39-01, 02 and 04 were accepted; they were already done.
+  - FB-39-03 asked for more evidence than the flood. The owner asked for a mixed-load case and approved it in chat ("Sim, acrescenta").
+- **The case:** `coverage.py` `mixed_load_with_session_buffers` has one target do every kind of traffic, a child included, while unrelated stand-ins flood loopback (400000 datagrams each, replaced within 50 ms) for its whole life. It needs 0 lost events, every kind attributed (the flood too) and every stand-in complete.
+- **Codex pass 13** found 4 points, all fixed:
+  - the flood was not required to be attributed;
+  - a repeated `brief` status could hide a refusal, so the background is flood only;
+  - a refused flood ends its stand-in, which is now documented as a MISMATCH rather than NOT_APPLICABLE;
+  - "at once" overstated the load, so the background now spans the target's whole life.
+- **Unchanged:** the session tools, as approved at `322f02d`.
+- **Tests:** 34 self-checks, 1 skipped. The new test fails against `ae541e5`.
+
+## 2026-10-28: The owner approves the §8 amendment (`feature/d008-gog-inventory`, PR #26)
+
+- **Decision:** the owner approved the amended `docs/m1-criteria.md` §8 for EXP-051 in chat ("Eu aprovo"), as of commit `fe0af56` (code `322f02d`). It came before ChatGPT's review of request #39, the owner's choice.
+- **Still required before EXP-051 session 1:** EXP-050 (`coverage.py`) and `dryrun.py` must pass elevated on code `322f02d`. If either fails, or §8 or the session tools change, the approval no longer covers it.
+- **Not allowed:** tier B. EXP-050 and EXP-051 are still NOT_RUN.
+
+## 2026-10-28: The §8 amendment for KI-45 (`feature/d008-gog-inventory`, PR #26)
+
+- **Request:** after EXP-048 session 1, the owner asked for the fixes to be prepared for a new approval.
+- **The amendment** (§4a, §6a, §7 item 3, §8; marked "amended"):
+  - **Trace buffers:** `netwatch.start` passes `-bs 256 -nb 64 512`, at most 128 MB. The trace state, the analysis and `session.json` keep the buffers used and `events_total`.
+  - **Windows-1252 fallback:** a file with no BOM that is not valid UTF-8 is read as Windows-1252 and listed so. In such a read, a non-ASCII line containing `pos` or `loc` is a candidate, so it cannot pass as no data. A file whose encoding changes during the session is unreadable evidence.
+  - **`user/gpu.nfo`:** while it does not decode and has a NUL, it is "known binary: hashed, not searched".
+  - **The limit of NO DATA:** only ASCII labels are recognised; §8 states this.
+  - **New records:**
+    - EXP-050 measures the buffers: `coverage.py` gains `flood_with_session_buffers`, re-run elevated together with `dryrun.py`.
+    - EXP-051 is the new tier A series, with sessions numbered from 1.
+
+    Both are NOT_RUN. EXP-048 stays PARTIAL.
+- **Codex passes 9 and 10** found 3 and 4 defects, all fixed or, for one, documented:
+  - **Pass 9:**
+    - the gpu.nfo exception skipped UTF-16 text;
+    - mixed-encoding lines lost their label;
+    - the flood check gave a MATCH when the stand-in stopped early.
+  - **Pass 10** found the pass 9 projection unsafe:
+    - a `1½` read as 1;
+    - an encoding switch made old lines look new;
+    - a widened gap hid a label;
+    - a soft hyphen inside a UTF-8 label. This one is not changed in code: it is the ASCII-label limit, now stated in §8.
+
+  The projection was replaced by the candidate rule and the encoding-change rule.
+- **Tests:** 33 self-checks, 1 skipped. The new tests fail against the earlier code.
+- **Codex pass 11** found 3 more, all fixed: gpu.nfo turning from binary to text made old lines look new (now any change of read mode is unreadable evidence); the NO DATA wording; EXP-051's expected reasons, which missed the two zero counts. **Pass 12** found the amendment consistent, apart from one wording point: the gap also excludes `+`, `-` and `.`.
+- **Next:** EXP-050 and the dry run elevated (the owner), review, and the owner's approval. Until then `tier_a.py` must not be run.
+
+## 2026-10-28: EXP-048 session 1 (`feature/d008-gog-inventory`, PR #26)
+
+- **Run:** the owner ran `tier_a.py --session 1` elevated on the pinned GOG set, with the tool at `757ac6a` (clean). Evidence: `evidence/logs/m1-tier-a-2026-10-28-113203-s1/session.json`.
+- **Outcome: INCONCLUSIVE, `no_data_established` false.** EXP-048 is PARTIAL.
+- **Gates held:**
+  - the build check was 0 at both ends;
+  - nothing was removed;
+  - only GAME_WRITTEN files changed (three saves, plus a new slot under an existing id);
+  - the exit code was 0, inside the trace, through the menu;
+  - no warning and no crash were reported;
+  - both canaries were seen;
+  - no contact or DNS lookup was attributed to the game;
+  - the raw trace was deleted.
+- **No position** in the 6 permitted files that were read.
+- **Why NO DATA is not established (KI-45):**
+  - 1203 lost ETW events: logman's default buffers were never sized for a real session.
+  - `install/EULA.txt` is Windows-1252 text.
+  - `user/gpu.nfo` is binary (134 of 208 bytes are NUL).
+
+  The two file diagnoses come from byte statistics only.
+- **Next:** the series is stopped and back with the owner. The proposed fixes (bigger buffers, measured with `coverage.py`; an encoding decision for the two files) change §8 and the tools, so they need review and a new approval. Nothing is changed yet. Review request #39.
+
+## 2026-10-27: The owner approves M1 tier A (`feature/d008-gog-inventory`, PR #26)
+
+- **Decision:** the owner approved `docs/m1-criteria.md` §8 in chat on 2026-10-27, as of commit `6f2ed04` (code `e171fe0`). The approval follows reviews #36 and #37 and Codex passes 7 and 8.
+- **What it allows:** EXP-048 session 1, which the owner runs elevated after the KI-35 experiment on PR #25 has finished.
+- **What it does not allow:** tier B. Any later change to §8 or to the session tools needs a new approval.
+- **EXP-048:** still NOT_RUN.
+
+## 2026-10-27: Codex pass 8 on EXP-048 (`feature/d008-gog-inventory`, PR #26)
+
+- **Run:** the owner asked for it, to check the pass 7 fixes. Read-only, on `25edf8a`.
+- **Found 1 defect, reproduced and fixed with a regression:** a save id equal to the machine name (the Steam-era save) was left out of id replacement, and names are replaced only as whole tokens. So `backupDESKTOP-T.cfg` kept the name in the evidence. A name that is also a save id is now replaced anywhere, like an id.
+- **Tests:** 28 self-checks, 1 skipped. The extended test fails against `25edf8a`.
+
+## 2026-10-27: Codex pass 7 on EXP-048 (`feature/d008-gog-inventory`, PR #26)
+
+- **Run:** the owner asked for it after the usage limit reset. Read-only, on `e1683ec`.
+- **Found 4 defects. All 4 reproduced and fixed, with regressions:**
+  1. A UTF-16 permitted file was decoded as UTF-8. Its labels became unreadable and the file counted as scanned, so a session could establish NO DATA falsely. Now only UTF-8 or UTF-16 with a BOM is read; anything else is unreadable evidence.
+  2. `SAVE_ID` also matched `<id>_ShadowOfWar.sav.bak`, so a backup could vouch for a new id. Ids now come only from whole save names (`SAVE_NAME`).
+  3. A known id inside a longer name (`backup4e57de68.cfg`) was not redacted. Ids of 4 characters or more are now replaced anywhere.
+  4. A session killed with its console left its trace running into its own temporary folder, which the next session never looked at. Before each session the tool now stops the trace and deletes earlier sessions' folders, and refuses to start if a raw file cannot be deleted.
+- **Tests:** 28 self-checks, 1 skipped. The new and extended tests fail against `e1683ec`.
+- **Open:** the owner's approval of §8; session 1 after the KI-35 run.
+
+## 2026-10-27: Review #37 triage (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [review #37](https://github.com/M0nsT3rG/ProjectMordor/pull/26). §8 can go to the owner, conditionally. Comparing save ids with the before-snapshot is accepted. No code changes were requested.
+- **Done:** the self-checks were run verbosely on the exact head `cf03239`, with a clean tree, and kept as evidence: `evidence/logs/m1-selfchecks-2026-10-27-143920-cf03239/`, 27 (1 skipped) and 10, all passing, the fixture-only rehearsal included.
+- **Open before session 1:** Codex pass 7 (deferred by the owner), the owner's explicit approval of §8, the end of the KI-35 run.
+
+## 2026-10-27: Review #36 follow-up: EXP-048 changes before approval (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [review #36](https://github.com/M0nsT3rG/ProjectMordor/pull/26). Conditional: make the outcome tests, the privacy checks and a fixture-only rehearsal before the owner approves §8. All six items accepted (triage in CHATGPT_FEEDBACK.md).
+- **Fixed:**
+  - A save under a new id is now an unexpected write.
+  - The install's small text files are hashed.
+  - Save ids are redacted wherever they appear, and path redaction is case-insensitive and catches escaped paths.
+  - A failed trace analysis is recorded, not a crash.
+  - A failed evidence write reports what it left.
+  - `no_data_established` tells a valid NO DATA session apart from failed monitoring.
+- **Tests:** 27 self-checks, 1 skipped. The 4 new ones fail against the previous code.
+- **Open:** Codex pass 7 (the owner deferred it), the owner's approval of §8, then session 1 after the KI-35 run.
+
+## 2026-10-27: Review #35 follow-up: the M1 tier A predeclaration (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** review #35 and its follow-up on [PR #26](https://github.com/M0nsT3rG/ProjectMordor/pull/26). The prerequisites are met, so the final tier A predeclaration can be prepared for the owner's approval. The owner asked for the instructions to be carried out and will run the test.
+- **F-ENV-014:** a metadata-only listing of the game's folders, approved by the owner. The game writes no log file.
+  - The per-user folder holds the saves, render.cfg, gpu.nfo and a CloudStorage folder from the Steam era.
+  - Save names carry the machine name and an 8-hex-digit id, which are never recorded.
+  - Documents/WB Games is Shadow of Mordor's.
+- **FB-35-04:** Ctrl+C or an error in the dry run or the coverage run left the system-wide trace running. `netwatch.abort` now stops it and deletes the raw files.
+- **EXP-048 (NOT_RUN) and `docs/m1-criteria.md` §8:**
+  - exact folders, permitted reads and game-written files (`label/<glob>` patterns in `session.game_written`);
+  - actions guided by beeps, tolerances, backup and gates.
+  - The hypothesis is Tier A INCONCLUSIVE / NO DATA.
+- **Tool:** `tools/m1/tier_a.py`, which the owner runs elevated. It refuses to start without elevation, with Galaxy, Steam or the game open, or without a confirmed save backup. Its evidence holds no paths, names or save ids. 20 self-checks.
+- **Open:** the owner's approval of §8, then session 1.
+
+## 2026-10-27: Elevated runs of EXP-045 and EXP-046 (`feature/d008-gog-inventory`, PR #26)
+
+- **Who:** the owner ran both tools from an elevated PowerShell on `b500439`, after EXP-044 and its test battery on the KI-35 branch had finished. The game was never touched.
+- **EXP-045:** PASSED, 11/11, each for its predeclared reason.
+  - The baseline was PASS with a clean network verdict.
+  - The online-contact case was FAIL on "unexpected online contact".
+  - Lost monitoring was INCONCLUSIVE.
+- **EXP-046:** PASSED, 7/7 MATCH, with no NOT_APPLICABLE or NOT_DEMONSTRATED. Each mechanism was attributed with the claimed protocol and IP family:
+  - IPv6;
+  - the TCP attempt that never connected;
+  - DNS only;
+  - the 50 brief flows;
+  - the child's send.
+
+  The forced-loss case lost 164,760 events and gave not_covered.
+- **Raw traces:** none was left in any case.
+- **Open:**
+  - ChatGPT's answer to #35, with these results added;
+  - the owner's decision on tier A (M1 not started).
+
+## 2026-10-27: Review #34 follow-up: ETW coverage experiment and raw-trace lifecycle (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #34](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it.
+- **FB-34-01:** EXP-046 was predeclared (`60ae022`) before its runs. `tools/m1/coverage.py` covers 7 mechanisms:
+  - IPv6 loopback;
+  - a TCP attempt that never connects;
+  - UDP to 2001:db8::1;
+  - a DNS lookup only;
+  - 50 short flows;
+  - a child process's send;
+  - forced event loss.
+
+  A MATCH needs the claimed protocol (from the ETW task name), the IP family and proven coverage. Contacts now carry the protocol, the family and whether a child sent them. **Not elevated: 7/7 not covered**, as expected.
+- **FB-34-02/03:** `docs/m1-criteria.md` says what a clean record does not prove, and asks for the owner's offline save copy.
+- **FB-34-04:**
+  - A kept or undeletable raw trace is a FAIL (stop condition 10).
+  - A trace never starts beside old raw files.
+  - New command: `netwatch.py cleanup`.
+- **EXP-045:** each case now also needs its predeclared reason. Re-run not elevated on `60ae022`: 11/11.
+- **Codex:** three passes. The first found 5 defects and the second 4, all fixed (17 self-checks); the third was clean.
+- **Found on the way:** Python's `ipaddress` classes the documentation ranges as `is_private`. That does not matter, because any non-loopback peer counts.
+- **Open:** the owner's elevated runs of EXP-045 and EXP-046 after EXP-044; ChatGPT's answer to #35.
+
+## 2026-10-27: Review #33 follow-up: M1 network monitoring and the dry run (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #33](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, without starting M1.
+- **FB-33-01:** `check_gog_build.py` `main` is run end to end for each outcome, with its exit code and evidence file checked (10 self-checks).
+- **FB-33-02:**
+  - `tools/m1/netwatch.py` uses Windows' own event tracing (`logman`/`tracerpt`).
+  - The event format comes from a probe that the owner ran elevated: a canary process's TCP connect, UDP send and DNS query, each with its PID.
+  - Coverage is proven by canaries, zero lost events, and the target's start and exit inside the window. Processes are keyed by sequence number.
+  - The raw trace is deleted afterwards; the record holds no addresses.
+- **FB-33-03:** `tools/m1/session.py` holds the outcome rules; `tools/m1/dryrun.py` runs EXP-045, 11 fault-injection cases on fixtures.
+  - Four Codex passes before the runs found 20 defects; all are fixed (14 self-checks).
+  - **Not elevated: 11/11 match.** The elevated run is the owner's, after EXP-044.
+- **FB-33-04:** found while writing the record format: the game autosaves and writes logs. The predeclaration now lists the game-written folders. A change elsewhere, or any removal, is a FAIL.
+- **Elevation:** the auto-mode classifier refused an elevated launch by Claude Code, so the owner runs elevated steps.
+- **Open:** the elevated dry run; ChatGPT's answer to #34; then the owner's decision on tier A; the second player's copy.
+
+## 2026-10-27: Review #32 follow-up: a fail-closed pin check and M1 outcomes (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #32](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, without starting M1.
+- **FB-32-01:** already done (F-ENV-013, reported after request #32). Both fingerprints stay recorded.
+- **FB-32-02:** `check_gog_build.py` now fails closed.
+  - MISMATCH (exit 3) and the new INCOMPLETE (exit 5): an unreadable FileVersion, malformed `.info` files and unreadable files are never verified.
+  - It pins the SHA-256 of all 7 files in `x64` as an exact list (hashed read-only on this machine), so a changed, missing or extra DLL fails.
+  - A Codex pass found four checker defects and two contradictory outcome rules; all fixed.
+  - 9 self-checks; `inventory.ps1` throws on exit 5 and passes on this machine.
+- **FB-32-03/04:** `docs/m1-criteria.md` gains Tier A INCONCLUSIVE / NO DATA (no automatic tier B), per-session PASS / FAIL / INCONCLUSIVE / NOT RUN, the session requirements and eight stop conditions.
+- **Open:** ChatGPT's answer to request #33, then the owner's approval of M1 tier A; the second player's copy.
+
+## 2026-10-27: Review #30 follow-up: GOG build pin and M1 criteria (`feature/d008-gog-inventory`, PR #26)
+
+- **Input:** [PR #26 review #30](https://github.com/M0nsT3rG/ProjectMordor/pull/26); the owner asked for all of it, after review #29, which went to the KI-35 session.
+- **FB-30-04:** `tools/environment/check_gog_build.py` (6 self-checks) is run by `scripts/inventory.ps1`.
+  - It checks the store metadata, the exe SHA-256 and FileVersion, and the absence of crack, emulator and proxy-DLL files, against the D-008 pin.
+  - It writes `evidence/gog-build.json` without paths.
+  - Exit 3 blocks the inventory.
+- **The check failed on its first real run:** the official Expansion Pass installer had replaced the exe after the morning check (F-ENV-012).
+  - Same FileVersion, new SHA-256 `F16DC949…`, compiled 2022-09-09, the same header layout and no wrapper indicators.
+  - The High Resolution Texture Pack was installed too.
+  - The pin is unchanged: re-pinning is the owner's decision.
+- **FB-30-02/03:** `docs/m1-criteria.md` is a draft. It defines one value (the player position); tier A (the game's own files, without changing them) before tier B (read-only process observation, separate approval); the fingerprint, the evidence, privacy, go and no-go, and the stop conditions. M1 has not started.
+- **D-008 amended (owner, 2026-10-27):** pin the installed set (base + Expansion Pass + HD Texture Pack, exe `F16DC949…`). `check_gog_build.py` now also requires the two add-ons with the pinned buildId (7 self-checks) and passes on this machine.
+- **F-ENV-013:** the owner reports that the pinned set (with the Expansion Pass) starts and plays with Steam and GOG Galaxy closed.
+- **Open:** approving M1 tier A; the second player's copy.
+
+## 2026-10-27: Read-only check of the owner's GOG copy (`feature/d008-gog-inventory`)
+
+- **Input:** the owner bought and installed the GOG release and asked for a read-only check. Nothing was modified, executed or recorded about its location.
+- **F-ENV-009:**
+  - GOG store metadata is present (gameId 1324471032, buildId 55823353107546309), with GOG's uninstaller and no crack or emulator files.
+  - The executable is FileVersion 1.0.2445.0, 44,473,856 bytes, SHA-256 `8F84F4A6…`: a different build from the Steam one (1.0.8874.0).
+  - Valve's signed `steam_api64.dll` is shipped.
+- **F-ENV-010:** the Phase 1 header tool (`pe_inventory.py`, as for F-ENV-003) finds the entry point in `.text`, a conventional layout and no `.bind`. The Steam build enters in `.bind`. That is the absence of wrapper indicators, not a proof that no protection exists.
+- **F-ENV-011:** the owner reports that the GOG copy starts and plays with Steam and GOG Galaxy closed.
+- **D-008 recorded (owner, 2026-10-27):** the target platform is the GOG release, exe 1.0.2445.0, SHA-256 `8F84F4A6…`. With D-007, **G0 is open**: CLAUDE.md, the feasibility matrix, the roadmap, KI-01 and CURRENT_TASK are updated. All rules are unchanged, and the Steam build stays out of scope.
+- **Open:** designing M1 (read-only observation) with go/no-go criteria; the second player's GOG copy. Any later game-side work targets one build: offsets and layouts do not carry across.
+
 ## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)
 
 - **Input:** the owner asked to fix Codex's 3 P2 findings on the candidate (passes 6 and 7 on `2217085`), with regressions, and then to get two consecutive clean Codex passes. Record: EXP-038.

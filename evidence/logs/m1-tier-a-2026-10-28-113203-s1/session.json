@@ -1,0 +1,93 @@
+{
+  "experiment": "EXP-048",
+  "session": 1,
+  "commit": "757ac6a",
+  "dirty": false,
+  "outcome": "INCONCLUSIVE",
+  "no_data_established": false,
+  "reasons": [
+    "network monitoring: events lost: 1203",
+    "no data: no position observed (Tier A INCONCLUSIVE / NO DATA)",
+    "too few observations in still 0-30 s: 0",
+    "too few observations in move 30-60 s: 0",
+    "unreadable evidence: install/EULA.txt (not UTF-8 or UTF-16 text)",
+    "unreadable evidence: user/gpu.nfo (not UTF-8 or UTF-16 text)"
+  ],
+  "build_start": 0,
+  "build_end": 0,
+  "changes": {
+    "added": [
+      "user/<redacted>_3_ShadowOfWar.sav"
+    ],
+    "removed": [],
+    "changed": [
+      "user/<redacted>_1_ShadowOfWar.sav",
+      "user/<redacted>_2_ShadowOfWar.sav",
+      "user/<redacted>_ShadowOfWar.sav"
+    ]
+  },
+  "files": {
+    "user": 21,
+    "install": 948
+  },
+  "game_written": [
+    "user/*_ShadowOfWar.sav",
+    "user/render.cfg",
+    "user/gpu.nfo"
+  ],
+  "actions": [
+    {
+      "t0": 0,
+      "t1": 30,
+      "kind": "still"
+    },
+    {
+      "t0": 30,
+      "t1": 60,
+      "kind": "move"
+    }
+  ],
+  "tolerances": {
+    "still_max": 0.5,
+    "move_min": 5.0,
+    "min_obs": 3
+  },
+  "scanned": [
+    "user/render.cfg",
+    "install/goglog.ini",
+    "install/unins000.ini",
+    "install/unins002.ini",
+    "install/game/SKU.cfg",
+    "install/game/projectconsole.cfg"
+  ],
+  "observations": [],
+  "exit": {
+    "code": 0,
+    "closed_by_menu": true
+  },
+  "operator_stops": [],
+  "network": {
+    "verdict": "not_covered",
+    "coverage": "not_covered",
+    "coverage_problems": [
+      "events lost: 1203"
+    ],
+    "canaries": {
+      "start": true,
+      "end": true
+    },
+    "events_lost": 1203,
+    "contacts": [],
+    "dns": [],
+    "targets": [
+      {
+        "image": "ShadowOfWar.exe",
+        "started_in_trace": true,
+        "exited_in_trace": true,
+        "exit_code": "0"
+      }
+    ],
+    "raw_kept": false,
+    "raw_not_deleted": []
+  }
+}

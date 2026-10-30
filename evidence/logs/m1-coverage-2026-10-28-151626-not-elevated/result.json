@@ -1,0 +1,227 @@
+{
+  "experiment": "EXP-050",
+  "elevated": false,
+  "buffers": [
+    "-bs",
+    "256",
+    "-nb",
+    "64",
+    "512"
+  ],
+  "commit": "4c5ef08",
+  "dirty": false,
+  "game_touched": false,
+  "cases": [
+    {
+      "case": "ipv6_loopback_attributed",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "loop6_tcp": "sent",
+        "loop6_udp": "sent"
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "tcp_attempt_never_connects",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "tcp 192.0.2.1": "attempted, never connected"
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "ipv6_public_udp",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "udp 2001:db8::1": "sent"
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "dns_lookup_only",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "dns mordor-test.invalid": "asked"
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "brief_flows_then_contact",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "brief": "sent",
+        "udp 192.0.2.1": "sent"
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "child_process_contact",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "child": 0,
+        "child udp 192.0.2.1": "sent"
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "forced_event_loss",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "flood": 200000
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "flood_with_session_buffers",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "flood": 200000
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    },
+    {
+      "case": "mixed_load_with_session_buffers",
+      "verdict": "MATCH",
+      "why": "verdict not_covered (expected not_covered without elevation)",
+      "stand_in": {
+        "loop6_tcp": "sent",
+        "loop6_udp": "sent",
+        "brief": "sent",
+        "flood": 200000,
+        "dns mordor-test.invalid": "asked",
+        "udp 192.0.2.1": "sent",
+        "child": 0,
+        "child udp 192.0.2.1": "sent",
+        "background runs": 1,
+        "background complete": true
+      },
+      "network": {
+        "verdict": "not_covered",
+        "coverage_problems": [
+          "the trace did not start (an elevated prompt is required)",
+          "the trace was not stopped and decoded cleanly",
+          "no decodable trace (FileNotFoundError)"
+        ],
+        "events_lost": null,
+        "events_total": null,
+        "buffers": null,
+        "contacts": [],
+        "dns": [],
+        "targets": []
+      }
+    }
+  ],
+  "no_mismatch": true
+}

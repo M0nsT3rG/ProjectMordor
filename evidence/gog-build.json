@@ -1,0 +1,41 @@
+{
+  "checked_at": "2026-10-27T00:46:06+00:00",
+  "install": "<GOG>",
+  "pinned": {
+    "game_id": "1324471032",
+    "build_id": "55823353107546309",
+    "file_version": "1.0.2445.0",
+    "addons": {
+      "1911721374": "Expansion Pass",
+      "1946859450": "High Resolution Texture Pack"
+    },
+    "x64": {
+      "ShadowOfWar.exe": "F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8",
+      "amd_ags_x64.dll": "2B4059AFFFA60078014FE490EB0700716689B55AB3A334435C69AF4292B985C1",
+      "AnselSDK64.dll": "9887E9F96EA9FC1B216ADBB6E9362C25F2486AB4729AD3F0A780DC3C24B8414E",
+      "bink2w64.dll": "A639F44E46828D58E9D14C097EE3B19A5AB416E6A0EED65749C7482C6E4B8D11",
+      "default.archcfg": "070E3E792B4767A51A9DDB360EA54FB1DC7AE9B660D0D2174D78BD0B46272059",
+      "oo2core_5_win64.dll": "4C3DCFEBB2BB59650690FEB4C63D68A5838C37C0FF233C2445269FEF0C5A40D0",
+      "steam_api64.dll": "F12CF470954D9D956F7D44F9EB84659890C5722A021548AB88710340C0965230"
+    }
+  },
+  "result": "VERIFIED",
+  "mismatch": [],
+  "incomplete": [],
+  "facts": {
+    "game_id": "1324471032",
+    "build_id": "55823353107546309",
+    "x64_files": [
+      "AnselSDK64.dll",
+      "ShadowOfWar.exe",
+      "amd_ags_x64.dll",
+      "bink2w64.dll",
+      "default.archcfg",
+      "oo2core_5_win64.dll",
+      "steam_api64.dll"
+    ],
+    "sha256": "F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8",
+    "size": 44474880,
+    "file_version": "1.0.2445.0"
+  }
+}

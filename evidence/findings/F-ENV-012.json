@@ -1,0 +1,34 @@
+{
+  "id": "F-ENV-012",
+  "type": "finding",
+  "date": "2026-10-27",
+  "subsystem": "platform",
+  "claim": "After the read-only check of F-ENV-009, two official GOG add-ons were installed into the same GOG release: the Expansion Pass (gameId 1911721374) and the High Resolution Texture Pack (gameId 1946859450), both with buildId 55823353107546309 and rootGameId 1324471032. The Expansion Pass installer replaced ShadowOfWar.exe with a different executable of the same FileVersion (1.0.2445.0): 44,474,880 bytes, SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8, COFF timestamp 2022-09-09 (the base exe: 44,473,856 bytes, SHA-256 8F84F4A6..., 2022-08-26). Its header layout is unchanged: entry point in .text, the same 11 sections, no wrapper indicators.",
+  "evidence": "goggame-1911721374.info and goggame-1946859450.info (name, buildId, rootGameId); GOG registry entries ver 1.21; file times 00:23 (base install) and 00:39-00:48 (add-ons); pe_inventory.py on the new exe: entry .text, sections identical to F-ENV-010, 37 import DLLs, 802 functions, size_of_image unchanged, entropy changes of +-0.008 in .interpr, .data, .reloc. tools/environment/check_gog_build.py reports MISMATCH against the D-008 pin.",
+  "sources": [
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/gog-build.json",
+      "location": "facts, problems"
+    },
+    {
+      "url": "",
+      "commit": "",
+      "path": "evidence/pe-inventory-gog.json",
+      "location": "pe (the base exe, for comparison)"
+    }
+  ],
+  "game_build_compatibility": "GOG release with the Expansion Pass and the High Resolution Texture Pack: exe SHA-256 F16DC9492E0F31565071936A652252C80CA32EB6E9C07C331AE89BDD9C3DE5D8 (FileVersion 1.0.2445.0). The build D-008 pins since the owner's amendment of 2026-10-27; the base exe 8F84F4A6... is no longer the target.",
+  "verification_method": "Read-only: file listing and times, the add-ons' own GOG metadata and registry entries, Get-FileHash, FileVersion, and the Phase 1 header tool; nothing was modified or executed.",
+  "classification": "CONFIRMED",
+  "verification_scope": "locally_measured",
+  "confidence": "high",
+  "limitations": "Same FileVersion, different binary: version strings do not identify a GOG build, only the hash does. Which installer step replaced the exe is inferred from file times (the Expansion Pass, 00:40), not logged. The owner's launch test (F-ENV-011) was on the base exe or the new one: not known.",
+  "next_experiment": "Done: the owner's launch test on this exe passed (F-ENV-013). The second player installs the same three GOG products and passes check_gog_build.py.",
+  "related": [
+    "F-ENV-009",
+    "F-ENV-010",
+    "F-ENV-011"
+  ]
+}

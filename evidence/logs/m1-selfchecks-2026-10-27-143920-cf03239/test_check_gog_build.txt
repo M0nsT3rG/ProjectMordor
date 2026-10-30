@@ -1,0 +1,15 @@
+test_a_changed_exe_or_dll_is_a_mismatch (__main__.Check.test_a_changed_exe_or_dll_is_a_mismatch) ... ok
+test_an_extra_or_missing_x64_file_is_a_mismatch (__main__.Check.test_an_extra_or_missing_x64_file_is_a_mismatch) ... ok
+test_an_unreadable_file_version_is_incomplete_never_verified (__main__.Check.test_an_unreadable_file_version_is_incomplete_never_verified) ... ok
+test_an_unreadable_pinned_file_is_incomplete (__main__.Check.test_an_unreadable_pinned_file_is_incomplete) ... ok
+test_main_exit_code_per_outcome (__main__.Check.test_main_exit_code_per_outcome) ... ok
+test_main_exit_codes (__main__.Check.test_main_exit_codes) ... ok
+test_names_that_differ_only_in_case_are_a_mismatch (__main__.Check.test_names_that_differ_only_in_case_are_a_mismatch) ... ok
+test_store_metadata (__main__.Check.test_store_metadata) ... ok
+test_the_pinned_set_is_verified (__main__.Check.test_the_pinned_set_is_verified) ... ok
+test_unexpected_layouts (__main__.Check.test_unexpected_layouts) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.391s
+
+OK
