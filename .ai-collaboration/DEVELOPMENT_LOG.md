@@ -14,6 +14,7 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Tests:** `test_m1.py` 41 run, 1 skipped; `test_check_gog_build.py` 10; all passing. The 3 new tests errored on the old `tier_a.py`.
 - **Records:** EXP-061 NOT_RUN; `docs/m1-criteria.md` §7 item 5 and §8 "Third amendment".
 - **Next, the owner's:** approval. EXP-050 and the dry run are not repeated (`netwatch.py` and `session.py` unchanged).
+- **Approval:** the owner approved the third amendment in chat ("Aprovo"), as of `dae8a64` (code `8216900`). EXP-061 session 1 may run.
 
 ## 2026-10-30: EXP-060 session 1 FAIL on the exit answer (`feature/d008-gog-inventory`, PR #26)
 
