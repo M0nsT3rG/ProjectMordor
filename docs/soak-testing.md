@@ -525,6 +525,594 @@ On `bd052d6`, with the default policy (cookie on, 500 ms retry). The gates are u
 - **GNS phases** of the 5 battery harsh-gns-secure reconnects (`timeline.py --summary`): p50 notice 185, establish 436, DTLS 560, session 674, total 2080 ms (p90 total 2898 ms).
 - Test suites, both passes on both builds: all passed, with the transport check OK. E2E, asymmetric 4/4 and secure E2E 4/4 also passed. The hang watcher recorded no stuck process.
 
+## Predeclared experiment KI-35: what sets GNS establishment time (2026-10-25, EXP-036)
+
+Written and committed **before** its first run. Measurement only: no product, default or gate change.
+
+- **Context.** In the 39 harsh-gns-secure reconnects recorded so far, `phase_establish` (from `reconnecting` to the
+  first DTLS ClientHello, which waits for the inner GNS `Connected`) has p50 880 ms and p90 1580 ms. It is the largest
+  phase. F-GNS-003, source-verified, describes how GNS connects: a 4-packet exchange that restarts every 500 ms; the
+  500 ms is a compile-time constant, not a GNS setting.
+- **Model** (`tools/ki35/model.py`, fixed seed, 200 000 samples, harsh mapping of `gns_transport.cpp`, duplicates not
+  modelled). Raw establishment: **p50 409 ms, p90 1850 ms, p99 3360 ms**. Per-attempt success is 0.85^4 = 0.52.
+- **Measurement** (`tools/ki35/probe`, GNS build). One process holds a listening GNS transport and a fresh client
+  transport per trial. The harsh profile is applied through our own `set_impairment`; it is process-global, so both
+  directions are impaired, as in the soak. Each trial times `connect()` to the client's `Connected` event, with both
+  transports polled every 1 ms at 1 ms timer resolution. 300 harsh trials and 50 unimpaired trials.
+- **Decision rules, fixed now:**
+  - **H1 (the GNS model explains raw establishment):** supported if the measured raw p50 is in [259, 559] ms **and**
+    the raw p90 in [1388, 2313] ms (each ±max(25%, 150 ms) of the model). If supported, the establishment tail is set
+    by a GNS constant we cannot configure, and any remedy must avoid or overlap new connections, each in its own
+    predeclared experiment.
+  - **H2 (our reconnect path adds latency beyond raw GNS):** supported if 880 ms (the soak p50 above) exceeds the
+    measured raw p50 by more than 200 ms. If supported, the next predeclared step instruments the client between
+    `reconnecting`, the GNS `connect()` call and the inner `Connected`. Instrumentation only.
+  - Neither result changes a gate, a default or the protocol.
+
+**EXP-036 result (`run_probe.py` on `b36d226`): H1 not supported, H2 not supported.**
+
+| | p50 | p90 | p99 |
+|---|---|---|---|
+| Model (F-GNS-003) | 409 ms | 1850 ms | 3360 ms |
+| Raw GNS, measured (300 harsh trials, 0 failures) | **844 ms** | **1598 ms** | 3210 ms |
+| Soak `phase_establish` (39 reconnects) | 880 ms | 1580 ms | - |
+
+- **By the rules:**
+  - H1 fails on its p50 band; its p90 is inside the band.
+  - H2 fails: the soak's p50 exceeds the raw p50 by about 37 ms. That compares medians of different samples (the probe and earlier soak reconnects): it is not a paired estimate and does not bound what our reconnect path adds (corrected after review #25).
+- **Post-hoc, not a rule:** the successes fall in 500 ms retry cycles as F-GNS-003 describes. In the first cycle 149/300 = 0.50 succeed; the model predicted 0.52. With a first-attempt rate this close to 0.5, the median sits on the boundary between cycle 1 (about 400 ms) and cycle 2 (about 850 ms). So the p50 band was a fragile criterion. The rule's result stands; future predeclarations judge per-attempt rates, not a median near such a boundary.
+- **What it means for KI-35:** the establishment phase is GNS's own fixed 500 ms retry, a compile-time constant. How much of it our polling and connection lifecycle add is not measured by this unpaired comparison. Remedies would avoid or overlap new GNS connections, or patch GNS (a dependency change, owner approval). Each would need its own predeclared experiment. The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and are not yet decomposed.
+
+## Predeclared experiment KI-35: DTLS and session phases per connection (2026-10-25, EXP-037)
+
+Written and committed **before** its first run, after review #25 (FB-25-01..03). Measurement only: no product, default
+or gate change.
+
+- **Question.**
+  - Do the DTLS and session phases, which are ours, behave as their packet-level mechanisms predict?
+  - Which phase makes each slow connection slow? Phases are correlated per connection, not by adding medians of
+    unrelated samples.
+- **Probe** (`tools/ki35/secure_probe.cpp`, GNS build).
+  - A secure Host and Client in one process, in real time (1 ms loop at 1 ms timer resolution), harsh profile.
+  - Each trial is a fresh secure join, then a leave. **A fresh join is not a stall reconnect:** it has no notice
+    phase and no token.
+  - Per trial: `establish` (`connect()` to the first DTLS ClientHello), `dtls` (to `authenticated`), `session` (to the
+    client's `Connected`) and `total`.
+  - Counts per trial: client DTLS retransmission timers, ClientHellos, the session's ConnectRequests (from the
+    client's `connect_accept_received` log line) and, on GNS, the time of the inner `Connected`.
+- **Batches.**
+  - UDP: seeds 3701, 3702, 3703 (host and client impairment seeded), 100 trials each.
+  - GNS: 3 repetitions of 100 trials. GNS fake loss cannot be seeded, so these are repetitions, not seeds.
+- **Model** (`tools/ki35/model.py` `proportions()`). Per-attempt success, as [without, with] duplicates; a duplicate
+  is assumed to be lost independently:
+  - `dtls_no_timer` **[0.377, 0.394]**: all 6 handshake flights arrive (cookie on; each flight one coalesced datagram).
+  - `session_first` **[0.614, 0.628]**: one ConnectRequest suffices; needs the client's binding, the ConnectRequest
+    and the ConnectAccept. Alternative `session_first_2leg` [0.723, 0.733].
+  - GNS `gns_first_cycle` **[0.522, 0.538]**: the inner connection completes within its first 500 ms cycle (inner
+    `Connected` before 800 ms, the EXP-036 classification).
+- **Decision rules, fixed now.**
+  - For each proportion, pooled per backend, compute the 95% Wilson interval. The mechanism is **supported** if that
+    interval intersects the model's [without, with] interval, **not supported** otherwise.
+  - For the session, report which of the 3-packet and 2-packet intervals it intersects: both, one or none.
+  - Reproducibility: per-batch intervals are reported. The batches are **consistent** if every pair of per-batch
+    95% intervals overlaps.
+  - User-facing latency (FB-25-02): per backend, n, failures, and p50/p90/p95/p99 of each phase and of the total.
+    Among the slowest 10% of totals, count which phase was the largest.
+  - No result here changes a gate, a default or the protocol, nor closes KI-35.
+
+**EXP-037 result (`ki35-secure-2026-10-25-222913-b4d584f-dirty`, 600/600 joins connected).**
+
+| Mechanism (predeclared) | Model | UDP, 95% Wilson | GNS, 95% Wilson | Rule |
+|---|---|---|---|---|
+| DTLS without a client retransmission | 0.377-0.394 | 0.363 [0.311, 0.419] | 0.413 [0.359, 0.470] | **supported** (both) |
+| Session with exactly one ConnectRequest | 0.614-0.628 (2-pkt 0.723-0.733) | 0.353 [0.301, 0.409] | 0.547 [0.490, 0.602]* | **not supported** (both; neither model) |
+| GNS inner within its first cycle | 0.522-0.538 | - | 0.590 [0.534, 0.644] | **supported** |
+
+\* From the corrected re-analysis (`ki35-secure-...-reanalysis-6b116e2`). The original verdict counted one unsent pre-authentication request (`sent: false`), giving 163/300 = 0.543 [0.487, 0.599]. No rule outcome changes, and the run and its verdict are unchanged.
+
+- The batches are consistent for every proportion: UDP seeds 3701–3703 and the GNS repetitions.
+- **Latency per connection** (ms, p50 / p90 / p95 / p99):
+
+  | Phase | UDP | GNS |
+  |---|---|---|
+  | establish | 0.6 / 0.8 / 0.9 / 3.7 | 408 / 1443 / 2124 / 3644 |
+  | DTLS | 857 / 1926 / 2593 / 4231 | 835 / 1812 / 2266 / 3657 |
+  | session | 445 / 718 / 949 / 1431 | 235 / 722 / 956 / 1271 |
+  | total | 1312 / 2542 / 3215 / 4672 | 1955 / 3397 / 4186 / 6066 |
+
+- **The slowest 10% of connections:** DTLS is the largest phase in 29 of 30 on UDP, and in 16 of 30 on GNS (establishment in the other 14).
+- **Post-hoc, not a rule:**
+  - The client sends a ConnectRequest at the instant of authentication, then every **250 ms**: the initial-connect interval, `connect_retry_us`, which is close to one harsh round trip.
+  - A first request that succeeds is often followed by a redundant second one before its ConnectAccept arrives. So "exactly one request" undercounts first-try successes: the metric was mis-specified.
+  - These are fresh joins. KI-35 concerns reconnects, which retry every 500 ms.
+- **Probe defects found after the run** (Codex, PR #25). All are fixed, and none affects a rule:
+  - The ClientHello count also matched Certificate and ClientKeyExchange records. No rule or figure above uses it.
+  - The probe lacked the Windows 11 power-throttling opt-out for its 1 ms timer (KI-39). Checked on the recorded client logs: the 250 ms ConnectRequests are 250–253 ms apart, so polling held at about 1–2 ms. The fixed probe records `loop_ms`. The EXP-036 probe got the same fix.
+  - There was no GNS shutdown guard on startup-error exits. Every batch exited 0, so none was taken.
+- **For KI-35:** DTLS dominates the slow tail and behaves as its loss model predicts. Its timing is the next candidate: the retransmission back-off (250 ms initial, doubling, capped at 1 s), and the cookie round trip (EXP-027). The session phase should be re-measured on the reconnect path, counting the request whose accept completed the session.
+
+## Predeclared experiment KI-35: phases of each stall reconnect (2026-10-26, EXP-041)
+
+This was written and committed **before** the first run, after the EXP-037 follow-up review (FB-25-05..08). It is measurement only: no protocol, default or gate change. The margin δ below was chosen after EXP-037's results were known; this is disclosed.
+
+**Question.** On the path KI-35 is about (a stalled client's secure reconnect), which phase makes slow reconnects slow? Do the DTLS, session and GNS mechanisms match their packet-level models when judged by equivalence, not by overlap?
+
+**Probe** (`tools/ki35/reconnect_probe.cpp`, GNS build):
+- A secure Host and Client run in one process, in real time (a 1 ms loop at 1 ms timer resolution, with the power-throttling opt-out; `loop_ms` is recorded), under the harsh profile. Defaults are unchanged: client and host timeouts 3 s, reconnect retry 500 ms, reconnect window 15 s.
+- **Cycle:**
+  1. 1 s connected.
+  2. A **5 s stall**, as in the soak: the client is not updated, while the host and the GNS thread run.
+  3. Then both are updated until the client is `Connected` again after having been `Reconnecting`.
+  4. 1 s connected.
+- **Bad cycles:**
+  - A cycle not reconnected within 20 s of the stall end is a **timeout**. A client left `Failed` is replaced by a fresh join before the next cycle.
+  - A cycle that never left `Connected` is **no_reconnect**. It is counted and excluded from the phases.
+- **Per reconnect, from the stall end t0:**
+  - The phases:
+    - `notice`: t0 to `Reconnecting`;
+    - `establish`: to the first ClientHello sent after that;
+    - `dtls`: to `authenticated`;
+    - `session`: to `Connected`.
+  - `total` (t0 to `Connected`: the soak's recovery definition) and `first_snapshot` (t0 to the first snapshot applied after `Connected`).
+  - Descriptive: `cookie_ms` (first ClientHello to the ClientHello with the cookie), client DTLS timers and ClientHellos before authentication, and on GNS the inner `Connected`.
+- **Session attribution (FB-25-08), by timestamps only:**
+  - Take the client's `connect_accept_received` log time A, and the ConnectRequests actually sent (`sent: true`) after authentication.
+  - A request is a candidate cause if A − its send time is in **[140, 260] ms**: the harsh round trip of 160–240 ms ± 20 ms of processing. Exactly one candidate means attributed. Zero or several means unattributed.
+  - `session_first` means the attributed request is the first one sent after authentication.
+
+**Batches:** UDP seeds 4101, 4102 and 4103, and 3 GNS repetitions (GNS loss cannot be seeded); 100 cycles each.
+
+**Models** (`tools/ki35/model.py` `proportions()`, unchanged; [without, with] duplicates):
+- `dtls_no_timer` [0.3771, 0.3944];
+- `session_first` [0.6141, 0.628], with the 2-packet alternative [0.7225, 0.7334];
+- GNS `gns_first_cycle` [0.522, 0.5378]: inner `Connected` within 800 ms of `Reconnecting`.
+
+**Decision rules, fixed now:**
+- **Homogeneity first.** For each proportion and backend, run a chi-square test across the 3 batches (df = 2, exact p = e^(−X²/2)). If p < 0.01 the batches are **heterogeneous**: no pooled verdict, only per batch.
+- **Equivalence (TOST, α = 0.05, δ = 0.08)** on the pooled count:
+  - **equivalent** if the 90% Wilson interval lies inside [model_without − δ, model_with + δ];
+  - **different** if the 95% Wilson interval misses [model_without, model_with];
+  - otherwise **inconclusive**.
+  - For the session, judge both the 3-packet and the 2-packet model.
+  - If more than 10% of reconnects are unattributed, `session_first` is **not assessable**.
+- **Independence:** the trials of a batch run in one process, one after another. The lag-1 autocorrelation of each 0/1 outcome is reported per batch; it is not a rule.
+- **Tail (FB-25-02, FB-25-07):**
+  - Per backend and per batch: n, timeouts, no_reconnect, and p50 / p90 / p95 / p99 / max of every phase, `total` and `first_snapshot`.
+  - P(`total` > 3000 ms, the soak's recovery limit) with a 95% Wilson interval.
+  - Among the slowest 10% of `total`s, count which phase is largest. A phase **dominates the tail** if it is largest in at least 50% of them.
+- No result changes a gate, a default or the protocol, nor closes KI-35. DTLS timers and the cookie get their own experiments afterwards (FB-25-07).
+
+**EXP-041 result (`ki35-reconnect-2026-10-26-114558-c5cc5f9`, 600/600 reconnected).** Analysed with `ad7d08b`, whose only change is the 50/50 tail rule, in `…-reanalysis-ad7d08b`. The run is complete and every proportion is homogeneous across its batches (p ≥ 0.019).
+
+| Mechanism | Model | UDP | GNS | Verdict (TOST, δ = 0.08) |
+|---|---|---|---|---|
+| DTLS without a retransmission | 0.377–0.394 | 0.347, 90% [0.303, 0.393] | 0.383, 90% [0.338, 0.430] | **equivalent** (both) |
+| GNS inner within its first cycle | 0.522–0.538 | - | 0.527, 90% [0.479, 0.574] | **equivalent** |
+| Session: the first request completed it (attributed) | 0.614–0.628 (2-pkt 0.723–0.733) | 0.360, 95% [0.308, 0.416] | 0.557, 95% [0.500, 0.612] | **different** (both models) |
+
+- **Attribution:** 0 of 600 reconnects unattributed. No timeouts, failures or missed reconnects.
+- **Reconnect latency** (ms, p50 / p95 / p99):
+
+  | Phase | UDP | GNS |
+  |---|---|---|
+  | notice | 106 / 402 / 630 | 197 / 481 / 689 |
+  | establish | 3 / 3 / 3 | 427 / 1852 / 3264 |
+  | DTLS | 852 / 2557 / 3307 | 820 / 2525 / 3496 |
+  | session | 695 / 1218 / 2188 | 213 / 1210 / 1718 |
+  | **total** | **1677 / 3639 / 4353** | **2449 / 4490 / 5517** |
+
+- **Over the soak's 3 s limit:** UDP 8.3% [5.7, 12.0], GNS 27.7% [22.9, 33.0].
+- **The slowest 10% of reconnects:** DTLS **dominates the tail** on both backends: it is the largest phase in 26 of 30 on UDP, and in 17 of 30 on GNS (establishment in 10).
+- **Post-hoc, not a rule:** why the first session request so often fails.
+  - When its handshake finishes, the client sends its binding. In the same update it verifies the host's binding, which arrived in the same flight, and sends the first ConnectRequest **right after its binding**.
+  - The host drops application records that arrive before the binding (`app_dropped_before_auth`, fail-closed). Jitter reorders the two back-to-back datagrams: about half the time under our UDP impairment (independent U[0, 40] ms each), less on GNS (reorder 20%).
+  - That predicts about 0.31 on UDP and 0.5–0.55 on GNS, against 0.36 and 0.557 observed. It also explains EXP-037's fresh joins (0.353 and 0.547). Each lost first request costs a 500 ms retry on reconnect.
+  - **This is a hypothesis.** Next: a predeclared experiment counting the host's `app_dropped_before_auth` per reconnect. Any fix (for example, the first request waits for an acknowledged binding, or the host holds at most one early record until the binding verifies, still fail-closed) is a later decision for the owner.
+
+## Predeclared experiment KI-35: does the first session request overtake the binding? (2026-10-26, EXP-042)
+
+This was written and committed **before** the first run. It tests EXP-041's post-hoc explanation and is measurement only. The single code change is one diagnostic trace event (`app_dropped_before_auth`) at the point where `DtlsSession` already drops and counts the record; behaviour is unchanged.
+
+**Hypothesis H.**
+- When its handshake finishes, the client sends its binding. In the same update it authenticates on the host's binding and sends the first ConnectRequest right after its own binding, with the same send time.
+- The host drops application records that arrive before the binding, and jitter reorders the two.
+- So the first request is often dropped, and a dropped one almost never completes the session.
+
+**Probe:** `tools/ki35/reconnect_probe.cpp`, unchanged from EXP-041 except that it also records the host's DTLS trace: the times of `app_dropped_before_auth` and of the host's `authenticated`. Same cycle, profile and defaults (5 s stall, harsh).
+
+**Measured per reconnect:**
+- **D1:** the host dropped at least one copy of the first request. That is a host drop 70–130 ms after the client logged the first sent ConnectRequest after authentication (one way is 80–120 ms; the next request comes 500 ms later).
+- **first:** the first request completed the session, attributed by timestamps as in EXP-041.
+- Reconnects without a logged first request are counted and excluded.
+
+**Model** (`tools/ki35/model.py --reorder`, UDP impairment semantics: loss per send, a duplicate with its own delay, 80 + U[0, 40] ms; 1,000,000 samples, seed 42). Each model interval is the value ± 0.002.
+
+| Quantity | H | If delivery kept send order |
+|---|---|---|
+| P(D1) | **0.4888** | 0.1274 |
+| P(first) | **0.3183** | – |
+| P(first \| D1) | **0.0208** | – |
+| P(first \| not D1) | **0.6028** | – |
+
+**Batches:** UDP seeds 4201, 4202 and 4203, and 3 GNS repetitions, 100 cycles each.
+
+**Decision rules, fixed now:**
+- **Completeness and homogeneity** as in EXP-041: verdicts only for a complete run, and per batch if the chi-square p < 0.01.
+- **UDP is the test** (its impairment is ours and modelled exactly). TOST with δ = 0.08 is primary; verdicts at δ = 0.05 and 0.10 are reported as sensitivity.
+  - **R1:** P(D1) is equivalent to H, and different from the in-order value (its 95% interval misses 0.1274).
+  - **R2:** P(first) is equivalent to H.
+  - **R3:** P(first | D1) and P(first | not D1) are each equivalent to H.
+  - **H is supported** if R1, R2 and R3 all hold. **H is refuted** if any is "different". Otherwise the result is **inconclusive**.
+- **GNS, directional only** (GNS jitter keeps order and reorders 20% of packets by a fixed delay, which is not modelled exactly):
+  - P_GNS(D1) < P_UDP(D1), with disjoint 95% intervals;
+  - and the upper 95% bound of P_GNS(first | D1) is below the lower 95% bound of P_GNS(first | not D1).
+- **Reported:** host `authenticated` minus the first request's arrival for D1 reconnects; the number of drops per reconnect.
+- No result changes a gate, a default or the protocol. A fix (for example, the first request waits until the binding is verified, or the host holds one early record, still fail-closed) is an owner decision afterwards.
+
+**Amendment, before any run** (a Codex review of the tooling, 2026-10-26). No data had been collected: only two 4-cycle smoke runs, which tested the pipeline and are not counted. The rules above are replaced where they differ.
+- **Model corrected.** A duplicate is the same DTLS record, and OpenSSL's replay window drops a record already read (`dtls12_replayed_and_tampered_records_are_dropped`). So only each record's earliest copy matters, and a processed request gets exactly one accept. New values (`model.py --reorder`, same seed and sample count):
+
+  | Quantity | H | If delivery kept send order |
+  |---|---|---|
+  | P(D1) | **0.4886** | 0.1273 |
+  | P(first) | **0.3067** | – |
+  | P(first \| D1) | **0** (a dropped request cannot complete) | – |
+  | P(first \| not D1) | **0.5997** | – |
+
+- **A session that never completed** after authentication counts as first = false; it is never removed. If the completing request is unknown (no accept, no candidate or ambiguous) for more than 10% of eligible reconnects, R2 and R3 are **not assessable**.
+- **H is refuted only by an actual "different" result.** It is **supported** only if R1–R3 are all equivalent and the in-order contrast is "different". Missing data or an unestablished contrast is **inconclusive**.
+- **Homogeneity applies everywhere.** A heterogeneous UDP proportion gets per-batch verdicts only. The GNS directional rules are not judged if any proportion they use (UDP D1, GNS D1, GNS P(first | D1), GNS P(first | not D1)) is heterogeneous.
+
+**EXP-042 result (`ki35-reorder-2026-10-26-153230-1683fe2`).** The run was complete, and analysed with `7e148ce` (gates only; the rule results are identical) in `…-reanalysis-7e148ce`. 600 reconnects; 1 of 600 had an unknown completing request; every proportion was homogeneous (p ≥ 0.025).
+
+| UDP (the test) | H | Observed | Verdict (δ = 0.08) |
+|---|---|---|---|
+| R1 P(D1) | 0.4886 | 0.450, 90% [0.403, 0.498] | **inconclusive** (equivalent at δ = 0.10, inconclusive at 0.05); in-order 0.127 **rejected** |
+| R2 P(first) | 0.3067 | 0.333 | **equivalent** |
+| R3 P(first \| D1) | 0 | **0 / 135** | **equivalent** |
+| R3 P(first \| not D1) | 0.5997 | 0.606 | **equivalent** |
+
+- **H is inconclusive by its predeclared rule.** Only R1's equivalence fails narrowly: the 90% lower bound is 0.403 against the required 0.407. Every other rule holds, and the in-order alternative is rejected.
+- **The sharpest prediction held without exception:** no dropped first request ever completed the session, 0 of 135 on UDP and 0 of 66 on GNS.
+- **GNS, directional:** both rules hold. P(D1) is 0.22, below UDP's 0.45, and a dropped first request never completes (0/66), while an undropped one does in 70% (164/233).
+- **At the host,** the binding arrived a median 19 ms after the dropped request on UDP (p95 487 ms, when the binding was lost and resent), and 204 ms on GNS.
+- **Not explained:** D1 runs about 0.04 below the model. The three UDP batches each had exactly 45 D1 reconnects; their per-cycle sequences differ, so this is a coincidence.
+- **For KI-35:** a lost first request costs a 500 ms retry, in about 45% of harsh UDP reconnects and 22% on GNS. A fix that keeps fail-closed binding is the next step, and an owner decision: either the client waits until its binding is verified before the first request, or the host holds at most one early record unprocessed until the binding verifies.
+
+## Predeclared experiment KI-35: A/B of client-side gating (2026-10-26, EXP-043)
+
+This was written and committed **before** any run, after reviews #27/#28 (FB-28-01/02). The owner authorised the behaviour change behind a flag that is off by default. **No default changes here**: adopting the flag is a later owner decision.
+
+**Arms:** `off` (current behaviour) and `on` (`SecureTransportConfig::confirm_binding` on host and client: the host acks the client's verified binding, and the client authenticates only after that ack; see `docs/protocol.md`).
+
+**Probe:** `tools/ki35/reconnect_probe.cpp` as in EXP-042, plus an arm and a profile argument, recorded in each cycle and in `run.json`. Same 5 s stall cycle and defaults.
+- **harsh:** 15% loss, 5% duplicates, 80 ms + U[0, 40] ms. UDP seeds 4301, 4302 and 4303 and 3 GNS repetitions, **per arm**, 100 cycles each. The arms alternate batch by batch (off, on, off, on …) so drift affects both.
+- **latency:** 80 ms + U[0, 40] ms, no loss, no duplicates; one batch of 50 cycles per arm and backend. This prices the gate's extra round trip on a clean path.
+- The UDP arms share seeds, but their random streams diverge as behaviour differs. They are analysed as independent samples.
+
+**Per reconnect** (as in EXP-041/042):
+- the phases and `total` (stall end to `Connected`); a reconnect that never connects counts as 20,000 ms (the cycle limit), a conservative censoring;
+- sent ConnectRequests after authentication;
+- D1 (the host dropped the first request);
+- client `gate_timeout` events.
+
+**Rules, fixed now** (per backend; harsh unless stated):
+- **Completeness:** all 16 batches, with contiguous cycles, exit 0, the arm and profile recorded, and the host trace present. Otherwise no verdict.
+- **Homogeneity:** each arm's 3 harsh batches are checked by chi-square (df = 2) on P(total > 3 s) and on D1. If p < 0.01, that outcome gets per-batch reporting only.
+- **O1 (primary) P(total > 3000 ms):** the difference on − off with a 95% Newcombe hybrid score interval. **on better** if the upper bound is < 0, **on worse** if the lower bound is > 0, otherwise **no difference shown**.
+- **O2 p95 and p99 of total:** the difference on − off with a seeded bootstrap (seed 43, 4000 resamples, percentile 95% interval). Better, worse or no difference as in O1.
+- **O3 cost:** the difference in p50 of total on − off, bootstrap as in O2, for **both** profiles. On the latency profile this is the gate's price, and it is reported, not judged.
+- **O4 security:** in arm `on`, a reconnect with D1 = 1 and no client gate timeout is a **defect** (the gate let a record through to a host that dropped it). Any defect blocks a recommendation.
+- **Reported:** session-phase p50/p95; ConnectRequests per reconnect; timeouts and failures per arm; gate timeouts.
+- **Recommendation for the owner, not automatic.** Recommend adoption only if O1 or O2-p95 shows **on better** on at least one backend, **on worse** appears on no backend for O1 or O2, and O4 has no defect. Otherwise do not recommend. KI-35 stays open either way until the soak gate says otherwise.
+
+**EXP-043 result: negative (`ki35-ab-2026-10-26-184205-a68552d`, complete).** No improvement in total recovery was shown, so the default stays off (FB-29-04). The faster session phase moves time into DTLS; it is not a recovery gain. 1200 harsh and 200 latency-only reconnects. There were no timeouts, failures or gate timeouts, and every batch was homogeneous (p ≥ 0.013).
+
+| | UDP off | UDP on | GNS off | GNS on |
+|---|---|---|---|---|
+| First request dropped (D1) | 150/300 | **0/300** | 76/300 | **0/300** |
+| ConnectRequests per reconnect | 2.04 | 1.35 | 1.67 | 1.36 |
+| Session phase p50 (ms) | 702 | **208** | 223 | 195 |
+| Total p50 / p95 / p99 (ms) | 1817 / 3365 / 4867 | 1666 / 3557 / 4919 | 2445 / 4492 / 6059 | 2478 / 4775 / 6321 |
+| P(total > 3 s) | 25/300 | 32/300 | 88/300 | 81/300 |
+
+- **O4 security:** 0 defects and 0 unassessable reconnects. The gate removed every first-request drop, as designed.
+- **O1, P(total > 3 s):** no difference shown. UDP +0.023, 95% [−0.024, +0.071]; GNS −0.023, [−0.095, +0.049].
+- **O2, p95 and p99:** no difference shown on either backend. For example, the UDP p95 difference is +192 ms, [−615, +698].
+- **O3, p50 cost (reported):**
+  - harsh: UDP −151 ms [−248, +108], GNS +33 [−139, +165];
+  - latency only: UDP −198 [−302, +180], GNS **+185 [+164, +202]**.
+  - That GNS figure is the gate's round trip where the first request was rarely dropped.
+- **By the predeclared rule: do not recommend.**
+  - Gating fixes the session phase, but the slow tail is DTLS and, on GNS, establishment (EXP-041), which it does not touch.
+  - It moves the session's wasted retry into a wait for the ack inside DTLS.
+  - `confirm_binding` stays off by default. Next for KI-35 are the DTLS-timer and cookie experiments (FB-25-07 / FB-28-04).
+
+## Predeclared experiment KI-35: DTLS retransmission back-off (2026-10-27, EXP-044)
+
+This was written and committed **before** any tooling or run, after review #29 (FB-29-02). **No default changes here**: any change is a later owner decision.
+
+**Question.** Does the growth of the DTLS handshake retransmission timer drive KI-35's tail? EXP-041 shows DTLS as the largest phase in most of the slowest reconnects on both backends. Today a flight is retransmitted after 250 ms, then 500 ms, then every 1 s (`DtlsConfig::retransmit_initial_us` / `retransmit_max_us`, EXP-022). Under 15% loss, a flight lost twice in a row costs 750 ms of waiting, and three times 1750 ms.
+
+**Arms, one variable** (the cap of the back-off, on host and client):
+- `off`: today's defaults (250 ms initial, doubling, 1 s cap), as in EXP-043's `off` arm.
+- `flat`: the same 250 ms initial with the cap at 250 ms, so the timer never grows.
+
+`flat` is a **bounding** arm, not a candidate default. RFC 6347 §4.2.4.1 recommends doubling the timer, to avoid congestion on real links. If even no growth at all does not move the tail, no milder setting will, and the timer is not KI-35's lever. If it does, a milder setting is predeclared next, and the result alone changes nothing.
+
+**Probe:** `tools/ki35/reconnect_probe.cpp` as in EXP-043, with arm `flat` (`SecureTransportConfig::retransmit_max_us = 250'000` on both sides; plumbing only, defaults unchanged). Per cycle it also records:
+- the host's DTLS timer fires;
+- the DTLS datagrams sent by each side from the stall end until that side authenticates (`tx` traces). This is the wire cost; bytes are not traced, and a retransmission resends the same flight;
+- the process CPU time so far.
+
+**Batches,** arms alternating batch by batch (off, flat, off, flat …) so drift affects both:
+- **harsh** (15% loss, 5% duplicates, 80 ms + U[0, 40] ms): UDP seeds 4401, 4402 and 4403 and 3 GNS repetitions, **per arm**, 100 cycles each;
+- **latency** (80 ms + U[0, 40] ms only): one batch of 50 cycles per arm and backend. This prices spurious retransmissions on a clean path, where a round trip can exceed 250 ms.
+- The UDP arms share seeds, but their random streams diverge as behaviour differs. They are analysed as independent samples.
+
+**Per reconnect** (as in EXP-041/043): the phases; `total` (stall end to `Connected`; a reconnect that never connects counts as 20,000 ms, a conservative censoring); the DTLS phase (first ClientHello to client authentication); ClientHellos sent; client and host timer fires; handshake datagrams of both sides.
+
+**Rules, fixed now** (per backend; harsh unless stated):
+- **Completeness:** all 16 batches, with contiguous cycles, exit 0, the arm and profile recorded, and the host trace present. Otherwise no verdict.
+- **Homogeneity:** each arm's 3 harsh batches are checked by chi-square (df = 2) on P(total > 3 s). If p < 0.01, that outcome gets per-batch reporting only.
+- **O1 (primary) P(total > 3000 ms):** the difference flat − off with a 95% Newcombe hybrid score interval. **flat better** if the upper bound is < 0, **flat worse** if the lower bound is > 0, otherwise **no difference shown**.
+- **O2 p95 and p99 of total:** the difference flat − off with a seeded bootstrap (seed 43, 4000 resamples, percentile 95% interval). Better, worse or no difference as in O1.
+- **O3 p50 of total** and **of the DTLS phase,** flat − off, bootstrap as in O2, for both profiles: reported, not judged.
+- **C1 wire cost:** mean handshake datagrams (both sides) per reconnect, flat / off. **The cost guard fails** if that ratio is above 1.5 on any backend under harsh.
+- **C2 robustness:** timeouts, failures and reconnects that never started, per arm. **The guard fails** if flat has more of them than off on any backend.
+- **Reported:** ClientHellos and timer fires per reconnect; CPU time per cycle (the probe's 1 ms loop dominates it, so it is a sanity check, not a measure of DTLS).
+- **Reading for the owner, not automatic:**
+  - **"growth matters"** only if O1 or O2-p95 shows **flat better** on at least one backend, **flat worse** appears on no backend for O1 or O2, and both guards hold. Then a milder setting (for example a 500 ms cap) is predeclared next.
+  - Otherwise **"the timer cap is not KI-35's lever"**, and the cookie round trip (FB-28-04) is next.
+  - KI-35 stays open either way until the soak gate says otherwise.
+
+**EXP-044 result: "growth matters" (`ki35-timer-2026-10-27-015836-75eb568`, complete, run on `75eb568`, clean).** With no back-off growth, the slow tail shrinks on both backends, at no measurable wire cost. The median does not move. 1200 harsh and 200 latency-only reconnects; no timeouts, failures or reconnects that never started; every harsh arm homogeneous (p ≥ 0.218). Re-analysing the directory gives an identical verdict.
+
+| harsh | UDP off | UDP flat | GNS off | GNS flat |
+|---|---|---|---|---|
+| P(total > 3 s) | 20/300 | 11/300 | 103/300 | **57/300** |
+| Total p50 / p95 / p99 (ms) | 1878 / 3349 / 4548 | 1782 / **2905** / **3577** | 2547 / 4412 / 5683 | 2369 / **3800** / **4705** |
+| DTLS phase p50 / p95 / p99 (ms) | 848 / 2295 / 3571 | 866 / 1772 / 1994 | 818 / 2484 / 3958 | 816 / 1504 / 1812 |
+| Handshake datagrams per reconnect | 10.69 | 11.02 | 10.30 | 10.14 |
+| Timer fires (both sides) / ClientHellos per reconnect | 1.93 / 2.96 | 2.35 / 3.13 | 2.00 / 3.08 | 1.93 / 2.95 |
+
+- **O1, P(total > 3 s):** GNS **flat better**, −0.153, 95% [−0.222, −0.083]. UDP no difference shown, [−0.068, +0.006].
+- **O2:** flat better on both backends.
+  - p95: UDP −444 ms [−953, −9], GNS −612 [−1280, −227];
+  - p99: UDP −971 [−1601, −417], GNS −979 [−3040, −336].
+- **O3, p50 (reported):**
+  - harsh total: UDP −96 ms [−222, +42], GNS −178 [−295, +40]; DTLS phase: UDP +18 [−27, +157], GNS −2 [−37, +33];
+  - latency only total: UDP +33 [−43, +444], GNS −10 [−36, +16].
+  - On the clean path, timer fires per reconnect were 0.06 (off) vs 0.10 (flat) on UDP and 0.06 vs 0.00 on GNS. With a loopback RTT of 160–240 ms, the 250 ms timer barely fired spuriously.
+- **Guards:** C1 datagram ratio UDP 1.030, GNS 0.985 (limit 1.5); C2 0 events in each category in both arms. Both hold.
+- **Reported:** CPU per cycle 54.5 vs 50.1 ms (UDP) and 43.7 vs 45.1 ms (GNS). The probe loop dominates it.
+- **Reading, by the predeclared rule: "growth matters."** The DTLS tail is driven by back-off growth: flat cuts the DTLS p99 roughly in half on both backends.
+  - **No default changes.** `flat` is a bounding arm. RFC 6347 §4.2.4.1 recommends doubling to avoid congestion on real links. This loopback impairment does not model congestion, nor paths whose RTT exceeds 250 ms, where a flat 250 ms timer would retransmit every flight.
+  - **KI-35 is not fixed.** Even with flat, 19% of harsh GNS reconnects take over 3 s: GNS establishment and the session phase remain (EXP-041).
+  - **Next, by the rule:** predeclare a milder setting (for example a 500 ms cap) before any run, including a path whose RTT exceeds the timer. Adopting any setting is an owner decision.
+
+## Predeclared experiment KI-35: intermediate DTLS back-off caps (2026-10-27, EXP-047)
+
+This section was written and committed **before** any tooling or run, after review #31 (FB-31-01..04). **No default changes here**: any change is a later owner decision, followed by the soak gate.
+
+**Question.** EXP-044 showed that back-off growth drives the DTLS tail, but its `flat` arm was only a bound. Do milder caps keep the tail gain? And what do they cost in bytes, in resent datagrams, and on a path whose RTT exceeds the 250 ms initial timer?
+
+**Arms.** The arms differ only in the back-off cap (`retransmit_max_us`, set on host and client alike). Each flight starts at 250 ms and doubles up to the cap (`DtlsSession::next_retransmit_us`):
+- `off`, today's default: 250, 500, 1000, 1000 … ms;
+- `cap750`: 250, 500, 750, 750 … ms;
+- `cap500`: 250, 500, 500 … ms. "A 500 ms cap" and "doubling up to 500 ms" are the same schedule.
+
+EXP-044's `flat` arm is not repeated.
+
+**Profiles,** with the impairment applied by each side to what it sends:
+- **harsh**, as in EXP-044: 15% loss, 5% duplicates, 80 ms + U[0, 40] ms;
+- **slow**: 150 ms + U[0, 50] ms, so the RTT is 300–400 ms, above the 250 ms initial timer; 1% loss; no duplicates. This profile prices needless retransmissions on a benign, slow path.
+
+**Batches.** Every batch is 100 cycles. On each backend, each arm is used once per repetition, in a rotating order, so drift affects every arm:
+- **harsh, UDP** (seeds 4701, 4702, 4703) and **harsh, GNS** (repetitions 1, 2, 3). The orders by repetition are:
+  - first: `off`, `cap750`, `cap500`;
+  - second: `cap750`, `cap500`, `off`;
+  - third: `cap500`, `off`, `cap750`.
+- **slow:** UDP seed 4704 and GNS repetition 4, in the order `off`, `cap750`, `cap500`.
+
+That is 24 batches and 2400 reconnects, taking about 6 h. The arms are analysed as independent samples, as in EXP-044.
+
+**Instrumentation (FB-31-02).** The DTLS trace detail of every handshake datagram, sent or received, gains two header-only fields, so no payload is logged:
+- `len=<bytes>`: the datagram's size at our layer. That is the UDP payload; on GNS it excludes GNS framing and GNS's own handshake.
+- `seq=<n>`: the `message_seq` of the first plaintext handshake message, when the datagram carries one.
+
+The existing record list keeps its position, so existing parsers are unaffected.
+
+**Per reconnect and side,** counted from the end of the stall until that side authenticated:
+- bytes sent;
+- bytes received;
+- datagrams sent;
+- **resent datagrams**: a sent datagram whose key that side already sent since the stall ended. The key is the type and `message_seq` of its first plaintext handshake message, or else its record list. It counts timer retransmissions, answers to a peer's retransmission, and restarts on a new connection;
+- timer fires.
+
+Also recorded per reconnect: the phases, `total` and the DTLS phase as in EXP-044, the process CPU, and the outcome.
+
+**Rules, fixed now.** Each rule applies per backend, and each candidate `c` (`cap750`, `cap500`) is compared with `off`. The profile is harsh unless stated.
+- **Completeness:** as EXP-044, for all 24 batches. In addition:
+  - the byte and resend fields are present;
+  - byte counts are non-negative integers;
+  - each side's bytes sent are at least its datagrams sent;
+  - resent datagrams never exceed datagrams sent.
+
+  If any of these fails, there is no verdict.
+- **Homogeneity:** each arm's 3 harsh batches, as in EXP-044. If p < 0.01, that candidate's O1 on that backend is reported per batch only. An unknown p makes it unassessable.
+- **O1, P(total > 3000 ms):** `c` − `off`, with a 95% Newcombe hybrid score interval. "Better", "worse" or "no difference shown" as in EXP-044.
+- **O2, p95 and p99 of total:** `c` − `off`, seeded bootstrap (43, 4000).
+- **O3, p50 of total and of the DTLS phase,** on both profiles: reported only.
+- **G1, bytes:** mean bytes sent per reconnect (both sides), `c` / `off`.
+  - The guard fails above **1.25**, on either profile, on any backend.
+  - It is compared on unrounded sums.
+- **G2, robustness:** under both profiles, `c` never has more timeouts than `off`, nor more failures, nor more reconnects that never started. Each category is compared on its own.
+- **G3, slow path:** on the slow profile, `c`'s p95 and p50 of total must not be "worse" than `off`'s (same bootstrap).
+- **Reported:**
+  - per side, bytes received, resent datagrams, timer fires and datagrams;
+  - ClientHellos;
+  - CPU per cycle;
+  - every metric per batch.
+- **Intervals** are 95% per comparison and are not adjusted for the two candidates. The reading is for the owner and is not applied automatically.
+- **Reading, per candidate:**
+  - **"improves the tail"** only if O1 or O2-p95 shows `c` better on at least one backend, "worse" appears on no backend for O1, O2-p95 or O2-p99, and G1, G2 and G3 hold on both backends;
+  - otherwise **"not shown"**;
+  - **"unassessable"** if any harsh O1 is unassessable, and **"incomplete"** without completeness.
+- **What follows:**
+  - If both candidates improve the tail, `cap750` keeps more of RFC 6347's back-off.
+  - Choosing one, and then a soak gate run, is the owner's decision.
+  - KI-35 stays open until the soak gate says otherwise.
+
+**EXP-047 result: both candidates "not shown" (`ki35-caps-2026-10-28-005304-7fcb88c`, complete, run on `7fcb88c`, clean).** Neither cap is shown to differ from `off`, in either direction, on any predeclared outcome, and all three guards hold for both. 1800 harsh and 600 slow reconnects; no timeouts, failures or reconnects that never started; every harsh arm homogeneous (p ≥ 0.207). Re-analysing the directory gives an identical verdict.
+
+Two earlier attempts on the same commit stopped before the end. They are kept as recorded and not judged:
+- `ki35-caps-2026-10-27-103108-7fcb88c`: 3 batches and 38 cycles. The runner was a child of the agent session and ended with it.
+- `ki35-caps-2026-10-27-123625-7fcb88c`: 17 batches and 52 cycles. The runner ended with no error output; the cause is not established.
+
+| harsh | UDP off | UDP cap750 | UDP cap500 | GNS off | GNS cap750 | GNS cap500 |
+|---|---|---|---|---|---|---|
+| P(total > 3 s) | 19/300 | 25/300 | 15/300 | 92/300 | 82/300 | 96/300 |
+| Total p50 / p95 / p99 (ms) | 1682 / 3153 / 4398 | 1682 / 3344 / 4851 | 1705 / 3142 / 3614 | 2408 / 4463 / 6516 | 2354 / 4716 / 5950 | 2518 / 4535 / 5785 |
+| DTLS phase p50 / p95 / p99 (ms) | 835 / 2010 / 3715 | 858 / 2085 / 4475 | 837 / 1834 / 3239 | 812 / 2294 / 4694 | 816 / 2246 / 3014 | 810 / 2026 / 2735 |
+| Bytes sent per reconnect (both sides) | 2513 | 2553 | 2520 | 2516 | 2548 | 2515 |
+| Resent datagrams, client / host | 1.26 / 1.65 | 1.39 / 1.69 | 1.29 / 1.53 | 1.39 / 1.43 | 1.41 / 1.57 | 1.37 / 1.48 |
+| Timer fires / ClientHellos per reconnect | 1.74 / 2.83 | 1.92 / 2.99 | 1.82 / 2.90 | 1.94 / 2.97 | 1.94 / 2.94 | 1.91 / 2.96 |
+
+| slow (RTT 300–400 ms) | UDP off | UDP cap750 | UDP cap500 | GNS off | GNS cap750 | GNS cap500 |
+|---|---|---|---|---|---|---|
+| P(total > 3 s) | 0/100 | 1/100 | 0/100 | 15/100 | 23/100 | 24/100 |
+| Total p50 / p95 (ms) | 1892 / 2393 | 2256 / 2425 | 1918 / 2390 | 2625 / 3126 | 2626 / 3136 | 2630 / 3164 |
+| Bytes sent per reconnect | 3458 | 3458 | 3469 | 3449 | 3450 | 3444 |
+| Resent datagrams, client / host | 3.02 / 3.02 | 3.03 / 3.00 | 3.04 / 3.05 | 3.02 / 2.99 | 3.02 / 3.01 | 3.00 / 3.00 |
+| Timer fires per reconnect | 3.98 | 3.97 | 4.00 | 3.92 | 3.94 | 3.91 |
+
+- **O1, P(total > 3 s), `c` − `off`:**
+  - cap750: UDP [−0.023, +0.063], GNS [−0.105, +0.039];
+  - cap500: UDP [−0.052, +0.025], GNS [−0.061, +0.087].
+  - No difference shown in any comparison.
+- **O2, `c` − `off` (ms):**
+  - cap750: p95 UDP +191 [−409, +586], GNS +253 [−228, +803]; p99 UDP +453 [−2474, +2656], GNS −566 [−1465, +1719];
+  - cap500: p95 UDP −11 [−760, +516], GNS +72 [−521, +661]; p99 UDP −784 [−3680, +1180], GNS −732 [−1540, +1086].
+  - No difference shown.
+- **O3, p50 (reported):**
+  - harsh total: cap750 UDP −1 [−191, +185], GNS −54 [−231, +89]; cap500 UDP +23 [−179, +199], GNS +110 [−166, +224];
+  - slow total: cap750 UDP +364 [−53, +415], GNS +1 [−19, +32]; cap500 UDP +27 [−359, +379], GNS +5 [−20, +30];
+  - DTLS phase: every difference within ±23 ms, every interval includes 0.
+- **Guards:**
+  - G1 bytes ratio (UDP harsh, UDP slow, GNS harsh, GNS slow): cap750 1.016 / 1.000 / 1.013 / 1.001; cap500 1.003 / 1.003 / 1.000 / 0.999 (limit 1.25);
+  - G2: 0 events in every category and arm;
+  - G3: slow p95 and p50 no difference shown for both candidates.
+- **Reported:** CPU per cycle 39–52 ms in every arm. The probe loop dominates it.
+- **Reading, by the predeclared rule: cap750 "not shown", cap500 "not shown."**
+  - The run does not show that a milder cap keeps EXP-044's tail gain, nor that either cap costs anything beyond the guard. The intervals allow meaningful benefits as well as harm. Of the settings tested so far, only the flat 250 ms timer showed EXP-044's gain; it stays a bounding arm, and whether the gain needs it stays unresolved.
+  - Both caps passed G1. The observed mean-byte ratios are at most 1.016 (cap750: +1.6% UDP harsh, +1.3% GNS harsh). That is not proof of zero extra cost.
+  - The GNS DTLS-phase p99 is lower with both caps (4694 → 3014 / 2735 ms). That is reported only, not a rule, and the total tail did not follow.
+  - **Slow-path resends are similar in every arm.** Every arm fires about 4 timers and resends about 3 datagrams per side per reconnect. A hypothesis consistent with this, not established: with an RTT of 300–400 ms, the 250 ms initial timer, which no arm changed, expires before the answer arrives. The resend count also includes replies to peer retransmissions and connection restarts, so this comparison does not isolate the cause.
+  - **No default changes.** KI-35 stays open. Next options for the owner: leave the back-off as is and move to the cookie round trip (FB-28-04) or the GNS establishment and session phases (EXP-041), or predeclare a study of the initial timer against the path RTT.
+
+## Predeclared experiment KI-35: what the cookie exchange costs the tail (2026-10-28, EXP-049)
+
+This section was written and committed **before** any tooling or run, after review #38 (FB-38-01..04).
+- **Measurement only.** Every batch runs today's default configuration:
+  - DTLS timer 250 ms doubling to 1 s;
+  - cookie verification on, with `max_new_handshakes_per_s` 64;
+  - `confirm_binding` off;
+  - the session defaults of EXP-041.
+- No behaviour, default or gate changes, and the result alone changes none.
+- **What was known when the rule was fixed:** EXP-047's aggregate results and EXP-027's phases (skipping the cookie on GNS saved about one RTT in DTLS, with no median gain). No cookie-phase statistic of EXP-047 or EXP-044 had been computed.
+
+**Question (FB-38-02).** The client's first ClientHello gets a HelloVerifyRequest (HVR), and its next ClientHello carries the cookie. How much of the KI-35 tail (reconnects over 3 s) is time spent inside that exchange? How much of it goes on retransmitting a ClientHello before the HVR arrives? EXP-027 asked a different question: what removing the exchange saves. The cookie stays; only its retransmissions could be removed by a later change that keeps verification.
+
+**Probe.** `tools/ki35/reconnect_probe.cpp`, unchanged except for the counters below: a stall reconnect cycle as in EXP-041, arm `off`.
+
+**Handshake attempts (found by Codex before tooling).** A reconnect can open more than one DTLS session, for example when a GNS connection is lost after a ClientHello and a new one is opened. Each new session sends a new ClientHello with `message_seq` 0, which must not be counted as a cookie retransmission. So the client's ClientHellos after t0 are grouped into attempts (Codex pass 2: boundary events are coalesced, and only ClientHellos start an attempt).
+- **Boundaries:** the client events `inner_connected`, `inner_disconnected` and `rejected`. A boundary ends the current attempt, and several boundaries in a row count as one. A boundary before the first ClientHello after t0 ends nothing, because no attempt has started yet; it belongs to the old connection or to the inner establishment.
+- **Attempts:** an attempt starts only with a ClientHello: the first one after t0, the first one after a boundary, or one traced with a peer id other than the previous ClientHello's. Every later ClientHello on the same peer id with no boundary in between belongs to the same attempt.
+- Boundaries keep splitting attempts after the cookie and after `authenticated`, until `Connected`.
+- The **final attempt** is the last attempt before `Connected`, and it must contain `authenticated` (Codex pass 3). Its `attempt_hello`, `hello0` counters, `cookie_hello` and `auth` are taken from it alone. An earlier attempt that sent its cookie, or even authenticated, and then failed is a restart.
+- `restarts` is the number of attempts before the final one, so only attempts that sent a ClientHello count.
+- `restarts` is a lower bound: a restart that none of these signals marks cannot be seen.
+- Time spent in earlier attempts belongs to `establish`, never to `cookie`.
+
+**Phases per reconnect,** in ms from the stall end t0:
+- `notice`: t0 to `Reconnecting`;
+- `establish`: to `attempt_hello`, the first ClientHello of the final attempt. On GNS this includes the inner connection and every earlier attempt;
+- **`cookie`**: `attempt_hello` to the ClientHello that carries the cookie (`cookie_hello`);
+- `handshake`: `cookie_hello` to `authenticated`;
+- `session`: to `Connected`.
+
+These five phases add up to `total` (the soak's recovery). The existing `first_hello` (the first ClientHello of any attempt) is still recorded.
+
+**New counters (header fields only, from the `len=`/`seq=` trace of `7fcb88c`; no payload).** Each counts in the final attempt, until `cookie_hello`:
+- `hello0_tx`: client datagrams whose first handshake message is a ClientHello with `message_seq` 0;
+- `last_hello0`: the time of the last of them;
+- `hello0_rx`: the same datagrams received by the host (`rx` or `listen_rx`), from the final attempt's `attempt_hello` on;
+- `hvr_tx`: HVRs the host sent in the same window.
+
+From these, per reconnect:
+- **`cookie_wait`** = `last_hello0` − `attempt_hello`: the time from the final attempt's first ClientHello to the last one it sent before the HVR arrived, which is the time lost to unanswered ClientHellos. It is 0 when the first one was answered.
+- **flight class**, descriptive and approximate, because duplicates add receptions:
+  - `clean`: `hello0_tx` = 1;
+  - `hello_lost`: `hello0_rx` < `hello0_tx`;
+  - `hvr_lost_or_late`: `hello0_tx` > 1 and `hello0_rx` ≥ `hello0_tx`.
+
+**Profiles and batches.** Every batch has 100 cycles, the profiles are those of EXP-047, and the run takes about 3 h:
+- harsh: UDP seeds 4901–4904, and GNS repetitions 1–4;
+- slow: UDP seeds 4905–4906, and GNS repetitions 5–6.
+
+That is 12 batches and 1200 reconnects.
+
+**Rules, fixed now.** Unless stated, a rule applies per backend on harsh.
+- **Completeness.** All 12 batches must finish their 100 cycles; otherwise there is no verdict.
+  - A reconnect is **attributable** if it has a final attempt, every field is present and these orderings hold: `first_hello` ≤ `attempt_hello` ≤ `last_hello0` ≤ `cookie_hello` ≤ `auth` ≤ `connected`, and `hello0_tx` ≥ 1.
+  - If more than 10% of a backend's reconnects are not attributable, that backend is **not assessable**.
+  - Timeouts and reconnects that never started are counted, and are excluded.
+- **Homogeneity.** Run a chi-square test across the 4 harsh batches, on P(`total` > 3000) and on P(`hello0_tx` ≥ 2). If p < 0.01, the result is reported per batch only, with no pooled reading.
+- **Primary, R_wait.** Let S be the attributable reconnects with `total` > 3000 ms. R_wait is the share of S with `total` − `cookie_wait` ≤ 3000, with a 95% Wilson interval.
+  - **Not assessable** if S has fewer than 30 reconnects.
+  - **"Explain part of the tail"** if the lower bound is ≥ 0.25.
+  - **"Do not explain the tail"** if the upper bound is < 0.25.
+  - Otherwise **"inconclusive"**.
+  - **This is an accounting ceiling, not a prediction.** It assumes the rest of the reconnect would not change, whereas later flights would meet different losses.
+  - **Restart check, reported only:** R_wait on the reconnects with `restarts` = 0, and the number with `restarts` > 0 per batch.
+- **Reported, not rules:**
+  - The same ceiling for removing the whole exchange (R_cookie, `total` − `cookie`) and for removing each other phase. No permitted change can remove the cookie, so R_cookie only bounds what any cookie change could gain. The other phases are compared on the same footing.
+  - In S and outside S: p50 / p95 of every phase, and each phase's mean share of `total`. The phase that is largest most often in S, as in EXP-041.
+  - The flight classes, `hello0_tx`, `hvr_tx` and `cookie_wait` per batch, on both profiles. On slow, how often `hello0_tx` ≥ 2. That is descriptive input to FB-38-03, not a test of the initial-timer hypothesis.
+- **Secondary, existing data, reported only.** EXP-047 has no `hello0` counters and no attempt split. On its `off` harsh batches (`ki35-caps-2026-10-28-005304-7fcb88c`), only R_cookie and the `cookie` distribution are computed, as a rough replication. There `cookie` runs from `first_hello`, so a restart inflates it.
+- **What follows:**
+  - GNS harsh is the decisive backend: it is the KI-35 case.
+  - If GNS harsh reads "explain part of the tail", the next step is a separately predeclared behavioural experiment on the exchange. It keeps cookie verification, the stateless gate and the handshake budget, and changes one thing. It is not chosen here.
+  - If GNS harsh reads "do not explain the tail", KI-35 returns to GNS establishment (FB-38-02).
+  - If it is inconclusive, no behavioural cookie experiment follows from this evidence alone, and the owner and the reviewer choose.
+  - KI-35 stays open in every case.
+
+**EXP-049 result: inconclusive on both backends (`ki35-cookie-2026-10-29-063900-2c193b8`, complete, run on `2c193b8`, clean; the tools are those of `1d56b6b`).** By the predeclared rule, no behavioural cookie experiment follows, and the owner and the reviewer choose. All 12 batches finished: 800 harsh and 400 slow reconnects, with no timeouts, failures, reconnects that never started, unattributable reconnects or restarts. Every harsh backend was homogeneous (p ≥ 0.018), and re-analysing the directory gives an identical verdict.
+
+An earlier attempt with the same tools stopped before the end. It is kept as recorded and not judged:
+- `ki35-cookie-2026-10-28-143330-1d56b6b`: 7 batches were complete. `gns-4-off-harsh` exited with code 4 after 24 cycles, and the runner ended 4 s into the next batch.
+- Windows had logged low virtual memory from 16:58, caused by another process. The runner's own cause of death is not established.
+
+| harsh | UDP | GNS |
+|---|---|---|
+| P(total > 3 s) | 30/400 | 118/400 |
+| **R_wait** (primary), 95% interval | 8/30 = 0.27 [0.14, 0.44] | **23/118 = 0.19 [0.13, 0.28]** |
+| R_cookie (whole exchange removed) | 12/30 = 0.40 | 46/118 = 0.39 [0.31, 0.48] |
+| R_establish / R_handshake / R_session | 0.00 / 0.90 / 0.77 | 0.68 / 0.64 / 0.55 |
+| Largest phase in S: establish / cookie / handshake / session | 0 / 2 / 22 / 6 | 48 / 9 / 29 / 32 |
+| Phase p50 in S: establish / cookie / handshake / session (ms) | 3 / 438 / 2101 / 714 | 1094 / 225 / 848 / 712 |
+| First ClientHello resent | 108/400 | 118/400 |
+| `cookie_wait` p50 / p95 / p99 (ms) | 0 / 720 / 722 | 0 / 721 / 1706 |
+
+- **The primary result.** On GNS, removing the time lost to unanswered first ClientHellos would bring at most 13–28% of the reconnects over 3 s under the limit. The interval straddles the 0.25 threshold, so it is neither "explain" nor "do not explain".
+- **The R values are ceilings, not predictions.** They assume the rest of the reconnect would not change, and they overlap, so they do not add up.
+- **Reported only:** on GNS, `establish` is most often the largest phase in S, and it has the highest ceiling (0.68). That is consistent with FB-38-02's alternative, GNS establishment; it is not a rule.
+- **Slow profile.** Every reconnect on both backends sent the first ClientHello twice, the second about 236 ms after the first. The cookie ClientHello followed the resend by a median of 99–121 ms per batch. In 389/400 reconnects it came less than 300 ms (the minimum RTT) after the resend, which fits an answer to the first ClientHello: there the resend was most likely spurious, because the 250 ms initial timer fired before the answer. In the other 11 it came 313–391 ms after the resend, which fits an answer to the resend. This is descriptive input to FB-38-03, not a test of it.
+- **Flight classes are approximate.** The host's receptions are counted only up to the client's cookie ClientHello, so a resend still in flight at that moment is missed. On slow, 393/400 reconnects read `hello_lost` at 1% loss. In 367 of them the cookie ClientHello left less than 150 ms (the minimum one-way delay) after the resend, so the resend could not have been counted: there the class is an artifact of the window. The other 26 cannot be told apart from real loss. The harsh `hello_lost` share is affected in the same way, to an unknown degree.
+- **Secondary replication** (EXP-047 `off` harsh, `cookie` measured from `first_hello`): GNS R_cookie 37/92 = 0.40 [0.31, 0.50], UDP 10/19. It was computed while the tooling was being built, after the predeclaration commit, and it set no rule.
+- No default changed. KI-35 stays open.
+
 ## What the soak found, and what was fixed
 
 1. **Slow recovery after a stall (KI-12, confirmed in real time).** When the client unfroze, it first read the snapshots that had piled up in its socket buffer. Those refreshed its liveness timer, so it believed it was still connected. The host had already timed it out and stopped sending, so the client noticed only after another full 3 s timeout.

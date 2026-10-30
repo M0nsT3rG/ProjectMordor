@@ -83,10 +83,23 @@ if(MORDOR_WITH_GNS)
   target_include_directories(mordor_dtls_tests PRIVATE tests)
   target_link_libraries(mordor_dtls_tests PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
   add_test(NAME dtls COMMAND mordor_dtls_tests --json ${CMAKE_BINARY_DIR}/test-results/dtls.json --suite dtls)
-  set_tests_properties(dtls PROPERTIES TIMEOUT 300 ENVIRONMENT "MORDOR_TRANSPORT=udp")  # label only: loops over both backends
+  # label only: loops over both backends. 74 tests take about 302 s, so 300 s cut it off (tests-2026-10-28-063008-668d9e4).
+  set_tests_properties(dtls PROPERTIES TIMEOUT 900 ENVIRONMENT "MORDOR_TRANSPORT=udp")
   # KI-27 standalone reproducer (GNS public API only; tools/ki27-repro also builds on its own for the upstream report).
   add_executable(gns_listen_close_repro tools/ki27-repro/main.cpp)
   target_link_libraries(gns_listen_close_repro PRIVATE GameNetworkingSockets::shared)
+  # KI-35 / EXP-036: GNS establishment timing probe (measurement tool; tools/ki35/run_probe.py records it).
+  add_executable(ki35_probe tools/ki35/probe.cpp)
+  target_include_directories(ki35_probe PRIVATE src)
+  target_link_libraries(ki35_probe PRIVATE mordor_network)
+  # KI-35 / EXP-037: per-connection DTLS and session phases of a secure join (tools/ki35/run_secure_probe.py).
+  add_executable(ki35_secure_probe tools/ki35/secure_probe.cpp)
+  target_include_directories(ki35_secure_probe PRIVATE src)
+  target_link_libraries(ki35_secure_probe PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
+  # KI-35 / EXP-041: phases of each stall reconnect of a secure client (tools/ki35/run_reconnect_probe.py).
+  add_executable(ki35_reconnect_probe tools/ki35/reconnect_probe.cpp)
+  target_include_directories(ki35_reconnect_probe PRIVATE src)
+  target_link_libraries(ki35_reconnect_probe PRIVATE mordor_host_lib mordor_client_lib OpenSSL::SSL OpenSSL::Crypto)
   # The same host/client suites, run on the GNS adapter (results recorded per transport).
   foreach(suite integration network)
     add_test(NAME ${suite}-gns COMMAND mordor_${suite}_tests --json ${CMAKE_BINARY_DIR}/test-results/${suite}-gns.json --suite ${suite}-gns)
@@ -97,7 +110,7 @@ endif()
 # Codex review of the combined diff (P2): every executable runs with a UTF-8 ANSI code page (see the manifest), so
 # non-ASCII paths on the command line (keys, logs, %TEMP%) arrive intact whatever the system code page is.
 foreach(exe mordor-host mordor-client mordor_unit_tests mordor_integration_tests mordor_network_tests mordor_transport_tests
-            mordor-keygen mordor_gns_tests mordor_dtls_tests gns_listen_close_repro)
+            mordor-keygen mordor_gns_tests mordor_dtls_tests gns_listen_close_repro ki35_probe ki35_secure_probe ki35_reconnect_probe)
   if(TARGET ${exe})
     target_sources(${exe} PRIVATE ${CMAKE_SOURCE_DIR}/cmake/utf8-codepage.manifest)
   endif()

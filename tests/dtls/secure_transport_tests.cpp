@@ -2,6 +2,7 @@
 // pinned keys and the invitation binding, on every backend, plus the bounded pre-authentication lifecycle.
 #include <openssl/evp.h>
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -69,9 +70,15 @@ struct World {
     test::SimClock clk;
     std::unique_ptr<host::Host> host;
     std::vector<std::unique_ptr<client::Client>> clients;
-    explicit World(TransportKind k, bool secure_host = true, host::HostConfig hc = {}) : kind(k) {
+    bool confirm = false;  // EXP-043 confirm_binding on the host and every client added
+    explicit World(TransportKind k, bool secure_host = true, host::HostConfig hc = {}, bool confirm_binding = false)
+        : kind(k), confirm(confirm_binding) {
         hc.transport = k;
-        if (secure_host) hc.secure = secure(host_key, {k1.spki(), k2.spki()}, inv);
+        if (secure_host) {
+            auto s = secure(host_key, {k1.spki(), k2.spki()}, inv);
+            s->confirm_binding = confirm;
+            hc.secure = s;
+        }
         host = std::make_unique<host::Host>(hc, test::test_logger("host"));
         std::string err;
         if (!host->start(&err)) throw test::CheckFailure("host start: " + err);
@@ -79,7 +86,11 @@ struct World {
     client::Client& add(const Key* key, std::vector<std::vector<std::uint8_t>> pins, client::ClientConfig cc = {}, Invitation i = {}) {
         cc.host = Endpoint::loopback(host->port());
         cc.transport = kind;
-        if (key) cc.secure = secure(*key, std::move(pins), i.id.empty() ? inv : i);
+        if (key) {
+            auto s = secure(*key, std::move(pins), i.id.empty() ? inv : i);
+            s->confirm_binding = confirm;
+            cc.secure = s;
+        }
         clients.push_back(std::make_unique<client::Client>(cc, test::test_logger("client")));
         std::string err;
         if (!clients.back()->start(&err)) throw test::CheckFailure("client start: " + err);
@@ -107,6 +118,22 @@ TEST(secure_game_session_runs_over_dtls_on_every_backend) {
         const auto* hs = secure_stats(*w.host->transport_for_test());
         CHECK(hs && hs->authenticated == 2 && hs->dropped_not_dtls == 0);
         std::printf("       %s: 2 players over DTLS, %llu snapshots at client a\n", to_string(k),
+                    static_cast<unsigned long long>(a.stats().snapshots_applied));
+    }
+}
+
+// EXP-043: the same game session with confirm_binding on both ends (an experiment, default off), on every backend.
+TEST(secure_game_session_runs_with_confirm_binding) {
+    for (auto k : backends()) {
+        World w(k, true, {}, true);
+        auto& a = w.add(&w.k1, {w.host_key.spki()});
+        auto& b = w.add(&w.k2, {w.host_key.spki()});
+        CHECK(w.run_until([&] { return a.state() == ClientState::Connected && b.state() == ClientState::Connected; }, 10 * kSec));
+        a.set_move(1, 0);
+        CHECK(w.run_until([&] { return a.stats().snapshots_applied > 20 && b.remote_entities().size() == 1; }, 5 * kSec));
+        const auto* hs = secure_stats(*w.host->transport_for_test());
+        CHECK(hs && hs->authenticated == 2 && hs->dropped_not_dtls == 0);
+        std::printf("       %s: 2 players over DTLS with confirm_binding, %llu snapshots at client a\n", to_string(k),
                     static_cast<unsigned long long>(a.stats().snapshots_applied));
     }
 }
@@ -333,6 +360,110 @@ TEST(secure_failed_handshake_closes_the_inner_peer) {
         pump([&] { return count(hev, TransportEvent::Kind::Connected) >= 2; }, 5000);
         CHECK(count(hev, TransportEvent::Kind::Connected) >= 2);  // a new inner connection, not the stale one
         std::printf("       %s: failed handshake closed the inner connection; the retry opened a new one\n", to_string(k));
+    }
+}
+
+// EXP-044 plumbing: SecureTransportConfig::retransmit_max_us reaches the DTLS session. Against a listener that never
+// answers, the default back-off (250 ms, 500 ms, then 1 s) fires 3 timers in 2.1 s; a 250 ms cap fires about 8.
+TEST(secure_retransmit_cap_reaches_the_dtls_session) {
+    CHECK(SecureTransportConfig{}.retransmit_max_us == DtlsConfig{}.retransmit_max_us);  // same default
+    for (auto k : backends()) {
+        std::string err;
+        auto plain = make_transport(k, {}, &err);
+        CHECK(plain && plain->open(Endpoint::loopback(0), true, &err));
+        int timers[2] = {0, 0};
+        for (int arm = 0; arm < 2; ++arm) {
+            Key host_key, player;
+            auto ccfg = *secure(player, {host_key.spki()}, invite());
+            if (arm == 1) ccfg.retransmit_max_us = 250'000;
+            int& n = timers[arm];
+            ccfg.trace = [&n](const char* ev, std::uint64_t, std::uint32_t, std::string_view) { n += std::string_view(ev) == "timer"; };
+            auto c = open_secure(k, ccfg, false);
+            CHECK(c->connect(Endpoint::loopback(plain->local_endpoint().port)).has_value());
+            for (const auto t0 = real_us(); real_us() - t0 < 2'100'000;) {
+                std::vector<TransportEvent> e;
+                c->poll(real_us(), e);
+                plain->poll(real_us(), e);
+                std::this_thread::sleep_for(std::chrono::milliseconds(1));
+            }
+        }
+        std::printf("       %s: DTLS timers in 2.1 s: %d with the default back-off, %d with a 250 ms cap\n", to_string(k),
+                    timers[0], timers[1]);
+        CHECK(timers[0] >= 2 && timers[0] <= 4);
+        CHECK(timers[1] >= 6);
+    }
+}
+
+// EXP-047 instrumentation: each traced handshake datagram ends with its size and, when it carries a plaintext handshake
+// message, that message's message_seq. Against a silent listener the sizes are exactly what arrived, and every
+// retransmitted ClientHello repeats seq 0; in a real handshake the cookie exchange shows ClientHello seq 0 then 1,
+// the HelloVerifyRequest seq 0 and the ServerHello seq 1 (RFC 6347 4.2.2).
+TEST(dtls_trace_details_carry_datagram_size_and_message_seq) {
+    auto field = [](std::string_view d, std::string_view key) -> long {
+        const auto at = d.find("," + std::string(key) + "=");
+        if (at == std::string_view::npos) return -1;
+        return std::strtol(std::string(d.substr(at + key.size() + 2)).c_str(), nullptr, 10);
+    };
+    for (auto k : backends()) {
+        std::string err;
+        auto plain = make_transport(k, {}, &err);
+        CHECK(plain && plain->open(Endpoint::loopback(0), true, &err));
+        Key host_key, player;
+        const auto inv = invite();  // one invitation for both parts: a later invite() may expire a second later
+        auto ccfg = *secure(player, {host_key.spki()}, inv);
+        std::vector<std::string> sent;
+        ccfg.trace = [&sent](const char* ev, std::uint64_t, std::uint32_t, std::string_view d) {
+            if (std::string_view(ev) == "tx") sent.emplace_back(d);
+        };
+        auto c = open_secure(k, ccfg, false);
+        CHECK(c->connect(Endpoint::loopback(plain->local_endpoint().port)).has_value());
+        std::vector<long> arrived;
+        for (const auto t0 = real_us(); real_us() - t0 < 1'000'000;) {
+            std::vector<TransportEvent> e;
+            c->poll(real_us(), e);
+            plain->poll(real_us(), e);
+            for (const auto& x : e)
+                if (x.kind == TransportEvent::Kind::Message) arrived.push_back(static_cast<long>(x.bytes.size()));
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+        std::vector<long> lens;
+        for (const auto& d : sent) {
+            CHECK(d.starts_with("22/0/1,"));
+            CHECK(field(d, "seq") == 0);  // a retransmitted ClientHello is the same message
+            lens.push_back(field(d, "len"));
+        }
+        std::sort(lens.begin(), lens.end());
+        std::sort(arrived.begin(), arrived.end());
+        CHECK(sent.size() >= 2);  // the first flight and at least one retransmission
+        CHECK(lens == arrived);
+
+        // A real handshake: the host's and the client's sides.
+        auto hcfg = *secure(host_key, {player.spki()}, inv);
+        std::vector<std::pair<std::string, std::string>> htrace, ctrace;
+        hcfg.trace = [&htrace](const char* ev, std::uint64_t, std::uint32_t, std::string_view d) { htrace.emplace_back(ev, d); };
+        ccfg.trace = [&ctrace](const char* ev, std::uint64_t, std::uint32_t, std::string_view d) { ctrace.emplace_back(ev, d); };
+        auto host = open_secure(k, hcfg, true);
+        auto c2 = open_secure(k, ccfg, false);
+        CHECK(c2->connect(Endpoint::loopback(host->local_endpoint().port)).has_value());
+        const auto ev = run({host.get(), c2.get()}, c2.get(), [](const auto& e) { return count(e, TransportEvent::Kind::Connected) == 1; }, 15000);
+        CHECK(count(ev, TransportEvent::Kind::Connected) == 1);
+        auto seqs = [&](const auto& tr, std::string_view ev_name, std::string_view lead) {
+            std::vector<long> out;
+            for (const auto& [e, d] : tr) {
+                const std::string_view dv(d);
+                if (e == "tx" || e == "rx" || e == "listen_rx") CHECK(field(dv, "len") > 0);
+                if (e == ev_name && dv.starts_with(std::string(lead) + ",")) out.push_back(field(dv, "seq"));
+            }
+            return out;
+        };
+        const auto hellos = seqs(ctrace, "tx", "22/0/1");
+        CHECK(std::find(hellos.begin(), hellos.end(), 0) != hellos.end());
+        CHECK(std::find(hellos.begin(), hellos.end(), 1) != hellos.end());  // the ClientHello with the cookie
+        const auto hvr = seqs(htrace, "tx", "22/0/3"), server_hello = seqs(htrace, "tx", "22/0/2");
+        CHECK(!hvr.empty() && std::all_of(hvr.begin(), hvr.end(), [](long s) { return s == 0; }));
+        CHECK(!server_hello.empty() && std::all_of(server_hello.begin(), server_hello.end(), [](long s) { return s == 1; }));
+        std::printf("       %s: %zu ClientHellos to a silent listener, sizes match; cookie exchange seq 0/1, HVR 0, ServerHello 1\n",
+                    to_string(k), sent.size());
     }
 }
 

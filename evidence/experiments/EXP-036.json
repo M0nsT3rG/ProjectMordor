@@ -1,0 +1,26 @@
+{
+  "id": "EXP-036",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 via vcpkg 65a2c23, loopback, one process; 1 ms timer resolution",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "KI-35: find what sets the GNS establishment phase of a secure reconnect under the harsh profile, the largest phase (p50 880 ms in 39 recorded harsh-gns-secure reconnects).",
+  "hypothesis": "H1: raw GNS establishment follows F-GNS-003's 4-packet exchange restarted every 500 ms (model p50 409, p90 1850 ms). H2: our reconnect path adds more than 200 ms on top of raw GNS.",
+  "procedure": "Predeclared in docs/soak-testing.md and committed (ba4811a) before any run: the model (tools/ki35/model.py), the bands (p50 [259,559], p90 [1388,2313]) and the H2 margin. tools/ki35/probe.cpp times GnsTransport connect() to the client's Connected event, with a listening GnsTransport in the same process, both polled every 1 ms; harsh profile through our set_impairment (process-global: both directions impaired), 300 trials; 50 unimpaired trials. tools/ki35/run_probe.py ran it on the clean commit b36d226 and applied the rules. (A 5+3-trial smoke run of the tool preceded it and is not counted.)",
+  "expected_result": "H1 supported; H2 decided by the gap.",
+  "observed_result": "300/300 and 50/50 connected. Harsh: p50 843.5, p90 1598.1, p99 3209.6 ms; unimpaired p50 3.0 ms. By the predeclared rules: H1 NOT supported (p50 outside its band; p90 inside); H2 NOT supported (soak establish p50 880 minus raw 843.5 = 36.5 ms). Post-hoc analysis (not a rule): successes fall in 500 ms retry cycles as the model describes, 149/300 = 0.50 in the first cycle against the model's 0.52, and similar conditional rates later (0.52, 0.62, 0.68). With a first-attempt probability this close to 0.5 the median sits on the boundary between the first and second cycle (about 400 versus about 850 ms), so a p50 band was a fragile criterion. The rule's result stands.",
+  "evidence_paths": [
+    "evidence/logs/ki35-probe-2026-10-25-215541-b36d226",
+    "tools/ki35/model.py",
+    "evidence/findings/F-GNS-003.json"
+  ],
+  "result": "PARTIAL",
+  "errors": "H1 rejected by its predeclared p50 band, although the post-hoc retry-cycle analysis matches the model's mechanism; the next predeclaration should judge per-attempt success rates or the cycle distribution, not a median near a 0.5 boundary. Duplicates were not modelled.",
+  "confidence": "medium",
+  "follow_up": "The establishment phase follows GNS's own fixed 500 ms retry. The 36.5 ms gap between the soak p50 and the raw p50 compares different samples: it is not a paired estimate and does not bound what our path adds (corrected after review #25). Candidate remedies, each needing its own predeclared experiment: avoid a new GNS connection when the old one survives the stall; start the new connection earlier (on the first sign of trouble); or a GNS change (a dependency patch: owner approval). The DTLS (p50 613 ms) and session (p50 674 ms) phases are ours and remain to be decomposed.",
+  "related": [
+    "EXP-027",
+    "EXP-035",
+    "F-GNS-003"
+  ]
+}

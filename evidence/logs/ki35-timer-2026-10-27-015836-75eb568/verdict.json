@@ -1,0 +1,1031 @@
+{
+  "complete": true,
+  "incomplete_because": [],
+  "batches": {
+    "gns-1-flat-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2339.0,
+        "p90": 3484.9,
+        "p95": 3740.2,
+        "p99": 4704.6
+      },
+      "over_limit": {
+        "k": 19,
+        "n": 100,
+        "p": 0.19,
+        "wilson95": [
+          0.1251,
+          0.2778
+        ]
+      },
+      "dtls_ms": {
+        "p50": 829.8,
+        "p95": 1522.1,
+        "p99": 1853.7
+      },
+      "datagrams": {
+        "sum": 1013,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.13,
+      "timers_per_reconnect": 2.04,
+      "hellos_per_reconnect": 2.96,
+      "cpu_ms_per_cycle": 43.561
+    },
+    "gns-1-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2491.2,
+        "p90": 3865.5,
+        "p95": 4598.2,
+        "p99": 5271.7
+      },
+      "over_limit": {
+        "k": 30,
+        "n": 100,
+        "p": 0.3,
+        "wilson95": [
+          0.2189,
+          0.3958
+        ]
+      },
+      "dtls_ms": {
+        "p50": 813.2,
+        "p95": 1821.0,
+        "p99": 2731.1
+      },
+      "datagrams": {
+        "sum": 1011,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.11,
+      "timers_per_reconnect": 1.78,
+      "hellos_per_reconnect": 2.87,
+      "cpu_ms_per_cycle": 45.455
+    },
+    "gns-2-flat-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2406.4,
+        "p90": 3491.6,
+        "p95": 3803.5,
+        "p99": 4747.4
+      },
+      "over_limit": {
+        "k": 19,
+        "n": 100,
+        "p": 0.19,
+        "wilson95": [
+          0.1251,
+          0.2778
+        ]
+      },
+      "dtls_ms": {
+        "p50": 826.0,
+        "p95": 1509.0,
+        "p99": 1864.1
+      },
+      "datagrams": {
+        "sum": 1021,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.21,
+      "timers_per_reconnect": 1.99,
+      "hellos_per_reconnect": 3.03,
+      "cpu_ms_per_cycle": 45.612
+    },
+    "gns-2-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2431.4,
+        "p90": 3922.9,
+        "p95": 4362.4,
+        "p99": 5574.2
+      },
+      "over_limit": {
+        "k": 32,
+        "n": 100,
+        "p": 0.32,
+        "wilson95": [
+          0.2367,
+          0.4166
+        ]
+      },
+      "dtls_ms": {
+        "p50": 806.1,
+        "p95": 2083.4,
+        "p99": 3251.3
+      },
+      "datagrams": {
+        "sum": 1000,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.0,
+      "timers_per_reconnect": 1.79,
+      "hellos_per_reconnect": 3.03,
+      "cpu_ms_per_cycle": 43.719
+    },
+    "gns-3-flat-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2368.9,
+        "p90": 3281.2,
+        "p95": 3987.3,
+        "p99": 5184.6
+      },
+      "over_limit": {
+        "k": 19,
+        "n": 100,
+        "p": 0.19,
+        "wilson95": [
+          0.1251,
+          0.2778
+        ]
+      },
+      "dtls_ms": {
+        "p50": 804.3,
+        "p95": 1483.5,
+        "p99": 1740.5
+      },
+      "datagrams": {
+        "sum": 1008,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.08,
+      "timers_per_reconnect": 1.77,
+      "hellos_per_reconnect": 2.86,
+      "cpu_ms_per_cycle": 46.243
+    },
+    "gns-3-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 2671.4,
+        "p90": 4008.6,
+        "p95": 4461.2,
+        "p99": 7711.4
+      },
+      "over_limit": {
+        "k": 41,
+        "n": 100,
+        "p": 0.41,
+        "wilson95": [
+          0.3187,
+          0.508
+        ]
+      },
+      "dtls_ms": {
+        "p50": 845.4,
+        "p95": 3243.8,
+        "p99": 4947.9
+      },
+      "datagrams": {
+        "sum": 1079,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.79,
+      "timers_per_reconnect": 2.44,
+      "hellos_per_reconnect": 3.34,
+      "cpu_ms_per_cycle": 41.825
+    },
+    "gns-4-flat-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1351.8,
+        "p90": 1829.6,
+        "p95": 1846.8,
+        "p99": 1894.0
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "dtls_ms": {
+        "p50": 566.7,
+        "p95": 604.9,
+        "p99": 610.5
+      },
+      "datagrams": {
+        "sum": 359,
+        "n": 50
+      },
+      "datagrams_per_reconnect": 7.18,
+      "timers_per_reconnect": 0.0,
+      "hellos_per_reconnect": 2.0,
+      "cpu_ms_per_cycle": 36.351
+    },
+    "gns-4-off-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1361.9,
+        "p90": 1837.0,
+        "p95": 1856.3,
+        "p99": 1870.3
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "dtls_ms": {
+        "p50": 568.8,
+        "p95": 630.7,
+        "p99": 883.6
+      },
+      "datagrams": {
+        "sum": 368,
+        "n": 50
+      },
+      "datagrams_per_reconnect": 7.36,
+      "timers_per_reconnect": 0.06,
+      "hellos_per_reconnect": 2.04,
+      "cpu_ms_per_cycle": 37.945
+    },
+    "udp-4401-flat-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1686.8,
+        "p90": 2765.9,
+        "p95": 3100.9,
+        "p99": 3631.6
+      },
+      "over_limit": {
+        "k": 5,
+        "n": 100,
+        "p": 0.05,
+        "wilson95": [
+          0.0215,
+          0.1118
+        ]
+      },
+      "dtls_ms": {
+        "p50": 859.9,
+        "p95": 1577.9,
+        "p99": 1799.4
+      },
+      "datagrams": {
+        "sum": 1067,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.67,
+      "timers_per_reconnect": 2.06,
+      "hellos_per_reconnect": 2.92,
+      "cpu_ms_per_cycle": 62.816
+    },
+    "udp-4401-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1844.2,
+        "p90": 2980.9,
+        "p95": 3152.4,
+        "p99": 3875.6
+      },
+      "over_limit": {
+        "k": 8,
+        "n": 100,
+        "p": 0.08,
+        "wilson95": [
+          0.0411,
+          0.15
+        ]
+      },
+      "dtls_ms": {
+        "p50": 845.3,
+        "p95": 2535.2,
+        "p99": 3477.7
+      },
+      "datagrams": {
+        "sum": 1065,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.65,
+      "timers_per_reconnect": 1.78,
+      "hellos_per_reconnect": 2.88,
+      "cpu_ms_per_cycle": 72.128
+    },
+    "udp-4402-flat-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1906.8,
+        "p90": 2757.8,
+        "p95": 2917.0,
+        "p99": 3633.7
+      },
+      "over_limit": {
+        "k": 4,
+        "n": 100,
+        "p": 0.04,
+        "wilson95": [
+          0.0157,
+          0.0984
+        ]
+      },
+      "dtls_ms": {
+        "p50": 880.0,
+        "p95": 1782.4,
+        "p99": 2018.0
+      },
+      "datagrams": {
+        "sum": 1113,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 11.13,
+      "timers_per_reconnect": 2.51,
+      "hellos_per_reconnect": 3.27,
+      "cpu_ms_per_cycle": 38.825
+    },
+    "udp-4402-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1895.9,
+        "p90": 2905.7,
+        "p95": 4184.1,
+        "p99": 4687.1
+      },
+      "over_limit": {
+        "k": 7,
+        "n": 100,
+        "p": 0.07,
+        "wilson95": [
+          0.0343,
+          0.1375
+        ]
+      },
+      "dtls_ms": {
+        "p50": 845.6,
+        "p95": 2047.0,
+        "p99": 3571.2
+      },
+      "datagrams": {
+        "sum": 1042,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 10.42,
+      "timers_per_reconnect": 1.93,
+      "hellos_per_reconnect": 3.05,
+      "cpu_ms_per_cycle": 51.925
+    },
+    "udp-4403-flat-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1669.9,
+        "p90": 2658.9,
+        "p95": 2856.3,
+        "p99": 3458.4
+      },
+      "over_limit": {
+        "k": 2,
+        "n": 100,
+        "p": 0.02,
+        "wilson95": [
+          0.0055,
+          0.07
+        ]
+      },
+      "dtls_ms": {
+        "p50": 892.1,
+        "p95": 1776.9,
+        "p99": 2233.1
+      },
+      "datagrams": {
+        "sum": 1125,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 11.25,
+      "timers_per_reconnect": 2.47,
+      "hellos_per_reconnect": 3.19,
+      "cpu_ms_per_cycle": 48.612
+    },
+    "udp-4403-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 1874.5,
+        "p90": 2855.7,
+        "p95": 3348.7,
+        "p99": 5061.5
+      },
+      "over_limit": {
+        "k": 5,
+        "n": 100,
+        "p": 0.05,
+        "wilson95": [
+          0.0215,
+          0.1118
+        ]
+      },
+      "dtls_ms": {
+        "p50": 897.4,
+        "p95": 2316.2,
+        "p99": 3984.8
+      },
+      "datagrams": {
+        "sum": 1101,
+        "n": 100
+      },
+      "datagrams_per_reconnect": 11.01,
+      "timers_per_reconnect": 2.07,
+      "hellos_per_reconnect": 2.96,
+      "cpu_ms_per_cycle": 39.299
+    },
+    "udp-4404-flat-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 982.3,
+        "p90": 1437.5,
+        "p95": 1442.9,
+        "p99": 1495.9
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "dtls_ms": {
+        "p50": 607.9,
+        "p95": 647.0,
+        "p99": 661.1
+      },
+      "datagrams": {
+        "sum": 380,
+        "n": 50
+      },
+      "datagrams_per_reconnect": 7.6,
+      "timers_per_reconnect": 0.1,
+      "hellos_per_reconnect": 2.04,
+      "cpu_ms_per_cycle": 35.714
+    },
+    "udp-4404-off-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "no_snapshot": 0,
+      "total_ms": {
+        "p50": 949.5,
+        "p90": 1453.8,
+        "p95": 1459.2,
+        "p99": 1497.2
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "dtls_ms": {
+        "p50": 612.1,
+        "p95": 656.0,
+        "p99": 661.4
+      },
+      "datagrams": {
+        "sum": 378,
+        "n": 50
+      },
+      "datagrams_per_reconnect": 7.56,
+      "timers_per_reconnect": 0.06,
+      "hellos_per_reconnect": 2.02,
+      "cpu_ms_per_cycle": 35.714
+    }
+  },
+  "pooled": {
+    "udp-harsh": {
+      "off": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1877.9,
+          "p90": 2891.8,
+          "p95": 3348.7,
+          "p99": 4548.3
+        },
+        "over_limit": {
+          "k": 20,
+          "n": 300,
+          "p": 0.0667,
+          "wilson95": [
+            0.0436,
+            0.1007
+          ]
+        },
+        "dtls_ms": {
+          "p50": 848.0,
+          "p95": 2294.5,
+          "p99": 3571.2
+        },
+        "datagrams": {
+          "sum": 3208,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.693,
+        "timers_per_reconnect": 1.927,
+        "hellos_per_reconnect": 2.963,
+        "cpu_ms_per_cycle": 54.451
+      },
+      "flat": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1781.6,
+          "p90": 2672.3,
+          "p95": 2904.9,
+          "p99": 3576.9
+        },
+        "over_limit": {
+          "k": 11,
+          "n": 300,
+          "p": 0.0367,
+          "wilson95": [
+            0.0206,
+            0.0645
+          ]
+        },
+        "dtls_ms": {
+          "p50": 865.9,
+          "p95": 1771.7,
+          "p99": 1993.7
+        },
+        "datagrams": {
+          "sum": 3305,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 11.017,
+        "timers_per_reconnect": 2.347,
+        "hellos_per_reconnect": 3.127,
+        "cpu_ms_per_cycle": 50.085
+      }
+    },
+    "udp-latency": {
+      "off": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 949.5,
+          "p90": 1453.8,
+          "p95": 1459.2,
+          "p99": 1497.2
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "dtls_ms": {
+          "p50": 612.1,
+          "p95": 656.0,
+          "p99": 661.4
+        },
+        "datagrams": {
+          "sum": 378,
+          "n": 50
+        },
+        "datagrams_per_reconnect": 7.56,
+        "timers_per_reconnect": 0.06,
+        "hellos_per_reconnect": 2.02,
+        "cpu_ms_per_cycle": 35.714
+      },
+      "flat": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 982.3,
+          "p90": 1437.5,
+          "p95": 1442.9,
+          "p99": 1495.9
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "dtls_ms": {
+          "p50": 607.9,
+          "p95": 647.0,
+          "p99": 661.1
+        },
+        "datagrams": {
+          "sum": 380,
+          "n": 50
+        },
+        "datagrams_per_reconnect": 7.6,
+        "timers_per_reconnect": 0.1,
+        "hellos_per_reconnect": 2.04,
+        "cpu_ms_per_cycle": 35.714
+      }
+    },
+    "gns-harsh": {
+      "off": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2546.5,
+          "p90": 3983.2,
+          "p95": 4412.3,
+          "p99": 5683.3
+        },
+        "over_limit": {
+          "k": 103,
+          "n": 300,
+          "p": 0.3433,
+          "wilson95": [
+            0.2919,
+            0.3987
+          ]
+        },
+        "dtls_ms": {
+          "p50": 818.1,
+          "p95": 2484.4,
+          "p99": 3958.0
+        },
+        "datagrams": {
+          "sum": 3090,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.3,
+        "timers_per_reconnect": 2.003,
+        "hellos_per_reconnect": 3.08,
+        "cpu_ms_per_cycle": 43.666
+      },
+      "flat": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 2368.5,
+          "p90": 3479.1,
+          "p95": 3800.3,
+          "p99": 4704.6
+        },
+        "over_limit": {
+          "k": 57,
+          "n": 300,
+          "p": 0.19,
+          "wilson95": [
+            0.1496,
+            0.2382
+          ]
+        },
+        "dtls_ms": {
+          "p50": 815.9,
+          "p95": 1504.3,
+          "p99": 1811.6
+        },
+        "datagrams": {
+          "sum": 3042,
+          "n": 300
+        },
+        "datagrams_per_reconnect": 10.14,
+        "timers_per_reconnect": 1.933,
+        "hellos_per_reconnect": 2.95,
+        "cpu_ms_per_cycle": 45.139
+      }
+    },
+    "gns-latency": {
+      "off": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1361.9,
+          "p90": 1837.0,
+          "p95": 1856.3,
+          "p99": 1870.3
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "dtls_ms": {
+          "p50": 568.8,
+          "p95": 630.7,
+          "p99": 883.6
+        },
+        "datagrams": {
+          "sum": 368,
+          "n": 50
+        },
+        "datagrams_per_reconnect": 7.36,
+        "timers_per_reconnect": 0.06,
+        "hellos_per_reconnect": 2.04,
+        "cpu_ms_per_cycle": 37.945
+      },
+      "flat": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "no_snapshot": 0,
+        "total_ms": {
+          "p50": 1351.8,
+          "p90": 1829.6,
+          "p95": 1846.8,
+          "p99": 1894.0
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "dtls_ms": {
+          "p50": 566.7,
+          "p95": 604.9,
+          "p99": 610.5
+        },
+        "datagrams": {
+          "sum": 359,
+          "n": 50
+        },
+        "datagrams_per_reconnect": 7.18,
+        "timers_per_reconnect": 0.0,
+        "hellos_per_reconnect": 2.0,
+        "cpu_ms_per_cycle": 36.351
+      }
+    }
+  },
+  "rules": {
+    "udp-harsh": {
+      "O3_p50_total": {
+        "diff": -96.3,
+        "ci95": [
+          -221.8,
+          41.6
+        ]
+      },
+      "O3_p50_dtls": {
+        "diff": 17.9,
+        "ci95": [
+          -26.8,
+          156.6
+        ]
+      },
+      "homogeneity_p": {
+        "off": 0.687289,
+        "flat": 0.516549
+      },
+      "O1_over_limit": {
+        "diff_ci95": [
+          -0.0677,
+          0.0061
+        ],
+        "verdict": "no_difference_shown"
+      },
+      "O2_p95": {
+        "diff": -443.8,
+        "ci95": [
+          -953.4,
+          -8.6
+        ],
+        "verdict": "flat_better"
+      },
+      "O2_p99": {
+        "diff": -971.4,
+        "ci95": [
+          -1600.6,
+          -417.2
+        ],
+        "verdict": "flat_better"
+      },
+      "C1_datagram_ratio": 1.0302,
+      "C2_events": {
+        "off": {
+          "timeout": 0,
+          "failed": 0,
+          "no_reconnect": 0
+        },
+        "flat": {
+          "timeout": 0,
+          "failed": 0,
+          "no_reconnect": 0
+        }
+      }
+    },
+    "udp-latency": {
+      "O3_p50_total": {
+        "diff": 32.8,
+        "ci95": [
+          -42.8,
+          444.1
+        ]
+      },
+      "O3_p50_dtls": {
+        "diff": -4.2,
+        "ci95": [
+          -20.5,
+          6.8
+        ]
+      }
+    },
+    "gns-harsh": {
+      "O3_p50_total": {
+        "diff": -178.0,
+        "ci95": [
+          -295.2,
+          39.8
+        ]
+      },
+      "O3_p50_dtls": {
+        "diff": -2.2,
+        "ci95": [
+          -37.1,
+          32.8
+        ]
+      },
+      "homogeneity_p": {
+        "off": 0.218091,
+        "flat": 1.0
+      },
+      "O1_over_limit": {
+        "diff_ci95": [
+          -0.2219,
+          -0.0828
+        ],
+        "verdict": "flat_better"
+      },
+      "O2_p95": {
+        "diff": -612.0,
+        "ci95": [
+          -1279.8,
+          -227.1
+        ],
+        "verdict": "flat_better"
+      },
+      "O2_p99": {
+        "diff": -978.7,
+        "ci95": [
+          -3039.6,
+          -335.9
+        ],
+        "verdict": "flat_better"
+      },
+      "C1_datagram_ratio": 0.9845,
+      "C2_events": {
+        "off": {
+          "timeout": 0,
+          "failed": 0,
+          "no_reconnect": 0
+        },
+        "flat": {
+          "timeout": 0,
+          "failed": 0,
+          "no_reconnect": 0
+        }
+      }
+    },
+    "gns-latency": {
+      "O3_p50_total": {
+        "diff": -10.1,
+        "ci95": [
+          -35.9,
+          16.0
+        ]
+      },
+      "O3_p50_dtls": {
+        "diff": -2.1,
+        "ci95": [
+          -12.0,
+          7.9
+        ]
+      }
+    },
+    "guards": {
+      "C1_cost": true,
+      "C2_robustness": true
+    },
+    "reading": "growth_matters"
+  }
+}

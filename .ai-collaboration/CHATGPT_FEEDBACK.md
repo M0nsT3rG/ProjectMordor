@@ -6,6 +6,111 @@ Feedback is technical advice, **not authorisation**. Anything that conflicts wit
 
 ---
 
+## Feedback on review #38 (PR #25: EXP-047, 2026-10-28)
+
+- **Status:** triaged (2026-10-28) on `feature/ki35-gns-establishment`; the owner asked for the triage and the cookie predeclaration. EXP-049 is predeclared in `docs/soak-testing.md`, before any tooling or run (EXP-048 is on PR #26).
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-28T09:52Z). Source and evidence review only.
+- **Verdict:** "cap750 not shown" and "cap500 not shown" stand; EXP-047 is a useful negative result; no timer change; KI-35 open; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-38-01** Stop broad cap tuning; keep 250/500/1000 ms | **Yes:** EXP-047 showed no difference for either cap, and EXP-044's `flat` is a bound, not a candidate. | **Accepted** | No further cap arms without a mechanism-level hypothesis. `retransmit_max_us` stays an experiment option with its default unchanged. |
+| **FB-38-02** Next: the cookie round trip, read-only attribution first, default timer and security fixed | **Yes.** The probe already times the exchange per reconnect (`first_hello` to `cookie_hello`), but not which flight was lost: only cycle summaries are kept, not the traces. EXP-027 removed the exchange on GNS and saved about one RTT in DTLS with no median gain; that is a different question (removal) from what retransmissions inside the exchange cost. | **Accepted** | EXP-049 predeclared: measurement only, the default configuration in every batch (timer, cookie, `max_new_handshakes_per_s`, `confirm_binding` off). Primary: of the reconnects over 3 s, the share that would be under 3 s without the time spent on ClientHello retransmissions before the HelloVerifyRequest. A reading of "do not explain" sends KI-35 back to GNS establishment. Any behavioural change stays a separate, later predeclaration that keeps cookie verification and the anti-amplification limit. |
+| **FB-38-03** RTT-adaptive initial timer: optional, lower priority, never mixed | **Agreed:** the slow-path cause stays a hypothesis (EXP-047). | **Accepted, deferred** | Not predeclared. EXP-049 changes no timer and only reports, per profile, how often the first ClientHello is resent before the cookie arrives. |
+| **FB-38-04** Runner and evidence quality | **Yes, already true:** the two interrupted EXP-047 attempts are in `evidence_paths`, labelled unjudged with the cause not established. The `dtls` runtimes are recorded: 297 s on the last green run before the new test, about 302 s with it (development log, `CMakeLists.txt` comment), 299.5 s on `b903009` (request #38). 900 s is a bound, not evidence. | **Accepted** | Kept as is. The suites run again on the final head after any code change; KI-44's test is in the `dtls` suite on both backends. |
+
+## Feedback on review #31 (PR #25: EXP-044, 2026-10-27)
+
+- **Status:** implemented (2026-10-28) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-047 (EXP-045/046 are on PR #26). Result: neither cap is shown to differ from `off`; no default change.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-27T09:11Z). Source and evidence review only.
+- **Verdict:** EXP-044 supports "growth matters"; flat 250 ms is a bound, not a default; KI-35 open; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-31-01** Intermediate caps 500 / 750 ms, exact schedules, a profile with RTT above 250 ms | **Yes.** `DtlsSession::next_retransmit_us` starts every flight at `retransmit_initial_us` and doubles up to `retransmit_max_us`, so "a 500 ms cap" and "doubling up to 500 ms" are the same schedule; request #31 listed them as two candidates by mistake. | **Accepted** | EXP-047 is predeclared before any tooling or run: arms `off` (250, 500, 1000, 1000 … ms), `cap750` (250, 500, 750, 750 …) and `cap500` (250, 500, 500 …), host and client. Profiles: harsh, and `slow` (150 ms + U[0, 50] ms each way, so an RTT of 300–400 ms; 1% loss; no duplicates). The flat arm is not repeated: EXP-044 already bounds it. |
+| **FB-31-02** True wire and resource costs | **Yes:** EXP-044 counted datagrams only; the DTLS trace carried no sizes. | **Accepted** | The DTLS trace detail of every handshake datagram gains its length and, when it carries a plaintext handshake message, that message's `message_seq` (header fields only; no payload). Per reconnect and side: bytes sent and received, datagrams sent, resent datagrams (a repeated handshake message), timer fires; process CPU; failures and timeouts; per-batch results. Cost guardrails are fixed in the predeclaration. |
+| **FB-31-03** Cookie experiment separate, with the timer fixed | **Agreed.** | **Accepted** | Not in EXP-047. It will be predeclared on its own with the default timer. |
+| **FB-31-04** Security and decision boundary | **Agreed.** | **Accepted** | Defaults, DTLS verification and the cookie are unchanged; EXP-043's verdict stands; KI-44 stays open, and its test runs on both backends. No claim that the harsh GNS goal is met. |
+
+## Feedback on review #29 (PR #25: EXP-043, 2026-10-26)
+
+- **Status:** implemented (2026-10-27) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-044.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25) (2026-10-26T23:59Z). Source and evidence review only.
+- **Verdict:** EXP-043 is a useful negative result; "do not recommend" stands; KI-35 open; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-29-01** Keep `confirm_binding` research-only | **Yes:** off by default, documented as experimental in `docs/protocol.md`, never enabled outside tests and the A/B. | **Accepted** | It stays off and research-only. Removing it before any production merge is recorded as acceptable; promoting it needs a demonstrated end-to-end benefit and the owner. |
+| **FB-29-02** Next: a predeclared DTLS retransmission-timer experiment | **Yes:** EXP-041 shows DTLS as the largest phase in most of the slowest reconnects on both backends. | **Accepted** | EXP-044 is predeclared before any run: timer arms against today's back-off, end-to-end recovery p50/p95/p99, P(> 3 s), handshake retransmissions and attempts, bytes and CPU, failures, matched impairment. The cookie round trip stays a separate, later experiment. No default change without the owner. **Done (EXP-044, `ki35-timer-2026-10-27-015836-75eb568`):** arms off / flat (250 ms cap). Reading "growth matters": GNS P(> 3 s) 103/300 to 57/300, p95/p99 better on both backends, datagram ratio 1.03 / 0.99, no robustness events. Bytes are not traced; datagrams per reconnect are. No default changed. |
+| **FB-29-03** BindingAck security regressions | **Agreed.** | **Accepted** | 3 new tests, both backends: a late ack after the gate changes nothing; duplicated and replayed acks are inert (counted at most once per ack sent, no transition, nothing delivered twice); an old session's binding and ack never cross into a new session. The unsolicited ack without a verified binding was already covered and is now red-before checked. Fail-closed is unchanged. **Found while writing them (KI-44, independent of BindingAck):** an old session's plaintext handshake flights injected into a new handshake make that attempt fail closed (never authenticate); pinned by a test with the flag on and off. |
+| **FB-29-04** Keep EXP-043's verdict; report it as negative | **Yes.** | **Accepted** | The result heading in `docs/soak-testing.md` now says negative. The session-phase gain is explicitly not a total-recovery gain, with the unchanged default and the intervals. |
+
+---
+
+## Feedback on reviews #27 and #28 (PR #25: EXP-041 and EXP-042, 2026-10-26)
+
+- **Status:** implemented on `feature/ki35-gns-establishment`. **The owner authorised the behaviour change behind a flag that is off by default** ("faz tudo da revisão #27/#28 … A/B do client-side gating atrás de uma flag desligada por omissão"). Record: EXP-043.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25). Source and evidence review only.
+- **Verdict:** keep KI-35 open; H stays formally inconclusive; designing and testing a fix is supported; no merge.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **#27 / #28 formal outcomes** | Yes: EXP-042's H is inconclusive by its own rule. | **Accepted** | Never relabelled. EXP-043 tests a fix, not H. |
+| **FB-28-01** A/B of client-side gating | **Yes, with one correction.** The client cannot know that the host verified its binding: the host's binding is sent when the host's handshake finishes, not in reply. Gating needs a signal, so a BindingAck record is added. A first design gated **both** sides, and a FB-28-02 test caught a flaw: a host could ack while it still waited, and the client's first record was dropped. **Final design:** only the host acks, at the moment it verifies the client's binding (when it starts accepting data; it never waits), and only the client gates on that ack. | **Accepted** | `DtlsConfig::confirm_binding` / `SecureTransportConfig::confirm_binding`, off by default, both ends must enable it. A 2 s fallback (`gate_timeouts`) means a mismatch never hangs. No host buffering. EXP-043 is predeclared before any run: arms off/on, harsh and latency-only profiles. |
+| **FB-28-02** Security and regressions | **Agreed.** | **Accepted** | 7 tests, both backends (`dtls_confirm_binding_*`, `secure_game_session_runs_with_confirm_binding`): the client never authenticates before the host verified it (red-before checked); an ack never authenticates without a verified binding; an altered binding is still rejected; premature records are dropped and never retained; a mismatch falls back without hanging; loss, jitter, reorder and duplication. Full suites with the flag off. EXP-043 measures the extra round trip instead of assuming it. |
+| **FB-28-03** The 0.04 P(D1) gap | **Agreed.** | **Accepted, deferred** | Exploratory only, after EXP-043. EXP-042's criteria are not touched. |
+| **FB-28-04** DTLS timers and cookie separately | **Agreed.** | **Accepted, deferred** | Separate predeclared experiments after EXP-043, one change each. |
+
+---
+
+## Feedback on the EXP-037 follow-up review (PR #25, 2026-10-26)
+
+- **Status:** implemented (2026-10-26) on `feature/ki35-gns-establishment`; the owner asked for all of it. Record: EXP-041.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25). Source and evidence review only.
+- **Verdict:** research progress acknowledged; not approval to merge PR #25; KI-35 and D-008/G0 stay open.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **FB-25-05** (high) Measure the real reconnect | **Yes.** EXP-037 timed fresh joins: no stall, no notice, no token, a 250 ms retry instead of 500 ms. | **Accepted** | EXP-041 measures stall reconnects in one process (`tools/ki35/reconnect_probe.cpp`). Each cycle stalls the client for 5 s, as the soak does, then times the phases notice, establish, DTLS and session, the total (the soak's recovery definition), and the first snapshot. Measurement only: protocol and defaults unchanged. |
+| **FB-25-06** (medium) Stronger statistics | **Yes.** Overlapping Wilson intervals cannot show agreement; batches share a process (and, on GNS, unseedable process-global loss). | **Accepted** | Predeclared before the run: TOST equivalence with margin δ = 0.08 (90% Wilson inside [model − δ, model + δ]), "different" if the 95% interval misses the model, otherwise inconclusive; a chi-square homogeneity test across batches (df = 2, exact p = e^(−X²/2)) before pooling; lag-1 autocorrelation disclosed; per batch and pooled; timeouts; p50/p90/p95/p99/max. **δ was chosen with EXP-037's results known; this is disclosed.** |
+| **FB-25-07** (medium) DTLS timers and cookie separately | **Agreed.** | **Accepted, deferred** | Each gets its own predeclared experiment after EXP-041, comparing p95/p99, failures and totals, with security unchanged. EXP-041 only reports the cookie round trip descriptively. No GNS dependency change without the owner. |
+| **FB-25-08** (medium) Which request did the accept complete | **Yes.** Harsh round trips are 160–240 ms (our UDP impairment: 80 ms + U[0, 40] ms one way; GNS has the same budget), and reconnect requests are 500 ms apart, so at most one sent request fits an accept's window. | **Accepted** | The accept is attributed by timestamps only: the sent requests whose send time is 140–260 ms before the client's `connect_accept_received` (round trip ± 20 ms of processing). Exactly one is attributed; zero or several are reported as unattributed. No request IDs and no protocol change. |
+| **Follow-up:** do the three P2 findings remain on `main`? | **No, the premise is out of date.** All three were fixed on the candidate (`951fd77`) before the merge. The fixes are on `main` (`src/client/client.cpp` `begin_reconnect(…, peer_lost)`, `secure_transport.cpp` returning the inner `SendResult`, `host.cpp` `close_unshared_peer`), and their four regressions passed on `3c618d9` (`tests-2026-10-26-090051-3c618d9`). | **Verified; no action** | Also recorded in review request #27. |
+
+---
+
+## Feedback on review #25 (PR #25: KI-35 investigation, EXP-036)
+
+- **Status:** implemented (2026-10-25) on `feature/ki35-gns-establishment`; the owner asked for all of it.
+- **Source:** [PR #25 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/25). Source and evidence review only.
+- **Verdict:** the research direction is approved; merging and network readiness are not. KI-35 and D-008/G0 stay open.
+
+| ID | Assumptions verified? | Decision | Done |
+|---|---|---|---|
+| **Correction** "our path adds about 37 ms" | **Yes, the claim overreached.** It compared medians of different samples (the probe and earlier soak reconnects): it is not a paired estimate and not a bound. | **Accepted** | Reworded wherever it appeared (soak-testing.md, KNOWN_ISSUES, the triage, the dev log, EXP-036 `follow_up`, marked "corrected after review #25"). No claim that establishment is entirely outside our control. |
+| **FB-25-01** Methodology | **Agreed.** | **Accepted** | EXP-037 judges per-attempt proportions with 95% Wilson intervals against model intervals [without, with duplicates]. Duplicates are modelled (an independent copy). The cycle distribution is reported. Fixed seeds on UDP; GNS loss cannot be seeded, so its batches are repetitions. |
+| **FB-25-02** DTLS and session per reconnection | **Agreed.** | **Accepted** | `tools/ki35/secure_probe.cpp`: phases per connection (establish, DTLS, session, total) with n, failures and p50/p90/p95/p99; the largest phase among the slowest 10%. Fresh joins, which have no notice phase and no token; stated. Reuse or overlap of connections is not tested here. |
+| **FB-25-03** Reproducibility | **Agreed.** | **Accepted** | UDP seeds 3701–3703 and 3 GNS repetitions, 100 trials each; per-batch intervals and a predeclared consistency check. Source-level conclusions (F-GNS-003) are kept apart from timing results. |
+| **FB-25-04** Separation | **Agreed.** | **Accepted** | This branch is not part of the PR #24 candidate. |
+| Answers 1–3 | **Agreed.** | — | DTLS and session first; no GNS patch (it would be an owner-approved dependency change); per-attempt proportions with intervals, with end-to-end tail latency as the user-facing criterion. |
+
+---
+
+## Feedback on review #24 (PR #24: the integration candidate)
+
+- **Status:** triaged (2026-10-25). Recorded on `feature/ki35-gns-establishment`, so that the candidate branch stays unchanged while its consecutive Codex reviews run.
+- **Source:** [PR #24 comment](https://github.com/M0nsT3rG/ProjectMordor/pull/24). Source and evidence review only.
+- **Verdict:** integration approval is pending closure of the Codex reviews and the owner's explicit approval. G0 stays closed.
+
+| ID | Assumptions verified? | Decision | Done / next |
+|---|---|---|---|
+| **FB-24-01** (major) Two consecutive clean reviews of the same unchanged candidate | **Agreed.** | **Accepted** | Codex passes 6 and 7 run from a worktree of the unchanged candidate `2217085`, whose code equals `508ae40`. The count restarts after any source change. Then a reviewer verifies test coverage and the open-risk documentation. |
+| **FB-24-02** KI-35 exception scope | **Agreed.** | **Accepted** | Only the owner can accept harsh-gns-secure (3432 ms) as a known issue, and only for merging the standalone trusted-lab prototype. The soak is not a full pass, and KI-35 stays open. **EXP-036 (this branch):** the establishment phase follows GNS's own fixed 500 ms retry. The soak's median is about 37 ms higher than the raw GNS median, but that is an unpaired comparison, not a bound on our part (corrected after review #25). |
+| **FB-24-03** UDP eviction and GNS slot tests | **Agreed.** | **Accepted, pending** | Tests are still needed for churn, resource bounds, fairness to legitimate clients, idle expiry and recovery. Until then: loopback and trusted labs only (unchanged). |
+| **FB-24-04** Candidate provenance | **Verified.** `git diff 508ae40 2217085 -- src tests scripts tools cmake CMakeLists.txt` is empty: the later commit holds documentation and evidence only. | **Accepted** | Recorded here. The final candidate is frozen when passes 6 and 7 are clean. Mergeability is rechecked then, and impacted tests rerun if code changes. |
+
+---
+
 ## Feedback on review #23 (PR #23 and the consolidation of PR #22)
 
 - **Status:** implemented (2026-10-25) on `feature/review23-integration` (stacked on PR #23); the owner asked for all of it.

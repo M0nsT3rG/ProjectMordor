@@ -1,6 +1,6 @@
 {
   "generated_by": "tools/evidence/evidence.py index",
-  "count": 102,
+  "count": 111,
   "records": [
     {
       "id": "EXP-001",
@@ -388,6 +388,28 @@
       "summary": "Run the integration gate (docs/integration-gate.md, review #23 FB-23-02) on an exact candidate head that contains the whole stack (PR #22) and its follow-ups (#23 and this branch), and record what a merge into main would and would not establish."
     },
     {
+      "id": "EXP-036",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-036.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35: find what sets the GNS establishment phase of a secure reconnect under the harsh profile, the largest phase (p50 880 ms in 39 recorded harsh-gns-secure reconnects)."
+    },
+    {
+      "id": "EXP-037",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-037.json",
+      "date": "2026-10-25",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #25: do the DTLS and session phases (ours) behave as their packet-level mechanisms predict, per connection, with uncertainty and across seeds; which phase makes slow connections slow."
+    },
+    {
       "id": "EXP-038",
       "type": "experiment",
       "path": "evidence/experiments/EXP-038.json",
@@ -419,6 +441,72 @@
       "scope": "-",
       "confidence": "medium",
       "summary": "Fourth run of the integration gate, on the candidate head 3c618d9, after item 2 reached two consecutive clean Codex passes on that unchanged head (FB-24-01)."
+    },
+    {
+      "id": "EXP-041",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-041.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, FB-25-05..08: the phases of each stall reconnect of a secure client (the KI-35 path, not fresh joins); which phase makes slow reconnects slow; whether the DTLS, session and GNS mechanisms are equivalent to their models; which request completes the session."
+    },
+    {
+      "id": "EXP-042",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-042.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PARTIAL",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35: test EXP-041's post-hoc explanation that the first session request of a reconnect overtakes the client's binding (back-to-back datagrams reordered by jitter) and is dropped by the host before authentication, which wastes a 500 ms retry."
+    },
+    {
+      "id": "EXP-043",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-043.json",
+      "date": "2026-10-26",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, reviews #27/#28 (FB-28-01/02): does client-side gating (confirm_binding: the host acks the client's verified binding; the client authenticates only after that ack) improve stall-reconnect recovery, at what cost, and does it stay secure? Owner-authorised behaviour change behind a flag that is off by default."
+    },
+    {
+      "id": "EXP-044",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-044.json",
+      "date": "2026-10-27",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #29 (FB-29-02): does the growth of the DTLS handshake retransmission timer drive the stall-reconnect recovery tail? Bounding A/B: off (250 ms initial, doubling, 1 s cap) against flat (250 ms cap, no growth), on host and client. No default change."
+    },
+    {
+      "id": "EXP-047",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-047.json",
+      "date": "2026-10-28",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #31 (FB-31-01/02): do intermediate DTLS back-off caps keep EXP-044's tail gain, and at what cost in bytes, resent datagrams and on a path whose RTT exceeds the 250 ms initial timer? Arms on host and client: off (250/500/1000 ms, today's default), cap750 (250/500/750) and cap500 (250/500/500). No default change."
+    },
+    {
+      "id": "EXP-049",
+      "type": "experiment",
+      "path": "evidence/experiments/EXP-049.json",
+      "date": "2026-10-29",
+      "subsystem": "experiment",
+      "status": "PASSED",
+      "scope": "-",
+      "confidence": "medium",
+      "summary": "KI-35, review #38 (FB-38-02): how much of the harsh tail (reconnects over 3 s) is time inside the DTLS cookie exchange, and how much of it is spent retransmitting the first ClientHello before the HelloVerifyRequest arrives? Measurement only: every batch runs today's default (timer 250 ms doubling to 1 s, cookie on, max_new_handshakes_per_s 64, confirm_binding off). No default, behaviour or gate change."
     },
     {
       "id": "F-COMM-001",
@@ -925,6 +1013,17 @@
       "scope": "source_verified",
       "confidence": "high",
       "summary": "In GameNetworkingSockets v1.6.1, packets arriving on a shared direct-UDP listen socket are dispatched by source address: an accepted connection is registered under its remote address (CSharedSocket::AddRemoteHost) and receives only packets from that address; any other source goes to the listen socket's unknown-address handler (challenge / connect / close messages). Together with F-GNS-001, data on an established GNS connection comes only from the address that answered the stateless challenge."
+    },
+    {
+      "id": "F-GNS-003",
+      "type": "finding",
+      "path": "evidence/findings/F-GNS-003.json",
+      "date": "2026-10-25",
+      "subsystem": "networking",
+      "status": "CONFIRMED",
+      "scope": "source_verified",
+      "confidence": "high",
+      "summary": "In GameNetworkingSockets v1.6.1, a direct-UDP client establishes a connection with a 4-leg exchange that restarts from the first leg every 500 ms: ThinkConnection_ClientConnecting calls SendEndToEndConnectRequest every k_usecConnectRetryInterval (a compile-time constant, 500 ms), which on the UDP transport sends a ChallengeRequest; a ChallengeReply makes the client send one ConnectRequest, and the connection completes on ConnectOK. Losing any of the 4 packets ends that attempt until the next ChallengeRequest. The interval is not a GNS configuration value."
     },
     {
       "id": "F-SOWM-001",

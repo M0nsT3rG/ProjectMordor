@@ -1,0 +1,7 @@
+{
+  "source": "evidence/logs/ki35-secure-2026-10-25-222913-b4d584f-dirty",
+  "analyser_commit": "6b116e2e38e5105a9cd76713b411c81721e752e2",
+  "command": "python -I tools/ki35/run_secure_probe.py --analyze <source>",
+  "reason": "Codex pass 5 on PR #25: the original verdict counted one unsent pre-authentication ConnectRequest (sent: false) as a session request. The source run and its verdict.json are unchanged.",
+  "changes": "gns session_first 163/300 -> 164/300; every other proportion and every rule outcome unchanged"
+}

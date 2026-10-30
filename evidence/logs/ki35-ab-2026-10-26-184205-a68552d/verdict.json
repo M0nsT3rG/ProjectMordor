@@ -1,0 +1,1123 @@
+{
+  "complete": true,
+  "incomplete_because": [],
+  "batches": {
+    "gns-1-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 2333.7,
+        "p90": 3546.4,
+        "p95": 4030.1,
+        "p99": 6059.2
+      },
+      "over_limit": {
+        "k": 20,
+        "n": 100,
+        "p": 0.2,
+        "wilson95": [
+          0.1334,
+          0.2888
+        ]
+      },
+      "session_ms": {
+        "p50": 206.4,
+        "p95": 1207.4
+      },
+      "requests_per_reconnect": {
+        "mean": 1.51,
+        "dist": {
+          "1": 63,
+          "2": 27,
+          "3": 6,
+          "4": 4
+        }
+      },
+      "d1": {
+        "k": 20,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-1-on-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 2450.1,
+        "p90": 4198.3,
+        "p95": 4774.9,
+        "p99": 5451.1
+      },
+      "over_limit": {
+        "k": 27,
+        "n": 100,
+        "p": 0.27,
+        "wilson95": [
+          0.1927,
+          0.3643
+        ]
+      },
+      "session_ms": {
+        "p50": 197.4,
+        "p95": 1195.0
+      },
+      "requests_per_reconnect": {
+        "mean": 1.38,
+        "dist": {
+          "1": 72,
+          "2": 20,
+          "3": 6,
+          "4": 2
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-2-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 2453.8,
+        "p90": 4000.9,
+        "p95": 4308.0,
+        "p99": 4980.3
+      },
+      "over_limit": {
+        "k": 29,
+        "n": 100,
+        "p": 0.29,
+        "wilson95": [
+          0.2101,
+          0.3854
+        ]
+      },
+      "session_ms": {
+        "p50": 672.1,
+        "p95": 1669.8
+      },
+      "requests_per_reconnect": {
+        "mean": 1.78,
+        "dist": {
+          "1": 48,
+          "2": 31,
+          "3": 16,
+          "4": 5
+        }
+      },
+      "d1": {
+        "k": 33,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-2-on-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 2482.5,
+        "p90": 4037.5,
+        "p95": 4768.5,
+        "p99": 6440.4
+      },
+      "over_limit": {
+        "k": 23,
+        "n": 100,
+        "p": 0.23,
+        "wilson95": [
+          0.1584,
+          0.3215
+        ]
+      },
+      "session_ms": {
+        "p50": 196.4,
+        "p95": 1211.2
+      },
+      "requests_per_reconnect": {
+        "mean": 1.45,
+        "dist": {
+          "1": 68,
+          "2": 21,
+          "3": 9,
+          "4": 2
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-3-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 2606.8,
+        "p90": 4265.5,
+        "p95": 4667.1,
+        "p99": 6244.5
+      },
+      "over_limit": {
+        "k": 39,
+        "n": 100,
+        "p": 0.39,
+        "wilson95": [
+          0.3002,
+          0.488
+        ]
+      },
+      "session_ms": {
+        "p50": 671.9,
+        "p95": 1197.7
+      },
+      "requests_per_reconnect": {
+        "mean": 1.72,
+        "dist": {
+          "1": 48,
+          "2": 34,
+          "3": 16,
+          "4": 2
+        }
+      },
+      "d1": {
+        "k": 23,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-3-on-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 2505.3,
+        "p90": 4240.4,
+        "p95": 4906.2,
+        "p99": 8115.4
+      },
+      "over_limit": {
+        "k": 31,
+        "n": 100,
+        "p": 0.31,
+        "wilson95": [
+          0.2278,
+          0.4063
+        ]
+      },
+      "session_ms": {
+        "p50": 191.7,
+        "p95": 706.9
+      },
+      "requests_per_reconnect": {
+        "mean": 1.26,
+        "dist": {
+          "1": 80,
+          "2": 16,
+          "3": 3,
+          "5": 1
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-4-off-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1349.5,
+        "p90": 1832.1,
+        "p95": 1874.5,
+        "p99": 1905.8
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "session_ms": {
+        "p50": 202.0,
+        "p95": 691.4
+      },
+      "requests_per_reconnect": {
+        "mean": 1.16,
+        "dist": {
+          "1": 42,
+          "2": 8
+        }
+      },
+      "d1": {
+        "k": 8,
+        "n": 50
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "gns-4-on-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1534.0,
+        "p90": 1580.7,
+        "p95": 1590.1,
+        "p99": 1669.2
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "session_ms": {
+        "p50": 189.9,
+        "p95": 220.0
+      },
+      "requests_per_reconnect": {
+        "mean": 1.0,
+        "dist": {
+          "1": 50
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 50
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4301-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1831.8,
+        "p90": 3091.1,
+        "p95": 3894.8,
+        "p99": 4866.6
+      },
+      "over_limit": {
+        "k": 10,
+        "n": 100,
+        "p": 0.1,
+        "wilson95": [
+          0.0552,
+          0.1744
+        ]
+      },
+      "session_ms": {
+        "p50": 701.2,
+        "p95": 1703.8
+      },
+      "requests_per_reconnect": {
+        "mean": 2.07,
+        "dist": {
+          "1": 26,
+          "2": 53,
+          "3": 14,
+          "4": 5,
+          "6": 1,
+          "7": 1
+        }
+      },
+      "d1": {
+        "k": 51,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4301-on-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1794.4,
+        "p90": 2885.2,
+        "p95": 3276.0,
+        "p99": 4049.5
+      },
+      "over_limit": {
+        "k": 8,
+        "n": 100,
+        "p": 0.08,
+        "wilson95": [
+          0.0411,
+          0.15
+        ]
+      },
+      "session_ms": {
+        "p50": 212.1,
+        "p95": 1232.9
+      },
+      "requests_per_reconnect": {
+        "mean": 1.41,
+        "dist": {
+          "1": 73,
+          "2": 17,
+          "3": 7,
+          "4": 2,
+          "5": 1
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4302-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1688.3,
+        "p90": 2850.1,
+        "p95": 3364.4,
+        "p99": 7318.7
+      },
+      "over_limit": {
+        "k": 8,
+        "n": 100,
+        "p": 0.08,
+        "wilson95": [
+          0.0411,
+          0.15
+        ]
+      },
+      "session_ms": {
+        "p50": 701.6,
+        "p95": 1709.2
+      },
+      "requests_per_reconnect": {
+        "mean": 1.99,
+        "dist": {
+          "1": 29,
+          "2": 50,
+          "3": 15,
+          "4": 5,
+          "5": 1
+        }
+      },
+      "d1": {
+        "k": 49,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4302-on-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1739.7,
+        "p90": 3023.1,
+        "p95": 3805.2,
+        "p99": 5531.7
+      },
+      "over_limit": {
+        "k": 11,
+        "n": 100,
+        "p": 0.11,
+        "wilson95": [
+          0.0625,
+          0.1863
+        ]
+      },
+      "session_ms": {
+        "p50": 207.3,
+        "p95": 1205.2
+      },
+      "requests_per_reconnect": {
+        "mean": 1.31,
+        "dist": {
+          "1": 81,
+          "2": 11,
+          "3": 5,
+          "4": 2,
+          "5": 1
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4303-off-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1872.0,
+        "p90": 2877.2,
+        "p95": 3599.1,
+        "p99": 5057.1
+      },
+      "over_limit": {
+        "k": 7,
+        "n": 100,
+        "p": 0.07,
+        "wilson95": [
+          0.0343,
+          0.1375
+        ]
+      },
+      "session_ms": {
+        "p50": 702.1,
+        "p95": 1693.3
+      },
+      "requests_per_reconnect": {
+        "mean": 2.06,
+        "dist": {
+          "1": 29,
+          "2": 45,
+          "3": 19,
+          "4": 6,
+          "6": 1
+        }
+      },
+      "d1": {
+        "k": 50,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4303-on-harsh": {
+      "cycles": 100,
+      "reconnects": 100,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1604.1,
+        "p90": 3243.3,
+        "p95": 3838.3,
+        "p99": 6215.8
+      },
+      "over_limit": {
+        "k": 13,
+        "n": 100,
+        "p": 0.13,
+        "wilson95": [
+          0.0776,
+          0.2098
+        ]
+      },
+      "session_ms": {
+        "p50": 207.2,
+        "p95": 1197.8
+      },
+      "requests_per_reconnect": {
+        "mean": 1.34,
+        "dist": {
+          "1": 78,
+          "2": 13,
+          "3": 7,
+          "4": 1,
+          "5": 1
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 100
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4304-off-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1320.0,
+        "p90": 1471.8,
+        "p95": 1503.7,
+        "p99": 1895.8
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "session_ms": {
+        "p50": 674.2,
+        "p95": 727.2
+      },
+      "requests_per_reconnect": {
+        "mean": 1.5,
+        "dist": {
+          "1": 25,
+          "2": 25
+        }
+      },
+      "d1": {
+        "k": 25,
+        "n": 50
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    },
+    "udp-4304-on-latency": {
+      "cycles": 50,
+      "reconnects": 50,
+      "no_reconnect": 0,
+      "timeouts": 0,
+      "failed": 0,
+      "gate_timeouts": 0,
+      "total_ms": {
+        "p50": 1122.0,
+        "p90": 1179.4,
+        "p95": 1188.1,
+        "p99": 1406.8
+      },
+      "over_limit": {
+        "k": 0,
+        "n": 50,
+        "p": 0.0,
+        "wilson95": [
+          0.0,
+          0.0713
+        ]
+      },
+      "session_ms": {
+        "p50": 201.0,
+        "p95": 224.7
+      },
+      "requests_per_reconnect": {
+        "mean": 1.0,
+        "dist": {
+          "1": 50
+        }
+      },
+      "d1": {
+        "k": 0,
+        "n": 50
+      },
+      "defects": 0,
+      "d1_unknown": 0
+    }
+  },
+  "pooled": {
+    "udp-harsh": {
+      "off": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 1817.1,
+          "p90": 2877.2,
+          "p95": 3365.3,
+          "p99": 4866.6
+        },
+        "over_limit": {
+          "k": 25,
+          "n": 300,
+          "p": 0.0833,
+          "wilson95": [
+            0.0571,
+            0.1201
+          ]
+        },
+        "session_ms": {
+          "p50": 701.6,
+          "p95": 1696.5
+        },
+        "requests_per_reconnect": {
+          "mean": 2.04,
+          "dist": {
+            "1": 84,
+            "2": 148,
+            "3": 48,
+            "4": 16,
+            "5": 1,
+            "6": 2,
+            "7": 1
+          }
+        },
+        "d1": {
+          "k": 150,
+          "n": 300
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      },
+      "on": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 1666.3,
+          "p90": 3024.1,
+          "p95": 3556.8,
+          "p99": 4919.0
+        },
+        "over_limit": {
+          "k": 32,
+          "n": 300,
+          "p": 0.1067,
+          "wilson95": [
+            0.0766,
+            0.1467
+          ]
+        },
+        "session_ms": {
+          "p50": 207.9,
+          "p95": 1211.5
+        },
+        "requests_per_reconnect": {
+          "mean": 1.353,
+          "dist": {
+            "1": 232,
+            "2": 41,
+            "3": 19,
+            "4": 5,
+            "5": 3
+          }
+        },
+        "d1": {
+          "k": 0,
+          "n": 300
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      }
+    },
+    "udp-latency": {
+      "off": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 1320.0,
+          "p90": 1471.8,
+          "p95": 1503.7,
+          "p99": 1895.8
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "session_ms": {
+          "p50": 674.2,
+          "p95": 727.2
+        },
+        "requests_per_reconnect": {
+          "mean": 1.5,
+          "dist": {
+            "1": 25,
+            "2": 25
+          }
+        },
+        "d1": {
+          "k": 25,
+          "n": 50
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      },
+      "on": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 1122.0,
+          "p90": 1179.4,
+          "p95": 1188.1,
+          "p99": 1406.8
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "session_ms": {
+          "p50": 201.0,
+          "p95": 224.7
+        },
+        "requests_per_reconnect": {
+          "mean": 1.0,
+          "dist": {
+            "1": 50
+          }
+        },
+        "d1": {
+          "k": 0,
+          "n": 50
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      }
+    },
+    "gns-harsh": {
+      "off": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 2445.2,
+          "p90": 3984.3,
+          "p95": 4492.3,
+          "p99": 6059.2
+        },
+        "over_limit": {
+          "k": 88,
+          "n": 300,
+          "p": 0.2933,
+          "wilson95": [
+            0.2447,
+            0.3472
+          ]
+        },
+        "session_ms": {
+          "p50": 223.2,
+          "p95": 1207.4
+        },
+        "requests_per_reconnect": {
+          "mean": 1.67,
+          "dist": {
+            "1": 159,
+            "2": 92,
+            "3": 38,
+            "4": 11
+          }
+        },
+        "d1": {
+          "k": 76,
+          "n": 300
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      },
+      "on": {
+        "cycles": 300,
+        "reconnects": 300,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 2478.4,
+          "p90": 4178.9,
+          "p95": 4774.9,
+          "p99": 6321.1
+        },
+        "over_limit": {
+          "k": 81,
+          "n": 300,
+          "p": 0.27,
+          "wilson95": [
+            0.2229,
+            0.3229
+          ]
+        },
+        "session_ms": {
+          "p50": 195.0,
+          "p95": 1195.8
+        },
+        "requests_per_reconnect": {
+          "mean": 1.363,
+          "dist": {
+            "1": 220,
+            "2": 57,
+            "3": 18,
+            "4": 4,
+            "5": 1
+          }
+        },
+        "d1": {
+          "k": 0,
+          "n": 300
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      }
+    },
+    "gns-latency": {
+      "off": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 1349.5,
+          "p90": 1832.1,
+          "p95": 1874.5,
+          "p99": 1905.8
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "session_ms": {
+          "p50": 202.0,
+          "p95": 691.4
+        },
+        "requests_per_reconnect": {
+          "mean": 1.16,
+          "dist": {
+            "1": 42,
+            "2": 8
+          }
+        },
+        "d1": {
+          "k": 8,
+          "n": 50
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      },
+      "on": {
+        "cycles": 50,
+        "reconnects": 50,
+        "no_reconnect": 0,
+        "timeouts": 0,
+        "failed": 0,
+        "gate_timeouts": 0,
+        "total_ms": {
+          "p50": 1534.0,
+          "p90": 1580.7,
+          "p95": 1590.1,
+          "p99": 1669.2
+        },
+        "over_limit": {
+          "k": 0,
+          "n": 50,
+          "p": 0.0,
+          "wilson95": [
+            0.0,
+            0.0713
+          ]
+        },
+        "session_ms": {
+          "p50": 189.9,
+          "p95": 220.0
+        },
+        "requests_per_reconnect": {
+          "mean": 1.0,
+          "dist": {
+            "1": 50
+          }
+        },
+        "d1": {
+          "k": 0,
+          "n": 50
+        },
+        "defects": 0,
+        "d1_unknown": 0
+      }
+    }
+  },
+  "rules": {
+    "udp-harsh": {
+      "O3_p50": {
+        "diff": -150.8,
+        "ci95": [
+          -248.3,
+          108.0
+        ]
+      },
+      "homogeneity_p": {
+        "off": {
+          "over": 0.736788,
+          "d1": 0.960789
+        },
+        "on": {
+          "over": 0.514456,
+          "d1": 1.0
+        }
+      },
+      "O1_over_limit": {
+        "diff_ci95": [
+          -0.0242,
+          0.0712
+        ],
+        "verdict": "no_difference_shown"
+      },
+      "O2_p95": {
+        "diff": 191.5,
+        "ci95": [
+          -615.0,
+          698.1
+        ],
+        "verdict": "no_difference_shown"
+      },
+      "O2_p99": {
+        "diff": 52.4,
+        "ci95": [
+          -2591.8,
+          1567.3
+        ],
+        "verdict": "no_difference_shown"
+      }
+    },
+    "udp-latency": {
+      "O3_p50": {
+        "diff": -198.0,
+        "ci95": [
+          -302.2,
+          180.0
+        ]
+      }
+    },
+    "gns-harsh": {
+      "O3_p50": {
+        "diff": 33.2,
+        "ci95": [
+          -139.3,
+          165.1
+        ]
+      },
+      "homogeneity_p": {
+        "off": {
+          "over": 0.012806,
+          "d1": 0.086338
+        },
+        "on": {
+          "over": 0.444071,
+          "d1": 1.0
+        }
+      },
+      "O1_over_limit": {
+        "diff_ci95": [
+          -0.0949,
+          0.0485
+        ],
+        "verdict": "no_difference_shown"
+      },
+      "O2_p95": {
+        "diff": 282.6,
+        "ci95": [
+          -142.3,
+          746.8
+        ],
+        "verdict": "no_difference_shown"
+      },
+      "O2_p99": {
+        "diff": 261.9,
+        "ci95": [
+          -904.5,
+          2744.9
+        ],
+        "verdict": "no_difference_shown"
+      }
+    },
+    "gns-latency": {
+      "O3_p50": {
+        "diff": 184.5,
+        "ci95": [
+          163.9,
+          201.5
+        ]
+      }
+    },
+    "O4_defects": 0,
+    "O4_unassessable_reconnects": 0,
+    "recommendation": "do_not_recommend"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "run_id": "ki35-probe-2026-10-25-215541-b36d226",
+  "started": "2026-10-25T21:55:41",
+  "commit": "b36d226220bced034169554ba2768417a38dc31e",
+  "dirty": false,
+  "probe_exit": 0,
+  "args": [
+    "300",
+    "50"
+  ]
+}

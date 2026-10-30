@@ -52,6 +52,15 @@ struct DtlsConfig {
     bool coalesce_records = true;              // KI-35 / FB-11-05: false restores OpenSSL's own packetization
     bool cookie_exchange = true;               // server: HelloVerifyRequest round trip (off only where the inner
                                                // transport already proves return routability, FB-15-01)
+    // EXP-043 experiment (FB-28-01), default off; both peers must enable it. The host (server) sends a BindingAck
+    // when it verifies the client's binding, which is the moment it starts accepting application data (the host
+    // never waits). The client becomes Authenticated only once it has verified the host's binding AND received that
+    // ack, so its first application record cannot reach a host that still drops it (EXP-042). Gating the host as
+    // well let a host ack while it still waited, and the client's record was dropped (FB-28-02 test). Without an
+    // ack after confirm_timeout_us the client proceeds as without the flag (gate_timeouts): never a hang with a
+    // host that lacks it. Fail-closed checks are unchanged; nothing is buffered.
+    bool confirm_binding = false;
+    std::uint64_t confirm_timeout_us = 2'000'000;
     // KI-35 diagnostics (review #10): called for every datagram and milestone BEFORE Authenticated. No secrets:
     // `detail` lists records as content_type/epoch[/handshake_type], or names a milestone / reject reason.
     std::function<void(const char* event, std::uint64_t now_us, std::uint32_t peer, std::string_view detail)> trace;
@@ -67,6 +76,7 @@ struct DtlsStats {
     std::uint64_t binding_sent = 0, binding_received = 0;
     std::uint64_t binding_replies_suppressed = 0;  // rate limit: at most one reply per binding_resend_us (FB-7-04)
     std::uint64_t app_dropped_before_auth = 0;   // fail-closed: application data before Authenticated
+    std::uint64_t binding_acks_sent = 0, binding_acks_received = 0, gate_timeouts = 0;  // confirm_binding (EXP-043)
     std::uint64_t app_in = 0, app_out = 0;
     std::uint64_t datagrams_coalesced = 0;  // BIO datagrams merged into the previous one (KI-35)
     std::size_t max_datagram_out = 0;  // never above min(mtu, transport max_payload)
@@ -115,6 +125,10 @@ private:
     void read_records(std::uint64_t now_us, std::uint64_t now_unix_s);
     void on_binding(std::span<const std::uint8_t> msg, std::uint64_t now_unix_s);
     void send_binding(std::uint64_t now_us);
+    void send_binding_ack();
+    void maybe_authenticate(bool gate_expired);
+    bool gates() const { return cfg_.confirm_binding && !cfg_.server; }  // the client waits for the host's ack
+    bool acks() const { return cfg_.confirm_binding && cfg_.server; }    // the host acks the client's binding
     SendResult flush_out();  // Sent, or the first local refusal of a datagram
     void reject(std::string why);
     bool make_cookie(unsigned char* out, unsigned int* len, unsigned slots_back = 0) const;
@@ -130,9 +144,9 @@ private:
     DtlsState state_ = DtlsState::Handshaking;
     std::string reason_;
     DtlsStats stats_;
-    std::uint64_t started_us_ = 0, binding_started_us_ = 0, last_binding_us_ = 0;
+    std::uint64_t started_us_ = 0, binding_started_us_ = 0, last_binding_us_ = 0, peer_bound_us_ = 0;
     std::uint64_t now_us_ = 0;  // latest time passed in; every datagram is sent with it
-    bool started_ = false, peer_bound_ = false;
+    bool started_ = false, peer_bound_ = false, peer_acked_ = false;  // peer_acked_: confirm_binding only
     std::vector<std::uint8_t> confirmation_;
     std::vector<std::vector<std::uint8_t>> received_;
 };

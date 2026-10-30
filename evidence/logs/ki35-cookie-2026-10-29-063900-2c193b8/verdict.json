@@ -1,0 +1,2823 @@
+{
+  "complete": true,
+  "incomplete_because": [],
+  "batches": {
+    "gns-1-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 36,
+        "n": 100,
+        "p": 0.36,
+        "ci95": [
+          0.2727,
+          0.4576
+        ]
+      },
+      "R_wait": {
+        "k": 5,
+        "n": 36,
+        "p": 0.1389,
+        "ci95": [
+          0.0608,
+          0.2866
+        ]
+      },
+      "R_cookie": {
+        "k": 11,
+        "n": 36,
+        "p": 0.3056,
+        "ci95": [
+          0.18,
+          0.4686
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 5,
+          "n": 36,
+          "p": 0.1389,
+          "ci95": [
+            0.0608,
+            0.2866
+          ]
+        },
+        "establish": {
+          "k": 22,
+          "n": 36,
+          "p": 0.6111,
+          "ci95": [
+            0.4486,
+            0.7522
+          ]
+        },
+        "handshake": {
+          "k": 23,
+          "n": 36,
+          "p": 0.6389,
+          "ci95": [
+            0.4758,
+            0.7752
+          ]
+        },
+        "session": {
+          "k": 15,
+          "n": 36,
+          "p": 0.4167,
+          "ci95": [
+            0.2714,
+            0.578
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 5,
+        "n": 36,
+        "p": 0.1389,
+        "ci95": [
+          0.0608,
+          0.2866
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 193.3,
+          "p95": 759.9,
+          "mean_share": 0.0639
+        },
+        "establish": {
+          "p50": 860.3,
+          "p95": 3206.3,
+          "mean_share": 0.3009
+        },
+        "cookie": {
+          "p50": 214.9,
+          "p95": 1888.1,
+          "mean_share": 0.1267
+        },
+        "handshake": {
+          "p50": 854.5,
+          "p95": 3808.0,
+          "mean_share": 0.2977
+        },
+        "session": {
+          "p50": 715.9,
+          "p95": 1716.9,
+          "mean_share": 0.2108
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 200.2,
+          "p95": 514.9,
+          "mean_share": 0.1184
+        },
+        "establish": {
+          "p50": 401.8,
+          "p95": 1383.9,
+          "mean_share": 0.3191
+        },
+        "cookie": {
+          "p50": 192.1,
+          "p95": 439.1,
+          "mean_share": 0.1138
+        },
+        "handshake": {
+          "p50": 409.3,
+          "p95": 1101.3,
+          "mean_share": 0.2566
+        },
+        "session": {
+          "p50": 213.8,
+          "p95": 1187.9,
+          "mean_share": 0.1921
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 13,
+        "cookie": 3,
+        "handshake": 12,
+        "session": 8
+      },
+      "flights": {
+        "clean": 70,
+        "hello_lost": 21,
+        "hvr_lost_or_late": 9
+      },
+      "hello0_resent": {
+        "k": 30,
+        "n": 100,
+        "p": 0.3,
+        "ci95": [
+          0.2189,
+          0.3958
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.43,
+        "max": 4
+      },
+      "hvr_tx_mean": 1.18,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 721.3,
+        "p99": 1706.3
+      }
+    },
+    "gns-2-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 26,
+        "n": 100,
+        "p": 0.26,
+        "ci95": [
+          0.184,
+          0.3537
+        ]
+      },
+      "R_wait": {
+        "k": 4,
+        "n": 26,
+        "p": 0.1538,
+        "ci95": [
+          0.0615,
+          0.3353
+        ]
+      },
+      "R_cookie": {
+        "k": 12,
+        "n": 26,
+        "p": 0.4615,
+        "ci95": [
+          0.2876,
+          0.6454
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 7,
+          "n": 26,
+          "p": 0.2692,
+          "ci95": [
+            0.137,
+            0.4608
+          ]
+        },
+        "establish": {
+          "k": 17,
+          "n": 26,
+          "p": 0.6538,
+          "ci95": [
+            0.4622,
+            0.8059
+          ]
+        },
+        "handshake": {
+          "k": 18,
+          "n": 26,
+          "p": 0.6923,
+          "ci95": [
+            0.5001,
+            0.835
+          ]
+        },
+        "session": {
+          "k": 16,
+          "n": 26,
+          "p": 0.6154,
+          "ci95": [
+            0.4253,
+            0.7757
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 4,
+        "n": 26,
+        "p": 0.1538,
+        "ci95": [
+          0.0615,
+          0.3353
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 195.2,
+          "p95": 468.0,
+          "mean_share": 0.0686
+        },
+        "establish": {
+          "p50": 1092.8,
+          "p95": 2070.1,
+          "mean_share": 0.2942
+        },
+        "cookie": {
+          "p50": 404.0,
+          "p95": 1883.3,
+          "mean_share": 0.1258
+        },
+        "handshake": {
+          "p50": 855.2,
+          "p95": 2302.9,
+          "mean_share": 0.2877
+        },
+        "session": {
+          "p50": 696.1,
+          "p95": 1688.4,
+          "mean_share": 0.2238
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 197.9,
+          "p95": 468.5,
+          "mean_share": 0.1117
+        },
+        "establish": {
+          "p50": 403.1,
+          "p95": 1338.0,
+          "mean_share": 0.2909
+        },
+        "cookie": {
+          "p50": 195.0,
+          "p95": 453.5,
+          "mean_share": 0.1185
+        },
+        "handshake": {
+          "p50": 592.3,
+          "p95": 1118.3,
+          "mean_share": 0.2736
+        },
+        "session": {
+          "p50": 216.3,
+          "p95": 1176.6,
+          "mean_share": 0.2052
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 9,
+        "cookie": 2,
+        "handshake": 9,
+        "session": 6
+      },
+      "flights": {
+        "clean": 69,
+        "hello_lost": 16,
+        "hvr_lost_or_late": 15
+      },
+      "hello0_resent": {
+        "k": 31,
+        "n": 100,
+        "p": 0.31,
+        "ci95": [
+          0.2278,
+          0.4063
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.38,
+        "max": 4
+      },
+      "hvr_tx_mean": 1.2,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 719.9,
+        "p99": 1707.0
+      }
+    },
+    "gns-3-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 33,
+        "n": 100,
+        "p": 0.33,
+        "ci95": [
+          0.2456,
+          0.4269
+        ]
+      },
+      "R_wait": {
+        "k": 8,
+        "n": 33,
+        "p": 0.2424,
+        "ci95": [
+          0.1283,
+          0.4102
+        ]
+      },
+      "R_cookie": {
+        "k": 12,
+        "n": 33,
+        "p": 0.3636,
+        "ci95": [
+          0.2219,
+          0.5338
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 10,
+          "n": 33,
+          "p": 0.303,
+          "ci95": [
+            0.1738,
+            0.4734
+          ]
+        },
+        "establish": {
+          "k": 24,
+          "n": 33,
+          "p": 0.7273,
+          "ci95": [
+            0.5578,
+            0.8493
+          ]
+        },
+        "handshake": {
+          "k": 17,
+          "n": 33,
+          "p": 0.5152,
+          "ci95": [
+            0.3522,
+            0.675
+          ]
+        },
+        "session": {
+          "k": 19,
+          "n": 33,
+          "p": 0.5758,
+          "ci95": [
+            0.4081,
+            0.7276
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 8,
+        "n": 33,
+        "p": 0.2424,
+        "ci95": [
+          0.1283,
+          0.4102
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 196.7,
+          "p95": 579.9,
+          "mean_share": 0.0671
+        },
+        "establish": {
+          "p50": 1352.5,
+          "p95": 3366.7,
+          "mean_share": 0.3139
+        },
+        "cookie": {
+          "p50": 204.8,
+          "p95": 1921.1,
+          "mean_share": 0.1198
+        },
+        "handshake": {
+          "p50": 852.5,
+          "p95": 2119.1,
+          "mean_share": 0.25
+        },
+        "session": {
+          "p50": 1176.0,
+          "p95": 1713.0,
+          "mean_share": 0.2491
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 199.4,
+          "p95": 458.8,
+          "mean_share": 0.1127
+        },
+        "establish": {
+          "p50": 398.4,
+          "p95": 1358.6,
+          "mean_share": 0.2853
+        },
+        "cookie": {
+          "p50": 193.6,
+          "p95": 441.3,
+          "mean_share": 0.1208
+        },
+        "handshake": {
+          "p50": 585.2,
+          "p95": 1331.9,
+          "mean_share": 0.2935
+        },
+        "session": {
+          "p50": 204.3,
+          "p95": 1192.9,
+          "mean_share": 0.1876
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 14,
+        "cookie": 3,
+        "handshake": 5,
+        "session": 11
+      },
+      "flights": {
+        "clean": 71,
+        "hello_lost": 15,
+        "hvr_lost_or_late": 14
+      },
+      "hello0_resent": {
+        "k": 29,
+        "n": 100,
+        "p": 0.29,
+        "ci95": [
+          0.2101,
+          0.3854
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.39,
+        "max": 5
+      },
+      "hvr_tx_mean": 1.23,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 720.6,
+        "p99": 2690.7
+      }
+    },
+    "gns-4-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 23,
+        "n": 100,
+        "p": 0.23,
+        "ci95": [
+          0.1584,
+          0.3215
+        ]
+      },
+      "R_wait": {
+        "k": 6,
+        "n": 23,
+        "p": 0.2609,
+        "ci95": [
+          0.1255,
+          0.4647
+        ]
+      },
+      "R_cookie": {
+        "k": 11,
+        "n": 23,
+        "p": 0.4783,
+        "ci95": [
+          0.2924,
+          0.6704
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 4,
+          "n": 23,
+          "p": 0.1739,
+          "ci95": [
+            0.0698,
+            0.3714
+          ]
+        },
+        "establish": {
+          "k": 17,
+          "n": 23,
+          "p": 0.7391,
+          "ci95": [
+            0.5353,
+            0.8745
+          ]
+        },
+        "handshake": {
+          "k": 17,
+          "n": 23,
+          "p": 0.7391,
+          "ci95": [
+            0.5353,
+            0.8745
+          ]
+        },
+        "session": {
+          "k": 15,
+          "n": 23,
+          "p": 0.6522,
+          "ci95": [
+            0.4489,
+            0.8119
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 6,
+        "n": 23,
+        "p": 0.2609,
+        "ci95": [
+          0.1255,
+          0.4647
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 200.4,
+          "p95": 424.4,
+          "mean_share": 0.0603
+        },
+        "establish": {
+          "p50": 1370.8,
+          "p95": 2220.2,
+          "mean_share": 0.3318
+        },
+        "cookie": {
+          "p50": 407.7,
+          "p95": 917.2,
+          "mean_share": 0.1302
+        },
+        "handshake": {
+          "p50": 627.2,
+          "p95": 1376.2,
+          "mean_share": 0.2444
+        },
+        "session": {
+          "p50": 705.5,
+          "p95": 1707.7,
+          "mean_share": 0.2332
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 198.6,
+          "p95": 465.2,
+          "mean_share": 0.1125
+        },
+        "establish": {
+          "p50": 391.0,
+          "p95": 1392.5,
+          "mean_share": 0.275
+        },
+        "cookie": {
+          "p50": 195.9,
+          "p95": 449.3,
+          "mean_share": 0.1235
+        },
+        "handshake": {
+          "p50": 594.7,
+          "p95": 1066.1,
+          "mean_share": 0.27
+        },
+        "session": {
+          "p50": 226.9,
+          "p95": 1199.1,
+          "mean_share": 0.219
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 12,
+        "cookie": 1,
+        "handshake": 3,
+        "session": 7
+      },
+      "flights": {
+        "clean": 72,
+        "hello_lost": 16,
+        "hvr_lost_or_late": 12
+      },
+      "hello0_resent": {
+        "k": 28,
+        "n": 100,
+        "p": 0.28,
+        "ci95": [
+          0.2014,
+          0.3749
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.36,
+        "max": 4
+      },
+      "hvr_tx_mean": 1.18,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 720.5,
+        "p99": 1706.5
+      }
+    },
+    "gns-5-off-slow": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 21,
+        "n": 100,
+        "p": 0.21,
+        "ci95": [
+          0.1417,
+          0.2998
+        ]
+      },
+      "R_wait": {
+        "k": 16,
+        "n": 21,
+        "p": 0.7619,
+        "ci95": [
+          0.5491,
+          0.8937
+        ]
+      },
+      "R_cookie": {
+        "k": 17,
+        "n": 21,
+        "p": 0.8095,
+        "ci95": [
+          0.6,
+          0.9233
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 16,
+          "n": 21,
+          "p": 0.7619,
+          "ci95": [
+            0.5491,
+            0.8937
+          ]
+        },
+        "establish": {
+          "k": 21,
+          "n": 21,
+          "p": 1.0,
+          "ci95": [
+            0.8454,
+            1.0
+          ]
+        },
+        "handshake": {
+          "k": 21,
+          "n": 21,
+          "p": 1.0,
+          "ci95": [
+            0.8454,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 19,
+          "n": 21,
+          "p": 0.9048,
+          "ci95": [
+            0.7109,
+            0.9735
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 16,
+        "n": 21,
+        "p": 0.7619,
+        "ci95": [
+          0.5491,
+          0.8937
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 344.4,
+          "p95": 363.8,
+          "mean_share": 0.107
+        },
+        "establish": {
+          "p50": 694.0,
+          "p95": 1199.2,
+          "mean_share": 0.2486
+        },
+        "cookie": {
+          "p50": 333.4,
+          "p95": 361.8,
+          "mean_share": 0.1054
+        },
+        "handshake": {
+          "p50": 921.1,
+          "p95": 1380.9,
+          "mean_share": 0.3061
+        },
+        "session": {
+          "p50": 836.5,
+          "p95": 865.2,
+          "mean_share": 0.2329
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 340.8,
+          "p95": 369.6,
+          "mean_share": 0.1299
+        },
+        "establish": {
+          "p50": 676.4,
+          "p95": 729.6,
+          "mean_share": 0.2604
+        },
+        "cookie": {
+          "p50": 334.1,
+          "p95": 362.8,
+          "mean_share": 0.1284
+        },
+        "handshake": {
+          "p50": 908.2,
+          "p95": 978.0,
+          "mean_share": 0.3498
+        },
+        "session": {
+          "p50": 336.6,
+          "p95": 374.8,
+          "mean_share": 0.1315
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 4,
+        "cookie": 0,
+        "handshake": 15,
+        "session": 2
+      },
+      "flights": {
+        "clean": 0,
+        "hello_lost": 99,
+        "hvr_lost_or_late": 1
+      },
+      "hello0_resent": {
+        "k": 100,
+        "n": 100,
+        "p": 1.0,
+        "ci95": [
+          0.963,
+          1.0
+        ]
+      },
+      "hello0_tx": {
+        "mean": 2.0,
+        "max": 2
+      },
+      "hvr_tx_mean": 1.01,
+      "cookie_wait": {
+        "p50": 235.2,
+        "p95": 236.2,
+        "p99": 236.5
+      }
+    },
+    "gns-6-off-slow": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 22,
+        "n": 100,
+        "p": 0.22,
+        "ci95": [
+          0.15,
+          0.3107
+        ]
+      },
+      "R_wait": {
+        "k": 20,
+        "n": 22,
+        "p": 0.9091,
+        "ci95": [
+          0.7219,
+          0.9747
+        ]
+      },
+      "R_cookie": {
+        "k": 21,
+        "n": 22,
+        "p": 0.9545,
+        "ci95": [
+          0.782,
+          0.9919
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 21,
+          "n": 22,
+          "p": 0.9545,
+          "ci95": [
+            0.782,
+            0.9919
+          ]
+        },
+        "establish": {
+          "k": 22,
+          "n": 22,
+          "p": 1.0,
+          "ci95": [
+            0.8513,
+            1.0
+          ]
+        },
+        "handshake": {
+          "k": 22,
+          "n": 22,
+          "p": 1.0,
+          "ci95": [
+            0.8513,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 22,
+          "n": 22,
+          "p": 1.0,
+          "ci95": [
+            0.8513,
+            1.0
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 20,
+        "n": 22,
+        "p": 0.9091,
+        "ci95": [
+          0.7219,
+          0.9747
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 337.2,
+          "p95": 353.7,
+          "mean_share": 0.1084
+        },
+        "establish": {
+          "p50": 688.3,
+          "p95": 1174.3,
+          "mean_share": 0.232
+        },
+        "cookie": {
+          "p50": 352.8,
+          "p95": 369.5,
+          "mean_share": 0.1121
+        },
+        "handshake": {
+          "p50": 915.2,
+          "p95": 994.7,
+          "mean_share": 0.2964
+        },
+        "session": {
+          "p50": 825.0,
+          "p95": 890.7,
+          "mean_share": 0.2511
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 343.9,
+          "p95": 371.1,
+          "mean_share": 0.131
+        },
+        "establish": {
+          "p50": 676.4,
+          "p95": 728.8,
+          "mean_share": 0.2568
+        },
+        "cookie": {
+          "p50": 340.5,
+          "p95": 564.3,
+          "mean_share": 0.134
+        },
+        "handshake": {
+          "p50": 912.7,
+          "p95": 952.8,
+          "mean_share": 0.3453
+        },
+        "session": {
+          "p50": 346.0,
+          "p95": 381.1,
+          "mean_share": 0.1329
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 2,
+        "cookie": 0,
+        "handshake": 19,
+        "session": 1
+      },
+      "flights": {
+        "clean": 0,
+        "hello_lost": 97,
+        "hvr_lost_or_late": 3
+      },
+      "hello0_resent": {
+        "k": 100,
+        "n": 100,
+        "p": 1.0,
+        "ci95": [
+          0.963,
+          1.0
+        ]
+      },
+      "hello0_tx": {
+        "mean": 2.0,
+        "max": 2
+      },
+      "hvr_tx_mean": 1.03,
+      "cookie_wait": {
+        "p50": 235.3,
+        "p95": 236.4,
+        "p99": 236.5
+      }
+    },
+    "udp-4901-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 9,
+        "n": 100,
+        "p": 0.09,
+        "ci95": [
+          0.0481,
+          0.1623
+        ]
+      },
+      "R_wait": {
+        "k": 2,
+        "n": 9,
+        "p": 0.2222,
+        "ci95": [
+          0.0632,
+          0.5474
+        ]
+      },
+      "R_cookie": {
+        "k": 4,
+        "n": 9,
+        "p": 0.4444,
+        "ci95": [
+          0.1888,
+          0.7333
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 0,
+          "n": 9,
+          "p": 0.0,
+          "ci95": [
+            -0.0,
+            0.2991
+          ]
+        },
+        "establish": {
+          "k": 0,
+          "n": 9,
+          "p": 0.0,
+          "ci95": [
+            -0.0,
+            0.2991
+          ]
+        },
+        "handshake": {
+          "k": 7,
+          "n": 9,
+          "p": 0.7778,
+          "ci95": [
+            0.4526,
+            0.9368
+          ]
+        },
+        "session": {
+          "k": 6,
+          "n": 9,
+          "p": 0.6667,
+          "ci95": [
+            0.3542,
+            0.8794
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 2,
+        "n": 9,
+        "p": 0.2222,
+        "ci95": [
+          0.0632,
+          0.5474
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 113.3,
+          "p95": 624.4,
+          "mean_share": 0.0475
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0008
+        },
+        "cookie": {
+          "p50": 431.3,
+          "p95": 2902.0,
+          "mean_share": 0.1783
+        },
+        "handshake": {
+          "p50": 2117.9,
+          "p95": 3811.4,
+          "mean_share": 0.5227
+        },
+        "session": {
+          "p50": 696.4,
+          "p95": 3230.6,
+          "mean_share": 0.2507
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 108.9,
+          "p95": 408.2,
+          "mean_share": 0.0915
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0016
+        },
+        "cookie": {
+          "p50": 209.3,
+          "p95": 900.1,
+          "mean_share": 0.1577
+        },
+        "handshake": {
+          "p50": 621.4,
+          "p95": 1143.8,
+          "mean_share": 0.3657
+        },
+        "session": {
+          "p50": 697.1,
+          "p95": 1695.8,
+          "mean_share": 0.3835
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 1,
+        "handshake": 6,
+        "session": 2
+      },
+      "flights": {
+        "clean": 76,
+        "hello_lost": 14,
+        "hvr_lost_or_late": 10
+      },
+      "hello0_resent": {
+        "k": 24,
+        "n": 100,
+        "p": 0.24,
+        "ci95": [
+          0.1669,
+          0.3323
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.34,
+        "max": 5
+      },
+      "hvr_tx_mean": 1.22,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 719.7,
+        "p99": 2690.8
+      }
+    },
+    "udp-4902-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 11,
+        "n": 100,
+        "p": 0.11,
+        "ci95": [
+          0.0625,
+          0.1863
+        ]
+      },
+      "R_wait": {
+        "k": 2,
+        "n": 11,
+        "p": 0.1818,
+        "ci95": [
+          0.0514,
+          0.477
+        ]
+      },
+      "R_cookie": {
+        "k": 3,
+        "n": 11,
+        "p": 0.2727,
+        "ci95": [
+          0.0975,
+          0.5656
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 1,
+          "n": 11,
+          "p": 0.0909,
+          "ci95": [
+            0.0162,
+            0.3774
+          ]
+        },
+        "establish": {
+          "k": 0,
+          "n": 11,
+          "p": 0.0,
+          "ci95": [
+            0.0,
+            0.2588
+          ]
+        },
+        "handshake": {
+          "k": 10,
+          "n": 11,
+          "p": 0.9091,
+          "ci95": [
+            0.6226,
+            0.9838
+          ]
+        },
+        "session": {
+          "k": 9,
+          "n": 11,
+          "p": 0.8182,
+          "ci95": [
+            0.523,
+            0.9486
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 2,
+        "n": 11,
+        "p": 0.1818,
+        "ci95": [
+          0.0514,
+          0.477
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 109.8,
+          "p95": 391.6,
+          "mean_share": 0.0409
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0007
+        },
+        "cookie": {
+          "p50": 437.8,
+          "p95": 946.6,
+          "mean_share": 0.1314
+        },
+        "handshake": {
+          "p50": 2117.2,
+          "p95": 5087.1,
+          "mean_share": 0.5624
+        },
+        "session": {
+          "p50": 717.2,
+          "p95": 2209.2,
+          "mean_share": 0.2646
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 105.3,
+          "p95": 391.0,
+          "mean_share": 0.0903
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0016
+        },
+        "cookie": {
+          "p50": 210.0,
+          "p95": 451.9,
+          "mean_share": 0.1676
+        },
+        "handshake": {
+          "p50": 622.9,
+          "p95": 1258.5,
+          "mean_share": 0.3745
+        },
+        "session": {
+          "p50": 696.1,
+          "p95": 1238.2,
+          "mean_share": 0.366
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 0,
+        "handshake": 8,
+        "session": 3
+      },
+      "flights": {
+        "clean": 68,
+        "hello_lost": 20,
+        "hvr_lost_or_late": 12
+      },
+      "hello0_resent": {
+        "k": 32,
+        "n": 100,
+        "p": 0.32,
+        "ci95": [
+          0.2367,
+          0.4166
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.36,
+        "max": 3
+      },
+      "hvr_tx_mean": 1.16,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 236.3,
+        "p99": 721.5
+      }
+    },
+    "udp-4903-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 5,
+        "n": 100,
+        "p": 0.05,
+        "ci95": [
+          0.0215,
+          0.1118
+        ]
+      },
+      "R_wait": {
+        "k": 2,
+        "n": 5,
+        "p": 0.4,
+        "ci95": [
+          0.1176,
+          0.7693
+        ]
+      },
+      "R_cookie": {
+        "k": 2,
+        "n": 5,
+        "p": 0.4,
+        "ci95": [
+          0.1176,
+          0.7693
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 0,
+          "n": 5,
+          "p": 0.0,
+          "ci95": [
+            0.0,
+            0.4345
+          ]
+        },
+        "establish": {
+          "k": 0,
+          "n": 5,
+          "p": 0.0,
+          "ci95": [
+            0.0,
+            0.4345
+          ]
+        },
+        "handshake": {
+          "k": 5,
+          "n": 5,
+          "p": 1.0,
+          "ci95": [
+            0.5655,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 4,
+          "n": 5,
+          "p": 0.8,
+          "ci95": [
+            0.3755,
+            0.9638
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 2,
+        "n": 5,
+        "p": 0.4,
+        "ci95": [
+          0.1176,
+          0.7693
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 110.3,
+          "p95": 121.9,
+          "mean_share": 0.0303
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.0,
+          "mean_share": 0.0008
+        },
+        "cookie": {
+          "p50": 430.2,
+          "p95": 918.9,
+          "mean_share": 0.1257
+        },
+        "handshake": {
+          "p50": 2100.6,
+          "p95": 3102.4,
+          "mean_share": 0.5289
+        },
+        "session": {
+          "p50": 1192.6,
+          "p95": 1717.3,
+          "mean_share": 0.3143
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 105.8,
+          "p95": 385.3,
+          "mean_share": 0.0873
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0017
+        },
+        "cookie": {
+          "p50": 213.1,
+          "p95": 909.8,
+          "mean_share": 0.1798
+        },
+        "handshake": {
+          "p50": 625.3,
+          "p95": 1106.0,
+          "mean_share": 0.362
+        },
+        "session": {
+          "p50": 699.4,
+          "p95": 1232.8,
+          "mean_share": 0.3692
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 0,
+        "handshake": 4,
+        "session": 1
+      },
+      "flights": {
+        "clean": 65,
+        "hello_lost": 18,
+        "hvr_lost_or_late": 17
+      },
+      "hello0_resent": {
+        "k": 35,
+        "n": 100,
+        "p": 0.35,
+        "ci95": [
+          0.2636,
+          0.4475
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.43,
+        "max": 3
+      },
+      "hvr_tx_mean": 1.24,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 720.2,
+        "p99": 721.8
+      }
+    },
+    "udp-4904-off-harsh": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 5,
+        "n": 100,
+        "p": 0.05,
+        "ci95": [
+          0.0215,
+          0.1118
+        ]
+      },
+      "R_wait": {
+        "k": 2,
+        "n": 5,
+        "p": 0.4,
+        "ci95": [
+          0.1176,
+          0.7693
+        ]
+      },
+      "R_cookie": {
+        "k": 3,
+        "n": 5,
+        "p": 0.6,
+        "ci95": [
+          0.2307,
+          0.8824
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 1,
+          "n": 5,
+          "p": 0.2,
+          "ci95": [
+            0.0362,
+            0.6245
+          ]
+        },
+        "establish": {
+          "k": 0,
+          "n": 5,
+          "p": 0.0,
+          "ci95": [
+            0.0,
+            0.4345
+          ]
+        },
+        "handshake": {
+          "k": 5,
+          "n": 5,
+          "p": 1.0,
+          "ci95": [
+            0.5655,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 4,
+          "n": 5,
+          "p": 0.8,
+          "ci95": [
+            0.3755,
+            0.9638
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 2,
+        "n": 5,
+        "p": 0.4,
+        "ci95": [
+          0.1176,
+          0.7693
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 103.3,
+          "p95": 109.7,
+          "mean_share": 0.0286
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.0,
+          "mean_share": 0.0007
+        },
+        "cookie": {
+          "p50": 470.8,
+          "p95": 1887.8,
+          "mean_share": 0.2052
+        },
+        "handshake": {
+          "p50": 2087.3,
+          "p95": 2338.1,
+          "mean_share": 0.5056
+        },
+        "session": {
+          "p50": 714.1,
+          "p95": 1742.0,
+          "mean_share": 0.2599
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 103.8,
+          "p95": 448.7,
+          "mean_share": 0.0865
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0016
+        },
+        "cookie": {
+          "p50": 202.5,
+          "p95": 447.7,
+          "mean_share": 0.1439
+        },
+        "handshake": {
+          "p50": 629.4,
+          "p95": 1388.0,
+          "mean_share": 0.4026
+        },
+        "session": {
+          "p50": 690.8,
+          "p95": 1205.9,
+          "mean_share": 0.3654
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 1,
+        "handshake": 4,
+        "session": 0
+      },
+      "flights": {
+        "clean": 83,
+        "hello_lost": 10,
+        "hvr_lost_or_late": 7
+      },
+      "hello0_resent": {
+        "k": 17,
+        "n": 100,
+        "p": 0.17,
+        "ci95": [
+          0.1089,
+          0.2555
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.22,
+        "max": 4
+      },
+      "hvr_tx_mean": 1.16,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 236.4,
+        "p99": 1706.9
+      }
+    },
+    "udp-4905-off-slow": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 1,
+        "n": 100,
+        "p": 0.01,
+        "ci95": [
+          0.0018,
+          0.0545
+        ]
+      },
+      "R_wait": {
+        "k": 1,
+        "n": 1,
+        "p": 1.0,
+        "ci95": [
+          0.2065,
+          1.0
+        ]
+      },
+      "R_cookie": {
+        "k": 1,
+        "n": 1,
+        "p": 1.0,
+        "ci95": [
+          0.2065,
+          1.0
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "establish": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "handshake": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 1,
+        "n": 1,
+        "p": 1.0,
+        "ci95": [
+          0.2065,
+          1.0
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 195.2,
+          "p95": 195.2,
+          "mean_share": 0.065
+        },
+        "establish": {
+          "p50": 1.6,
+          "p95": 1.6,
+          "mean_share": 0.0005
+        },
+        "cookie": {
+          "p50": 560.0,
+          "p95": 560.0,
+          "mean_share": 0.1866
+        },
+        "handshake": {
+          "p50": 1386.3,
+          "p95": 1386.3,
+          "mean_share": 0.4619
+        },
+        "session": {
+          "p50": 858.4,
+          "p95": 858.4,
+          "mean_share": 0.286
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 173.0,
+          "p95": 198.0,
+          "mean_share": 0.085
+        },
+        "establish": {
+          "p50": 2.5,
+          "p95": 3.1,
+          "mean_share": 0.0011
+        },
+        "cookie": {
+          "p50": 355.9,
+          "p95": 393.2,
+          "mean_share": 0.1733
+        },
+        "handshake": {
+          "p50": 949.3,
+          "p95": 1016.6,
+          "mean_share": 0.4524
+        },
+        "session": {
+          "p50": 822.6,
+          "p95": 892.7,
+          "mean_share": 0.2882
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 0,
+        "handshake": 1,
+        "session": 0
+      },
+      "flights": {
+        "clean": 0,
+        "hello_lost": 97,
+        "hvr_lost_or_late": 3
+      },
+      "hello0_resent": {
+        "k": 100,
+        "n": 100,
+        "p": 1.0,
+        "ci95": [
+          0.963,
+          1.0
+        ]
+      },
+      "hello0_tx": {
+        "mean": 2.0,
+        "max": 2
+      },
+      "hvr_tx_mean": 1.03,
+      "cookie_wait": {
+        "p50": 235.4,
+        "p95": 236.1,
+        "p99": 236.8
+      }
+    },
+    "udp-4906-off-slow": {
+      "cycles": 100,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 100,
+      "unattributable": 0,
+      "n": 100,
+      "over_limit": {
+        "k": 0,
+        "n": 100,
+        "p": 0.0,
+        "ci95": [
+          0.0,
+          0.037
+        ]
+      },
+      "R_wait": {
+        "k": 0,
+        "n": 0,
+        "p": null,
+        "ci95": null
+      },
+      "R_cookie": {
+        "k": 0,
+        "n": 0,
+        "p": null,
+        "ci95": null
+      },
+      "R_phase": {
+        "notice": {
+          "k": 0,
+          "n": 0,
+          "p": null,
+          "ci95": null
+        },
+        "establish": {
+          "k": 0,
+          "n": 0,
+          "p": null,
+          "ci95": null
+        },
+        "handshake": {
+          "k": 0,
+          "n": 0,
+          "p": null,
+          "ci95": null
+        },
+        "session": {
+          "k": 0,
+          "n": 0,
+          "p": null,
+          "ci95": null
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 0,
+        "n": 0,
+        "p": null,
+        "ci95": null
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": null,
+          "p95": null,
+          "mean_share": null
+        },
+        "establish": {
+          "p50": null,
+          "p95": null,
+          "mean_share": null
+        },
+        "cookie": {
+          "p50": null,
+          "p95": null,
+          "mean_share": null
+        },
+        "handshake": {
+          "p50": null,
+          "p95": null,
+          "mean_share": null
+        },
+        "session": {
+          "p50": null,
+          "p95": null,
+          "mean_share": null
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 181.2,
+          "p95": 200.9,
+          "mean_share": 0.0879
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0012
+        },
+        "cookie": {
+          "p50": 354.8,
+          "p95": 391.7,
+          "mean_share": 0.1727
+        },
+        "handshake": {
+          "p50": 951.4,
+          "p95": 1165.2,
+          "mean_share": 0.4603
+        },
+        "session": {
+          "p50": 814.5,
+          "p95": 886.3,
+          "mean_share": 0.2779
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 0,
+        "handshake": 0,
+        "session": 0
+      },
+      "flights": {
+        "clean": 0,
+        "hello_lost": 100,
+        "hvr_lost_or_late": 0
+      },
+      "hello0_resent": {
+        "k": 100,
+        "n": 100,
+        "p": 1.0,
+        "ci95": [
+          0.963,
+          1.0
+        ]
+      },
+      "hello0_tx": {
+        "mean": 2.0,
+        "max": 2
+      },
+      "hvr_tx_mean": 1.0,
+      "cookie_wait": {
+        "p50": 235.2,
+        "p95": 236.1,
+        "p99": 236.2
+      }
+    }
+  },
+  "pooled": {
+    "udp-harsh": {
+      "cycles": 400,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 400,
+      "unattributable": 0,
+      "n": 400,
+      "over_limit": {
+        "k": 30,
+        "n": 400,
+        "p": 0.075,
+        "ci95": [
+          0.053,
+          0.105
+        ]
+      },
+      "R_wait": {
+        "k": 8,
+        "n": 30,
+        "p": 0.2667,
+        "ci95": [
+          0.1418,
+          0.4445
+        ]
+      },
+      "R_cookie": {
+        "k": 12,
+        "n": 30,
+        "p": 0.4,
+        "ci95": [
+          0.2459,
+          0.5768
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 2,
+          "n": 30,
+          "p": 0.0667,
+          "ci95": [
+            0.0185,
+            0.2132
+          ]
+        },
+        "establish": {
+          "k": 0,
+          "n": 30,
+          "p": 0.0,
+          "ci95": [
+            0.0,
+            0.1135
+          ]
+        },
+        "handshake": {
+          "k": 27,
+          "n": 30,
+          "p": 0.9,
+          "ci95": [
+            0.7438,
+            0.9654
+          ]
+        },
+        "session": {
+          "k": 23,
+          "n": 30,
+          "p": 0.7667,
+          "ci95": [
+            0.5907,
+            0.8821
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 8,
+        "n": 30,
+        "p": 0.2667,
+        "ci95": [
+          0.1418,
+          0.4445
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 109.8,
+          "p95": 400.4,
+          "mean_share": 0.0391
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0007
+        },
+        "cookie": {
+          "p50": 437.8,
+          "p95": 1887.8,
+          "mean_share": 0.1568
+        },
+        "handshake": {
+          "p50": 2100.6,
+          "p95": 3811.4,
+          "mean_share": 0.5354
+        },
+        "session": {
+          "p50": 714.1,
+          "p95": 2209.2,
+          "mean_share": 0.2679
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 105.8,
+          "p95": 399.3,
+          "mean_share": 0.0889
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0016
+        },
+        "cookie": {
+          "p50": 209.2,
+          "p95": 469.6,
+          "mean_share": 0.1622
+        },
+        "handshake": {
+          "p50": 623.9,
+          "p95": 1165.7,
+          "mean_share": 0.3763
+        },
+        "session": {
+          "p50": 696.4,
+          "p95": 1238.2,
+          "mean_share": 0.371
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 2,
+        "handshake": 22,
+        "session": 6
+      },
+      "flights": {
+        "clean": 292,
+        "hello_lost": 62,
+        "hvr_lost_or_late": 46
+      },
+      "hello0_resent": {
+        "k": 108,
+        "n": 400,
+        "p": 0.27,
+        "ci95": [
+          0.2288,
+          0.3155
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.337,
+        "max": 5
+      },
+      "hvr_tx_mean": 1.195,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 719.6,
+        "p99": 721.5
+      }
+    },
+    "udp-slow": {
+      "cycles": 200,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 200,
+      "unattributable": 0,
+      "n": 200,
+      "over_limit": {
+        "k": 1,
+        "n": 200,
+        "p": 0.005,
+        "ci95": [
+          0.0009,
+          0.0278
+        ]
+      },
+      "R_wait": {
+        "k": 1,
+        "n": 1,
+        "p": 1.0,
+        "ci95": [
+          0.2065,
+          1.0
+        ]
+      },
+      "R_cookie": {
+        "k": 1,
+        "n": 1,
+        "p": 1.0,
+        "ci95": [
+          0.2065,
+          1.0
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "establish": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "handshake": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 1,
+          "n": 1,
+          "p": 1.0,
+          "ci95": [
+            0.2065,
+            1.0
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 1,
+        "n": 1,
+        "p": 1.0,
+        "ci95": [
+          0.2065,
+          1.0
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 195.2,
+          "p95": 195.2,
+          "mean_share": 0.065
+        },
+        "establish": {
+          "p50": 1.6,
+          "p95": 1.6,
+          "mean_share": 0.0005
+        },
+        "cookie": {
+          "p50": 560.0,
+          "p95": 560.0,
+          "mean_share": 0.1866
+        },
+        "handshake": {
+          "p50": 1386.3,
+          "p95": 1386.3,
+          "mean_share": 0.4619
+        },
+        "session": {
+          "p50": 858.4,
+          "p95": 858.4,
+          "mean_share": 0.286
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 178.2,
+          "p95": 200.8,
+          "mean_share": 0.0865
+        },
+        "establish": {
+          "p50": 3.0,
+          "p95": 3.1,
+          "mean_share": 0.0012
+        },
+        "cookie": {
+          "p50": 355.2,
+          "p95": 392.5,
+          "mean_share": 0.173
+        },
+        "handshake": {
+          "p50": 950.6,
+          "p95": 1016.6,
+          "mean_share": 0.4564
+        },
+        "session": {
+          "p50": 821.9,
+          "p95": 888.4,
+          "mean_share": 0.283
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 0,
+        "cookie": 0,
+        "handshake": 1,
+        "session": 0
+      },
+      "flights": {
+        "clean": 0,
+        "hello_lost": 197,
+        "hvr_lost_or_late": 3
+      },
+      "hello0_resent": {
+        "k": 200,
+        "n": 200,
+        "p": 1.0,
+        "ci95": [
+          0.9812,
+          1.0
+        ]
+      },
+      "hello0_tx": {
+        "mean": 2.0,
+        "max": 2
+      },
+      "hvr_tx_mean": 1.015,
+      "cookie_wait": {
+        "p50": 235.4,
+        "p95": 236.1,
+        "p99": 236.4
+      }
+    },
+    "gns-harsh": {
+      "cycles": 400,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 400,
+      "unattributable": 0,
+      "n": 400,
+      "over_limit": {
+        "k": 118,
+        "n": 400,
+        "p": 0.295,
+        "ci95": [
+          0.2524,
+          0.3415
+        ]
+      },
+      "R_wait": {
+        "k": 23,
+        "n": 118,
+        "p": 0.1949,
+        "ci95": [
+          0.1335,
+          0.2755
+        ]
+      },
+      "R_cookie": {
+        "k": 46,
+        "n": 118,
+        "p": 0.3898,
+        "ci95": [
+          0.3066,
+          0.48
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 26,
+          "n": 118,
+          "p": 0.2203,
+          "ci95": [
+            0.155,
+            0.3033
+          ]
+        },
+        "establish": {
+          "k": 80,
+          "n": 118,
+          "p": 0.678,
+          "ci95": [
+            0.5892,
+            0.7555
+          ]
+        },
+        "handshake": {
+          "k": 75,
+          "n": 118,
+          "p": 0.6356,
+          "ci95": [
+            0.5458,
+            0.7169
+          ]
+        },
+        "session": {
+          "k": 65,
+          "n": 118,
+          "p": 0.5508,
+          "ci95": [
+            0.4609,
+            0.6376
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 23,
+        "n": 118,
+        "p": 0.1949,
+        "ci95": [
+          0.1335,
+          0.2755
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 195.8,
+          "p95": 507.1,
+          "mean_share": 0.0651
+        },
+        "establish": {
+          "p50": 1093.5,
+          "p95": 2865.3,
+          "mean_share": 0.3091
+        },
+        "cookie": {
+          "p50": 224.8,
+          "p95": 1888.1,
+          "mean_share": 0.1252
+        },
+        "handshake": {
+          "p50": 848.3,
+          "p95": 2832.1,
+          "mean_share": 0.2718
+        },
+        "session": {
+          "p50": 712.4,
+          "p95": 1709.8,
+          "mean_share": 0.2287
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 198.6,
+          "p95": 468.7,
+          "mean_share": 0.1137
+        },
+        "establish": {
+          "p50": 399.2,
+          "p95": 1369.6,
+          "mean_share": 0.2916
+        },
+        "cookie": {
+          "p50": 193.0,
+          "p95": 449.1,
+          "mean_share": 0.1194
+        },
+        "handshake": {
+          "p50": 572.0,
+          "p95": 1105.1,
+          "mean_share": 0.2735
+        },
+        "session": {
+          "p50": 211.0,
+          "p95": 1189.3,
+          "mean_share": 0.2018
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 48,
+        "cookie": 9,
+        "handshake": 29,
+        "session": 32
+      },
+      "flights": {
+        "clean": 282,
+        "hello_lost": 68,
+        "hvr_lost_or_late": 50
+      },
+      "hello0_resent": {
+        "k": 118,
+        "n": 400,
+        "p": 0.295,
+        "ci95": [
+          0.2524,
+          0.3415
+        ]
+      },
+      "hello0_tx": {
+        "mean": 1.39,
+        "max": 5
+      },
+      "hvr_tx_mean": 1.198,
+      "cookie_wait": {
+        "p50": 0.0,
+        "p95": 720.5,
+        "p99": 1706.3
+      }
+    },
+    "gns-slow": {
+      "cycles": 200,
+      "events": {
+        "timeout": 0,
+        "failed": 0,
+        "no_reconnect": 0,
+        "no_snapshot": 0
+      },
+      "reconnected": 200,
+      "unattributable": 0,
+      "n": 200,
+      "over_limit": {
+        "k": 43,
+        "n": 200,
+        "p": 0.215,
+        "ci95": [
+          0.1637,
+          0.277
+        ]
+      },
+      "R_wait": {
+        "k": 36,
+        "n": 43,
+        "p": 0.8372,
+        "ci95": [
+          0.7003,
+          0.9188
+        ]
+      },
+      "R_cookie": {
+        "k": 38,
+        "n": 43,
+        "p": 0.8837,
+        "ci95": [
+          0.7552,
+          0.9493
+        ]
+      },
+      "R_phase": {
+        "notice": {
+          "k": 37,
+          "n": 43,
+          "p": 0.8605,
+          "ci95": [
+            0.7274,
+            0.9344
+          ]
+        },
+        "establish": {
+          "k": 43,
+          "n": 43,
+          "p": 1.0,
+          "ci95": [
+            0.918,
+            1.0
+          ]
+        },
+        "handshake": {
+          "k": 43,
+          "n": 43,
+          "p": 1.0,
+          "ci95": [
+            0.918,
+            1.0
+          ]
+        },
+        "session": {
+          "k": 41,
+          "n": 43,
+          "p": 0.9535,
+          "ci95": [
+            0.8454,
+            0.9872
+          ]
+        }
+      },
+      "R_wait_no_restart": {
+        "k": 36,
+        "n": 43,
+        "p": 0.8372,
+        "ci95": [
+          0.7003,
+          0.9188
+        ]
+      },
+      "restarted": 0,
+      "phases_in_S": {
+        "notice": {
+          "p50": 337.2,
+          "p95": 363.8,
+          "mean_share": 0.1077
+        },
+        "establish": {
+          "p50": 689.0,
+          "p95": 1199.2,
+          "mean_share": 0.2401
+        },
+        "cookie": {
+          "p50": 336.6,
+          "p95": 369.5,
+          "mean_share": 0.1089
+        },
+        "handshake": {
+          "p50": 915.6,
+          "p95": 1174.0,
+          "mean_share": 0.3011
+        },
+        "session": {
+          "p50": 826.5,
+          "p95": 890.7,
+          "mean_share": 0.2422
+        }
+      },
+      "phases_outside_S": {
+        "notice": {
+          "p50": 342.3,
+          "p95": 371.1,
+          "mean_share": 0.1305
+        },
+        "establish": {
+          "p50": 676.4,
+          "p95": 728.8,
+          "mean_share": 0.2586
+        },
+        "cookie": {
+          "p50": 337.5,
+          "p95": 389.2,
+          "mean_share": 0.1312
+        },
+        "handshake": {
+          "p50": 908.6,
+          "p95": 959.7,
+          "mean_share": 0.3476
+        },
+        "session": {
+          "p50": 338.4,
+          "p95": 378.5,
+          "mean_share": 0.1322
+        }
+      },
+      "largest_phase_in_S": {
+        "notice": 0,
+        "establish": 6,
+        "cookie": 0,
+        "handshake": 34,
+        "session": 3
+      },
+      "flights": {
+        "clean": 0,
+        "hello_lost": 196,
+        "hvr_lost_or_late": 4
+      },
+      "hello0_resent": {
+        "k": 200,
+        "n": 200,
+        "p": 1.0,
+        "ci95": [
+          0.9812,
+          1.0
+        ]
+      },
+      "hello0_tx": {
+        "mean": 2.0,
+        "max": 2
+      },
+      "hvr_tx_mean": 1.02,
+      "cookie_wait": {
+        "p50": 235.3,
+        "p95": 236.2,
+        "p99": 236.5
+      }
+    }
+  },
+  "rules": {
+    "udp": {
+      "homogeneity_p": {
+        "over_limit": 0.273377,
+        "hello0_resent": 0.018182
+      },
+      "unattributable": {
+        "k": 0,
+        "n": 400,
+        "p": 0.0,
+        "ci95": [
+          0.0,
+          0.0095
+        ]
+      },
+      "R_wait_verdict": "inconclusive",
+      "R_wait_ci95_exact": [
+        0.14182663247581012,
+        0.4444796184128676
+      ]
+    },
+    "gns": {
+      "homogeneity_p": {
+        "over_limit": 0.154976,
+        "hello0_resent": 0.970816
+      },
+      "unattributable": {
+        "k": 0,
+        "n": 400,
+        "p": 0.0,
+        "ci95": [
+          0.0,
+          0.0095
+        ]
+      },
+      "R_wait_verdict": "inconclusive",
+      "R_wait_ci95_exact": [
+        0.13354074166240243,
+        0.2755273976960899
+      ]
+    },
+    "reading": {
+      "verdict": "inconclusive",
+      "next": "owner_and_reviewer_choose"
+    }
+  },
+  "secondary_exp047": {
+    "udp": {
+      "n": 300,
+      "over_limit": 19,
+      "R_cookie": {
+        "k": 10,
+        "n": 19,
+        "p": 0.5263,
+        "ci95": [
+          0.3171,
+          0.7267
+        ]
+      },
+      "cookie": {
+        "p50": 210.1,
+        "p95": 923.1,
+        "p99": 955.6
+      }
+    },
+    "gns": {
+      "n": 300,
+      "over_limit": 92,
+      "R_cookie": {
+        "k": 37,
+        "n": 92,
+        "p": 0.4022,
+        "ci95": [
+          0.3078,
+          0.5043
+        ]
+      },
+      "cookie": {
+        "p50": 194.6,
+        "p95": 905.7,
+        "p99": 3843.2
+      }
+    }
+  }
+}

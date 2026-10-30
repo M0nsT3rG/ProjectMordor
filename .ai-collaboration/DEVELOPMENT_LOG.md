@@ -2,6 +2,112 @@
 
 Newest entries first. Commits are short hashes on the branch named in each entry.
 
+## 2026-10-29: review #38 and EXP-049, what the cookie exchange costs the tail (`feature/ki35-gns-establishment`)
+
+- **Input:** review #38 on PR #25 (FB-38-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md; FB-38-03 is deferred.
+- **EXP-049:** predeclared before any tooling (`e5eb82f`). Codex passes 1–3 fixed how handshake attempts are split; pass 4 approved.
+  - Measurement only, on today's default: harsh (4 batches per backend) and slow (2 per backend), 1200 reconnects.
+- **Tooling (`1d56b6b`):**
+  - The probe splits the client's ClientHellos into attempts and counts the first-ClientHello resends and HVRs from the header trace.
+  - `tools/ki35/run_cookie_probe.py` applies the rules (13 self-tests).
+  - Codex approved it on its second pass, after a missing attempt field had invalidated the whole run instead of one reconnect.
+- **Runs:**
+  - Attempt 1 stopped after 724 cycles, during a low-virtual-memory condition caused by another process; one of its cycles shows the probe nearly frozen for about 22 min. It is kept unjudged (`2c193b8`); the runner's cause of death is not established.
+  - Attempt 2 is complete (06:39–09:26): it was detached through WMI and watched for stop, stall and low memory.
+- **Reading by the predeclared rule: inconclusive.** GNS R_wait is 23/118 = 0.19 [0.13, 0.28] and UDP 8/30 = 0.27 [0.14, 0.44]. No behavioural cookie experiment follows from it; the owner and reviewer choose.
+  - Reported only: on GNS, establishment is most often the largest phase over 3 s (48/118).
+  - On the slow path every reconnect resends the first ClientHello about 236 ms in; the timing makes the resend most likely spurious in 389/400 (FB-38-03 input).
+  - No default changed.
+
+## 2026-10-28: review #31 and EXP-047, intermediate DTLS back-off caps (`feature/ki35-gns-establishment`)
+
+- **Input:** review #31 on PR #25 (FB-31-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md. The owner asked for all of it.
+- **EXP-047:** predeclared before any tooling (`489cacb`).
+  - Arms `off` (250/500/1000 ms), `cap750` and `cap500`, on host and client; profiles harsh and slow (RTT 300–400 ms).
+- **FB-31-02, tooling (`7fcb88c`):**
+  - DTLS trace details carry `len=` and `seq=` (header fields only); a new test on both backends, red-before checked.
+  - The probe records per-side bytes and resent datagrams; `tools/ki35/run_cap_probe.py` applies the rules (9 self-tests).
+  - Codex approved the tooling on its first pass.
+- **Runs on `7fcb88c`:** two attempts stopped early and are kept unjudged.
+  - The first was a child of the agent session and ended with it.
+  - The second ended with no error output; the cause is not established.
+  - The third is complete: 2400 reconnects, no timeouts or failures.
+- **Reading by the predeclared rule: cap750 and cap500 "not shown".**
+  - No predeclared outcome differs from `off` on either backend; both caps passed the byte guard (observed ratios ≤ 1.016).
+  - The slow path's resends (about 3 per side) are similar in every arm. The unchanged 250 ms initial timer is a consistent hypothesis, not established.
+  - Codex reviewed the result record: the numbers match `verdict.json` and the re-analysis reproduces it. It found three overclaims, all corrected: a necessity claim for the flat timer, "no more bytes", and a categorical slow-path cause.
+  - No default changed.
+- **Next for KI-35:** the owner's choice between the cookie round trip (FB-28-04), the GNS establishment and session phases, or an initial-timer study.
+- **Test harness:** the first battery on `668d9e4` failed (`tests-2026-10-28-063008-668d9e4`, kept as recorded).
+  - Every other suite and the E2E passed.
+  - The `dtls` suite hit ctest's 300 s limit after 67 passed cases, with no failure. With the new trace test it takes about 302 s; the last green run already took 297 s.
+  - Its limit is now 900 s (the `-gns` suites use 1200), and the battery was rerun.
+
+## 2026-10-27: review #29 and EXP-044, DTLS retransmission back-off (`feature/ki35-gns-establishment`)
+
+- **Input:** review #29 on PR #25 (FB-29-01..04), all accepted and triaged in CHATGPT_FEEDBACK.md. The owner asked for all of it.
+- **FB-29-03:** 3 BindingAck security tests on both backends (late, duplicated or replayed, and cross-session acks). Writing them found KI-44.
+- **FB-29-04:** EXP-043 is reported as negative.
+- **EXP-044 (FB-29-02):** predeclared before any tooling (`fb90806`).
+  - `SecureTransportConfig::retransmit_max_us` is plumbed to the DTLS session; the default is unchanged. A new test proves the cap reaches the session on both backends (red-before checked).
+  - The probe also records host timer fires, handshake datagrams per side and CPU; `tools/ki35/run_timer_probe.py` applies the rules (16 self-tests).
+  - Codex reviewed the tooling 7 times before the run. Six passes found evidence-gate or classification defects, each fixed with a red-before regression; the seventh approved.
+- **Run on `75eb568`:** complete, 1400 reconnects, no timeouts or failures.
+  - flat (250 ms cap) against off (doubling to 1 s): GNS P(> 3 s) 103/300 to 57/300; p95 and p99 better on both backends; DTLS p99 roughly halved; the median unchanged; the same datagram cost.
+  - **Reading by the predeclared rule: "growth matters."** No default changed: flat is a bounding arm, and RFC 6347 recommends doubling.
+- **Next for KI-35:** predeclare a milder setting (for example a 500 ms cap), then the cookie (FB-28-04). Adoption is the owner's decision.
+
+## 2026-10-26: EXP-043, A/B of client-side gating (`feature/ki35-gns-establishment`)
+
+- **Input:** reviews #27/#28. The owner authorised the behaviour change behind a flag that is off by default. Triaged in CHATGPT_FEEDBACK.md.
+- **`confirm_binding`** (`fc5eed3`, off by default, both ends):
+  - the host acks the client's verified binding (BindingAck `0xB2`, inside DTLS);
+  - the client authenticates only after that ack, with a 2 s fallback; nothing is buffered.
+- **The first design gated both sides.** A FB-28-02 test under loss showed that a host could ack while it still waited, and the client's record was dropped. It was replaced by host-acks / client-gates.
+- **Security tests:** 7, on both backends, with red-before checked.
+- **Predeclared** (`fade3f7`) and tooled (`def890c`). Codex reviewed the tooling 3 times: two evidence-gate defects, both fixed, then approved.
+- **Run on `a68552d`:** complete, 1400 reconnects.
+  - The gate removed every first-request drop (UDP 150/300 → 0, GNS 76/300 → 0) with 0 security defects. UDP session p50 went from 702 to 208 ms.
+  - It did not improve P(total > 3 s), p95 or p99 on either backend.
+  - On a clean GNS path it costs about 185 ms at p50.
+  - **By the predeclared rule: do not recommend.** The flag stays off.
+- **Next for KI-35:** the DTLS-timer and cookie experiments (FB-25-07 / FB-28-04).
+
+## 2026-10-26: EXP-042, does the first session request overtake the binding? (`feature/ki35-gns-establishment`)
+
+- **Input:** the owner asked to test EXP-041's post-hoc explanation.
+- **Predeclared before any run, then amended before any run:**
+  - predeclared in `b52044a`, pushed first; amended in `cae9512` after a Codex review of the tooling;
+  - the model is a Monte Carlo of our UDP impairment;
+  - the amendment accounts for DTLS replay suppression (only a record's earliest copy counts). It also covers known failures, refutation, homogeneity and the attribution and trace gates.
+- **Instrumentation:** one diagnostic trace event where `DtlsSession` already drops records that arrive before the binding. Behaviour is unchanged.
+- **Result** (`ki35-reorder-2026-10-26-153230-1683fe2`, complete):
+  - On UDP, P(first), P(first | D1) = 0 (0/135) and P(first | not D1) are **equivalent** to the model, and the in-order alternative is rejected.
+  - P(D1) = 0.45 narrowly misses equivalence with 0.489, so **H is inconclusive by its rule**.
+  - On GNS both directional rules hold.
+  - Across both backends, no dropped first request ever completed (0/201).
+- **Codex:** three tooling reviews (two before the run, one during it, analysis only, re-analysed separately with identical rule results).
+- **Tests:** suites and E2E passed on `7e148ce`.
+- **Next:** a fail-closed fix that stops wasting the first request (an owner decision); then DTLS timers and the cookie (FB-25-07).
+
+## 2026-10-26: EXP-041, the KI-35 reconnect path (`feature/ki35-gns-establishment`, now up to date with `main`)
+
+- **Input:** the EXP-037 follow-up review on PR #25 (FB-25-05..08); the owner asked for all of it. Triaged in CHATGPT_FEEDBACK.md. Its integration warning was out of date: the three P2 findings had been fixed on `main` before the merge.
+- **Predeclared** (`a4355dc`, pushed before any run) and **tooled** (`fac860c`):
+  - stall reconnects in one process, measured per reconnect;
+  - session request attributed by timestamps;
+  - TOST equivalence with δ = 0.08; chi-square homogeneity before pooling; lag-1 autocorrelation;
+  - timeouts, p50 to p99, P(total > 3 s) and tail dominance.
+- **Codex reviewed the tooling three times before trusting a result:**
+  - before the run: eligibility by phase, verdicts only for a complete run, the same-update snapshot, the abort exit code, the accept association (`2316b93`, `c5cc5f9`);
+  - during the run: tail dominance on a 50/50 split (`ad7d08b`, analysis only, applied in a separate re-analysis directory).
+- **Result** (600/600 reconnected, 0 unattributed):
+  - DTLS and the GNS first cycle are **equivalent** to their models; the first session request is **different** (UDP 0.36, GNS 0.56).
+  - DTLS dominates the slowest 10%. Reconnects over 3 s: UDP 8.3%, GNS 27.7%.
+  - **Post-hoc:** the first request leaves right after the client's binding, jitter reorders them, and the host drops records before the binding. This predicts the observed values on both backends and EXP-037's.
+- **Final Codex review:** two analysis failure paths (a cut last log line; a tail verdict for an incomplete run), fixed with regressions; the recorded run's rules are unchanged. Suites and E2E passed on `bdbaf9f`.
+- **Next:** test that explanation, predeclared; then DTLS timers and the cookie (FB-25-07).
+
 ## 2026-10-26: Gate item 2 fixes and the second integration-gate run (`feature/review23-integration`)
 
 - **Input:** the owner asked to fix Codex's 3 P2 findings on the candidate (passes 6 and 7 on `2217085`), with regressions, and then to get two consecutive clean Codex passes. Record: EXP-038.
@@ -22,6 +128,33 @@ Newest entries first. Commits are short hashes on the branch named in each entry
 - **Codex on `01c2645`:** pass 1 was clean, pass 2 found a P2. `secure-e2e.ps1` ran its second host for a fixed 14 s, so a slow start could leave a negative case facing a stopped host, and its exit 1 then passed as a rejection. host2 now runs until a stop file. `run.json` records that host2 was alive after each negative, and `check_secure.py` gates on that plus `pending_opened >= 2`. Both transports passed. The checker self-test `test_check_secure.py` was already failing at HEAD (its fixture lacked `barrier` and `exit_status`) and nothing ran it; it is fixed, and `test.ps1` now runs both gate-checker self-tests. Suites on `01c2645` passed clean (`tests-2026-10-26-084752-01c2645`).
 - **Item 2 reached on `3c618d9`:** two consecutive clean Codex passes on the unchanged head. Gate run 4 on it (EXP-040) passed items 1-7: suites clean, asymmetric 4/4, secure E2E 4/4, soak 12/12 (harsh-gns-secure 2322 ms), mergeable.
 - **Item 9:** the owner approved in chat ("do the merge"), and PR #24 was retargeted to `main` and merged with a merge commit, never squashed or rebased: the evidence cites commit hashes. KI-35 and KI-43 stay open. Two consecutive clean passes on the final head are still needed, and then the owner's decision.
+
+## 2026-10-25: Review #25 follow-up, EXP-037 (`feature/ki35-gns-establishment`, off the candidate)
+
+- **Input:** [PR #25 review](https://github.com/M0nsT3rG/ProjectMordor/pull/25); the owner asked for all of it. Triaged in CHATGPT_FEEDBACK.md.
+- **Correction:** the "~37 ms" was an unpaired comparison of medians, not a bound on our path (`79f2418`).
+- **EXP-037:** predeclared (`79f2418`) and tooled (`b4d584f`) before any run. Fresh secure joins, harsh profile, 600 trials, 0 failures. UDP seeds 3701–3703 and 3 GNS repetitions.
+  - **Supported:** DTLS without a client retransmission (UDP 0.363, GNS 0.413; model 0.377–0.394) and GNS first cycle (0.590; model 0.522–0.538).
+  - **Not supported:** session with exactly one ConnectRequest (UDP 0.353, GNS 0.547 after the pass-5 correction). Post-hoc, fresh joins retry every 250 ms, about one harsh RTT, so the metric counted redundant requests.
+  - **Slowest 10%:** DTLS is the largest phase (UDP 29/30, GNS 16/30; establishment 14/30).
+- **Codex (branch review):** 3 P2 probe defects, all fixed: the ClientHello match, the timer-throttling opt-out, and the GNS exit guard. None changes a result; the polling was checked on the recorded logs.
+- **Codex pass 2:** a hung probe lost its trials and was killed without a dump. Both runners now use `tools/ki35/bounded.py`: stdout goes straight to the evidence file and `run.json` is written after every batch. A hung probe is dumped (`dump-stacks.ps1`, which now also accepts `ki35*`), then killed, and recorded as `hung`. There is a self-check, plus a manual test on a real probe: dump written, trials kept, no process left.
+- **Codex pass 3:** a client log that failed to open would have counted every session as 0 requests. The probe now exits 2 before any trial, and the analyser reports a missing log as unavailable (`available: false`, n = 0), with a self-check. Every EXP-037 batch has its client log.
+- **Codex pass 4:** the proportions were conditioned on a successful join. Each now counts every trial that reached its phase: DTLS from the first ClientHello, session from authentication, and the GNS cycle over all trials. This has a self-check. EXP-037 had no failed join, and its rules re-analyse unchanged.
+- **Codex pass 5:** the session count included one unsent pre-authentication attempt (`sent: false`). Only sent requests are counted now. The corrected re-analysis is in its own directory (`…-reanalysis-6b116e2`): GNS session_first goes from 163 to 164 of 300, and no rule outcome changes. The original run and its verdict are kept unchanged.
+- **Codex pass 6 (`b75cd25`):** clean, no findings.
+- **Next for KI-35:** DTLS timing (retransmission timer, cookie round trip), and the session phase on the reconnect path with a corrected metric. Each needs its own predeclaration.
+- **Candidate:** Codex passes 6 and 7 found 3 P2 defects, so the candidate is not clean yet. They are not fixed on this branch.
+
+## 2026-10-25: KI-35 investigation, EXP-036 (`feature/ki35-gns-establishment`, off the candidate)
+
+- **Input:** the owner asked to advance KI-35 and to read PR #24 (review #24, triaged).
+- **F-GNS-003:** GNS connects with a 4-packet exchange restarted every 500 ms (a compile-time constant).
+- **EXP-036, predeclared before running:**
+  - raw GNS establishment under harsh: p50 844, p90 1598 ms; the soak's establish p50 is about 37 ms higher (an unpaired comparison, not a bound on our part; corrected after review #25);
+  - H1 rejected on its median band (post-hoc, first-attempt success 0.50 against the model's 0.52); H2 rejected.
+- **Conclusion:** the establishment phase is GNS's own retry; next, the DTLS and session phases (ours).
+- **Candidate:** Codex passes 6 and 7 are scheduled on the unchanged candidate.
 
 ## 2026-10-25: Review #23 follow-up and the first integration-gate run (`feature/review23-integration`, stacked on #23)
 

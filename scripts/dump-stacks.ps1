@@ -14,7 +14,8 @@ param(
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $p = Get-Process -Id $ProcessId
-if ($p.ProcessName -notlike 'mordor*') { throw "refusing to dump '$($p.ProcessName)': only this project's processes" }
+# ki35*: the KI-35 measurement probes (tools/ki35/bounded.py)
+if ($p.ProcessName -notlike 'mordor*' -and $p.ProcessName -notlike 'ki35*') { throw "refusing to dump '$($p.ProcessName)': only this project's processes" }
 New-Item -ItemType Directory -Force $OutDir | Out-Null
 $name = "{0}-{1}-{2}" -f $p.ProcessName, $ProcessId, (Get-Date -Format 'yyyyMMdd-HHmmss')
 $dmp = Join-Path $OutDir "$name.dmp"

@@ -1,0 +1,30 @@
+{
+  "id": "EXP-044",
+  "type": "experiment",
+  "date": "2026-10-27",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback, one process, real time, 1 ms loop",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "KI-35, review #29 (FB-29-02): does the growth of the DTLS handshake retransmission timer drive the stall-reconnect recovery tail? Bounding A/B: off (250 ms initial, doubling, 1 s cap) against flat (250 ms cap, no growth), on host and client. No default change.",
+  "hypothesis": "Predeclared (fb90806, before any tooling or run): O1 P(total > 3 s) flat - off with a 95% Newcombe hybrid score interval; O2 p95/p99 differences with a seeded bootstrap (43, 4000); O3 p50 of total and of the DTLS phase on harsh and latency-only profiles (reported); C1 cost guard: mean handshake datagrams per reconnect flat/off <= 1.5 per backend under harsh; C2 robustness guard: flat never has more timeouts, failures or reconnects that never started than off. Reading 'growth matters' only if O1 or O2-p95 shows flat better on a backend, flat worse on none for O1/O2, and both guards hold; otherwise 'the timer cap is not KI-35's lever'.",
+  "procedure": "SecureTransportConfig::retransmit_max_us plumbed to the DTLS session (default unchanged, pinned equal to DtlsConfig's; a new test proves the cap reaches the session on both backends, red-before checked). tools/ki35/reconnect_probe.cpp gained arm flat, host timer fires, handshake datagrams per side up to authentication, and process CPU; tools/ki35/run_timer_probe.py: harsh UDP seeds 4401-4403 and 3 GNS repetitions per arm, 100 cycles, latency-only (80 + U[0,40] ms) 50 cycles per arm and backend, arms alternating. Seven Codex reviews of the tooling before the run: six found evidence-gate or classification defects (rounding at the C1, O1 and homogeneity thresholds, offsetting C2 events, unknown homogeneity, CPU deltas across processes, missing or zeroed host traces), each fixed with a red-before regression; the seventh approved. Run on 75eb568 (clean), about 3 h.",
+  "expected_result": "If flat does not move the tail, no milder setting will; if it does, a milder setting is predeclared next.",
+  "observed_result": "Complete (16/16 batches, exit 0): 1200 harsh and 200 latency reconnects, 0 timeouts, 0 failures, 0 reconnects that never started; homogeneity held (p >= 0.218); --analyze reproduces the verdict identically. O1 P(total > 3 s): UDP 20/300 off vs 11/300 flat, 95% [-0.068, +0.006], no difference shown; GNS 103/300 vs 57/300, [-0.222, -0.083], flat better. O2: p95 UDP 3349 vs 2905 ms (diff -444, [-953, -9]), GNS 4412 vs 3800 (-612, [-1280, -227]); p99 UDP 4548 vs 3577 (-971, [-1601, -417]), GNS 5683 vs 4705 (-979, [-3040, -336]): flat better on both. DTLS phase p99 UDP 3571 to 1994 ms, GNS 3958 to 1812; DTLS p50 unchanged (848/866, 818/816). O3 p50 total: harsh UDP -96 [-222, +42], GNS -178 [-295, +40]; latency-only UDP +33 [-43, +444], GNS -10 [-36, +16]. C1 datagram ratio UDP 1.030, GNS 0.985; C2 0 events in every category in both arms. Latency-only timer fires per reconnect 0.06 vs 0.10 (UDP), 0.06 vs 0.00 (GNS). Reading by the predeclared rule: GROWTH MATTERS.",
+  "evidence_paths": [
+    "evidence/logs/ki35-timer-2026-10-27-015836-75eb568",
+    "tools/ki35/reconnect_probe.cpp",
+    "tools/ki35/run_timer_probe.py",
+    "tools/ki35/test_run_timer_probe.py",
+    "src/network/secure_transport.cpp",
+    "tests/dtls/secure_transport_tests.cpp"
+  ],
+  "result": "PASSED",
+  "errors": "The experiment ran as predeclared. flat is a bounding arm, not a candidate default: RFC 6347 4.2.4.1 recommends doubling to avoid congestion, and this loopback impairment models neither congestion nor paths whose RTT exceeds 250 ms. One process, loopback, simulated impairment. KI-35 is not fixed: 19% of harsh GNS reconnects still exceed 3 s with flat (GNS establishment and the session phase remain, EXP-041).",
+  "confidence": "medium",
+  "follow_up": "No default change. By the predeclared rule, predeclare a milder setting next (for example a 500 ms cap), including a path whose RTT exceeds the timer, before any run; any adoption is an owner decision. The cookie round trip (FB-28-04) stays a separate experiment.",
+  "related": [
+    "EXP-043",
+    "EXP-041",
+    "EXP-022",
+    "EXP-023"
+  ]
+}

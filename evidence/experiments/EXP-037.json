@@ -1,0 +1,28 @@
+{
+  "id": "EXP-037",
+  "type": "experiment",
+  "date": "2026-10-25",
+  "environment": "Windows 11 Pro x64, MSVC 19.51, GNS 1.6.1 and OpenSSL 3.6.5 via vcpkg 65a2c23, loopback, one process, real time, 1 ms timer resolution",
+  "game_exe_sha256": "N/A (prototype does not touch the game)",
+  "objective": "KI-35, review #25: do the DTLS and session phases (ours) behave as their packet-level mechanisms predict, per connection, with uncertainty and across seeds; which phase makes slow connections slow.",
+  "hypothesis": "Per-attempt proportions (95% Wilson intervals) intersect the model intervals [without, with duplicates]: dtls_no_timer [0.377,0.394]; session_first [0.614,0.628] (2-packet alternative [0.723,0.733]); gns_first_cycle [0.522,0.538].",
+  "procedure": "Predeclared in docs/soak-testing.md and committed (79f2418) before any run; tooling committed (b4d584f). tools/ki35/secure_probe.cpp: a secure Host and Client in one process, real time, harsh profile; each trial a fresh secure join then a leave; per trial the phases establish (connect to first ClientHello), dtls (to authenticated), session (to Connected) and the counts of client DTLS timers, ClientHellos, inner Connected time (GNS) and session ConnectRequests after authentication (from the client log). tools/ki35/run_secure_probe.py: UDP seeds 3701-3703 and 3 GNS repetitions (GNS loss cannot be seeded), 100 trials each, Wilson intervals, predeclared rules. A 3+2-trial smoke run of the probe preceded it and is not counted.",
+  "expected_result": "All three mechanisms supported; batches consistent.",
+  "observed_result": "600/600 joins connected. By the rules: dtls_no_timer SUPPORTED on both (UDP 109/300 = 0.363 [0.311,0.419]; GNS 124/300 = 0.413 [0.359,0.470]); gns_first_cycle SUPPORTED (177/300 = 0.590 [0.534,0.644]); session_first NOT SUPPORTED on either and intersecting neither the 3- nor the 2-packet interval (UDP 106/300 = 0.353 [0.301,0.409]; GNS 164/300 = 0.547 [0.490,0.602] after the corrected re-analysis; 163/300 = 0.543 [0.487,0.599] in the original verdict). Batches consistent for every proportion. Latency p50/p90/p95/p99 ms: UDP dtls 857/1926/2593/4231, session 445/718/949/1431, total 1312/2542/3215/4672; GNS establish 408/1443/2124/3644, dtls 835/1812/2266/3657, session 235/722/956/1271, total 1955/3397/4186/6066. Slowest 10%: UDP dtls 29 of 30, session 1; GNS dtls 16, establish 14. Post-hoc, not a rule: the client sends a ConnectRequest at the instant of authentication (the old wait is gone) and then every 250 ms, the initial-connect interval (ClientConfig::connect_retry_us), which is close to one harsh round trip; a successful first request is often followed by a redundant second one before its ConnectAccept arrives, so 'exactly one request' undercounts first-try successes. The session_first metric was mis-specified for this interval. Also, these are fresh joins (250 ms), while KI-35 is about reconnects, which retry every 500 ms (reconnect_retry_us).",
+  "evidence_paths": [
+    "evidence/logs/ki35-secure-2026-10-25-222913-b4d584f-dirty",
+    "evidence/logs/ki35-secure-2026-10-25-222913-b4d584f-dirty-reanalysis-6b116e2",
+    "tools/ki35/model.py",
+    "tools/ki35/secure_probe.cpp",
+    "tools/ki35/run_secure_probe.py"
+  ],
+  "result": "PARTIAL",
+  "errors": "session_first rejected by its rule; post-hoc the metric was mis-specified (it ignores the 250 ms initial-connect retry, about one harsh RTT). Fresh joins are not stall reconnects (no notice phase, no token, 250 ms instead of 500 ms retry). Tooling defects found by Codex after the run (PR #25), fixed in the probe, none affecting a rule: (1) the ClientHello count also matched 22/0/11 and 22/0/16 records; hellos was not used by any rule or reported figure (first_hello is the first handshake record, always a ClientHello); (2) no Windows 11 power-throttling opt-out for the 1 ms timer request; checked post-hoc on the recorded client logs: consecutive 250 ms ConnectRequests are 250-253 ms apart, so the loop polled at about 1-2 ms, not 15.6 ms; the fixed probe also records loop_ms; (3) no GNS shutdown guard on startup-error exits; every batch exited 0, so none was taken. (4) Codex pass 5: the original analysis counted one unsent pre-authentication ConnectRequest (sent: false) as a session request (gns-2, 57 -> 58 of 100); corrected re-analysis in evidence/logs/ki35-secure-2026-10-25-222913-b4d584f-dirty-reanalysis-6b116e2 (source run and its verdict unchanged); no rule outcome changes. Codex passes 2-4 fixed runner and analyser robustness (bounded runs, a missing client log, per-phase eligibility) that did not touch this run's figures.",
+  "confidence": "medium",
+  "follow_up": "DTLS is the largest phase in the slow tail on both backends and its loss mechanism matches the model: candidates are the DTLS retransmission timing (DtlsConfig back-off: 250 ms initial, doubling, capped at 1 s) and the cookie round trip (EXP-027 showed one RTT saved without a median gain), each in its own predeclared experiment. Re-measure the session phase on the reconnect path (500 ms retry) with a metric that counts the request whose accept completed the session, not the number of requests.",
+  "related": [
+    "EXP-036",
+    "EXP-027",
+    "EXP-025"
+  ]
+}
